@@ -28,7 +28,7 @@ plans$AV.target = round(plans$AV.Calculator.Output.Number,1)
 plans$distance = with(plans,AV.Calculator.Output.Number - AV.target)
 plans$Metal.Level = factor(plans$Metal.Level,levels=c("Catastrophic","Bronze","Silver","Gold","Platinum"))
 
-png("Writing/AVtarget.png",width=2000,height=1500,res=275)
+png("Writing/Images/AVtarget.png",width=2000,height=1500,res=275)
 ggplot(plans[grepl("Standard",plans$CSR.Variation.Type)&plans$Metal.Level!="Catastrophic",]) + 
   aes(x=distance) + 
   facet_wrap(~Metal.Level,ncol=1,scales="free_y") + 
@@ -289,7 +289,7 @@ comb = comb[with(comb,order(ST,AREA,METAL,CARRIER,PLANID)),
 ##### Cost Sharing Plot ####
 comb$METAL = factor(comb$METAL,levels=c("Catastrophic","Bronze","Silver","Gold","Platinum"))
 plotData = comb[with(comb,!is.na(MedDeduct)&CSR==""&MedDeduct<MedOOP),]
-png("Writing/DeductOOP.png",width=2000,height=1500,res=275)
+png("Writing/Images/DeductOOP.png",width=2000,height=1500,res=275)
 ggplot(plotData) + 
   aes(x=MedDeduct,y=MedOOP) + 
   geom_point()  + 
