@@ -342,6 +342,10 @@ choiceSet$count = 1
 choiceSet$count = ave(choiceSet$count,with(choiceSet,paste(ST,AREA,METAL)),FUN=sum)
 choiceSet$valid = ave(!is.na(choiceSet$MedOOP),with(choiceSet,paste(ST,AREA,METAL)),FUN=all)
 
+# Set missing deductibles to 0 if OOP isn't missing
+choiceSet$MedDeduct[is.na(choiceSet$MedDeduct)&choiceSet$valid] = 0 
+choiceSet$MedDeductFam[is.na(choiceSet$MedDeductFam)&choiceSet$valid] = 0 
+
 areas = summaryBy(count+valid~ST+AREA,data=choiceSet,FUN=mean)
 validAreas = areas[areas$valid==1,c("ST","AREA")]
 

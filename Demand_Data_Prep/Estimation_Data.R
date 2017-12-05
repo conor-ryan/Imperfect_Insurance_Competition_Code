@@ -360,7 +360,7 @@ choices$mem_cat = 1
 choices$mem_cat[choices$MEMBERS==2] = 2
 choices$mem_cat[choices$MEMBERS>2] = 3
 
-unins = read.csv("Data/ACS_Data/uninsured_acs2015.csv")
+unins = read.csv("Data/uninsured_acs2015.csv")
 
 choices = merge(choices,unins,by.x=c("STATE","inc_cat","AGE_cat","mem_cat"),
                     by.y=c("state","inc_cat","AGE_cat","mem_cat"),all.x=TRUE)
@@ -394,16 +394,42 @@ choices$Youth[choices$AGE>35] = 0
 choices$LowIncome = 1
 choices$LowIncome[with(choices,is.na(FPL_imp)|FPL_imp>4)] = 0
 
+# Create Group Fixed Effects
+for (fam in 0:1){
+  for (you in 0:1){
+    for (inc in 0:1){
+      var = paste("F",fam,"_Y",you,"_LI",inc,sep="")
+      choices[[var]]=0
+      choices[[var]][with(choices,Family==fam&Youth==you&LowIncome==inc)]=1
+    }
+  }
+}
 
-choices = choices[,c("STATE","APP_RECORD_NUM","QUOTED_RATE","FFM_APTC_AMOUNT","FFM_PREMIUM_DUE",
-                     "FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","SMOKER","AREA","CARRIER","METAL","hix",
-                     "MedDeduct","MedOOP","ageRate","FPL_imp","Benchmark","HHcont","subsidy","Quote",
-                     "PremPaid","Y","Income","logIncome","CSR","Mandate","unins_rate","Family","Youth","LowIncome")]
 
-write.csv(choices,"Intermediate_Output/estimationData.csv",row.names=FALSE)
+
+
+#### Break Down to Smallest Estimatable Data
+# Product Variables
+choices$Firm = gsub(" ","_",choices$CARRIER)
+choices$Firm = gsub("[,.&'-:]","",choices$Firm)
+
+
+choices$Product = with(choices,paste(Firm,METAL,sep="_"))
+
+choices$Market = with(choices,paste(STATE,gsub("Rating Area ","",AREA),sep="_"))
+
+# A little cleaning
+choices$Price = choices$PremPaid
+choices$Price = choices$PremPaid
+
+choices$Age = choices$AGE
+choices$Person = choices$APP_RECORD_NUM
+
+write.csv(choices[,c("Person","Firm","Market","Product","Y","Price","MedDeduct","MedOOP","Family","Age","LowIncome",names(choices)[grepl("F[0-9]_Y.*",names(choices))],"unins_rate")],
+          "Intermediate_Output/estimationData.csv",row.names=FALSE)
 
 #### Product Analysis #### 
-products = unique(choices[,c("STATE","AREA","CARRIER","METAL")])
+products = unique(choices[,c("STATE","Market","Firm")])
 nrow(products)
 products$count = 1
 products = summaryBy(count~CARRIER+METAL,data=products,FUN=sum,keep.names=TRUE)
