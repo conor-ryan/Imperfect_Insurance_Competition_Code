@@ -50,12 +50,12 @@ prof_h <- function(u_l,u_h){
 #### Linear Example ####
 ## Model Primatives
 v_l = 1
-c_l = .5
+c_l = 0.5
 
 v_h = 2
 c_h = 1.5
 
-pi = .9999
+pi = .8
 
 mu_l = .8
 mu_h = 1-mu_l
@@ -328,7 +328,7 @@ findRoots <- function(u,N){
   Pder_ul = share_der(u_l,u_l_low,N)
   Pder_uh = share_der(u_h,u_h_low,N)
   
-  y1 = (Pder_ul/P_ul)*pi_l - c_ul + (mu_l/mu_h) * (P_ul/P_uh) * (theta_h*(1-theta_l)/(theta_l-theta_h)) *(c_unh - c_uah)
+  y1 = (Pder_ul/P_ul)*pi_l - c_ul + (mu_h/mu_l) * (P_uh/P_ul) * (theta_h*(1-theta_h)/(theta_l-theta_h)) *(c_unh - c_uah)
   y2 = (Pder_uh/P_uh)*pi_h*(theta_l-theta_h) - (theta_l*(1-theta_h)*c_unh) + (theta_h*(1-theta_l)*c_uah)
   
   return(c(y1,y2))
@@ -341,6 +341,7 @@ theta_l = .9
 wealth = 5
 damage = 4
 mu_l = 0.5
+mu_h = 1-mu_l
 
 # No Insurance Utility
 u_l_low = theta_l*utility(wealth-damage) + (1-theta_l)*utility(wealth)
@@ -369,6 +370,10 @@ menuPol <- function(u_h,u_l,N){
   return(y1)
 }
 
+u_l_low
+u_h_low
+findRoots(c(u_l_low,u_h_low),N=N)
+
 res =nleqslv(c(u_l_low,u_h_low),findRoots,control = list(stepmax=1e-1,maxit=4000),N=N)
 print(res$message)
 print(res$x)
@@ -377,6 +382,7 @@ nleqslv(u_l_low,menuPol,control = list(stepmax=1e-3,maxit=4000),u_l=u_l_low,N=N)
 
 
 # Run through a vector of u_l
+u_l_highbnd = u_l_high - 1e-3
 u_l_seq = seq(-1.5,u_l_highbnd,length=100)
 u_h_seq = NULL
 mes = NULL
@@ -428,7 +434,7 @@ t6 = cost_der(u_l_seq)-t5
 
 ## Comparative Statics
 
-N = 5
+N = 1
 theta_h = .6
 theta_l = .9
 wealth = 5
@@ -490,11 +496,11 @@ plot(x_vec,loss_list)
 #### Presentation Plots ####
 
 ## Plot Optimal Menus
-theta_h = .65
-theta_l = .7
+theta_h = .6
+theta_l = .9
 wealth = 5
 damage = 4
-mu_l = 0.5
+mu_l = 0.3
 
 menuPlot = NULL
 u_l_seq = seq(-1.5,-.4,length=100)
@@ -533,28 +539,13 @@ ggplot(menuPlot) + aes(x=u_l,y=u_h,color=N) + geom_line(size=1.1) +
         axis.text = element_text(size=12))
 #dev.off()
 
-ggplot(menuPlot) + aes(x=u_l,y=c_nh-c_ah,color=N) + geom_line(size=1.1) + 
-  ylab(expression(u[h])) + 
-  xlab(expression(u[l])) + 
-  ggtitle("Optimal Contract Menus") +
-  theme(panel.background = element_rect(color=grey(.2),fill="transparent"),
-        strip.text = element_blank(),
-        panel.grid.major = element_line(color=grey(.8)),
-        legend.background = element_rect(color=grey(.5)),
-        legend.title=element_blank(),
-        legend.text = element_text(size=18),
-        legend.key.width = unit(.075,units="npc"),
-        legend.key = element_rect(color="transparent",fill="transparent"),
-        #legend.position = "none",
-        axis.title=element_text(size=14),
-        axis.text = element_text(size=12))
 
 ## Plot Competition Statics
 theta_h = .6
-theta_l = .7
+theta_l = .9
 wealth = 5
 damage = 4
-mu_l = 0.6       
+mu_l = 0.3       
 
 
 N_vec = seq(1,25,1)
@@ -721,3 +712,4 @@ ggplot(compPlot[compPlot$stat%in%c("loss"),]) +
 #dev.off()
 
 p_l = wealth - cost(u_l_vec)
+

@@ -6,49 +6,6 @@ library(grid)
 library(doBy)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
 
-#### Plan Attribute Summaries ####
-plans = read.csv("Data/2015_Premiums/Plan_Attributes_PUF.csv")
-plans = plans[,c("State.Code","Benefit.Package.ID","Market.Coverage",
-                 "Dental.Only.Plan.Indicator","Plan.ID","Plan.Marketing.Name",
-                 "Network.ID", "Service.Area.ID","Formulary.ID",
-                 "Plan.Type","Metal.Level","CSR.Variation.Type","Issuer.Actuarial.Value",
-                 "AV.Calculator.Output.Number")]
-
-plans$AV.Calculator.Output.Number[abs(plans$AV.Calculator.Output.Number-1)<.001] = NA
-plans$AV.Calculator.Output.Number[is.na(plans$AV.Calculator.Output.Number)] =
-  as.numeric(gsub("%","",plans$Issuer.Actuarial.Value[is.na(plans$AV.Calculator.Output.Number)]))/100
-plans$AV.Calculator.Output.Number[abs(plans$AV.Calculator.Output.Number-1)<.001] = NA
-plans$AV.Calculator.Output.Number[abs(plans$AV.Calculator.Output.Number-0)<.001] = NA
-
-plans = plans[plans$Dental.Only.Plan.Indicator=="No",]
-plans = plans[plans$Market.Coverage=="Individual",]
-plans = plans[!grepl("%",plans$CSR.Variation.Type),]
-plans = unique(plans[,c("Plan.ID","Metal.Level","CSR.Variation.Type", "AV.Calculator.Output.Number")])
-plans$AV.target = round(plans$AV.Calculator.Output.Number,1)
-plans$distance = with(plans,AV.Calculator.Output.Number - AV.target)
-plans$Metal.Level = factor(plans$Metal.Level,levels=c("Catastrophic","Bronze","Silver","Gold","Platinum"))
-
-png("Writing/Images/AVtarget.png",width=2000,height=1500,res=275)
-ggplot(plans[grepl("Standard",plans$CSR.Variation.Type)&plans$Metal.Level!="Catastrophic",]) + 
-  aes(x=distance) + 
-  facet_wrap(~Metal.Level,ncol=1,scales="free_y") + 
-  geom_histogram(binwidth=.002) + 
-  xlab("Distance from AV Target") + 
-  ylab("") + 
-  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
-    strip.background = element_blank(),
-    #panel.grid.major = element_line(color=grey(.8)),
-    legend.background = element_rect(color=grey(.5)),
-    legend.title=element_blank(),
-    legend.text = element_text(size=18),
-    legend.key.width = unit(.075,units="npc"),
-    legend.key = element_rect(color="transparent",fill="transparent"),
-    legend.position = "none",
-    axis.title=element_text(size=12),
-    axis.text = element_text(size=12))
-dev.off()
-
-
 #### Read in Data ####
 #Read in plan description data 
 planData = read.csv("Data/2015_Premiums/2015_RWJF.csv")

@@ -1,86 +1,102 @@
-# Tables
-include("Tables.jl")
+using BenchmarkTools
+# Data Structure
+include("InsChoiceData.jl")
 
-# Structure the data
-include("CarData.jl")
+#Halton Draws
+include("Halton.jl")
 
-# Maximum Likelihood
-include("LogitMLE.jl")
+# Random Coefficients MLE
+include("MLE_RC_untyped.jl")
 
-# Linear GMM
-include("LinearGMM.jl")
-
-# BLP
-include("BLP.jl")
-
-########################################################################
-#################### Load and Clean the Data ###########################
-########################################################################
+# Load the Data
 include("load.jl")
 
-########################################################################
-#################### Estimate Multinomial Logit on Shares ##############
-########################################################################
+# Structre the data
+c = ChoiceData(df,df_mkt)
 
-# Load the Data into Something we can pass to various estimation
-# routines
-c = CarData(df)
-construct_instruments!(c)
-
-# Run MLE on the Multinomial Logit Model
-d = MultinomialLogit(c)
-estimate!(d, zeros(6))
-
-# Estimate the model using GMM on the log-shares
-s = log.(shares(c)) - log.(outside(c))
-X = hcat(observables(c))
-γ = inv(X'X)*X's
-β = γ[1:end-1]
-α = γ[end]
-
-# Estimate the model using GMM on the log-shares, instrumenting for
-# price
-Z = instruments(c)
-gmm = LinearGMM(s, X, Z)
-estimate!(gmm, inv(Z'Z))
-
-X̂ = Z*inv(Z'Z)*Z'X
-γ̂ = inv(X̂'X̂)*X̂'*s
-
-# Estimate the model using 2SLS on the log-shares, with a fixed effect
-# for the car model
-prods= unique(c.names)
-nprod= length(prods)
-n    = size(X,1)
-dums = zeros(n, nprod-1)
-
-for i=1:nprod-1
-    dums[:,i] = c.names .== prods[i+1]
-end
-
-P(X) = X*inv(X'X)*X'
-M(X) = begin
-    n,k = size(X)
-    speye(n,n) - P(X)
-end
-
-gmm2 = LinearGMM(M(dums)*s, M(dums)*X, Z)
-estimate!(gmm2, inv(Z'Z))
-
-fmt  = "{:.3f}"
-col1 = TableCol("MLE Logit",
-            vcat(c.chars, c.price), pack(d), fmt=fmt)
-col2 = TableCol("OLS Logit",
-            vcat(c.chars, c.price), γ, fmt=fmt)
-col3 = TableCol("IV Logit",
-            vcat(c.chars, c.price), params(gmm),fmt=fmt)
-col4 = TableCol("IV Logit w/ FE",
-            vcat(c.chars, c.price), params(gmm2),fmt=fmt)
-t = Table(col1, col2, col3, col4)
+# Fit into model
+m = InsuranceLogit(c,500)
 
 
-########################################################################
-#################### Estimate BLP ######################################
-########################################################################
+# Initial Parameters
+γstart = Array{Float64}([1,1,1])/100
+βstart = ones(4*4)/100
+σstart = ones(4)/100
+p0 = vcat(γstart,βstart,σstart)
+# unpack!(m,parStart)
+parStart = parDict(m,vcat(γstart,βstart,σstart))
 
-b = BLP(c)
+tic()
+ll = evaluate_iteration(m,parStart)
+toc()
+print(ll)
+# Estimate the Model
+estimate!(m, p0)
+
+calc_RC!(m,parStart)
+reset_δ!(m)
+
+@benchmark unpack_δ!(m)
+
+@benchmark individual_values!(m,parStart,1)
+
+@benchmark δ_update!(m,parStart)
+
+
+
+
+
+
+tic()
+evaluate_iteration(m)
+toc()
+
+@benchmark calc_RC!(m)
+
+calc_RC!(m)
+@benchmark individual_values!(m)
+
+@benchmark unpack_δ!(m)
+
+@benchmark individual_shares_RC!(m)
+
+@benchmark δ_update!(m)
+
+# individual_values!(m)
+# unpack_δ!(m)
+# utility_val!(m)
+# individual_shares!(m)
+# δ_update!(m)
+
+@time log_likelihood(m)
+
+tic()
+log_likelihood(m)
+toc()
+
+@benchmark individual_values!(m)
+@benchmark unpack_δ!(m)
+@benchmark utility_val!(m)
+@benchmark individual_shares!(m)
+@benchmark δ_update!(m)
+
+
+@benchmark individual_values!(m,parStart)
+
+Profile.clear()
+Profile.init(n=10^7,delay=.001)
+#@profile estimate!(m,parStart)
+@profile individual_values!(m,parStart,1)
+Juno.profiletree()
+Juno.profiler()
+
+@benchmark individual_shares!(m)
+@benchmark individual_values!(m)
+# Estimate the Model
+estimate!(m, parStart)
+
+
+
+unpack!(m,parStart)
+@benchmark estimate!(m,parStart)
+@time log_likelihood(m)
