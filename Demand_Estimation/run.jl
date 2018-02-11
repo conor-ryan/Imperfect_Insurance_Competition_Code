@@ -20,18 +20,39 @@ m = InsuranceLogit(c,500)
 
 # Initial Parameters
 γstart = Array{Float64}([1,1,1])/100
-βstart = ones(4*4)/100
+βstart = ones(4*3)/100
 σstart = ones(4)/100
 p0 = vcat(γstart,βstart,σstart)
+#p1 = p0/2
 # unpack!(m,parStart)
-parStart = parDict(m,vcat(γstart,βstart,σstart))
+parStart0 = parDict(m,p0)
+#parStart1 = parDict(m,p1)
 
 tic()
-ll = evaluate_iteration(m,parStart)
+ll = evaluate_iteration(m,parStart0)
 toc()
-print(ll)
+
 # Estimate the Model
 estimate!(m, p0)
+
+
+
+
+m1 = InsuranceLogit(c,500)
+tic()
+ll = evaluate_iteration(m1,parStart1)
+toc()
+
+ll_test0(x) = evaluate_iteration!(m,x)
+ll_test1(x) = evaluate_iteration!(m1,x)
+
+grad0 = Array{Float64,1}(length(p0))
+ForwardDiff.gradient!(grad0, ll_test0, p0)
+
+grad1 = Array{Float64,1}(length(p1))
+ForwardDiff.gradient!(grad1, ll_test1, p1)
+
+
 
 calc_RC!(m,parStart)
 reset_δ!(m)

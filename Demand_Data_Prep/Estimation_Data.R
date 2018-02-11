@@ -454,7 +454,7 @@ shares = shares[!with(shares,paste(Firm,Market))%in%with(absent,paste(Firm,Marke
 #Drop markets with less than 10 observations
 shares = shares[shares$marketTotal>10,]
 #Drop Products with 0 market share
-shares = shares[shares$share>0,]
+shares = shares[shares$s_inside>0,]
 
 # Eliminate the 0 share products from the choice set
 choices = choices[choices$Product%in%shares$Product,]
@@ -464,7 +464,8 @@ choices$Price = (choices$PremPaid*12-choices$Mandate)/1000
 choices$MedDeduct = choices$MedDeduct/1000
 choices$MedOOP = choices$MedOOP/1000
 
-choices$Age = choices$AGE
+choices$Age = 0
+choices$Age[choices$AGE>=40] = 1
 choices$Person = as.character(choices$APP_RECORD_NUM)
 
 choices$Product = as.factor(choices$Product)

@@ -267,9 +267,7 @@ function δ_update!{T}(d,p::parDict{T})
     return eps
 end
 
-# Overwrite the Standard MLE Maximum Likelihood Computation
-function evaluate_iteration{T}(d::InsuranceLogit,p::parDict{T})
-    println("Start Evaluation")
+function contraction!{T}(d::InsuranceLogit,p::parDict{T})
     calc_RC!(d,p)
     reset_δ!(d)
     # Contraction...
@@ -279,10 +277,26 @@ function evaluate_iteration{T}(d::InsuranceLogit,p::parDict{T})
     while (eps>tol) & (rnd<1000)
         rnd+=1
         #Unpack δ_j into estimator data
-        println("Eval 1")
-        println("Eval 2")
         individual_values!(d,p,rnd)
-        println("Eval 3")
+        eps = δ_update!(d,p)
+        unpack_δ!(d,p)
+        println("Contraction Error")
+        println(eps)
+    end
+end
+
+function contraction!{T}(d::InsuranceLogit,p_vec::Array{T,1})
+    p = parDict(d,p_vec)
+    calc_RC!(d,p)
+    reset_δ!(d)
+    # Contraction...
+    rnd = 0
+    eps = 1
+    tol = 1e-10
+    while (eps>tol) & (rnd<1000)
+        rnd+=1
+        #Unpack δ_j into estimator data
+        individual_values!(d,p,rnd)
         eps = δ_update!(d,p)
         unpack_δ!(d,p)
         println("Contraction Error")
@@ -290,8 +304,14 @@ function evaluate_iteration{T}(d::InsuranceLogit,p::parDict{T})
     end
     println("Contraction Rounds")
     println(rnd)
+end
+
+# Overwrite the Standard MLE Maximum Likelihood Computation
+function evaluate_iteration{T}(d::InsuranceLogit,p::parDict{T})
+    contraction!(d,p)
     ll = log_likelihood(d,p)
     println("Evaluated")
+    print(ll)
     return ll
 end
 
@@ -304,7 +324,7 @@ Unpacks the parameters stored in ``x`` and updates the model to use
 them.  The function then calculates and returns the full log_likelihood
 of the updated model.
 """
-function evaluate_iteration!(d::InsuranceLogit, x)
+function evaluate_iteration!{T}(d::InsuranceLogit, x::Array{T,1})
     # Create Parameter Types
     parameters = parDict(d,x)
     return evaluate_iteration(d,parameters)
@@ -328,16 +348,22 @@ function estimate!(d::InsuranceLogit, p0)
     #opt = Opt(:LN_NELDERMEAD, length(p0))
     xtol_rel!(opt, 1e-4)
     maxeval!(opt, 2000)
+    upper_bounds!(opt, ones(length(p0))/10)
 
     # Objective Function
     ll(x) = evaluate_iteration!(d, x)
+    δ_cont(x) = contraction!(d,x)
     count = 0
     function ll(x, grad)
     #     # Store Gradient
         println("Step 1")
-        ForwardDiff.gradient!(grad, ll, x)
-        count +=1
+        δ_cont(x)
         println("Step 2")
+        ForwardDiff.gradient!(grad, ll, x)
+        println(grad)
+        println(typeof(grad))
+        count +=1
+        println("Step 3")
         likelihood = ll(x)
         println("likelihood equals $likelihood at $x on iteration $count")
         return likelihood
