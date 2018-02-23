@@ -85,7 +85,7 @@ planData = planData[,c("ST","METAL","AREA","PLANID","PLANNAME","CARRIER",
 planData = unique(planData)
 
 # Convert NA to 0. This method is only valid because there are no true 0s in the data. 
-for (var in c("MEHBDedInnTier1IndividualA","MEHBDedInnTier2IndividualA",
+for (v in c("MEHBDedInnTier1IndividualA","MEHBDedInnTier2IndividualA",
               "TEHBDedInnTier1IndividualA","TEHBDedInnTier2IndividualA",
               "MEHBDedInnTier1FamilyA","MEHBDedInnTier2FamilyA",
               "TEHBDedInnTier1FamilyA","TEHBDedInnTier2FamilyA",
@@ -95,9 +95,9 @@ for (var in c("MEHBDedInnTier1IndividualA","MEHBDedInnTier2IndividualA",
               "TEHBInnTier1IndividualMOOPA","TEHBInnTier2IndividualMOOPA",
               "MEHBInnTier1FamilyMOOPA","MEHBInnTier2FamilyMOOPA",
               "TEHBInnTier1FamilyMOOPA","TEHBInnTier2FamilyMOOPA")){
-  # print(var)
-  # print(any(planData[[var]]==0,na.rm=TRUE))
-  planData[[var]][is.na(planData[[var]])] = 0
+  # print(v)
+  # print(any(planData[[v]]==0,na.rm=TRUE))
+  planData[[v]][is.na(planData[[v]])] = 0
 }
 
 planData$MedDeduct = with(planData,pmax(MEHBDedInnTier1IndividualA,MEHBDedInnTier2IndividualA)+
@@ -215,11 +215,11 @@ allVars = c("Prem27","MedDeduct","DrugDeduct",
 
 # For the moment, ignore drug variables
 # Clean Variables
-for (var in allVars[!grepl("Drug",allVars)]){
+for (v in allVars[!grepl("Drug",allVars)]){
   #Remove dollar signs from the data
-  hixData[[var]]=gsub("[$,]","",hixData[[var]])
+  hixData[[v]]=gsub("[$,]","",hixData[[v]])
   #Convert premiums to a numeric variable
-  hixData[[var]] = as.numeric(hixData[[var]])
+  hixData[[v]] = as.numeric(hixData[[v]])
 }
 
 # Drop 26 plans without premium info
@@ -290,6 +290,7 @@ AVplot = unique(plans[,c("Plan.ID","Metal","AV.Calculator.Output.Number")])
 AVplot$AV.target = round(AVplot$AV.Calculator.Output.Number,1)
 AVplot$distance = with(AVplot,AV.Calculator.Output.Number - AV.target)
 AVplot$Metal = factor(AVplot$Metal,levels=c("Catastrophic","Bronze","Silver","Gold","Platinum"))
+plans = plans[plans$CSR=="",]
 
 png("Writing/Images/AVtarget.png",width=2000,height=1500,res=275)
 ggplot(AVplot[AVplot$Metal!="Catastrophic",]) + 
@@ -310,10 +311,26 @@ ggplot(AVplot[AVplot$Metal!="Catastrophic",]) +
     axis.title=element_text(size=12),
     axis.text = element_text(size=12))
 dev.off()
+#### Merge with Market Shares ####
+plans$Firm = gsub(" ","_",plans$CARRIER)
+plans$Firm = gsub("[,.&'-:]","",plans$Firm)
+plans$RatingArea = gsub("(.*) ([0-9]+)","\\2",plans$RatingArea)
+plans$Market = paste(plans$State,plans$RatingArea,sep="_")
 
+choices = read.csv("Intermediate_Output/estimationData.csv")
+
+choices$count = 1
+firmShares = summaryBy(Y~Firm+Market,data=choices,FUN=sum,keep.names=TRUE)
+firmShares$marketTotal = ave(firmShares$Y,firmShares$Market,FUN=sum)
+firmShares$share = firmShares$Y/firmShares$marketTotal
+firmShares = firmShares[firmShares$marketTotal>50,]
+firmShares = firmShares[with(firmShares,order(Market,Firm)),]
+
+plans = merge(plans,firmShares,by=c("Firm","Market"),all.x=TRUE)
+plans$share = plans$share*100
 
 #### Screening Regression ####
-for (v in c("Prem27","MedDeduct","DrugDeduct","MedOOP","DrugOOP")){
+for (v in c("Prem27","MedDeduct","MedOOP")){
   #Remove dollar signs from the data
   plans[[v]]=gsub("[$,]","",plans[[v]])
   #Convert premiums to a numeric variable
@@ -321,31 +338,103 @@ for (v in c("Prem27","MedDeduct","DrugDeduct","MedOOP","DrugOOP")){
 }
 #Check on Premium NAs
 
-
-plans$Area = paste(plans$State,plans$RatingArea)
-res = lm(Prem27~AV.Calculator.Output.Number*Area,data=plans)
+plans$FirmArea = paste(plans$Market,plans$Firm)
+plans$unitPrice = plans$Prem27/plans$AV.Calculator.Output.Number
+res = lm(Prem27~AV.Calculator.Output.Number*FirmArea,data=plans)
+res = lm(unitPrice~FirmArea,data=plans)
 
 plans$pHat = NA
+#plans$pHat[!is.na(plans$Prem27)&!is.na(plans$AV.Calculator.Output.Number)&!is.na(plans$share)] = predict(res)
 plans$pHat[!is.na(plans$Prem27)&!is.na(plans$AV.Calculator.Output.Number)] = predict(res)
-plans$resid = with(plans,Prem27-pHat)
+#plans$resid = with(plans,Prem27-pHat)
+plans$resid = with(plans,unitPrice-pHat)
 
-spread = summaryBy(resid~State+RatingArea+CARRIER,
+plans$shareBucket = 90
+plans$shareBucket[plans$share<90] = 80
+plans$shareBucket[plans$share<80] = 70
+plans$shareBucket[plans$share<70] = 60
+plans$shareBucket[plans$share<60] = 50
+plans$shareBucket[plans$share<50] = 40
+plans$shareBucket[plans$share<40] = 30
+plans$shareBucket[plans$share<30] = 20
+plans$shareBucket[plans$share<20] = 10
+plans$shareBucket[plans$share<10] = 0
+plans$shareBucket[is.na(plans$share)] = NA
+
+q1 = summaryBy(resid~shareBucket,data=plans,FUN=quantile,probs=.2,na.rm=TRUE,keep.names=TRUE)
+q9 = summaryBy(resid~shareBucket,data=plans,FUN=quantile,probs=.8,na.rm=TRUE,keep.names=TRUE)
+quants = rbind(q1,q9)
+
+ggplot(quants) + 
+  aes(x=shareBucket,y=resid,group=shareBucket) + 
+  geom_point(alpha=.8) + 
+  geom_line(alpha=.8) + 
+  xlab("Market Share") + 
+  ylab("Premium Residual") + 
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    #panel.grid.major = element_line(color=grey(.8)),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title=element_blank(),
+    legend.text = element_text(size=18),
+    legend.key.width = unit(.075,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "none",
+    axis.title=element_text(size=12),
+    axis.text = element_text(size=12))
+
+#### Plot against Market Share ####
+spread = summaryBy(resid+unitPrice~Market+Firm+share,
                    data=plans,
-                   FUN=var,keep.names=TRUE,na.rm=TRUE)
-spread$Firm = gsub(" ","_",spread$CARRIER)
-spread$Firm = gsub("[,.&'-:]","",spread$Firm)
+                   FUN=sd,keep.names=TRUE,na.rm=TRUE)
 
 
-#### Regress on Market Share ####
-choices = read.csv("Intermediate_Output/estimationData.csv")
+png("Writing/Images/UnitPriceDeviation.png",width=2000,height=1500,res=275)
+ggplot(spread) + 
+  aes(x=share,y=unitPrice) + 
+  geom_point(alpha=.6) + 
+  geom_smooth(se=FALSE,colour="black") + 
+  xlab("Market Share") + 
+  ylab("Unit Price Std. Deviation") + 
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    #panel.grid.major = element_line(color=grey(.8)),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title=element_blank(),
+    legend.text = element_text(size=18),
+    legend.key.width = unit(.075,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "none",
+    axis.title=element_text(size=12),
+    axis.text = element_text(size=12))
+dev.off()
 
-choices$count = 1
-firmShares = summaryBy(Y~Firm+Market,data=choices,FUN=sum,keep.names=TRUE)
-firmShares$marketTotal = ave(firmShares$Y,firmShares$Market,FUN=sum)
-firmShares$share = firmShares$Y/firmShares$marketTotal
-firmShares = firmShares[with(firmShares,order(Market,Firm)),]
 
+#### Plot Quantile Differences ####
+qtspread = summaryBy(resid+Prem27+unitPrice~Market+Firm+shareBucket+share,
+                   data=plans,
+                   FUN=quantile,probs=c(.25,.75),na.rm=TRUE)
 
-spread = merge(spread,firmShares,by=c("Firm","Market"))
+qtspread$premGap = qtspread$`Prem27.75%`-qtspread$`Prem27.25%`
+qtspread$resGap = qtspread$`resid.75%`-qtspread$`resid.25%`
+qtspread$unitGap = qtspread$`unitPrice.75%`-qtspread$`unitPrice.25%`
 
-
+png("Writing/Images/UnitPriceSpread.png",width=2000,height=1500,res=275)
+ggplot(qtspread) + 
+  aes(x=share,y=unitGap) + 
+  geom_point(alpha=.6) + 
+  xlab("Market Share") + 
+  ylab("Unit Price Inter-Quartile Spread") + 
+  geom_smooth(se=FALSE,colour="black") + 
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    #panel.grid.major = element_line(color=grey(.8)),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title=element_blank(),
+    legend.text = element_text(size=18),
+    legend.key.width = unit(.075,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "none",
+    axis.title=element_text(size=12),
+    axis.text = element_text(size=12))
+dev.off()

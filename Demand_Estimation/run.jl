@@ -1,4 +1,6 @@
 using BenchmarkTools
+using JLD
+using CSV
 # Data Structure
 include("InsChoiceData.jl")
 
@@ -19,21 +21,71 @@ m = InsuranceLogit(c,500)
 
 
 # Initial Parameters
-γstart = Array{Float64}([1,1,1])/100
-βstart = ones(4*3)/100
-σstart = ones(4)/100
+γstart = Array{Float64}([0,0,0])/100
+βstart = -ones(4*3)/10
+σstart = ones(4)/1000
 p0 = vcat(γstart,βstart,σstart)
 #p1 = p0/2
 # unpack!(m,parStart)
 parStart0 = parDict(m,p0)
 #parStart1 = parDict(m,p1)
 
-tic()
-ll = evaluate_iteration(m,parStart0)
-toc()
+# tic()
+# ll = evaluate_iteration(m,parStart0)
+# toc()
 
 # Estimate the Model
-estimate!(m, p0)
+p_est = estimate!(m, p0)
+
+run = Dates.today()
+file = "estimationresults_$run.jld"
+save(file,"p_est",p_est)
+paramFinal = parDict(m,p_est)
+contraction!(m,paramFinal)
+out1 = DataFrame(pars=p_est)
+file1 = "estimationresults_$run.csv"
+CSV.write(file1,out1)
+
+out2 = DataFrame(delta=m.deltas,prods=m.prods)
+file2 = "deltaresults_$run.csv"
+CSV.write(file2,out2)
+
+
+# Predict on Full Data
+df = CSV.read("Intermediate_Output/estimationData.csv")
+df_mkt = CSV.read("Intermediate_Output/marketData.csv")
+df[:Firm] = String.(df[:Firm])
+
+
+c = ChoiceData(df,df_mkt)
+# Fit into model
+m = InsuranceLogit(c,500)
+
+file = "Estimation_Output/estimationresults_2018-02-14.jld"
+p_est = load(file)["p_est"]
+paramFinal = parDict(m,p_est)
+
+contraction!(m,paramFinal)
+
+run = Dates.today()
+out1 = DataFrame(pars=p_est)
+file1 = "Estimation_Output/estimationresults_fullapprox$run.csv"
+CSV.write(file1,out1)
+
+out2 = DataFrame(delta=m.deltas,prods=m.prods)
+file2 = "Estimation_Output/deltaresults_fullapprox$run.csv"
+CSV.write(file2,out2)
+
+
+
+
+
+
+
+
+
+
+
 
 
 

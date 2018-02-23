@@ -273,8 +273,30 @@ spread$Market = paste(spread$ST,spread$AREA,sep="_")
 spread$Firm = gsub(" ","_",spread$CARRIER)
 spread$Firm = gsub("[,.&'-:]","",spread$Firm)
 spread = merge(spread[,c("Market","Firm","premSpread","ST")],firmShares[,c("Firm","Market","share")],by=c("Firm","Market"))
+spread$share = spread$share*100
 
-res = lm(premSpread~share+ST,data=spread)
+res = lm(premSpread~share+Market,data=spread)
 summary(res)
+
+
+png("Writing/Images/PremiumSpread.png",width=2000,height=1500,res=275)
+ggplot(spread) + 
+  aes(x=share,y=premSpread) + 
+  geom_point(alpha=.8) + 
+  xlab("Market Share") + 
+  ylab("Gold Avg Premium - Bronze Avg Premium ") + 
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    #panel.grid.major = element_line(color=grey(.8)),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title=element_blank(),
+    legend.text = element_text(size=18),
+    legend.key.width = unit(.075,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "none",
+    axis.title=element_text(size=12),
+    axis.text = element_text(size=12))
+dev.off()
+
 
 

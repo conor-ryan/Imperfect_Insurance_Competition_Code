@@ -122,11 +122,11 @@ function calc_β{T}(p::parDict{T},β::Array{T,1})
     return β_i
 end
 
-function individual_values!{T}(d::InsuranceLogit,p::parDict{T},rnd::Int)
+function individual_values!{T}(d::InsuranceLogit,p::parDict{T};init=false)
     # Store Parameters
     γ = p.γ
     β = p.β
-    if rnd==1
+    if init
         δ_long = d.δ
     else
         δ_long = p.δ
@@ -142,7 +142,7 @@ function individual_values!{T}(d::InsuranceLogit,p::parDict{T},rnd::Int)
         demos = vecdot(γ,Z)
         idxitr = d.data._personDict[ind]
         δ = δ_long[idxitr]
-        d.s_hat[idxitr] = individual_shares_RC!(chars,demos,δ)
+        d.s_hat[idxitr] = individual_shares_RC(chars,demos,δ)
     end
     return Void
 end
@@ -156,7 +156,7 @@ function calc_RC!{T}(d::InsuranceLogit,p::parDict{T})
     return Void
 end
 
-function individual_shares_RC!{T}(chars::Matrix{T},demos,δ;inside=false)
+function individual_shares_RC{T}(chars::Matrix{T},demos,δ;inside=false)
     (K,N) = size(chars)
     μ = Matrix{T}(K,N)
     s_hat = Matrix{T}(K,N)
@@ -205,7 +205,7 @@ function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
         #demos = -10
         idxitr = d.data._personDict[ind]
         δ = d.δ[idxitr]
-        s_hat = individual_shares_RC!(chars,demos,δ;inside=false)
+        s_hat = individual_shares_RC(chars,demos,δ;inside=false)
         s_insured = sum(s_hat)
         for i in eachindex(idxitr)
             ll+=Y[i]*(log(s_hat[i])-urate[i]*log(s_insured))
@@ -276,8 +276,9 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T})
     tol = 1e-10
     while (eps>tol) & (rnd<1000)
         rnd+=1
+        init = rnd==1
         #Unpack δ_j into estimator data
-        individual_values!(d,p,rnd)
+        individual_values!(d,p;init=init)
         eps = δ_update!(d,p)
         unpack_δ!(d,p)
         println("Contraction Error")
@@ -310,8 +311,6 @@ end
 function evaluate_iteration{T}(d::InsuranceLogit,p::parDict{T})
     contraction!(d,p)
     ll = log_likelihood(d,p)
-    println("Evaluated")
-    print(ll)
     return ll
 end
 
@@ -344,26 +343,25 @@ Modifies the model object inplace, and returns it.
 """
 function estimate!(d::InsuranceLogit, p0)
     # Set up the optimization
-    opt = Opt(:LD_MMA, length(p0))
-    #opt = Opt(:LN_NELDERMEAD, length(p0))
+    #opt = Opt(:LD_MMA, length(p0))
+    opt = Opt(:LN_NELDERMEAD, length(p0))
+    #opt = Opt(:LN_SBPLX, length(p0))
     xtol_rel!(opt, 1e-4)
     maxeval!(opt, 2000)
-    upper_bounds!(opt, ones(length(p0))/10)
+    #upper_bounds!(opt, ones(length(p0))/10)
+    initial_step!(opt,5e-3)
 
     # Objective Function
     ll(x) = evaluate_iteration!(d, x)
-    δ_cont(x) = contraction!(d,x)
+    # δ_cont(x) = contraction!(d,x)
     count = 0
     function ll(x, grad)
-    #     # Store Gradient
-        println("Step 1")
-        δ_cont(x)
-        println("Step 2")
-        ForwardDiff.gradient!(grad, ll, x)
-        println(grad)
-        println(typeof(grad))
+        # Store Gradient
+        # println("Step 1")
+        # δ_cont(x)
+        # println("Step 2")
+        # ForwardDiff.gradient!(grad, ll, x)
         count +=1
-        println("Step 3")
         likelihood = ll(x)
         println("likelihood equals $likelihood at $x on iteration $count")
         return likelihood
@@ -379,5 +377,5 @@ function estimate!(d::InsuranceLogit, p0)
     evaluate_iteration!(d, minx)
 
     # Return the object
-    return d
+    return ret
 end

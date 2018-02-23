@@ -66,7 +66,7 @@ eHealth$CARRIER_NAME[grep("Health Net",eHealth$CARRIER_NAME)] = "Health Net"
 eHealth$CARRIER_NAME[grep("Aetna",eHealth$CARRIER_NAME)] = "Aetna"
 eHealth$CARRIER_NAME[grep("Anthem",eHealth$CARRIER_NAME)] = "Anthem"
 eHealth$CARRIER_NAME[grep("Humana",eHealth$CARRIER_NAME)] = "Humana"
-eHealth$CARRIER_NAME[grep("Coventry",eHealth$CARRIER_NAME)] = "Coventry"
+eHealth$CARRIER_NAME[grep("Coventry",eHealth$CARRIER_NAME)] = "Aetna"
 eHealth$CARRIER_NAME[grep("Ambetter",eHealth$CARRIER_NAME)] = "Ambetter"
 eHealth$CARRIER_NAME[grep("Kaiser",eHealth$CARRIER_NAME)] = "Kaiser"
 eHealth$CARRIER_NAME[grep("Moda",eHealth$CARRIER_NAME)] = "Moda"
@@ -362,7 +362,7 @@ choices$mem_cat = 1
 choices$mem_cat[choices$MEMBERS==2] = 2
 choices$mem_cat[choices$MEMBERS>2] = 3
 
-unins = read.csv("Data/uninsured_acs2015.csv")
+unins = read.csv("Data/2015_ACS/uninsured_acs2015.csv")
 
 choices = merge(choices,unins,by.x=c("STATE","inc_cat","AGE_cat","mem_cat"),
                     by.y=c("state","inc_cat","AGE_cat","mem_cat"),all.x=TRUE)
@@ -434,7 +434,7 @@ choices$Market = with(choices,paste(STATE,gsub("Rating Area ","",AREA),sep="_"))
 choices$Product = with(choices,paste(Firm,METAL,Market,sep="_"))
 
 #### Calculate Product Market Share ####
-unins_st = read.csv("Data/uninsured_ST_acs2015.csv")
+unins_st = read.csv("Data/2015_ACS/uninsured_ST_acs2015.csv")
 
 choices$count = 1
 shares = summaryBy(count+Y~Product+Firm+Market+STATE,data=choices,FUN=sum,keep.names=TRUE)
@@ -469,10 +469,10 @@ choices$Age[choices$AGE>=40] = 1
 choices$Person = as.character(choices$APP_RECORD_NUM)
 
 choices$Product = as.factor(choices$Product)
-shares$Product = factor(shares$Product,levels=levels(choices$Product))
+shares$Product_Name = factor(shares$Product,levels=levels(choices$Product))
 
 choices$Product = as.numeric(choices$Product)
-shares$Product = as.numeric(shares$Product)
+shares$Product = as.numeric(shares$Product_Name)
 
 choices = choices[with(choices,order(Person,Product)),]
 shares = shares[order(shares$Product),]
@@ -481,6 +481,8 @@ write.csv(choices[,c("Person","Firm","Market","Product","Y","Price","MedDeduct",
           "Intermediate_Output/estimationData.csv",row.names=FALSE)
 write.csv(shares[,c("Product","Share")],
           "Intermediate_Output/marketData.csv",row.names=FALSE)
+write.csv(shares[,c("Product_Name","Product","Share","Firm","Market","STATE")],
+          "Intermediate_Output/marketDataMap.csv",row.names=FALSE)
 
 # Create mini Michigan Dataset and Renumber Products
 MI = choices[choices$STATE=="MI",]
@@ -499,7 +501,8 @@ write.csv(MI[,c("Person","Firm","Market","Product","Y","Price","MedDeduct","MedO
           "Intermediate_Output/estimationData_MI.csv",row.names=FALSE)
 write.csv(MI_mkt[,c("Product","Share")],
           "Intermediate_Output/marketData_MI.csv",row.names=FALSE)
-
+write.csv(MI_mkt[,c("Product_Name","Product","Share","Firm","Market","STATE")],
+          "Intermediate_Output/marketDataMap_MI.csv",row.names=FALSE)
 
 
 #### Product Analysis #### 
