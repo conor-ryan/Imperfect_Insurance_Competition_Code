@@ -24,7 +24,7 @@ m = InsuranceLogit(c,500)
 γstart = Array{Float64}([0,0,0])/100
 αstart = -.4
 βstart = -ones(4*3)/10
-σstart = ones(5)/1000
+σstart = [1,1,.5,1,1.5]/1000
 p0 = vcat(αstart,γstart,βstart,σstart)
 #p1 = p0/2
 # unpack!(m,parStart)

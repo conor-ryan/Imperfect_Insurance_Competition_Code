@@ -4,13 +4,24 @@ using ForwardDiff
 
 abstract type LogitModel end
 
-# Indexing just looks up parameters
-getindex(m::LogitModel, key) = m.parameters[key]
-getindex(m::LogitModel, keys::AbstractArray) = [m[key] for key in keys]
+type InsuranceLogit <: LogitModel
+    # Dictionary of Parameters and implied lengths
+    parLength::Dict{Symbol, Int}
+    # ChoiceData struct
+    data::ChoiceData
 
-function setindex!(m::LogitModel, val, key)
-    m.parameters[key] = val
-    return m
+    #Store Halton Draws
+    draws::Array{Float64,2}
+
+    # Store shares predictions for every (ij) pair
+    s_hat
+
+    # Product Level Data
+    # Separate vectors, all sorted by product
+    prods
+    shares
+    #Unique firm-level deltas
+    deltas
 end
 
 type parDict{T}
@@ -19,45 +30,20 @@ type parDict{T}
     γ::Vector{T}
     β::Matrix{T}
     σ::Vector{T}
+    #Random Coefficients stored (function of σ and draws)
     randCoeffs::Array{T,2}
+    # δ values for (ij) pairs
     δ::Vector{T}
-    #δ_dev::Vector{T}
-end
-# Indexing just looks up parameters
-# getindex{T}(p::parDict{T}, key) = p.parameters[key]
-# getindex{T}(p::parDict{T}, keys::AbstractArray) = [m[key] for key in keys]
-
-
-type InsuranceLogit <: LogitModel
-    parLength::Dict{Symbol, Int}
-    #   Includes:
-    #   γ   Vector governing demographic preferences for insurance
-    #   β   Vector governing preferences over different risk characteristics
-    #   ϕ   Vector governing risk sensativity, accounting for fixed effects
-    #   α   Vector governing price sensitivity, accounting for fixed effects
-    data::ChoiceData
-
-    #Store Halton Draws
-    draws
-    # Matrix to store estimated values, μ_ij and predicted share
-    # These variables are length of the entire data
-    # All sorted by person, identical to data
-    δ::Array{Float64,1}
-    s_hat
-
-    # Product Level Data
-    # Separate vectors, all sorted by product
-    prods
-    shares
-    deltas
 end
 
 function parDict{T}(m::InsuranceLogit,x::Array{T})
+    # Parameter Lengths from model
     αlen = 1
     γlen = αlen + m.parLength[:γ]
     βlen = γlen + m.parLength[:β]*m.parLength[:γ]
     σlen = βlen + m.parLength[:σ]
 
+    #Distribute Parameters
     α = x[1:αlen]
     γ = x[(αlen+1):γlen]
     β_vec = x[(γlen+1):βlen]
@@ -73,14 +59,28 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
         β[j,i] = β_vec[ind]
     end
 
+    #Calculate Random Coefficients matrix
     (R,S) = size(m.draws)
     randCoeffs = Array{T,2}(m.parLength[:σ],S)
+    calcRC!(randCoeffs,σ,m.draws)
 
+    #Initialize (ij) pairs of deltas
     L, M = size(m.data.data)
     δ = Vector{T}(M)
+    unpack_δ!(δ,m)
 
     return parDict{T}(α,γ,β,σ,randCoeffs,δ)
 end
+
+function calcRC!{T,S}(randCoeffs::Array{S},σ::Array{T},draws::Array{Float64,2})
+    (K, N) = size(randCoeffs)
+    for k in 1:K,n in 1:N
+        l = min(k,3)
+        randCoeffs[k,n] = draws[l,n]*σ[k]
+    end
+    return Void
+end
+
 
 function InsuranceLogit(data::ChoiceData,haltonDim::Int)
     # Construct the model instance
@@ -91,7 +91,6 @@ function InsuranceLogit(data::ChoiceData,haltonDim::Int)
     σlen = βlen+1
 
     parLength = Dict(:γ=>γlen,:β=>βlen,:σ=>σlen)
-    #parameters = Dict{Symbol, Array{Any}}()
 
     # Initialize Halton Draws
     # These are the same across all individuals
@@ -99,7 +98,6 @@ function InsuranceLogit(data::ChoiceData,haltonDim::Int)
 
     # Initialize Empty value prediction objects
     n, k = size(c.data)
-    δ = Vector{Float64}(k)
     s_hat = Vector{Real}(k)
 
     # Copy Firm Level Data for Changing in Estimation
@@ -109,22 +107,14 @@ function InsuranceLogit(data::ChoiceData,haltonDim::Int)
 
     d = InsuranceLogit(parLength,data,
                         draws,
-                        δ,s_hat,
+                        s_hat,
                         pmat[:Product],pmat[:Share],pmat[:delta])
     return d
 end
 
-function calc_RC!{T}(d::InsuranceLogit,p::parDict{T})
-    σ = p.σ
-    (K, N) = size(p.randCoeffs)
-    for k in 1:K,n in 1:N
-        l = min(k,3)
-        p.randCoeffs[k,n] = d.draws[l,n]*σ[k]
-    end
-    return Void
-end
 
-function calc_indCoeffs{T}(p::parDict{T},β::Array{T,1},γ)
+
+function calc_indCoeffs{T}(p::parDict{T},β::Array{T,1},γ::T)
     Q = length(β)
     (K,N) = size(p.randCoeffs)
     β_i = Array{T,2}(Q,N)
@@ -138,16 +128,12 @@ function calc_indCoeffs{T}(p::parDict{T},β::Array{T,1},γ)
     return β_i, γ_i
 end
 
-function individual_values!{T}(d::InsuranceLogit,p::parDict{T};init::Bool=false)
+function individual_values!{T}(d::InsuranceLogit,p::parDict{T})
     # Store Parameters
     γ = p.γ
     β = p.β
     α = p.α[1]
-    if init
-        δ_long = d.δ
-    else
-        δ_long = p.δ
-    end
+    δ_long = p.δ
     # Calculate μ_ij, which depends only on parameters
     for app in eachperson(d.data)
         ind = person(app)[1]
@@ -193,7 +179,6 @@ function individual_shares_RC{T}(μ_ij::Array{T},δ;inside::Bool=false)
             s_hat[i,n] = util[i,n]/expsum
         end
     end
-    #s_mean = mean(s_hat,2)
     for i in 1:K
         s_mean[i] = mean(s_hat[i,:])
     end
@@ -239,37 +224,30 @@ function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
 end
 
 
-function unpack_δ!{T}(d::InsuranceLogit,p::parDict{T})
+function unpack_δ!{T}(δ::Vector{T},d::InsuranceLogit)
     for j in d.prods
         idx_j = d.data._productDict[j]
         for idx in idx_j
-            p.δ[idx] = d.deltas[j]
+            δ[idx] = d.deltas[j]
         end
     end
     return Void
 end
 
-function reset_δ!(d::InsuranceLogit)
+function convert_δ!(d::InsuranceLogit)
     J = length(d.deltas)
     deltas_new = Array{Float64}(J)
     for j in d.prods
         deltas_new[j] = ForwardDiff.value(d.deltas[j])
     end
     d.deltas = deltas_new
-
-    for j in d.prods
-        idx_j = d.data._productDict[j]
-        for idx in idx_j
-            d.δ[idx] = d.deltas[j]
-        end
-    end
     return Void
 end
 
 
 # Update δ
 @views sliceMean{T}(x::Vector{T},idx::Array{Int64,1}) = mean(x[idx])
-function δ_update!{T}(d,p::parDict{T})
+function δ_update!{T}(d::InsuranceLogit,p::parDict{T})
     # Calculate overall marketshares and update δ_j
     eps = 0.0
     J = length(d.deltas)
@@ -292,19 +270,16 @@ function δ_update!{T}(d,p::parDict{T})
 end
 
 function contraction!{T}(d::InsuranceLogit,p::parDict{T})
-    calc_RC!(d,p)
-    reset_δ!(d)
     # Contraction...
     rnd = 0
     eps = 1
     tol = 1e-10
     while (eps>tol) & (rnd<1000)
         rnd+=1
-        init = rnd==1
         #Unpack δ_j into estimator data
-        individual_values!(d,p;init=init)
+        individual_values!(d,p)
         eps = δ_update!(d,p)
-        unpack_δ!(d,p)
+        unpack_δ!(p.δ,d)
         println("Contraction Error")
         println(eps)
     end
@@ -312,41 +287,17 @@ end
 
 function contraction!{T}(d::InsuranceLogit,p_vec::Array{T,1})
     p = parDict(d,p_vec)
-    calc_RC!(d,p)
-    reset_δ!(d)
-    # Contraction...
-    rnd = 0
-    eps = 1
-    tol = 1e-10
-    while (eps>tol) & (rnd<1000)
-        rnd+=1
-        #Unpack δ_j into estimator data
-        individual_values!(d,p,rnd)
-        eps = δ_update!(d,p)
-        unpack_δ!(d,p)
-        println("Contraction Error")
-        println(eps)
-    end
-    println("Contraction Rounds")
-    println(rnd)
+    return contraction!(d,p)
 end
 
 # Overwrite the Standard MLE Maximum Likelihood Computation
 function evaluate_iteration{T}(d::InsuranceLogit,p::parDict{T})
     contraction!(d,p)
     ll = log_likelihood(d,p)
+    convert_δ!(d)
     return ll
 end
 
-"""
-```
-log_likelihood!(model::BurdettMortensen, x::Vector)
-```
-
-Unpacks the parameters stored in ``x`` and updates the model to use
-them.  The function then calculates and returns the full log_likelihood
-of the updated model.
-"""
 function evaluate_iteration!{T}(d::InsuranceLogit, x::Array{T,1})
     # Create Parameter Types
     parameters = parDict(d,x)
@@ -354,17 +305,6 @@ function evaluate_iteration!{T}(d::InsuranceLogit, x::Array{T,1})
 end
 
 
-"""
-```
-estimate(m::MaximumLikelihood, p0)
-```
-
-Computes the maximum likelihood estimate of the parameters of the model
-by maximizing the log-likelihood function, using Nelder-Mead, starting
-at initial value p0.
-
-Modifies the model object inplace, and returns it.
-"""
 function estimate!(d::InsuranceLogit, p0)
     # Set up the optimization
     #opt = Opt(:LD_MMA, length(p0))

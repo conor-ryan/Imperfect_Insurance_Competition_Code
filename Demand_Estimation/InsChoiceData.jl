@@ -71,7 +71,6 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
     dmat = Matrix{Float64}(n,0)
 
     # Create a data matrix, only including person id
-    # Maybe implement firm or product number ids
     k = 0
     for (d, var) in zip([i,X, y, Z, D, s0], [person,prodchars,
         choice, demoRaw,demoFE,unins])
@@ -149,18 +148,7 @@ function subset{T<:ModelData}(d::T, idx)
 #    people = data[d._person,:]
     people = d.person
     products = d.product
-    # firms = m.firm[idx,:]
-    # markets = m.market[idx,:]
-    # products = m.product[idx,:]
-    # args = []
-    # for field in fieldnames(m)
-    #     #if !(field in [:data, :person,:firm,:market,:product])
-    #     if !(field in [:data, :person])
-    #         push!(args, getfield(m, field))
-    #     end
-    # end
 
-    #return T(data, people, firms, markets, products, args...)
     # Don't subset any other fields for now...
     return T(data,d.pdata, people,products,
     d.firm,    # Firm ID
@@ -207,9 +195,6 @@ function next(itr::PersonIterator, state)
 
     # Find which indices to use
     idx = itr.data._personDict[id]
-    # totalList = person(data)
-    # idx = findin(totalList,id)
-    #idx = find(totalList.== id)
 
     # Subset the data to just look at the current market
     submod = subset(itr.data, idx)
@@ -217,30 +202,3 @@ function next(itr::PersonIterator, state)
     return submod, state + 1
 end
 done(itr::PersonIterator, state) = state > length(itr.id)
-
-#
-# ########### Observation Iterator ###############
-# # Define an Iterator Type
-# type ObsIterator
-#     data
-#     id
-# end
-# # Construct an iterator to loop over people
-# function eachobs(m::ChoiceData)
-#     ncols = size(m.data)[2]
-#     ids = 1:ncols
-#     return ObsIterator(m, ids)
-# end
-#
-# # Make it actually iterable
-# start(itr::ObsIterator) = 1
-# function next(itr::ObsIterator, state)
-#     # Get the current Observation
-#     id = itr.id[state]
-#
-#     # Subset the data to just look at the current market
-#     submod = subset(itr.data, id)
-#
-#     return submod, state + 1
-# end
-# done(itr::ObsIterator, state) = state > length(itr.id)
