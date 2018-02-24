@@ -11,7 +11,7 @@ include("Halton.jl")
 include("MLE_RC_untyped.jl")
 
 # Load the Data
-include("load.jl")
+include("load_sample.jl")
 
 # Structre the data
 c = ChoiceData(df,df_mkt)
@@ -22,9 +22,10 @@ m = InsuranceLogit(c,500)
 
 # Initial Parameters
 γstart = Array{Float64}([0,0,0])/100
+αstart = -.4
 βstart = -ones(4*3)/10
-σstart = ones(4)/1000
-p0 = vcat(γstart,βstart,σstart)
+σstart = ones(5)/1000
+p0 = vcat(αstart,γstart,βstart,σstart)
 #p1 = p0/2
 # unpack!(m,parStart)
 parStart0 = parDict(m,p0)
@@ -43,12 +44,14 @@ save(file,"p_est",p_est)
 paramFinal = parDict(m,p_est)
 contraction!(m,paramFinal)
 out1 = DataFrame(pars=p_est)
+
 file1 = "estimationresults_$run.csv"
 CSV.write(file1,out1)
 
 out2 = DataFrame(delta=m.deltas,prods=m.prods)
 file2 = "deltaresults_$run.csv"
 CSV.write(file2,out2)
+
 
 
 # Predict on Full Data
@@ -106,12 +109,15 @@ ForwardDiff.gradient!(grad1, ll_test1, p1)
 
 
 
-calc_RC!(m,parStart)
+
+
+calc_RC!(m,parStart0)
 reset_δ!(m)
 
-@benchmark unpack_δ!(m)
+@benchmark unpack_δ!(m,parStart0)
 
-@benchmark individual_values!(m,parStart,1)
+individual_values!(m,parStart0;init=true)
+@benchmark individual_values!(m,parStart0)
 
 @benchmark δ_update!(m,parStart)
 
@@ -154,12 +160,13 @@ toc()
 @benchmark δ_update!(m)
 
 
-@benchmark individual_values!(m,parStart)
+@benchmark individual_values!(m,parStart0)
 
 Profile.clear()
-Profile.init(n=10^7,delay=.001)
+Profile.init(n=10^7,delay=.01)
 #@profile estimate!(m,parStart)
-@profile individual_values!(m,parStart,1)
+@profile individual_values!(m,parStart0)
+#@profile individual_shares_RC(μ_ij,δ;inside=true)
 Juno.profiletree()
 Juno.profiler()
 

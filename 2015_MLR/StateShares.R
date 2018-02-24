@@ -1,5 +1,6 @@
 rm(list = ls())
 library(doBy)
+library(noncensus)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 ##### Firm IDs  ####
 firms = read.csv("Data/2015_MLR/MR_Submission_Template_Header.csv",stringsAsFactors=FALSE)
@@ -73,7 +74,7 @@ firms$COMPANY_NAME[firms$GROUP_AFFILIATION=="AETNA GRP"&
 firms$COMPANY_NAME[firms$COMPANY_NAME=="SelectHealth, Inc."] = "SelectHealth"
 
 
-#### Choice Sets ####
+#### eHealth Market Shares ####
 shares = read.csv("Intermediate_Output/marketDataMap.csv")
 data(states)
 shares = merge(shares,states[,c("state","name")],by.x="STATE",by.y="state")
@@ -84,26 +85,28 @@ shares$Share = shares$Share/ave(shares$Share,shares$name,FUN=sum)
 ##### Individual Market Shares #####
 claims = read.csv("Data/2015_MLR/Part1_2_Summary_Data_Premium_Claims.csv")
 
-claims = claims[claims$ROW_LOOKUP_CODE=="NUMBER_OF_LIFE_YEARS",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_YEARLY","CMM_INDIVIDUAL_Q1")]
-claims = claims[!is.na(claims$CMM_INDIVIDUAL_Q1),]
+claims = claims[claims$ROW_LOOKUP_CODE=="NUMBER_OF_LIFE_YEARS",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_YEARLY","CMM_INDIVIDUAL_Q1","CMM_INDIVIDUAL_RC")]
+claims = claims[!is.na(claims$CMM_INDIVIDUAL_RC),]
 
 indMarket = merge(claims,firms,by="ï..MR_SUBMISSION_TEMPLATE_ID")
 # indMarket = summaryBy(CMM_INDIVIDUAL_YEARLY+CMM_INDIVIDUAL_Q1~BUSINESS_STATE+GROUP_AFFILIATION+COMPANY_NAME,
 #                       data=indMarket,FUN=sum,keep.names=TRUE)
-indMarket = indMarket[indMarket$CMM_INDIVIDUAL_Q1>0,]
-indMarket$TOTAL_LIVES = ave(indMarket$CMM_INDIVIDUAL_Q1,indMarket$BUSINESS_STATE,FUN=sum)
-indMarket$MARKET_SHARE = with(indMarket,CMM_INDIVIDUAL_Q1/TOTAL_LIVES)
+indMarket = indMarket[indMarket$CMM_INDIVIDUAL_RC>0,]
+indMarket$TOTAL_LIVES = ave(indMarket$CMM_INDIVIDUAL_RC,indMarket$BUSINESS_STATE,FUN=sum)
+indMarket$MARKET_SHARE = with(indMarket,CMM_INDIVIDUAL_RC/TOTAL_LIVES)
 indMarket = indMarket[with(indMarket,order(BUSINESS_STATE,-MARKET_SHARE)),]
 write.csv(indMarket,"Intermediate_Output/MLR_Shares/MLR_Claims_Shares.csv",row.names=FALSE)
 
 test = indMarket[indMarket$BUSINESS_STATE%in%shares$name,]
 test$COMPANY_NAME = gsub(" ","_",test$COMPANY_NAME)
-choices$COMPANY_NAME = gsub("[,.&'-:]","",choices$COMPANY_NAME)
+test$COMPANY_NAME = gsub("[,.&'-:]","",test$COMPANY_NAME)
 test = merge(test,shares,by.x=c("BUSINESS_STATE","COMPANY_NAME"),
              by.y=c("name","Firm"),all=TRUE)
 
-write.csv(test[,c("BUSINESS_STATE","COMPANY_NAME","GROUP_AFFILIATION","DBA_MARKETING_NAME","MARKET_SHARE","Share")],
+write.csv(test[order(test$BUSINESS_STATE,-test$MARKET_SHARE),c("BUSINESS_STATE","COMPANY_NAME","GROUP_AFFILIATION","DBA_MARKETING_NAME","MARKET_SHARE","Share")],
           "firmNamesTest.csv",row.names=FALSE)
+
+
 
 
 

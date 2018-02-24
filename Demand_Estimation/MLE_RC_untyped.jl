@@ -15,6 +15,7 @@ end
 
 type parDict{T}
     # Parameters
+    α::Vector{T}
     γ::Vector{T}
     β::Matrix{T}
     σ::Vector{T}
@@ -52,13 +53,15 @@ type InsuranceLogit <: LogitModel
 end
 
 function parDict{T}(m::InsuranceLogit,x::Array{T})
-    γlen = m.parLength[:γ]
+    αlen = 1
+    γlen = αlen + m.parLength[:γ]
     βlen = γlen + m.parLength[:β]*m.parLength[:γ]
     σlen = βlen + m.parLength[:σ]
 
-    γ = x[1:γlen]
-    β_vec = x[γlen+1:βlen]
-    σ = x[βlen+1:end]
+    α = x[1:αlen]
+    γ = x[(αlen+1):γlen]
+    β_vec = x[(γlen+1):βlen]
+    σ = x[βlen+1:σlen]
 
     # Stack Beta into a matrix
     K = m.parLength[:β]
@@ -71,12 +74,12 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
     end
 
     (R,S) = size(m.draws)
-    randCoeffs = Array{T,2}(R,S)
+    randCoeffs = Array{T,2}(m.parLength[:σ],S)
 
     L, M = size(m.data.data)
     δ = Vector{T}(M)
 
-    return parDict{T}(γ,β,σ,randCoeffs,δ)
+    return parDict{T}(α,γ,β,σ,randCoeffs,δ)
 end
 
 function InsuranceLogit(data::ChoiceData,haltonDim::Int)
@@ -85,15 +88,14 @@ function InsuranceLogit(data::ChoiceData,haltonDim::Int)
     # Get Parameter Lengths
     γlen = size(demoRaw(data),1)
     βlen = size(prodchars(data),1)
-    σlen = βlen
+    σlen = βlen+1
 
     parLength = Dict(:γ=>γlen,:β=>βlen,:σ=>σlen)
     #parameters = Dict{Symbol, Array{Any}}()
 
     # Initialize Halton Draws
     # These are the same across all individuals
-    draws = permutedims(MVHaltonNormal(haltonDim,σlen),(2,1))
-    randCoeffs = Array{Real,2}(σlen,haltonDim)
+    draws = permutedims(MVHaltonNormal(haltonDim,3),(2,1))
 
     # Initialize Empty value prediction objects
     n, k = size(c.data)
@@ -112,20 +114,35 @@ function InsuranceLogit(data::ChoiceData,haltonDim::Int)
     return d
 end
 
-
-function calc_β{T}(p::parDict{T},β::Array{T,1})
-    (K,N) = size(p.randCoeffs)
-    β_i = Array{T,2}(K,N)
+function calc_RC!{T}(d::InsuranceLogit,p::parDict{T})
+    σ = p.σ
+    (K, N) = size(p.randCoeffs)
     for k in 1:K,n in 1:N
-        β_i[k,n] = β[k] + p.randCoeffs[k,n]
+        l = min(k,3)
+        p.randCoeffs[k,n] = d.draws[l,n]*σ[k]
     end
-    return β_i
+    return Void
 end
 
-function individual_values!{T}(d::InsuranceLogit,p::parDict{T};init=false)
+function calc_indCoeffs{T}(p::parDict{T},β::Array{T,1},γ)
+    Q = length(β)
+    (K,N) = size(p.randCoeffs)
+    β_i = Array{T,2}(Q,N)
+    γ_i = Array{T,1}(N)
+    for n in 1:N
+        γ_i[n] = γ + p.randCoeffs[1,n]
+        for k in 1:Q
+            β_i[k,n] = β[k] + p.randCoeffs[k+1,n]
+        end
+    end
+    return β_i, γ_i
+end
+
+function individual_values!{T}(d::InsuranceLogit,p::parDict{T};init::Bool=false)
     # Store Parameters
     γ = p.γ
     β = p.β
+    α = p.α[1]
     if init
         δ_long = d.δ
     else
@@ -135,46 +152,45 @@ function individual_values!{T}(d::InsuranceLogit,p::parDict{T};init=false)
     for app in eachperson(d.data)
         ind = person(app)[1]
         X = permutedims(prodchars(app),(2,1))
+        price = X[:,1]
         Z = demoRaw(app)[:,1]
         β_z = β*Z
-        β_i = calc_β(p,β_z)
-        chars = X*β_i
         demos = vecdot(γ,Z)
+        β_i, γ_i = calc_indCoeffs(p,β_z,demos)
+        chars = X*β_i
+
+        (K,N) = size(chars)
+        μ_ij = chars
+        for n = 1:N,k = 1:K
+            μ_ij[k,n] += α*price[k] + γ_i[n]
+        end
         idxitr = d.data._personDict[ind]
         δ = δ_long[idxitr]
-        d.s_hat[idxitr] = individual_shares_RC(chars,demos,δ)
+        d.s_hat[idxitr] = individual_shares_RC(μ_ij,δ)
     end
     return Void
 end
 
-function calc_RC!{T}(d::InsuranceLogit,p::parDict{T})
-    σ = p.σ
-    (K, N) = size(d.draws)
-    for k in 1:K,n in 1:N
-        p.randCoeffs[k,n] = d.draws[k,n]*σ[k]
-    end
-    return Void
-end
 
-function individual_shares_RC{T}(chars::Matrix{T},demos,δ;inside=false)
-    (K,N) = size(chars)
-    μ = Matrix{T}(K,N)
+
+function individual_shares_RC{T}(μ_ij::Array{T},δ;inside::Bool=false)
+    (K,N) = size(μ_ij)
+    util = Matrix{T}(K,N)
     s_hat = Matrix{T}(K,N)
     s_mean = Vector{T}(K)
+    out = 1.0
     if inside
         out = 0.0
-    else
-        out = 1.0
     end
     for n in 1:N
         expsum = out
         for i in 1:K
-            a = exp(chars[i,n] + demos + δ[i])
-            μ[i,n] = a
+            a = exp(μ_ij[i,n] + δ[i])
+            util[i,n] = a
             expsum += a
         end
         for i in 1:K
-            s_hat[i,n] = μ[i,n]/expsum
+            s_hat[i,n] = util[i,n]/expsum
         end
     end
     #s_mean = mean(s_hat,2)
@@ -189,24 +205,32 @@ function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
     ll = 0.0
     γ = p.γ
     β = p.β
+    α = p.α[1]
     # Calculate μ_ij, which depends only on parameters
     for app in eachperson(d.data)
         ind = person(app)[1]
         X = permutedims(prodchars(app),(2,1))
+        price = X[:,1]
         Z = demoRaw(app)[:,1]
         Y = transpose(choice(app))
         urate = transpose(unins(app))
 
         β_z = β*Z
-        β_i = calc_β(p,β_z)
-        chars = X*β_i
-        #chars = zeros(size(chars))
         demos = vecdot(γ,Z)
-        #demos = -10
+        β_i, γ_i = calc_indCoeffs(p,β_z,demos)
+        chars = X*β_i
+
+        (K,N) = size(chars)
+        μ_ij = similar(chars)
+        for n = 1:N,k = 1:K
+            μ_ij[k,n] = chars[k,n] + α*price[k] + γ_i[n]
+        end
+
         idxitr = d.data._personDict[ind]
-        δ = d.δ[idxitr]
-        s_hat = individual_shares_RC(chars,demos,δ;inside=false)
+        δ = p.δ[idxitr]
+        s_hat = individual_shares_RC(μ_ij,δ;inside=false)
         s_insured = sum(s_hat)
+
         for i in eachindex(idxitr)
             ll+=Y[i]*(log(s_hat[i])-urate[i]*log(s_insured))
         end

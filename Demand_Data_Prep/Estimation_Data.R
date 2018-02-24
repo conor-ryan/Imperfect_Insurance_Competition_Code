@@ -447,6 +447,10 @@ firmShares = summaryBy(Y~Firm+Market,data=choices,FUN=sum,keep.names=TRUE)
 firmShares$marketTotal = ave(firmShares$Y,firmShares$Market,FUN=sum)
 firmShares$share = firmShares$Y/firmShares$marketTotal
 
+stateShares = summaryBy(Y~Firm+STATE,data=choices,FUN=sum,keep.names=TRUE)
+stateShares$marketTotal = ave(stateShares$Y,stateShares$STATE,FUN=sum)
+stateShares$share = stateShares$Y/stateShares$marketTotal
+
 absent = firmShares[firmShares$share==0,]
 
 #Drop all firms that are absent in that market
@@ -483,6 +487,8 @@ write.csv(shares[,c("Product","Share")],
           "Intermediate_Output/marketData.csv",row.names=FALSE)
 write.csv(shares[,c("Product_Name","Product","Share","Firm","Market","STATE")],
           "Intermediate_Output/marketDataMap.csv",row.names=FALSE)
+write.csv(stateShares[,c("STATE","Firm","share","marketTotal")],
+          "Intermediate_Output/stateDataMap.csv",row.names=FALSE)
 
 # Create mini Michigan Dataset and Renumber Products
 MI = choices[choices$STATE=="MI",]
