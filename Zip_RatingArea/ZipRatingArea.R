@@ -21,11 +21,12 @@ pumaMap = read.csv("Data/Zip_RatingArea/PUMA_to_County.csv")
 puma = merge(counties,pumaMap,by.x="FIPS",by.y="county",all=TRUE)
 puma = puma[!puma$ST%in%c("PR","VI"),]
 puma = summaryBy(afact+pop10 ~ ST + STATEFIP + puma12 + RatingArea,data=puma,FUN=sum,keep.names=TRUE)
-puma$maxPop = ave(puma$afact,puma$ST,puma$puma12,FUN=max)
+#puma$maxPop = ave(puma$afact,puma$ST,puma$puma12,FUN=max)
+puma$alloc = puma$pop10/ave(puma$pop10,puma$puma12,puma$ST,FUN=sum)
 
-puma = puma[puma$afact==puma$maxPop,]
-puma = puma[,c("ST","STATEFIP","puma12","RatingArea")]
-names(puma) = c("ST","STATEFIP","PUMA","RatingArea")
+#puma = puma[puma$afact==puma$maxPop,]
+puma = puma[,c("ST","STATEFIP","puma12","RatingArea","alloc")]
+names(puma) = c("ST","STATEFIP","PUMA","RatingArea","alloc")
 
 write.csv(puma,"Intermediate_Output/Zip_RatingArea/PUMA_to_RatingArea.csv",row.names=FALSE)
 

@@ -1,6 +1,8 @@
+
 using BenchmarkTools
 using JLD
 using CSV
+
 # Data Structure
 include("InsChoiceData.jl")
 
@@ -9,10 +11,10 @@ include("Halton.jl")
 
 # Random Coefficients MLE
 include("MLE_RC_untyped.jl")
+println("Code Loaded")
 
 # Load the Data
 include("load_sample.jl")
-
 # Structre the data
 c = ChoiceData(df,df_mkt)
 
@@ -30,10 +32,7 @@ p0 = vcat(αstart,γstart,βstart,σstart)
 # unpack!(m,parStart)
 parStart0 = parDict(m,p0)
 #parStart1 = parDict(m,p1)
-
-# tic()
-# ll = evaluate_iteration(m,parStart0)
-# toc()
+println("Data Loaded")
 
 # Estimate the Model
 p_est = estimate!(m, p0)
@@ -55,8 +54,8 @@ CSV.write(file2,out2)
 
 
 # Predict on Full Data
-df = CSV.read("Intermediate_Output/estimationData.csv")
-df_mkt = CSV.read("Intermediate_Output/marketData.csv")
+df = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Data/estimationData.csv")
+df_mkt = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Data/marketData.csv")
 df[:Firm] = String.(df[:Firm])
 
 
@@ -64,19 +63,19 @@ c = ChoiceData(df,df_mkt)
 # Fit into model
 m = InsuranceLogit(c,500)
 
-file = "Estimation_Output/estimationresults_2018-02-14.jld"
-p_est = load(file)["p_est"]
+# file = "Estimation_Output/estimationresults_2018-02-14.jld"
+# p_est = load(file)["p_est"]
 paramFinal = parDict(m,p_est)
 
 contraction!(m,paramFinal)
 
 run = Dates.today()
 out1 = DataFrame(pars=p_est)
-file1 = "Estimation_Output/estimationresults_fullapprox$run.csv"
+file1 = "estimationresults_fullapprox$run.csv"
 CSV.write(file1,out1)
 
 out2 = DataFrame(delta=m.deltas,prods=m.prods)
-file2 = "Estimation_Output/deltaresults_fullapprox$run.csv"
+file2 = "deltaresults_fullapprox$run.csv"
 CSV.write(file2,out2)
 
 
@@ -86,11 +85,75 @@ CSV.write(file2,out2)
 
 
 
+tupList = []
+dataList = []
+idxList = []
+for app in eachperson(m.data)
+    ind = person(app)[1]
+    idxitr = app._personDict[ind]
+    δ = parStart0.δ[idxitr]
+    tupList = vcat(tupList,[(app.data,parStart0.α[1],
+                    parStart0.γ,parStart0.β,δ,
+                    parStart0.randCoeffs)])
+    dataList = vcat(dataList,[app.data])
+    idxList  = vcat(idxList,[idxitr])
+end
+#idList = Set(eachperson(m.data))
+#Collection of Parameters
+# parList =[parStart0]
+# while length(parList)<length(idList)
+#     parList = vcat(parList,[parStart0])
+# end
+@everywhere pGlo = $parStart0
+@everywhere cdata = $c
+@everywhere itrCalc(i) = per_val_calc(i,pGlo,cdata)
+
+
+#Function for parallel caculations
+res = map(itrCalc,idxList)
+@benchmark map(itrCalc,idxList)
+
+res = pmap(itrCalc,idxList)
+
+@benchmark pmap(itrCalc,idxList)
+
+@everywhere itrCalc(x,i) = pmap(x,i,p)
 
 
 
+b1 = @benchmark individual_values!(m,parStart0)
+println(b1)
+b2 = @benchmark parallel_values!(m,parStart0)
+println(b2)
+
+@benchmark map(per_val_calc,idList,parList)
 
 
+@everywhere function slow(x::Float64)
+    a = 1.0
+    for i in 1:1000
+        for j in 1:25
+            a+=asinh(i+j)
+        end
+    end
+    return a
+end
+
+
+map(slow,linspace(1,1000,10))
+pmap(slow,linspace(1,1000,10))
+
+@benchmark map(slow,linspace(1,1000,30))
+@benchmark pmap(slow,linspace(1,1000,30))
+
+
+Profile.clear()
+Profile.init(n=10^7,delay=.001)
+#@profile estimate!(m,parStart)
+@profile pmap(itrCalc,idxList)
+#@profile individual_shares_RC(μ_ij,δ;inside=true)
+Juno.profiletree()
+Juno.profiler()
 
 
 m1 = InsuranceLogit(c,500)

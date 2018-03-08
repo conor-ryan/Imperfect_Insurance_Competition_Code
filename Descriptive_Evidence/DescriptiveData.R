@@ -45,23 +45,11 @@ plansAttr = unique(plansAttr[,c("Plan.ID", "AV.Calculator.Output.Number","diabet
 
 #### Compile Plan Description Data ####
 planData = read.csv("Data/2015_Premiums/2015_RWJF.csv")
-planData$CARRIER = as.character(planData$CARRIER)
 
-# Standardize Plan Names
-planData$CARRIER[grep("Cigna",planData$CARRIER)] = "Cigna"
-planData$CARRIER[grep("Health Net",planData$CARRIER)] = "Health Net"
-planData$CARRIER[grep("Aetna",planData$CARRIER)] = "Aetna"
-planData$CARRIER[grep("Anthem",planData$CARRIER)] = "Anthem"
-planData$CARRIER[grep("Humana",planData$CARRIER)] = "Humana"
-planData$CARRIER[grep("Coventry",planData$CARRIER)] = "Coventry"
-planData$CARRIER[grep("Ambetter",planData$CARRIER)] = "Ambetter"
-planData$CARRIER[grep("Kaiser",planData$CARRIER)] = "Kaiser"
-planData$CARRIER[grep("Moda",planData$CARRIER)] = "Moda"
-planData$CARRIER[grep("Molina",planData$CARRIER)] = "Molina"
-planData$CARRIER[grep("Health Republic",planData$CARRIER)] = "Health Republic"
-planData$CARRIER[grep("Oscar",planData$CARRIER)] = "Oscar"
-planData$CARRIER[grep("UnitedHealth",planData$CARRIER)] = "UnitedHealthcare"
-planData$CARRIER[grep("Capital BlueCross",planData$CARRIER)] = "Capital BlueCross"
+#Merge Firm Crosswalk
+planCrosswalk = read.csv("Intermediate_Output/RWJF_PlanCrosswalk.csv")
+planData = merge(planData,planCrosswalk,by=c("ST","CARRIER","PLANID"),all.x=TRUE)
+
 
 #  Standardize Rating Area
 planData$AREA = gsub("^([A-Z]+)([0]{0,})([1-9]+[0]?)$","Rating Area \\3",planData$AREA,perl=TRUE)
@@ -69,7 +57,7 @@ planData$AREA = gsub("^([A-Z]+)([0]{0,})([1-9]+[0]?)$","Rating Area \\3",planDat
 planData$AREA[planData$ST=="NJ"] = "Rating Area 1"
 
 
-planData = planData[,c("ST","METAL","AREA","PLANID","PLANNAME","CARRIER",
+planData = planData[,c("ST","METAL","AREA","PLANID","PLANNAME","Firm",
                        "PREMI27","PLANMARKET",
                        "MEHBDedInnTier1IndividualA","MEHBDedInnTier2IndividualA",
                        "TEHBDedInnTier1IndividualA","TEHBDedInnTier2IndividualA",
@@ -230,7 +218,7 @@ hixData = unique(hixData)
 hixData = hixData[,!grepl("Drug",names(hixData))]
 
 ## Merge RWJF and HIX plan data 
-planData = planData[,c("ST","METAL","AREA","PLANID","CARRIER","PLANNAME","PREMI27","PLANMARKET","MedDeduct","MedDeductFam","MedOOP","MedOOPFam")]
+planData = planData[,c("ST","METAL","AREA","PLANID","Firm","PLANNAME","PREMI27","PLANMARKET","MedDeduct","MedDeductFam","MedOOP","MedOOPFam")]
 planData$CSR = gsub("([0-9]+[A-Z]+[0-9]+)(-)?(04|05|06)?","\\3",planData$PLANID,perl=TRUE)
 planData$PLANID = gsub("([0-9]+[A-Z]+[0-9]+)(-)?(04|05|06)?","\\1",planData$PLANID,perl=TRUE)
 planData$CSR = factor(planData$CSR,levels=c("","04","05","06"),labels=c("","73","87","94"))
@@ -274,9 +262,9 @@ comb$MedOOPFam[is.na(comb$MedOOPFam)] = 2*comb$MedOOP[is.na(comb$MedOOPFam)]
 # 
 # plans = unique(planData[planData$PLANID%in%missingIDs_in&is.na(planData$MedOOP),c("ST","CARRIER","PLANNAME")])
 
-planDesc = comb[with(comb,order(ST,AREA,METAL,CARRIER,PLANID)),
-            c("ST","AREA","PLANID","METAL","CARRIER","PLANNAME","PREMI27","PLANMARKET","CSR","MedDeduct","MedOOP","MedDeductFam","MedOOPFam")]
-names(planDesc) = c("State","RatingArea","Plan.ID","Metal","CARRIER","PLANNAME","Prem27","PLANMARKET","CSR","MedDeduct","MedOOP","MedDeductFam","MedOOPFam")
+planDesc = comb[with(comb,order(ST,AREA,METAL,Firm,PLANID)),
+            c("ST","AREA","PLANID","METAL","Firm","PLANNAME","PREMI27","PLANMARKET","CSR","MedDeduct","MedOOP","MedDeductFam","MedOOPFam")]
+names(planDesc) = c("State","RatingArea","Plan.ID","Metal","Firm","PLANNAME","Prem27","PLANMARKET","CSR","MedDeduct","MedOOP","MedDeductFam","MedOOPFam")
 
 plans = merge(planDesc,plansAttr,by="Plan.ID")
 
@@ -311,13 +299,15 @@ ggplot(AVplot[AVplot$Metal!="Catastrophic",]) +
     axis.title=element_text(size=12),
     axis.text = element_text(size=12))
 dev.off()
+
+
 #### Merge with Market Shares ####
-plans$Firm = gsub(" ","_",plans$CARRIER)
-plans$Firm = gsub("[,.&'-:]","",plans$Firm)
+# plans$Firm = gsub(" ","_",plans$CARRIER)
+# plans$Firm = gsub("[,.&'-:]","",plans$Firm)
 plans$RatingArea = gsub("(.*) ([0-9]+)","\\2",plans$RatingArea)
 plans$Market = paste(plans$State,plans$RatingArea,sep="_")
 
-choices = read.csv("Intermediate_Output/estimationData.csv")
+choices = read.csv("Intermediate_Output/Estimation_Data/estimationData.csv")
 
 choices$count = 1
 firmShares = summaryBy(Y~Firm+Market,data=choices,FUN=sum,keep.names=TRUE)
@@ -339,7 +329,31 @@ for (v in c("Prem27","MedDeduct","MedOOP")){
 #Check on Premium NAs
 
 plans$FirmArea = paste(plans$Market,plans$Firm)
+plans$AV.Calculator.Output.Number[plans$Metal=="Catastrophic"] = .57
 plans$unitPrice = plans$Prem27/plans$AV.Calculator.Output.Number
+plans$Metal = factor(plans$Metal,levels=c("Catastrophic","Bronze","Silver","Gold","Platinum"))
+plans$MeanUnitPrice = ave(plans$unitPrice,plans$Market,FUN=mean)
+plans$unitPricenorm = with(plans,unitPrice-MeanUnitPrice)
+
+png("Writing/Images/UnitPriceMeans.png",width=2000,height=1500,res=275)
+ggplot(plans) + 
+  aes(Metal,unitPricenorm) + 
+  geom_boxplot() +  
+  xlab("") + 
+  ylab("Unitary Premium Relative to Market Mean") + 
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    #panel.grid.major = element_line(color=grey(.8)),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title=element_blank(),
+    legend.text = element_text(size=18),
+    legend.key.width = unit(.075,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "none",
+    axis.title=element_text(size=12),
+    axis.text = element_text(size=12))
+dev.off()
+
 res = lm(Prem27~AV.Calculator.Output.Number*FirmArea,data=plans)
 res = lm(unitPrice~FirmArea,data=plans)
 
@@ -395,7 +409,7 @@ ggplot(spread) +
   geom_point(alpha=.6) + 
   geom_smooth(se=FALSE,colour="black") + 
   xlab("Market Share") + 
-  ylab("Unit Price Std. Deviation") + 
+  ylab("Unitary Premium Standard Deviation") + 
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
     strip.background = element_blank(),
     #panel.grid.major = element_line(color=grey(.8)),
@@ -438,3 +452,7 @@ ggplot(qtspread) +
     axis.title=element_text(size=12),
     axis.text = element_text(size=12))
 dev.off()
+
+#### Menu Sizes ####
+plans$planCount = 1
+menus = summaryBy(planCount~Firm+Market+share,data=plans,FUN=sum,keep.names=TRUE)

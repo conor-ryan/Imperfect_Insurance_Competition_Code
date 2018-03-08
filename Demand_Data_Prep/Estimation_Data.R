@@ -60,68 +60,10 @@ subsInv <- function(cont,pov_line = 11770){
 #### Read in eHealth Data and clean Premium Information ####
 eHealth = read.csv("C:/Users/Conor/Documents/Research/eHealth Data/eHealth_2015.csv",stringsAsFactors = FALSE)
 
-# Standardize eHealth Names
-eHealth$CARRIER_NAME[grep("Cigna",eHealth$CARRIER_NAME)] = "Cigna"
-eHealth$CARRIER_NAME[grep("Health Net",eHealth$CARRIER_NAME)] = "Health Net"
-eHealth$CARRIER_NAME[grep("Aetna",eHealth$CARRIER_NAME)] = "Aetna"
-eHealth$CARRIER_NAME[grep("Anthem",eHealth$CARRIER_NAME)] = "Anthem"
-eHealth$CARRIER_NAME[grep("Humana",eHealth$CARRIER_NAME)] = "Humana"
-eHealth$CARRIER_NAME[grep("Coventry",eHealth$CARRIER_NAME)] = "Aetna"
-eHealth$CARRIER_NAME[grep("Ambetter",eHealth$CARRIER_NAME)] = "Ambetter"
-eHealth$CARRIER_NAME[grep("Kaiser",eHealth$CARRIER_NAME)] = "Kaiser"
-eHealth$CARRIER_NAME[grep("Moda",eHealth$CARRIER_NAME)] = "Moda"
-eHealth$CARRIER_NAME[grep("Molina",eHealth$CARRIER_NAME)] = "Molina"
-eHealth$CARRIER_NAME[grep("Health Republic",eHealth$CARRIER_NAME)] = "Health Republic"
-eHealth$CARRIER_NAME[grep("Oscar",eHealth$CARRIER_NAME)] = "Oscar"
-eHealth$CARRIER_NAME[grep("UnitedHealth",eHealth$CARRIER_NAME)] = "UnitedHealthcare"
-
-
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Blue Cross Blue Shield of Georgia"] = "Anthem"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Wellmark Blue Cross and Blue Shield of Iowa"] = "Wellmark Blue Cross Blue Shield of Iowa"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Blue Cross and Blue Shield of Minnesota"] = "Blue Plus"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Blue Cross and Blue Shield of MN"] = "Blue Plus"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="BlueCross BlueShield of Nebraska"] = "Blue Cross and Blue Shield of Nebraska"
-eHealth$CARRIER_NAME[grep("Blue Cross of Northeastern Penn",eHealth$CARRIER_NAME)] = "Blue Cross of Northeastern Pennsylvania"
-
-
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Land of Lincoln Health"] = "Land of Lincoln Mutual Health Insurance Company"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="HealthPlus"] = "HealthPlus Insurance Company"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="BridgeSpan"] = "BridgeSpan Health Company"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Geisinger Health Plan"] = "Geisinger Choice"
-
-
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Arkansas Health and Wellness"] = "Ambetter"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="QCA Health Plan Inc"] = "QualChoice"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="ConnectiCare Inc."] = "ConnectiCare"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="PacificSource Health Plans of Idaho"] = "PacificSource Health Plans"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Ambetter" & eHealth$STATE=="IL"] = "IlliniCare Health"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="My Health Alliance"] = "Health Alliance Medical Plans"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="All Savers Insurance Company"] = "UnitedHealthcare"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Physicians Health Plan of Northern Indiana, Inc."] = "PHP"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Health Alliance Plan" & eHealth$STATE == "MI"] = "HAP"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Medica of Minnesota"] = "UnitedHealthcare"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="AmeriHealth - New Jersey"] = "AmeriHealth"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Oxford NJ"] = "UnitedHealthcare"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Presbyterian"] = "Presbyterian Health Plan, Inc."
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Health Plan of Nevada"] = "UnitedHealthcare"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Sierra Health and Life"] = "UnitedHealthcare"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Health Republic Insurance of New York"] = "Health Republic"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="MVP"] = "MVP Health Plans"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="SummaCare Inc of Ohio"] = "SummaCare"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="HealthAmerica Pennsylvania"] = "Coventry"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="FirstCare"] = "Firstcare Health Plans"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Scott & White Health Plan"] = "Insurance Company of Scott & White"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Altius Health Plans"] = "Altius"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Anthem" & eHealth$STATE=="VA"] = "HealthKeepers, Inc."
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Innovation Health"] = "Innovation Health Insurance Company"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Optima Health Plan"] = "Optima Health"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="LifeWise Health Plan of Washington"] = "LifeWise Health Plan of WA"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Dean Health Plan, Inc."] = "Dean Health Plan"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Medica" & eHealth$STATE == "WI"] = "UnitedHealthcare"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Physicians Plus"] = "Physicians Plus Insurance Corporation"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Security Health Plan"] = "Security Health Plan of Wisconsin, Inc."
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="Prevea360 Health Plan"] = "Dean Health Plan"
-eHealth$CARRIER_NAME[eHealth$CARRIER_NAME=="WPS Health Insurance"] = "Wisconsin Physicians Svc Insurance Corp"
+# Firm Crosswalk
+firmCrosswalk = read.csv("Intermediate_Output/FirmCrosswalk.csv")
+firmCrosswalk = unique(firmCrosswalk[,c("STATE","eHealth_CARRIER_NAME","Firm")])
+eHealth = merge(eHealth,firmCrosswalk,by.x=c("STATE","CARRIER_NAME"),by.y=c("STATE","eHealth_CARRIER_NAME"),all.x=TRUE)
 
 
 # Drop "referential integrity" rows
@@ -133,7 +75,7 @@ eHealth = eHealth[with(eHealth,PLAN_METAL_LEVEL!="N/A"),]
 
 
 # Subset eHealth for Valid Markets
-STselection = c("AK","AR","CA","CT","DE","GA","IL","IA","KS","MD","MI","MN","MO","NE","NJ","NM","OK","OR","PA","TX","UT","VA","WV")
+STselection = unique(firmCrosswalk$STATE)
 
 
 # Reconstruct from subsidy information
@@ -150,30 +92,39 @@ STselection = c("AK","AR","CA","CT","DE","GA","IL","IA","KS","MD","MI","MN","MO"
 
 #### Merge eHealth and Plan Data ####
 # Default Choice Set By Zip3
-choices = read.csv("Intermediate_Output/Premiums/choiceSets2015.csv")
+choiceSets = read.csv("Intermediate_Output/Premiums/choiceSets2015.csv")
 mapping = read.csv("Intermediate_Output/Zip_RatingArea/Zip3_to_RatingArea.csv")
-choices = merge(choices,mapping[,c("ST","Zip3","RatingArea","alloc")],by.x=c("ST","AREA"),by.y=c("ST","RatingArea"),all.x=TRUE)
+choices = merge(choiceSets,mapping[,c("ST","Zip3","RatingArea","alloc")],by.x=c("ST","AREA"),by.y=c("ST","RatingArea"),all.x=TRUE)
 
 # Merge in eHealth data
 eHealth = eHealth[eHealth$TRUNCATED_ZIP%in%choices$Zip3,]
 choices = merge(eHealth,choices,by.x=c("STATE","TRUNCATED_ZIP"),by.y=c("ST","Zip3"),all.x=TRUE)
 choices = choices[with(choices,order(APP_RECORD_NUM,METAL)),]
 
+names(choices)[names(choices)=="Firm.x"] = "Firm_Choice"
+choices$Firm_Choice = as.character(choices$Firm_Choice)
+names(choices)[names(choices)=="Firm.y"] = "Firm"
+choices$Firm = as.character(choices$Firm)
 # Not Dropping kids for now
 #choices = choices[with(choices,AGE>18),]
 
-#rm(mapping,eHealth)
+#rm(mapping,eHealth,choiceSets)
 
 #### Create Valid Choice Sets ####
 
 # Set Choice Indicator
 choices$METAL = toupper(choices$METAL)
 choices$Y = 0
-choices$Y[with(choices,METAL==PLAN_METAL_LEVEL&CARRIER_NAME==CARRIER)]=1
+choices$Y[with(choices,METAL==PLAN_METAL_LEVEL&Firm_Choice==Firm)]=1
 
 ids = unique(choices$APP_RECORD_NUM[choices$Y==1])
 missing = eHealth$APP_RECORD_NUM[!eHealth$APP_RECORD_NUM%in%ids]
 test = choices[choices$APP_RECORD_NUM%in%missing,]
+test = unique(test[!test$Firm_Choice%in%c("HEALTHYCT","SHARP_HEALTH_PLAN"),c("APP_RECORD_NUM","Firm_Choice","AREA","STATE")])
+
+
+#test = eHealth[eHealth$APP_RECORD_NUM%in%missing,]
+
 
 # Drop Catastrophic for over 30. 
 # Lose two observations that chose catas over 30
@@ -181,7 +132,7 @@ choices = choices[!with(choices,AGE>30 & METAL=="CATASTROPHIC"),]
 
 
 # If choice is not available, then that individual is not in the right rating area
-# This step drops PA, CA/CT (data collection needed), 3 obs in IL that don't have right rating area
+# This step drops CA/CT (data collection needed), 3 obs in IL that don't have right rating area
 choices$flag = ave(choices$Y,with(choices,paste(APP_RECORD_NUM,AREA)),FUN=sum)
 choices = choices[choices$flag!=0,]
 
@@ -203,7 +154,7 @@ choices$MedOOP[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"] =
 
 # Keep only relevant variables
 choices = choices[,c("STATE","APP_RECORD_NUM","QUOTED_RATE","HOUSEHOLD_INCOME","FFM_APTC_AMOUNT","FFM_PREMIUM_DUE",
-                     "FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","SMOKER","AREA","CARRIER","METAL","hix","PREMI27",
+                     "FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","SMOKER","AREA","Firm","METAL","hix","PREMI27",
                      "MedDeduct","MedOOP","Y")]
 
 
@@ -275,7 +226,7 @@ choices$PremPaid[choices$METAL=="CATASTROPHIC"] = with(choices[choices$METAL=="C
 
 # Keep Relevant Variables
 choices = choices[,c("STATE","APP_RECORD_NUM","QUOTED_RATE","HOUSEHOLD_INCOME","FFM_APTC_AMOUNT","FFM_PREMIUM_DUE",
-                     "FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","SMOKER","AREA","CARRIER","METAL","hix",
+                     "FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","SMOKER","AREA","Firm","METAL","hix",
                      "MedDeduct","MedOOP","ageRate","FPL","Benchmark","HHcont","subsidy","Quote","PremPaid","Y")]
 
 #### Impute Income ####
@@ -319,9 +270,9 @@ choices$CSR = gsub("[A-Z]+ ?","",choices$METAL)
 choices$METAL = gsub(" [0-9]+","",choices$METAL)
 
 # Set Y = 1 for all Silver, if for any
-choices$Y = ave(choices$Y,with(choices,paste(APP_RECORD_NUM,CARRIER,METAL)),FUN=sum)
+choices$Y = ave(choices$Y,with(choices,paste(APP_RECORD_NUM,Firm,METAL)),FUN=sum)
 # Set hix to be TRUE for all Silver, if for any
-choices$hix = ave(choices$hix,with(choices,paste(APP_RECORD_NUM,CARRIER,METAL)),FUN=any)
+choices$hix = ave(choices$hix,with(choices,paste(APP_RECORD_NUM,Firm,METAL)),FUN=any)
 
 choices$CSR_subs = ""
 choices$CSR_subs[with(choices,METAL=="SILVER"&hix&FPL_imp>2 & FPL_imp<=2.5)] = "73"
@@ -346,7 +297,7 @@ choices$Mandate[choices$MEMBERS>1] = with(choices[choices$MEMBERS>1,], pmin(pmax
 
 
 choices = choices[,c("STATE","APP_RECORD_NUM","QUOTED_RATE","FFM_APTC_AMOUNT","FFM_PREMIUM_DUE",
-                     "FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","SMOKER","AREA","CARRIER","METAL","hix",
+                     "FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","SMOKER","AREA","Firm","METAL","hix",
                      "MedDeduct","MedOOP","ageRate","FPL_imp","Benchmark","HHcont","subsidy","Quote",
                      "PremPaid","Y","Income","logIncome","CSR","Mandate")]
 
@@ -382,7 +333,7 @@ choices = merge(choices,unins,by.x=c("STATE","inc_cat","AGE_cat","mem_cat"),
 # choices = choices[with(choices,order(APP_RECORD_NUM,METAL)),]
 # 
 # choices = choices[,c("STATE","APP_RECORD_NUM","QUOTED_RATE","FFM_APTC_AMOUNT","FFM_PREMIUM_DUE",
-#                      "FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","SMOKER","AREA","CARRIER","METAL","hix",
+#                      "FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","SMOKER","AREA","Firm","METAL","hix",
 #                      "MedDeduct","MedOOP","ageRate","FPL_imp","Benchmark","HHcont","subsidy","Quote",
 #                      "PremPaid","Y","Income","logIncome","CSR","Mandate","unins_rate")]
 # 
@@ -426,9 +377,6 @@ t2$MEMBERS = t2$MEMBERS/sum(t2$MEMBERS)
 
 #### Break Down to Smallest Estimatable Data
 # Product Variables
-choices$Firm = gsub(" ","_",choices$CARRIER)
-choices$Firm = gsub("[,.&'-:]","",choices$Firm)
-
 choices$Market = with(choices,paste(STATE,gsub("Rating Area ","",AREA),sep="_"))
 
 choices$Product = with(choices,paste(Firm,METAL,Market,sep="_"))
@@ -447,9 +395,6 @@ firmShares = summaryBy(Y~Firm+Market,data=choices,FUN=sum,keep.names=TRUE)
 firmShares$marketTotal = ave(firmShares$Y,firmShares$Market,FUN=sum)
 firmShares$share = firmShares$Y/firmShares$marketTotal
 
-stateShares = summaryBy(Y~Firm+STATE,data=choices,FUN=sum,keep.names=TRUE)
-stateShares$marketTotal = ave(stateShares$Y,stateShares$STATE,FUN=sum)
-stateShares$share = stateShares$Y/stateShares$marketTotal
 
 absent = firmShares[firmShares$share==0,]
 
@@ -482,13 +427,11 @@ choices = choices[with(choices,order(Person,Product)),]
 shares = shares[order(shares$Product),]
 
 write.csv(choices[,c("Person","Firm","Market","Product","Y","Price","MedDeduct","MedOOP","High","Family","Age","LowIncome",names(choices)[grepl("F[0-9]_Y.*",names(choices))],"unins_rate")],
-          "Intermediate_Output/estimationData.csv",row.names=FALSE)
+          "Intermediate_Output/Estimation_Data/estimationData.csv",row.names=FALSE)
 write.csv(shares[,c("Product","Share")],
-          "Intermediate_Output/marketData.csv",row.names=FALSE)
+          "Intermediate_Output/Estimation_Data/marketData.csv",row.names=FALSE)
 write.csv(shares[,c("Product_Name","Product","Share","Firm","Market","STATE")],
-          "Intermediate_Output/marketDataMap.csv",row.names=FALSE)
-write.csv(stateShares[,c("STATE","Firm","share","marketTotal")],
-          "Intermediate_Output/stateDataMap.csv",row.names=FALSE)
+          "Intermediate_Output/Estimation_Data/marketDataMap.csv",row.names=FALSE)
 
 # Create mini Michigan Dataset and Renumber Products
 MI = choices[choices$STATE=="MI",]
@@ -504,18 +447,18 @@ MI = MI[with(MI,order(Person,Product)),]
 MI_mkt = MI_mkt[order(MI_mkt$Product),]
 
 write.csv(MI[,c("Person","Firm","Market","Product","Y","Price","MedDeduct","MedOOP","High","Family","Age","LowIncome",names(choices)[grepl("F[0-9]_Y.*",names(choices))],"unins_rate")],
-          "Intermediate_Output/estimationData_MI.csv",row.names=FALSE)
+          "Intermediate_Output/Estimation_Data/estimationData_MI.csv",row.names=FALSE)
 write.csv(MI_mkt[,c("Product","Share")],
-          "Intermediate_Output/marketData_MI.csv",row.names=FALSE)
+          "Intermediate_Output/Estimation_Data/marketData_MI.csv",row.names=FALSE)
 write.csv(MI_mkt[,c("Product_Name","Product","Share","Firm","Market","STATE")],
-          "Intermediate_Output/marketDataMap_MI.csv",row.names=FALSE)
+          "Intermediate_Output/Estimation_Data/marketDataMap_MI.csv",row.names=FALSE)
 
 
 #### Product Analysis #### 
 products = unique(choices[,c("STATE","Market","Firm")])
 nrow(products)
 products$count = 1
-products = summaryBy(count~CARRIER+METAL,data=products,FUN=sum,keep.names=TRUE)
+products = summaryBy(count~Firm+METAL,data=products,FUN=sum,keep.names=TRUE)
 products = products[order(products$count),]
 
 

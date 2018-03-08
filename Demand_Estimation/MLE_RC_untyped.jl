@@ -128,6 +128,20 @@ function calc_indCoeffs{T}(p::parDict{T},β::Array{T,1},γ::T)
     return β_i, γ_i
 end
 
+function calc_indCoeffs{T}(randCoeffs::Array{T,2},β::Array{T,1},γ::T)
+    Q = length(β)
+    (K,N) = size(randCoeffs)
+    β_i = Array{T,2}(Q,N)
+    γ_i = Array{T,1}(N)
+    for n in 1:N
+        γ_i[n] = γ + randCoeffs[1,n]
+        for k in 1:Q
+            β_i[k,n] = β[k] + randCoeffs[k+1,n]
+        end
+    end
+    return β_i, γ_i
+end
+
 function individual_values!{T}(d::InsuranceLogit,p::parDict{T})
     # Store Parameters
     γ = p.γ
@@ -157,6 +171,116 @@ function individual_values!{T}(d::InsuranceLogit,p::parDict{T})
     return Void
 end
 
+function per_val_calc{T}(app::ChoiceData,p::parDict{T})
+    # Store Parameters
+    γ = p.γ
+    β = p.β
+    α = p.α[1]
+    δ_long = p.δ
+
+    #ind, X, price, Z, idxitr
+
+    # Caculate shares mean shares for individual i
+    ind = person(app)[1]
+    X = permutedims(prodchars(app),(2,1))
+    price = X[:,1]
+    Z = demoRaw(app)[:,1]
+    β_z = β*Z
+    demos = vecdot(γ,Z)
+    β_i, γ_i = calc_indCoeffs(p,β_z,demos)
+    chars = X*β_i
+
+    (K,N) = size(chars)
+    μ_ij = chars
+    for n = 1:N,k = 1:K
+        μ_ij[k,n] += α*price[k] + γ_i[n]
+    end
+
+    idxitr = app._personDict[ind]
+    δ = δ_long[idxitr]
+    s_hat = individual_shares_RC(μ_ij,δ)
+
+    return s_hat, ind
+end
+
+function per_val_calc(inputTuple::Tuple)
+    # Store Parameters
+    appData = inputTuple[1]
+    α       = inputTuple[2]
+    γ       = inputTuple[3]
+    β       = inputTuple[4]
+    δ       = inputTuple[5]
+    RCs     = inputTuple[6]
+
+    # Caculate shares mean shares for individual i
+    ind = appData[1,1]
+    X = permutedims(appData[2:5,:],(2,1))
+    price = X[:,1]
+    Z = appData[7:9,1]
+    β_z = β*Z
+    demos = vecdot(γ,Z)
+    β_i, γ_i = calc_indCoeffs(RCs,β_z,demos)
+    chars = X*β_i
+
+    (K,N) = size(chars)
+    μ_ij = chars
+    for n = 1:N,k = 1:K
+        μ_ij[k,n] += α*price[k] + γ_i[n]
+    end
+
+    s_hat = individual_shares_RC(μ_ij,δ)
+
+    return s_hat, ind
+end
+
+function per_val_calc{T}(idxitr::UnitRange,p::parDict{T},c::ChoiceData)
+    # Store Parameters
+    appData = c.data[:,idxitr]
+    α       = p.α[1]
+    γ       = p.γ
+    β       = p.β
+    δ       = p.δ[idxitr]
+    RCs     = p.randCoeffs
+
+    # Caculate shares mean shares for individual i
+    ind = appData[1,1]
+    X = permutedims(appData[2:5,:],(2,1))
+    price = X[:,1]
+    Z = appData[7:9,1]
+    β_z = β*Z
+    demos = vecdot(γ,Z)
+    β_i, γ_i = calc_indCoeffs(RCs,β_z,demos)
+    chars = X*β_i
+
+    (K,N) = size(chars)
+    μ_ij = chars
+    for n = 1:N,k = 1:K
+        μ_ij[k,n] += α*price[k] + γ_i[n]
+    end
+
+    s_hat = individual_shares_RC(μ_ij,δ)
+
+    return s_hat, idxitr
+end
+
+function parallel_values!{T}(d::InsuranceLogit,p::parDict{T})
+    #Collection of individual datasets
+    idList = Set(eachperson(d.data))
+    #Collection of Parameters
+    parList =[p]
+    while length(parList)<length(idList)
+        parList = vcat(parList,[p])
+    end
+    #Function for parallel caculations
+    res = pmap(per_val_calc,idList,parList)
+
+    #Combine Results
+    for (s,ind) in res
+            idxitr = d.data._personDict[ind]
+            d.s_hat[idxitr] = s
+    end
+    return Void
+end
 
 
 function individual_shares_RC{T}(μ_ij::Array{T},δ;inside::Bool=false)
@@ -311,9 +435,9 @@ function estimate!(d::InsuranceLogit, p0)
     opt = Opt(:LN_NELDERMEAD, length(p0))
     #opt = Opt(:LN_SBPLX, length(p0))
     xtol_rel!(opt, 1e-4)
-    maxeval!(opt, 2000)
+    maxeval!(opt, 4)
     #upper_bounds!(opt, ones(length(p0))/10)
-    initial_step!(opt,5e-3)
+    initial_step!(opt,5e-2)
 
     # Objective Function
     ll(x) = evaluate_iteration!(d, x)
@@ -337,9 +461,7 @@ function estimate!(d::InsuranceLogit, p0)
     # Run Optimization
     minf, minx, ret = optimize(opt, p0)
     println("got $minf at $minx after $count iterations (returned $ret)")
-    # Set the parameters
-    evaluate_iteration!(d, minx)
 
     # Return the object
-    return ret
+    return ret, minf, minx
 end

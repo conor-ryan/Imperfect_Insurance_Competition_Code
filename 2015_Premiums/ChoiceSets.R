@@ -9,23 +9,10 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
 #### Read in Data ####
 #Read in plan description data 
 planData = read.csv("Data/2015_Premiums/2015_RWJF.csv")
-planData$CARRIER = as.character(planData$CARRIER)
 
-# Standardize Plan Names
-planData$CARRIER[grep("Cigna",planData$CARRIER)] = "Cigna"
-planData$CARRIER[grep("Health Net",planData$CARRIER)] = "Health Net"
-planData$CARRIER[grep("Aetna",planData$CARRIER)] = "Aetna"
-planData$CARRIER[grep("Anthem",planData$CARRIER)] = "Anthem"
-planData$CARRIER[grep("Humana",planData$CARRIER)] = "Humana"
-planData$CARRIER[grep("Coventry",planData$CARRIER)] = "Aetna"
-planData$CARRIER[grep("Ambetter",planData$CARRIER)] = "Ambetter"
-planData$CARRIER[grep("Kaiser",planData$CARRIER)] = "Kaiser"
-planData$CARRIER[grep("Moda",planData$CARRIER)] = "Moda"
-planData$CARRIER[grep("Molina",planData$CARRIER)] = "Molina"
-planData$CARRIER[grep("Health Republic",planData$CARRIER)] = "Health Republic"
-planData$CARRIER[grep("Oscar",planData$CARRIER)] = "Oscar"
-planData$CARRIER[grep("UnitedHealth",planData$CARRIER)] = "UnitedHealthcare"
-planData$CARRIER[grep("Capital BlueCross",planData$CARRIER)] = "Capital BlueCross"
+#Merge Firm Crosswalk
+planCrosswalk = read.csv("Intermediate_Output/RWJF_PlanCrosswalk.csv")
+planData = merge(planData,planCrosswalk,by=c("ST","CARRIER","PLANID"),all.x=TRUE)
 
 #  Standardize Rating Area
 planData$AREA = gsub("^([A-Z]+)([0]{0,})([1-9]+[0]?)$","Rating Area \\3",planData$AREA,perl=TRUE)
@@ -33,7 +20,7 @@ planData$AREA = gsub("^([A-Z]+)([0]{0,})([1-9]+[0]?)$","Rating Area \\3",planDat
 planData$AREA[planData$ST=="NJ"] = "Rating Area 1"
 
 #### Subset Data on Salient Characteristics ####
-planData = planData[,c("ST","METAL","AREA","PLANID","PLANNAME","CARRIER",
+planData = planData[,c("ST","METAL","AREA","PLANID","PLANNAME","CARRIER","Firm",
                        "PREMI27","PLANMARKET",
                        "MEHBDedInnTier1IndividualA","MEHBDedInnTier2IndividualA",
                        "TEHBDedInnTier1IndividualA","TEHBDedInnTier2IndividualA",
@@ -195,12 +182,14 @@ hixData = unique(hixData)
 hixData = hixData[,!grepl("Drug",names(hixData))]
 
 #### Merge RWJF and HIX plan data ####
-planData = planData[,c("ST","METAL","AREA","PLANID","CARRIER","PLANNAME","PREMI27","PLANMARKET","MedDeduct","MedDeductFam","MedOOP","MedOOPFam")]
+planData = planData[,c("ST","METAL","AREA","PLANID","CARRIER","Firm","PLANNAME","PREMI27","PLANMARKET","MedDeduct","MedDeductFam","MedOOP","MedOOPFam")]
 planData$CSR = gsub("([0-9]+[A-Z]+[0-9]+)(-)?(04|05|06)?","\\3",planData$PLANID,perl=TRUE)
 planData$PLANID = gsub("([0-9]+[A-Z]+[0-9]+)(-)?(04|05|06)?","\\1",planData$PLANID,perl=TRUE)
 planData$CSR = factor(planData$CSR,levels=c("","04","05","06"),labels=c("","73","87","94"))
 
-STselection  = c("AK","AR","CA","CT","DE","GA","IL","IA","KS","MD","MI","MN","MO","NE","NJ","NM","OK","OR","PA","TX","UT","VA","WV")
+## Get State Selection from firm crosswalk
+firmCrosswalk = read.csv("Intermediate_Output/FirmCrosswalk.csv")
+STselection  = unique(firmCrosswalk$STATE)
 
 comb = merge(planData[planData$ST%in%STselection,],hixData[hixData$State%in%STselection,],
              by.x=c("ST","AREA","PLANID"),by.y=c("State","RatingArea","PlanID"),all=TRUE)
@@ -240,7 +229,7 @@ comb$MedOOPFam[is.na(comb$MedOOPFam)] = 2*comb$MedOOP[is.na(comb$MedOOPFam)]
 # plans = unique(planData[planData$PLANID%in%missingIDs_in&is.na(planData$MedOOP),c("ST","CARRIER","PLANNAME")])
  
 comb = comb[with(comb,order(ST,AREA,METAL,CARRIER,PLANID)),
-            c("ST","AREA","PLANID","METAL","CARRIER","PLANNAME","PREMI27","PLANMARKET","CSR","MedDeduct","MedOOP","MedDeductFam","MedOOPFam")]
+            c("ST","AREA","PLANID","METAL","CARRIER","Firm","PLANNAME","PREMI27","PLANMARKET","CSR","MedDeduct","MedOOP","MedDeductFam","MedOOPFam")]
 
 
 ##### Cost Sharing Plot ####
@@ -272,12 +261,12 @@ dev.off()
 comb$METAL = gsub(" $","",paste(comb$METAL,comb$CSR))
 
 comb$count = 1
-comb$count_prod = ave(comb$count,with(comb,paste(ST,AREA,CARRIER,METAL)),FUN=sum)
+comb$count_prod = ave(comb$count,with(comb,paste(ST,AREA,Firm,METAL)),FUN=sum)
 comb$count_all = ave(comb$count,with(comb,paste(ST,AREA)),FUN=sum)
 
-comb$premRank = ave(comb$PREMI27,with(comb,paste(ST,AREA,CARRIER,METAL)),
+comb$premRank = ave(comb$PREMI27,with(comb,paste(ST,AREA,Firm,METAL)),
                     FUN=function(x){return(rank(x,ties.method="first"))})
-comb$medRank = floor(ave(comb$premRank,with(comb,paste(ST,AREA,CARRIER,METAL)),FUN=median))
+comb$medRank = floor(ave(comb$premRank,with(comb,paste(ST,AREA,Firm,METAL)),FUN=median))
 
 choiceSet = comb[comb$premRank==comb$medRank,]
 
@@ -293,7 +282,7 @@ write.csv(benchmark,"Intermediate_Output/Premiums/benchmark2015.csv",row.names=F
 
 #### Check Valid Choice Sets ####
 counts_all = unique(comb[,c("ST","AREA","count_all")])
-counts_prod = unique(comb[,c("ST","AREA","CARRIER","METAL","count_prod")])
+counts_prod = unique(comb[,c("ST","AREA","Firm","METAL","count_prod")])
 
 choiceSet$count = 1 
 choiceSet$count = ave(choiceSet$count,with(choiceSet,paste(ST,AREA,METAL)),FUN=sum)
@@ -322,7 +311,7 @@ choiceSet$valid = with(choiceSet,paste(ST,AREA))%in%with(validAreas,paste(ST,ARE
 choiceSet$hix = choiceSet$PLANMARKET%in%c(1,3)
 
 
-write.csv(choiceSet[,c("ST","AREA","CARRIER","METAL","PREMI27","MedDeduct","MedOOP","MedDeductFam","MedOOPFam","hix","valid")],
+write.csv(choiceSet[,c("ST","AREA","Firm","METAL","PREMI27","MedDeduct","MedOOP","MedDeductFam","MedOOPFam","hix","valid")],
           "Intermediate_Output/Premiums/choiceSets2015.csv",row.names=FALSE)
 
 
