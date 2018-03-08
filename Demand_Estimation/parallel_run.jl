@@ -28,7 +28,7 @@ end
 
 # Initial Parameters
 p_list = []
-for i in 1:3
+for i in 1:20
     γstart = Array{Float64}([0,0,0])/100
     αstart = -rand()
     βstart = -rand(4*3)/5

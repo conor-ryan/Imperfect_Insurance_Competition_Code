@@ -404,8 +404,8 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T})
         individual_values!(d,p)
         eps = δ_update!(d,p)
         unpack_δ!(p.δ,d)
-        println("Contraction Error")
-        println(eps)
+        # println("Contraction Error")
+        # println(eps)
     end
 end
 
