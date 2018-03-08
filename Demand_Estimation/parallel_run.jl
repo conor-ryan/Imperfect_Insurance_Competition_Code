@@ -47,5 +47,5 @@ end
 res = pmap(estimate_parallel,p_list)
 
 run = Dates.today()
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_$run.jld"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_p_$run.jld"
 save(file,"p_est",p_est)
