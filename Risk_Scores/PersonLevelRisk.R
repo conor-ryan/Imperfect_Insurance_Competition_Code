@@ -17,17 +17,6 @@ acs[,ST:=gsub("_.*","",Market)]
 setkey(acs,Market)
 acs = merge(acs,gcf[,c("Market","GCF")],by="Market")
 
-# Set AV Values
-acs[Metal=="BRONZE",AV:=.6]
-acs[Metal=="SILVER",AV:=.7]
-acs[Metal=="GOLD",AV:=.8]
-acs[Metal=="PLATINUM",AV:=.9]
-
-# Set IDF Values
-acs[Metal=="BRONZE",IDF:=1.0]
-acs[Metal=="SILVER",IDF:=1.03]
-acs[Metal=="GOLD",IDF:=1.08]
-acs[Metal=="PLATINUM",IDF:=1.15]
 
 # Remove Catastrophic Plans for now. 
 acs = acs[Metal!="CATASTROPHIC",]
@@ -35,6 +24,10 @@ acs = acs[Metal!="CATASTROPHIC",]
 #### Predict Plan Average Allowable Rating Factors
 setkey(acs,Product,Person)
 setkey(predict_data,Product,Person)
+
+
+
+
 
 
 

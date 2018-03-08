@@ -1,8 +1,4 @@
 rm(list=ls())
-library(ggplot2)
-library(scales)
-library(extrafont)
-library(grid)
 library(doBy)
 library(randtoolbox)
 library(data.table)
@@ -29,16 +25,19 @@ subsPerc <- function(FPL){
 
 #### Read in  ACS Exchange Elligible Data ####
 acs = read.csv("Data/2015_ACS/exchangePopulation2015.csv")
+acs = as.data.table(acs)
+setkey(acs,STATEFIP,PUMA)
 #Uninsured Rate
 with(acs,sum(uninsured*PERWT)/sum(PERWT))
 acs$person = rownames(acs)
 
 #### Match PUMA to Rating Area ####
 areaMatch = read.csv("Intermediate_Output/Zip_RatingArea/PUMA_to_RatingArea.csv")
-acs = merge(acs,areaMatch[,c("PUMA","RatingArea","ST","STATEFIP","alloc")],by=c("STATEFIP","PUMA"),all.x=TRUE)
+areaMatch = as.data.table(areaMatch)
+acs = merge(acs,areaMatch[,c("PUMA","RatingArea","ST","STATEFIP","alloc")],by=c("STATEFIP","PUMA"),all.x=TRUE,allow.cartesian = TRUE)
 # Distribute weight by population prob that observation is in a given Rating Area
-acs$PERWT = acs$PERWT*acs$alloc
-acs$household = as.factor(paste(acs$household,gsub("Rating Area ","",acs$RatingArea),sep="-"))
+acs[,PERWT:=PERWT*alloc]
+acs[,household:=as.factor(paste(household,gsub("Rating Area ","",RatingArea),sep="-"))]
 
 acs = acs[,c("household","HHincomeFPL","HH_income","AGE","PERWT","RatingArea","ST")]
 names(acs) = c("household","HHincomeFPL","HH_income","AGE","PERWT","AREA","ST")
@@ -48,7 +47,7 @@ names(acs) = c("household","HHincomeFPL","HH_income","AGE","PERWT","AREA","ST")
 
 #### Household Characteristics ####
 rating = read.csv("Data/AgeRating.csv")
-
+rating = as.data.table(rating)
 # Create truncated Age variable
 acs$AgeMatch = acs$AGE
 acs$AgeMatch[acs$AGE<14] = 14
@@ -60,23 +59,24 @@ acs = merge(acs,rating[rating$State!="Default",],by.x=c("ST","AgeMatch"),by.y=c(
 acs$ageRate = acs$Rating.x
 acs$ageRate[!is.na(acs$Rating.y)] = acs$Rating.y[!is.na(acs$Rating.y)]
 # Drop redundant rating variables
-acs = acs[,which(!names(acs)%in%c("Rating.x","Rating.y"))]
+#acs = acs[,which(!names(acs)%in%c("Rating.x","Rating.y"))]
 rm(rating)
 
 #Count Members
+setkey(acs,household)
 acs$MEMBERS=1
 #Age of HoH
-acs$MaxAge = ave(acs$AGE,acs$household,FUN=max)
+acs[,MaxAge:=max(AGE),by="household"]
 #Count Children
-acs$childRank = ave(acs$AGE,acs$household,FUN=function(x){rank(x,ties.method="first")})
+acs[,childRank:=rank(AGE,ties.method="first"),by="household"]
 acs$childRank[acs$AGE>18] = NA
 acs$ageRate[!is.na(acs$childRank)&acs$childRank>3]=0
 
 acs$catas_cnt = as.numeric(acs$AGE<30)
 acs$ageRate_avg = acs$ageRate*acs$PERWT
+acs = acs[,lapply(.SD,sum),by=c("household","HHincomeFPL","HH_income","MaxAge","AREA","ST"),
+          .SDcols = c("MEMBERS","ageRate","ageRate_avg","PERWT","catas_cnt")]
 
-acs = summaryBy(MEMBERS+ageRate+ageRate_avg+PERWT+catas_cnt~household+HHincomeFPL+HH_income+MaxAge+AREA+ST,
-               data=acs,FUN=sum,keep.names=TRUE)
 names(acs) = c("household","HHincomeFPL","HH_income","AGE","AREA","ST","MEMBERS","ageRate","ageRate_avg","PERWT","catas_cnt")
 acs$ageRate_avg = with(acs,ageRate_avg/PERWT)
 
@@ -90,9 +90,12 @@ acs$catas_elig = acs$catas_cnt==acs$MEMBERS
 
 #### Match to Choice Set ####
 choiceSets = read.csv("Intermediate_Output/Premiums/choiceSets2015.csv")
+choiceSets = as.data.table(choiceSets)
+setkey(choiceSets,ST,AREA)
+setkey(acs,ST,AREA)
 # Drop invalid states and Merge
 acs = acs[acs$ST%in%choiceSets$ST,]
-acs = merge(acs,choiceSets,by=c("ST","AREA"),all.x=TRUE)
+acs = merge(acs,choiceSets,by=c("ST","AREA"),all.x=TRUE,allow.cartesian=TRUE)
 
 #### Set Correct Characteristics ####
 acs = acs[!with(acs,catas_elig & METAL=="CATASTROPHIC"),]
@@ -123,6 +126,7 @@ acs$premBase[acs$ST=="UT"] = acs$PREMI27[acs$ST=="UT"]/1.39
 
 # Merge in Benchmark
 benchmark = read.csv("Intermediate_Output/Premiums/benchmark2015.csv")
+benchmark = as.data.table(benchmark)
 acs = merge(acs,benchmark,by.x=c("ST","AREA"),by.y=c("ST","AREA"),all.x=TRUE)
 rm(benchmark)
 
@@ -135,15 +139,14 @@ acs$benchBase[acs$ST=="UT"] = acs$bench27[acs$ST=="UT"]/1.39
 
 
 # Calculate Rated Subsidy
-acs$Benchmark = with(acs,benchBase*ageRate)
-acs$HHcont = subsPerc(acs$HHincomeFPL)
-acs$subsidy = pmax(with(acs,Benchmark - HHcont*HH_income/12),0)
-
+acs[,Benchmark:=benchBase*ageRate]
+acs[,HHcont:=subsPerc(HHincomeFPL)]
+acs[,subsidy:=pmax(Benchmark-HHcont*HH_income/12,0)]
 
 # Calculate Premiums for Choice Set
-acs$Quote = with(acs,premBase*ageRate)
-acs$PremPaid = pmax(with(acs,premBase*ageRate - subsidy),0)
-acs$PremPaid[acs$METAL=="CATASTROPHIC"] = with(acs[acs$METAL=="CATASTROPHIC",],premBase*ageRate)
+acs[,Quote:=premBase*ageRate]
+acs[,PremPaid:=pmax(premBase*ageRate-subsidy,0)]
+acs[METAL=="CATASTROPHIC",PremPaid:=premBase*ageRate]
 
 # Keep Relevant Variables
 acs = acs[,c("ST","household","HH_income","HHincomeFPL","FAMILY_OR_INDIVIDUAL","MEMBERS","AGE",
@@ -151,73 +154,71 @@ acs = acs[,c("ST","household","HH_income","HHincomeFPL","FAMILY_OR_INDIVIDUAL","
 
 
 #### Choice Sets - Cost Sharing ####
-acs$METAL = toupper(acs$METAL)
-acs$CSR = gsub("[A-Z]+ ?","",acs$METAL,perl=TRUE)
-acs$METAL = gsub(" [0-9]+","",acs$METAL)
+acs[,METAL:=toupper(METAL)]
+acs[,CSR:=gsub("[A-Z]+ ?","",METAL,perl=TRUE)]
+acs[,METAL:=gsub(" [0-9]+","",METAL)]
+
 
 # Set hix to be TRUE for all Silver, if for any
-acs$hix = ave(acs$hix,with(acs,paste(household,Firm,METAL)),FUN=any)
+acs[,hix:=any(hix),by=c("household","Firm","METAL")]
 
-acs$CSR_subs = ""
-acs$CSR_subs[with(acs,METAL=="SILVER"&hix&HHincomeFPL>2 & HHincomeFPL<=2.5)] = "73"
-acs$CSR_subs[with(acs,METAL=="SILVER"&hix&HHincomeFPL>1.5 & HHincomeFPL<=2)] = "87"
-acs$CSR_subs[with(acs,METAL=="SILVER"&hix&HHincomeFPL>=1 & HHincomeFPL<=1.5)] = "94"
+acs[,CSR_subs:= ""]
+acs[METAL=="SILVER"&hix&HHincomeFPL>2 & HHincomeFPL<=2.5,CSR_subs:= "73"]
+acs[METAL=="SILVER"&hix&HHincomeFPL>1.5 & HHincomeFPL<=2,CSR_subs:= "87"]
+acs[METAL=="SILVER"&hix&HHincomeFPL>=1 & HHincomeFPL<=1.5,CSR_subs:= "94"]
 
 # Keep only Silver plans for the appropriate income
 acs = acs[with(acs,CSR==CSR_subs),]
 
 
 #### Calculate Mandate Penalty ####
-acs$filingThresh = 10150
+acs[,filingThresh:= 10150]
 acs$filingThresh[acs$FAMILY_OR_INDIVIDUAL=="FAMILY"] = 20300
 # Calculate Mandate using average income for non-subsidized people.
-acs$Mandate = with(acs, pmin(pmax(325,.02*(HH_income-filingThresh)),2484))
-acs$Mandate[acs$MEMBERS>1] = with(acs[acs$MEMBERS>1,], pmin(
+acs[,Mandate:= pmin(pmax(325,.02*(HH_income-filingThresh)),2484)]
+acs[MEMBERS>1,Mandate:=min(
   pmax(pmin(325*2+325*.5*(MEMBERS-2),975),
        .02*(HH_income-filingThresh)),
-  2484*ageRate))
-
+  2484*ageRate)]
 
 acs = acs[,c("ST","household","FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","AREA","Firm","METAL","hix",
                      "MedDeduct","MedOOP","ageRate","ageRate_avg","HHincomeFPL","Benchmark","HHcont","subsidy","Quote",
                      "PremPaid","HH_income","CSR","Mandate","PERWT")]
 
 #### Dummy Variables ####
-acs$Family = 0 
-acs$Family[acs$FAMILY_OR_INDIVIDUAL=="FAMILY"] = 1
+acs[,Family:= 0] 
+acs[FAMILY_OR_INDIVIDUAL=="FAMILY",Family:= 1]
 
-acs$Youth = 1
-acs$Youth[acs$AGE>35] = 0
+acs[,LowIncome:= 1]
+acs[is.na(HHincomeFPL)|HHincomeFPL>4,LowIncome:= 0]
 
-acs$LowIncome = 1
-acs$LowIncome[with(acs,is.na(HHincomeFPL)|HHincomeFPL>4)] = 0
-
-acs$High = 0 
-acs$High[with(acs,METAL%in%c("GOLD","PLATINUM")|CSR%in%c("94","87"))] = 1
+acs[,High:= 0 ]
+acs[METAL%in%c("GOLD","PLATINUM")|CSR%in%c("94","87"),High:= 1 ]
 
 #### Clean ####
-acs$Price = (acs$PremPaid*12-acs$Mandate)/1000
-acs$MedDeduct = acs$MedDeduct/1000
-acs$MedOOP = acs$MedOOP/1000
+acs[,Price:=(PremPaid*12-Mandate)/1000]
+acs[,MedDeduct:= MedDeduct/1000]
+acs[,MedOOP:= MedOOP/1000]
 
-acs$Age = 0
-acs$Age[acs$AGE>=40] = 1
-acs$Person = acs$household
+acs[,Age := 0]
+acs[AGE>=40,Age:= 1]
+
+acs[,Person:= household]
 
 # Product Variables
-acs$Market = with(acs,paste(ST,gsub("Rating Area ","",AREA),sep="_"))
+acs[,Market:= paste(ST,gsub("Rating Area ","",AREA),sep="_")]
 
-acs$Product_Name = with(acs,paste(Firm,METAL,Market,sep="_"))
-
-
-acs = acs[with(acs,order(Person)),]
+acs[,Product_Name:= paste(Firm,METAL,Market,sep="_")]
 
 acs = acs[,c("Person","Firm","Market","Product_Name","Price","MedDeduct","MedOOP","High","Family","Age","LowIncome","ageRate_avg","PERWT")]
 
 
 #### Merge in Product Map #### 
 prod_map = read.csv("Intermediate_Output/Estimation_Data/marketDataMap.csv")
+prod_map = as.data.table(prod_map)
 
+setkey(acs,Product_Name)
+setkey(prod_map,Product_Name)
 acs = merge(acs,prod_map[,c("Product_Name","Product")],by="Product_Name",all.x=TRUE)
 # Drop 0 share products
 acs = acs[!is.na(acs$Product),]
@@ -225,26 +226,28 @@ acs = acs[!is.na(acs$Product),]
 
 #### Read in Parameters ####
 n_draws = 100
-pars = read.csv("Estimation_Output/estimationresults_fullapprox2018-02-15.csv")
+pars = read.csv("Estimation_Output/estimationresults_fullapprox2018-03-07.csv")
 
-deltas = read.csv("Estimation_Output/deltaresults_fullapprox2018-02-15.csv")
+deltas = read.csv("Estimation_Output/deltaresults_fullapprox2018-03-07.csv")
 
-gamma = pars$pars[0:3]
-beta = matrix(pars$pars[4:15],nrow=4,ncol=3,byrow=FALSE)
-sigma = pars$pars[16:19]
+alpha = pars$pars[1]
+gamma = pars$pars[2:4]
+beta = matrix(pars$pars[5:16],nrow=4,ncol=3,byrow=FALSE)
+sigma = pars$pars[17:21]
 
-randCoeffs = halton(n_draws,dim=4,usetime=TRUE,normal=TRUE)
-for (k in 1:4){
-  randCoeffs[,k] = randCoeffs[,k]*sigma[k]
+draws = halton(n_draws,dim=3,usetime=TRUE,normal=TRUE)
+randCoeffs = matrix(nrow=n_draws,ncol=length(sigma))
+j = 1
+for (k in 1:5){
+  if (k<3){j=j+1}
+  randCoeffs[,k] = draws[,3]*sigma[k]
 }
 
 acs = merge(acs,deltas,by.x="Product",by.y="prods")
-acs = acs[order(acs$Person,acs$Product),]
 
 #### Convert Data Sets ####
-acs$Person = as.integer(acs$Person)
-acs = as.data.table(acs)
-setkey(acs,Person)
+acs[,Person:= as.integer(Person)]
+setkey(acs,Person,Product)
 
 people = sort(unique(acs$Person))
 
@@ -271,6 +274,7 @@ first_inds = sortedFirst(people,predict_data$Person)
 first_inds = c(first_inds,nrow(predict_data)+1)
 
 index = vector("list",length(people))
+
 for (i in 1:length(people)){
   ind_temp = first_inds[i]:(first_inds[i+1]-1)
   index[[i]] = ind_temp
@@ -279,8 +283,6 @@ for (i in 1:length(people)){
 repl = unlist(lapply(index,FUN=function(x){rep(x,n_draws)}))
 ind_draw = unlist(lapply(index,FUN=function(x){rep(1:n_draws,each=length(x))}))
 
-
-
 predict_data = predict_data[repl, ]
 predict_data[,d_ind:=ind_draw]
 setkey(predict_data,Person)
@@ -288,7 +290,6 @@ setkey(predict_data,Person)
 
 
 #### Predict ####
-
 cnt = 0
 start = Sys.time()
 for (p in people){
@@ -299,17 +300,21 @@ for (p in people){
   chars = as.matrix(perData[,c("Price","MedDeduct","MedOOP","High")])
   delta = perData$delta
   
+  intercept = (demos%*%gamma)[1,1] + randCoeffs[,1]
+  
+  price_int = alpha*chars[,1]
+  
   beta_z = demos%*%t(beta)
   beta_zi = matrix(beta_z,nrow=n_draws,ncol=length(beta_z),byrow=TRUE)
   for (k in 1:n_draws){
-    beta_zi[k,] = beta_zi[k,] + randCoeffs[k,]
+    beta_zi[k,] = beta_zi[k,] + randCoeffs[k,2:5]
   }
   
-  intercept = (demos%*%gamma)[1,1]
+  
   util = matrix(NA,nrow=nrow(chars),ncol=n_draws)
   shares = matrix(NA,nrow=nrow(chars),ncol=n_draws)
   for(k in 1:n_draws){
-    util[,k] = exp(intercept + chars%*%beta_zi[k,] + delta)
+    util[,k] = exp(intercept[k] + price_int + chars%*%beta_zi[k,] + delta)
   }
   expsum = apply(util,MARGIN=2,sum)
   for(k in 1:n_draws){
