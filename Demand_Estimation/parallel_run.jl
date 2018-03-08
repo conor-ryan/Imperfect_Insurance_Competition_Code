@@ -3,6 +3,7 @@ using BenchmarkTools
 @everywhere using JLD
 @everywhere using CSV
 
+@everywhere cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Code/Demand_Estimation")
 # Data Structure
 @everywhere include("InsChoiceData.jl")
 
@@ -14,22 +15,14 @@ using BenchmarkTools
 println("Code Loaded")
 
 
+@everywhere include("load_parallel_sample.jl")
+
 ## Function to Execute Estimation
 # Takes a starting point as an argument
-@everywhere estimate_parallel(p0::Vector{Float64})
-    # Load the Data
-    include("load_sample.jl")
-    # Structre the data
-    c = ChoiceData(df,df_mkt)
-
-    # Fit into model
-    m = InsuranceLogit(c,500)
-
+@everywhere function estimate_parallel(p0::Vector{Float64})
     parStart0 = parDict(m,p0)
-
     # Estimate the Model
     est_ret,est_f,est_x = estimate!(m, p0)
-
     return est_ret,est_f,est_x
 end
 

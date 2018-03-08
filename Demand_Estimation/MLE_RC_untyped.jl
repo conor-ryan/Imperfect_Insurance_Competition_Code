@@ -435,7 +435,7 @@ function estimate!(d::InsuranceLogit, p0)
     opt = Opt(:LN_NELDERMEAD, length(p0))
     #opt = Opt(:LN_SBPLX, length(p0))
     xtol_rel!(opt, 1e-4)
-    maxeval!(opt, 2)
+    maxeval!(opt, 2000)
     #upper_bounds!(opt, ones(length(p0))/10)
     initial_step!(opt,5e-2)
 
