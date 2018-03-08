@@ -3,7 +3,6 @@ using BenchmarkTools
 @everywhere using JLD
 @everywhere using CSV
 
-@everywhere cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition")
 # Data Structure
 @everywhere include("InsChoiceData.jl")
 
@@ -35,8 +34,18 @@ println("Code Loaded")
 end
 
 # Initial Parameters
-γstart = Array{Float64}([0,0,0])/100
-αstart = -.4
-βstart = -ones(4*3)/10
-σstart = [1,1,.5,1,1.5]/10
-p0 = vcat(αstart,γstart,βstart,σstart)
+p_list = []
+for i in 1:3
+    γstart = Array{Float64}([0,0,0])/100
+    αstart = -rand()
+    βstart = -rand(4*3)/5
+    σstart = rand(5)/5
+    p0 = vcat(αstart,γstart,βstart,σstart)
+    p_list = vcat(p_list,[p0])
+end
+
+res = pmap(estimate_parallel,p_list)
+
+run = Dates.today()
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_$run.jld"
+save(file,"p_est",p_est)
