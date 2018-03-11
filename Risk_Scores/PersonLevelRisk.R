@@ -10,6 +10,7 @@ gcf=as.data.table(gcf)
 setkey(gcf,Market) 
 #### Load Simulation Data and Merge in GCF/AV data ####
 load("Simulation_Risk_Output/simData.rData")
+load("Simulation_Risk_Output/FirmRiskScores.rData")
 
 # Merge in GCF
 acs[,Metal:=gsub("([A-Z_]*)(CATASTROPHIC|BRONZE|SILVER|GOLD|PLATINUM)([A-Z_0-9]*)","\\2",acs$Product_Name,perl=TRUE)]
@@ -17,163 +18,169 @@ acs[,ST:=gsub("_.*","",Market)]
 setkey(acs,Market)
 acs = merge(acs,gcf[,c("Market","GCF")],by="Market")
 
+# Set IDF Values
+acs[Metal=="BRONZE",IDF:=1.0]
+acs[Metal=="SILVER",IDF:=1.03]
+acs[Metal=="GOLD",IDF:=1.08]
+acs[Metal=="PLATINUM",IDF:=1.15]
+
+# Set Regulatory Factor
+acs[,Gamma_j:=IDF*GCF]
 
 # Remove Catastrophic Plans for now. 
 acs = acs[Metal!="CATASTROPHIC",]
 
-#### Predict Plan Average Allowable Rating Factors
 setkey(acs,Product,Person)
 setkey(predict_data,Product,Person)
 
+#### Predict Plan Average Allowable Rating Factors
+pars = read.csv("Estimation_Output/estimationresults_fullapprox2018-03-07.csv")
 
 
+alpha = pars$pars[1]
+gamma = pars$pars[2:4]
+beta = matrix(pars$pars[5:16],nrow=4,ncol=3,byrow=FALSE)
+sigma = pars$pars[17:21]
+
+## Calculate alpha for each demographic ##
+acs[,alpha:=alpha+beta[1,1]*Age+beta[1,2]*Family+beta[1,3]*LowIncome]
 
 
+## Integrate Draws and Prediction Data
+randCoeffs = as.data.table(randCoeffs)
+n_draws = nrow(randCoeffs)
+randCoeffs[,nu_h:=V3/sigma[3]]
+randCoeffs[,alpha_draw:=V1]
+randCoeffs[,d_ind:=as.integer(1:n_draws)]
+randCoeffs = randCoeffs[,c("d_ind","alpha_draw","nu_h")]
+setkey(randCoeffs,d_ind)
+setkey(predict_data,d_ind,Person)
+alpha_large = randCoeffs[predict_data$d_ind,c("alpha_draw")]
+nu_large = randCoeffs[predict_data$d_ind,c("nu_h")]
+
+predict_data[,alpha_draw:=alpha_large]
+predict_data[,nu_h:=nu_large]
+rm(alpha_large,nu_large)
+
+#### State Populations ####
+states = unique(acs[,c("ST","Person","PERWT")])
+states = states[,list(marketPop=sum(PERWT)),by=c("ST")]
+acs = merge(acs,states,by="ST")
+
+#### Risk By Product ####
+setkey(acs,Product,Person)
+setkey(predict_data,Product,Person,d_ind)
+
+prodData = unique(acs[,c("Product","Firm","ST","marketPop","Gamma_j")])
+prodData[,R_wgt:=vector(mode="numeric",length=nrow(prodData))]
+products = prodData$Product
 
 
-# Get Mean Firm Shares
-per_predict = predict_data[,mean(s_pred),by=c("Product","Person")]
-predict_full = merge(acs,per_predict,by=c("Product","Person"))
+prodData = merge(prodData,firm_RA,by=c("Firm","ST"))
+setkey(prodData,Product)
 
-# Calculate Rating Factors
-predict_full[,lives:=V1*PERWT]
-predict_full[,ageR_wt:=V1*PERWT*ageRate_avg]
+# Index through Products In Groups
+# Saves Memory
+predict_data[,rows:=1:nrow(predict_data)]
+acs[,rows:=1:nrow(acs)]
+index_j = list()
+index_acs = list()
+index_pred = list()
+index_list = 1
+len = 0
+step = 100
+while (len<length(products)){
+  len_next = min(step*index_list,length(products))
+  index_j[[index_list]] = products[(len+1):(len_next)]
+  j = products[(len+1):(len_next)]
+  index_acs[[index_list]] = rep(acs[.(j),rows],each=n_draws)
+  index_pred[[index_list]] = predict_data[.(j),rows]
+  len = len_next
+  index_list = index_list + 1
+}
+predict_data[,rows:=NULL]
+acs[,rows:=NULL]
+#### Clear Memory ####
+clear = ls()[!grepl("(acs|predict_data|index|prodData|n_draws)",ls())]
+rm(list=clear)
 
-pred_prods = predict_full[,lapply(.SD,sum),by=c("Product","Product_Name","Firm","ST","AV","GCF","IDF"),.SDcols=c("lives","ageR_wt")]
-pred_prods[,ARF:=ageR_wt/lives]
-pred_prods[,mkt_lives:=sum(lives),by="ST"]
-pred_prods[,share:=lives/mkt_lives]
+acs = acs[,c("Product","Age","Family","LowIncome","Person","alpha","PERWT")]
+gc()
 
-##### Merge in Base Premium Information #####
-choiceSet = read.csv("Intermediate_Output/Premiums/choiceSets2015.csv")
-# Get Product Name
-choiceSet$Market = with(choiceSet,paste(ST,gsub("Rating Area ","",AREA),sep="_"))
-choiceSet$Product_Name = with(choiceSet,paste(Firm,toupper(METAL),Market,sep="_"))
-# Normalize Base Premium
-choiceSet$premBase = choiceSet$PREMI27/1.048
-choiceSet$premBase[choiceSet$ST=="DC"] = choiceSet$PREMI27[choiceSet$ST=="DC"]/.727
-choiceSet$premBase[choiceSet$ST=="MA"] = choiceSet$PREMI27[choiceSet$ST=="MA"]/1.22
-choiceSet$premBase[choiceSet$ST=="MN"] = choiceSet$PREMI27[choiceSet$ST=="MN"]/1.048
-choiceSet$premBase[choiceSet$ST=="UT"] = choiceSet$PREMI27[choiceSet$ST=="UT"]/1.39
+#### Define Risk Function ####
+psi_0 = 0
+psi_age = .5
+psi_Family = .1
+psi_LowIncome = .8
+psi_pref1 = .01
+psi_pref2 = .5
+psi = c(psi_0,psi_age,psi_Family,psi_LowIncome,psi_pref1,psi_pref2)
 
-# Create Data Table
-choiceSet = as.data.table(choiceSet[,c("Product_Name","premBase")])
-
-# Merge with prediction data 
-setkey(choiceSet,Product_Name)
-setkey(pred_prods,Product_Name)
-pred_prods = merge(pred_prods,choiceSet,by="Product_Name",all.x=TRUE)
-
-# Calculate State Premiums
-pred_prods[,charged_prem_avg:=ARF*premBase*12]
-pred_prods[,avg_prem:=sum(charged_prem_avg*share),by="ST"]
-
-
-#### Calculate Firm Level ARF ####
-pred_prods[,A:=AV*ARF*IDF*GCF]
-pred_prods[,A_wtd:=A*share]
-
-firm_RA = pred_prods[,lapply(.SD,sum),by=c("Firm","ST","avg_prem","mkt_lives"),.SDcols=c("A_wtd","share")]
-setkey(firm_RA,ST,Firm)
-
-#### Read in Risk Adjustment Data ####
-claims = read.csv("Data/2015_MLR/Part1_2_Summary_Data_Premium_Claims.csv")
-
-
-payments = claims[claims$ROW_LOOKUP_CODE=="FED_RISK_ADJ_NET_PAYMENTS",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1")]
-names(payments) = c("ï..MR_SUBMISSION_TEMPLATE_ID","Payments")
-
-enroll =claims[claims$ROW_LOOKUP_CODE=="NUMBER_OF_LIFE_YEARS",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1")]
-names(enroll) = c("ï..MR_SUBMISSION_TEMPLATE_ID","MLR_lives")
-
-RA_claims = merge(payments,enroll,by="ï..MR_SUBMISSION_TEMPLATE_ID")
-
-# Remove non-Individual Market Insurers
-RA_claims$absent1 = is.na(RA_claims$MLR_lives) | RA_claims$MLR_lives==0
-RA_claims = RA_claims[!RA_claims$absent1,c("ï..MR_SUBMISSION_TEMPLATE_ID","Payments","MLR_lives")]
-
-# Merge in and summarize by Firm Name
-crosswalk = read.csv("Intermediate_Output/FirmCrosswalk.csv")
-crosswalk = unique(crosswalk[,c("ï..MR_SUBMISSION_TEMPLATE_ID","Firm","STATE")])
-
-RA_claims = merge(RA_claims,crosswalk[,c("ï..MR_SUBMISSION_TEMPLATE_ID","Firm","STATE")],by="ï..MR_SUBMISSION_TEMPLATE_ID")
-RA_claims = summaryBy(MLR_lives+Payments~Firm+STATE,data=RA_claims,FUN=sum,na.rm=TRUE,keep.names=TRUE)
-
-RA_claims = RA_claims[RA_claims$STATE%in%firm_RA$ST,]
-RA_claims = as.data.table(RA_claims)
-setkey(RA_claims,STATE,Firm)
-## Merge with Risk Adjustment Data ##
-firm_RA = merge(firm_RA,RA_claims,by.x=c("ST","Firm"),by.y=c("STATE","Firm"),all=TRUE)
-
-#### Compile un-matched firms into Other ####
-firm_RA[is.na(share),Firm:="OTHER"]
-firm_RA = firm_RA[,lapply(.SD,sum),by=c("Firm","ST","avg_prem","mkt_lives","A_wtd","share"),.SDcols=c("MLR_lives","Payments")]
-
-firm_RA[,ST_MLR_lives:=sum(MLR_lives),by="ST"]
-firm_RA[,MLR_share:=MLR_lives/ST_MLR_lives]
-setkey(firm_RA,ST,Firm)
-
-# Adjust Payments to sum to 0
-firm_RA[,payments_adj:=Payments]
-firm_RA[Firm=="OTHER",payments_adj:=0]
-firm_RA[,payments_adj_net:=sum(payments_adj),by="ST"]
-firm_RA[Firm=="OTHER",payments_adj:=-payments_adj_net]
-# Adjust Market Shares
-firm_RA[Firm!="OTHER",MLR_share:=0]
-firm_RA[,s_adj:=1-sum(MLR_share),by="ST"]
-firm_RA[Firm!="OTHER",RA_share:=s_adj*share]
-firm_RA[Firm=="OTHER",RA_share:=1-s_adj]
-# Set Average Allowable Rating Factor to OTHER Firm
-firm_RA[,A_avg:=sum(A_wtd,na.rm=TRUE),by="ST"]
-firm_RA[Firm=="OTHER",A_wtd:=A_avg*RA_share]
-# Normalize ARF to RA share 
-firm_RA[Firm!="OTHER",A_wtd:=A_wtd*RA_share/share]
-# Set avg_prem everywhere
-firm_RA[,avg_prem:=max(avg_prem,na.rm=TRUE),by="ST"]
-
-
-firm_RA[,names(firm_RA)[!names(firm_RA)%in%c("Firm","ST","avg_prem","A_wtd","payments_adj","ST_MLR_lives","RA_share")]:=NULL]
-
-
-#### Predict Firm Level Risk Scores ####
-
-firm_level_risk = function(R,df){
-  df$R_wtd[df$Firm!="OTHER"] = R
-  df$R_wtd[df$Firm=="OTHER"] = df$A_wtd[df$Firm=="OTHER"]
+risk_function_est<- function(psi){
+  prodData[,R_wgt:=vector(mode="numeric",length=nrow(prodData))]
+  ## Demographic Risk
+  acs[,R_dem:= psi[1]+psi[2]*Age+psi[3]*Family+psi[4]*LowIncome]
   
-  df$A_sum = ave(df$A_wtd,FUN=sum)
-  df$R_sum = ave(df$R_wtd,FUN=sum)
-  df$transfer_pred=with(df,-ST_MLR_lives*avg_prem*(R_wtd/R_sum - A_wtd/A_sum))
+  cnt=0
+  start = Sys.time()
+  for (i in 1:length(index_acs)){
+    cnt=cnt+1
+
+    # st = Sys.time()
+    # risk_predict = merge(acs[.(j),],predict_data[.(j),],by=c("Product","Person"))
+    # Sys.time() - st
+    
+    #st = Sys.time()
+    dem_data = acs[index_acs[[i]],c("alpha","PERWT","R_dem")]
+    #dem_data = dem_data[rep(1:nrow(dem_data),each=n_draws),]
+    risk_predict = predict_data[index_pred[[i]],]
+    risk_predict[,alpha:=dem_data$alpha]
+    risk_predict[,PERWT:=dem_data$PERWT]
+    risk_predict[,R_dem:=dem_data$R_dem]
+    #Sys.time()-st
+    
+    risk_predict[,pref_ratio:=exp(psi[6]*nu_h/(alpha+alpha_draw))/(1+exp(psi[6]*nu_h/(alpha+alpha_draw)))]
+    
+    risk_predict[,R:=R_dem+psi[5]*pref_ratio]
+    #R_wgt_temp = risk_predict[,list(R_wgt=sum(R*s_pred*PERWT/n_draws),enroll=sum(s_pred*PERWT/n_draws)),by="Product"]
+    R_wgt_temp = risk_predict[,list(R_wgt=sum(R*s_pred*PERWT/n_draws)),by="Product"]
+    prodData[.(index_j[[i]]),R_wgt:=R_wgt_temp$R_wgt]
+    print(cnt)
+  }
   
-  error = with(df[df$Firm!="OTHER",],(payments_adj-transfer_pred)/(ST_MLR_lives*avg_prem))
+  print(Sys.time()-start)
+  
+  prodData[,R_j:=R_wgt/marketPop]
+  
+  #firmData = prodData[,list(R_wgt=sum(R_wgt*Gamma_j),Enroll=sum(S_j)),by=c("Firm","ST","marketPop","R_pred")]
+  firmData = prodData[,list(R_wgt=sum(R_wgt*Gamma_j)),by=c("Firm","ST","marketPop","R_pred")]
+  firmData[,R_f:=R_wgt/marketPop]
+  
+  error = firmData[,sum((R_pred-R_f)^2)]
+  rm(risk_predict,dem_data,firmData)
+  print(error)
+  print(psi)
   return(error)
 }
 
+risk_function_est(psi)
 
-firm_RA[,R_pred:=vector("double",nrow(firm_RA))]
-firm_RA[Firm=="OTHER",R_pred:=A_wtd]
-for (state in unique(firm_RA$ST)){
-  st_RA = as.data.frame(firm_RA[ST==state,])
-  R_start = st_RA$A_wtd[st_RA$Firm!="OTHER"]
-  res = nleqslv(x=R_start,fn=firm_level_risk,df=st_RA,
-                control = list(xtol=1e-14,ftol=1e-12,maxit=2000,allowSingular=TRUE))
-  print(state)
-  print(res$message)
-  # if(res$termcd==7){
-  #   res = optim(par=R_start,fn=firm_level_risk_optim,df=st_RA,method="SANN",
-  #                 control = list(maxit=2000))
-  #   print(res$message)
-  # }
-  firm_RA[ST==state&Firm!="OTHER",R_pred:=res$x]
-}
+res = optim(par=psi,fn=risk_function_est)
 
 
-output = firm_RA[,c("Firm","ST","R_pred")]
-save(output,file="Simulation_Risk_Output/FirmRiskScores.rData")
-
-
-## Check
-firm_RA[,A_sum:=sum(A_wtd),by="ST"]
-firm_RA[,R_sum:=sum(R_pred),by="ST"]
-firm_RA[,transfer_pred:=-ST_MLR_lives*avg_prem*(R_pred/R_sum - A_wtd/A_sum)]
-firm_RA[,error:=payments_adj-transfer_pred]
+# 
+# 
+# firmData[,S_f:=Enroll/marketPop]
+# setkey(firmData,ST,Firm)
+# 
+# firmData[,list(lives=sum(Enroll),ins_rate=sum(Enroll)/marketPop),by=c("ST","marketPop")]
+# 
+# 
+# Person_Predict = predict_data[,list(s_pred=mean(s_pred)),by=c("Person","Product")]
+# 
+# acs_predict = merge(Person_Predict,acs,by=c("Person","Product"))
+# acs_predict = merge(acs_predict,prodData[,c("ST","Product")],by="Product")
+# ###############
+# insured = acs_predict[,list(s_pred=sum(s_pred)),by=c("Person","PERWT","ST")]
+# insured[,list(ins_rate=sum(s_pred*PERWT)/sum(PERWT),ins_lives=sum(s_pred*PERWT),ins_total=sum(PERWT)),by="ST"]
+# sum(insured$s_pred*insured$PERWT)/sum(insured$PERWT)

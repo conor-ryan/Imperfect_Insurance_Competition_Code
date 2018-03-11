@@ -1,4 +1,5 @@
 rm(list = ls())
+library(doBy)
 library(data.table)
 library(nleqslv)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
@@ -175,12 +176,12 @@ for (state in unique(firm_RA$ST)){
 }
 
 
-output = firm_RA[,c("Firm","ST","R_pred")]
-save(output,file="Simulation_Risk_Output/FirmRiskScores.rData")
+firm_RA = firm_RA[,c("Firm","ST","R_pred")]
+save(firm_RA,file="Simulation_Risk_Output/FirmRiskScores.rData")
 
 
-## Check
-firm_RA[,A_sum:=sum(A_wtd),by="ST"]
-firm_RA[,R_sum:=sum(R_pred),by="ST"]
-firm_RA[,transfer_pred:=-ST_MLR_lives*avg_prem*(R_pred/R_sum - A_wtd/A_sum)]
-firm_RA[,error:=payments_adj-transfer_pred]
+# ## Check
+# firm_RA[,A_sum:=sum(A_wtd),by="ST"]
+# firm_RA[,R_sum:=sum(R_pred),by="ST"]
+# firm_RA[,transfer_pred:=-ST_MLR_lives*avg_prem*(R_pred/R_sum - A_wtd/A_sum)]
+# firm_RA[,error:=payments_adj-transfer_pred]

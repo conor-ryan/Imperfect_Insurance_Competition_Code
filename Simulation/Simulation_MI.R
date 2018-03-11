@@ -1,9 +1,6 @@
 rm(list=ls())
-library(ggplot2)
-library(scales)
-library(extrafont)
-library(grid)
 library(doBy)
+library(randtoolbox)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
 
 #### 2015 Subsidy Percentage Function ####
@@ -97,7 +94,7 @@ MI$MedOOP[MI$FAMILY_OR_INDIVIDUAL=="FAMILY"] =
 
 
 # Keep only relevant variables
-MI = MI[,c("ST","household","HHincomeFPL","HH_income","FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","AREA","CARRIER","METAL","hix","PREMI27",
+MI = MI[,c("ST","household","HHincomeFPL","HH_income","FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","AREA","Firm","METAL","hix","PREMI27",
                      "MedDeduct","MedOOP","ageRate","PERWT")]
 
 
@@ -135,7 +132,7 @@ MI$PremPaid[MI$METAL=="CATASTROPHIC"] = with(MI[MI$METAL=="CATASTROPHIC",],premB
 
 # Keep Relevant Variables
 MI = MI[,c("ST","household","HH_income","HHincomeFPL","FAMILY_OR_INDIVIDUAL","MEMBERS","AGE",
-           "AREA","CARRIER","METAL","hix","MedDeduct","MedOOP","ageRate","Benchmark","HHcont","subsidy","Quote","PremPaid","PERWT")]
+           "AREA","Firm","METAL","hix","MedDeduct","MedOOP","ageRate","Benchmark","HHcont","subsidy","Quote","PremPaid","PERWT")]
 
 
 #### Choice Sets - Cost Sharing ####
@@ -144,7 +141,7 @@ MI$CSR = gsub("[A-Z]+ ?","",MI$METAL,perl=TRUE)
 MI$METAL = gsub(" [0-9]+","",MI$METAL)
 
 # Set hix to be TRUE for all Silver, if for any
-MI$hix = ave(MI$hix,with(MI,paste(household,CARRIER,METAL)),FUN=any)
+MI$hix = ave(MI$hix,with(MI,paste(household,Firm,METAL)),FUN=any)
 
 MI$CSR_subs = ""
 MI$CSR_subs[with(MI,METAL=="SILVER"&hix&HHincomeFPL>2 & HHincomeFPL<=2.5)] = "73"
@@ -166,7 +163,7 @@ MI$Mandate[MI$MEMBERS>1] = with(MI[MI$MEMBERS>1,], pmin(
   2484*ageRate))
 
 
-MI = MI[,c("ST","household","FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","AREA","CARRIER","METAL","hix",
+MI = MI[,c("ST","household","FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","AREA","Firm","METAL","hix",
                      "MedDeduct","MedOOP","ageRate","HHincomeFPL","Benchmark","HHcont","subsidy","Quote",
                      "PremPaid","HH_income","CSR","Mandate","PERWT")]
 
@@ -193,9 +190,6 @@ MI$Age[MI$AGE>=40] = 1
 MI$Person = MI$household
 
 # Product Variables
-MI$Firm = gsub(" ","_",MI$CARRIER)
-MI$Firm = gsub("[,.&'-:]","",MI$Firm)
-
 MI$Market = with(MI,paste(ST,gsub("Rating Area ","",AREA),sep="_"))
 
 MI$Product_Name = with(MI,paste(Firm,METAL,Market,sep="_"))
@@ -207,7 +201,7 @@ MI = MI[,c("Person","Firm","Market","Product_Name","Price","MedDeduct","MedOOP",
 
 
 #### Merge in Product Map #### 
-prod_map = read.csv("Intermediate_Output/marketDataMap_MI.csv")
+prod_map = read.csv("Intermediate_Output/Estimation_Data/marketDataMap_MI.csv")
 
 MI = merge(MI,prod_map,by="Product_Name",all.x=TRUE)
 # Drop 0 share products
@@ -216,17 +210,21 @@ MI = MI[!is.na(MI$Product),]
 
 #### Read in Parameters ####
 n_draws = 500
-pars = read.csv("Estimation_Output/estimationresults_2018-02-14.csv")
+pars = read.csv("Estimation_Output/estimationresults_2018-03-07.csv")
 
-deltas = read.csv("Estimation_Output/deltaresults_2018-02-14.csv")
+deltas = read.csv("Estimation_Output/deltaresults_2018-03-07.csv")
 
-gamma = pars$pars[0:3]
-beta = matrix(pars$pars[4:15],nrow=4,ncol=3,byrow=FALSE)
-sigma = pars$pars[16:19]
+alpha = pars$pars[1]
+gamma = pars$pars[2:4]
+beta = matrix(pars$pars[5:16],nrow=4,ncol=3,byrow=FALSE)
+sigma = pars$pars[17:21]
 
-randCoeffs = halton(n_draws,dim=4,usetime=TRUE,normal=TRUE)
-for (k in 1:4){
-  randCoeffs[,k] = randCoeffs[,k]*sigma[k]
+draws = halton(n_draws,dim=3,usetime=TRUE,normal=TRUE)
+randCoeffs = matrix(nrow=n_draws,ncol=length(sigma))
+j = 1
+for (k in 1:5){
+  if (k<3){j=j+1}
+  randCoeffs[,k] = draws[,3]*sigma[k]
 }
 
 MI = merge(MI,deltas,by.x="Product",by.y="prods")
@@ -246,22 +244,27 @@ for (p in people){
   chars = as.matrix(perData[,c("Price","MedDeduct","MedOOP","High")])
   delta = perData$delta
   
+  intercept = (demos%*%gamma)[1,1] + randCoeffs[,1]
+  
+  price_int = alpha*chars[,1]
+  
   beta_z = demos%*%t(beta)
   beta_zi = matrix(beta_z,nrow=n_draws,ncol=length(beta_z),byrow=TRUE)
   for (k in 1:n_draws){
-    beta_zi[k,] = beta_zi[k,] + randCoeffs[k,]
+    beta_zi[k,] = beta_zi[k,] + randCoeffs[k,2:5]
   }
   
-  intercept = (demos%*%gamma)[1,1]
+  
   util = matrix(NA,nrow=nrow(chars),ncol=n_draws)
   shares = matrix(NA,nrow=nrow(chars),ncol=n_draws)
   for(k in 1:n_draws){
-    util[,k] = exp(intercept + chars%*%beta_zi[k,] + delta)
+    util[,k] = exp(intercept[k] + price_int + chars%*%beta_zi[k,] + delta)
   }
   expsum = apply(util,MARGIN=2,sum)
   for(k in 1:n_draws){
     shares[,k] = util[,k]/(1+expsum[k])
   }
+  
   MI$s_pred[MI$Person==p] = apply(shares,MARGIN=1,mean)
   if (cnt%%50==0){
     print(cnt)

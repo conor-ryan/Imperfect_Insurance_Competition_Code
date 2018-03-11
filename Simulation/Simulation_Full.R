@@ -331,11 +331,15 @@ Sys.time() - start
 
 save(acs,predict_data,randCoeffs,file="simData.rData")
 
+Person_Predict = predict_data[,list(s_pred=mean(s_pred)),by=c("Person","Product")]
 
-
-
-
+acs_predict = merge(Person_Predict,acs,by=c("Person","Product"))
+acs_predict$ST = gsub("_.*","",acs_predict$Market)
 ###############
+insured = acs_predict[,list(s_pred=sum(s_pred)),by=c("Person","PERWT","ST")]
+insured[,sum(s_pred*PERWT)/sum(PERWT),by="ST"]
+sum(insured$s_pred*insured$PERWT)/sum(insured$PERWT)
+
 # shares = summaryBy(s_pred*PERWT+PERWT~Product+Share+Product_Name,data=acs,FUN=sum,keep.names=TRUE)
 # shares$s_pred = shares["s_pred * PERWT"]/shares$PERWT
 # 
