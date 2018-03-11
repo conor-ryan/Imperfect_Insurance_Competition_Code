@@ -349,7 +349,9 @@ end
 
 function log_likelihood{T}(d::InsuranceLogit,p::Array{T})
     params = parDict(d,p)
-    return log_likelihood(d,params)
+    ll = log_likelihood(d,params)
+    convert_δ!(d)
+    return ll
 end
 
 
@@ -367,7 +369,11 @@ function convert_δ!(d::InsuranceLogit)
     J = length(d.deltas)
     deltas_new = Array{Float64}(J)
     for j in d.prods
-        deltas_new[j] = ForwardDiff.value(d.deltas[j])
+        if isnan(d.deltas[j])
+            deltas_new[j] = 0.0
+        else
+            deltas_new[j] = ForwardDiff.value(d.deltas[j])
+        end
     end
     d.deltas = deltas_new
     return Void
@@ -423,9 +429,9 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update=true)
     end
 end
 
-function contraction!{T}(d::InsuranceLogit,p_vec::Array{T,1})
+function contraction!{T}(d::InsuranceLogit,p_vec::Array{T,1};update=true)
     p = parDict(d,p_vec)
-    return contraction!(d,p)
+    return contraction!(d,p,update=update)
 end
 
 
@@ -458,7 +464,7 @@ function estimate!(d::InsuranceLogit, p0)
     # Objective Function
     #ll(x) = evaluate_iteration!(d, x)
     ll(x) = log_likelihood(d,x)
-    δ_cont(x) = contraction!(d,x)
+    δ_cont(x) = contraction!(d,x,update=false)
     count = 0
     function ll(x, grad)
         count +=1
