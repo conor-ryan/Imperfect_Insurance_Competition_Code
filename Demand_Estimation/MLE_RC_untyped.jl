@@ -472,9 +472,9 @@ function estimate!(d::InsuranceLogit, p0)
         #Store Gradient
         println("Step 1")
         δ_cont(x)
-        println("Step 2")
-        ForwardDiff.gradient!(grad, ll, x)
-        println("Gradient: $grad")
+        # println("Step 2")
+        # ForwardDiff.gradient!(grad, ll, x)
+        # println("Gradient: $grad")
         likelihood = ll(x)
         println("likelihood equals $likelihood at $x on iteration $count")
         return likelihood
