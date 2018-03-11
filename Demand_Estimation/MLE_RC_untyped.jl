@@ -411,7 +411,7 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update=true)
     rnd = 0
     eps = 1
     tol = 1e-6
-    while (eps>tol) & (rnd<1000)
+    while (eps>tol) & (rnd<501)
         rnd+=1
         if rnd>1
             update = true
@@ -452,9 +452,9 @@ end
 function estimate!(d::InsuranceLogit, p0)
     # Set up the optimization
     #opt = Opt(:LD_MMA, length(p0))
-    #opt = Opt(:LN_NELDERMEAD, length(p0))
+    opt = Opt(:LN_NELDERMEAD, length(p0))
     #opt = Opt(:LD_TNEWTON_PRECOND_RESTART,length(p0))
-    opt = Opt(:LD_TNEWTON,length(p0))
+    #opt = Opt(:LD_TNEWTON,length(p0))
     #opt = Opt(:LN_SBPLX, length(p0))
     xtol_rel!(opt, 1e-4)
     maxeval!(opt, 2000)
@@ -491,7 +491,7 @@ function estimate!(d::InsuranceLogit, p0)
     return ret, minf, minx
 end
 
-function gradient_ascent(d,p0;init_step=1e-7)
+function gradient_ascent(d,p0;init_step=1e-7,max_itr=2000)
     ## Initialize Parameter Vector
     p_vec = p0
     # Step Size
@@ -504,14 +504,14 @@ function gradient_ascent(d,p0;init_step=1e-7)
     count = 0
     err = 1
     tol = .01
-    # Initialize δ
+    # # Initialize δ
     param_dict = parDict(d,p_vec)
     contraction!(d,param_dict)
     # Maximize by Gradient Ascent
-    while err>tol
+    while (err>tol) & (count<max_itr)
         count+=1
         # Compute δ with Contraction
-        if count % 5 == 0
+        if count % 2 == 0
             println("Update δ")
             param_dict = parDict(d,p_vec)
             contraction!(d,param_dict)
