@@ -39,30 +39,45 @@ parStart0 = parDict(m,p0)
 #parStart1 = parDict(m,p1)
 println("Data Loaded")
 
+Profile.clear()
+Profile.init()
+#@profile estimate!(m,parStart)
+@profile contraction_SQM!(m,parStart0)
+#@profile individual_shares_RC(μ_ij,δ;inside=true)
+Juno.profiletree()
+Juno.profiler()
+
+
+
+
+
+contraction_SQM!(m,parStart0)
+
+m.deltas = m.deltas./m.deltas
+unpack_δ!(parStart0.δ,m)
+contraction!(m,parStart0)
+
+
+
 individual_values!(m,parStart0)
 individual_shares_RC(m,parStart0)
 
 δ_update!(m,parStart0)
 unpack_δ!(parStart0.δ,m)
 
-ll = log_likelihood(m,parStart0)
+
+
+ll = log_likelihood(m,p0)
 
 @benchmark individual_values!(m,parStart0)
 @benchmark individual_shares_RC(m,parStart0)
+@benchmark δ_update!(m,parStart0)
+@benchmark log_likelihood(m,p0)
 
 
 @benchmark unpack_δ!(parStart0.δ,m)
 
 @benchmark individual_values!(m,parStart0)
-
-Profile.clear()
-Profile.init()
-#@profile estimate!(m,parStart)
-@profile individual_shares_RC(m,parStart0)
-#@profile individual_shares_RC(μ_ij,δ;inside=true)
-Juno.profiletree()
-Juno.profiler()
-
 
 
 

@@ -314,7 +314,7 @@ function individual_shares_RC{T}(d::InsuranceLogit,p::parDict{T})
     for idxitr in values(d.data._personDict)
         δ = δ_long[idxitr]
         u = μ_ij_large[:,idxitr]
-        s = calc_shares2(u,δ)
+        s = calc_shares(u,δ)
         d.s_hat[idxitr] = s
     end
     return Void
@@ -330,27 +330,27 @@ function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
     # Calculate μ_ij, which depends only on parameters
     for app in eachperson(d.data)
         ind = person(app)[1]
-        X = permutedims(prodchars(app),(2,1))
-        price = X[:,1]
-        Z = demoRaw(app)[:,1]
         S_ij = transpose(choice(app))
         wgt = transpose(weight(app))
         urate = transpose(unins(app))
 
+        X = permutedims(prodchars(app),(2,1))
+        price = X[:,1]
+        Z = demoRaw(app)[:,1]
         β_z = β*Z
         demos = vecdot(γ,Z)
         β_i, γ_i = calc_indCoeffs(p,β_z,demos)
         chars = X*β_i
 
         (K,N) = size(chars)
-        μ_ij = similar(chars)
+        μ_ij = transpose(similar(chars))
+        idxitr = d.data._personDict[ind]
         for n = 1:N,k = 1:K
-            μ_ij[k,n] = chars[k,n] + α*price[k] + γ_i[n]
+            μ_ij[n,k] = exp(chars[k,n] + α*price[k] + γ_i[n])
         end
 
-        idxitr = d.data._personDict[ind]
         δ = p.δ[idxitr]
-        s_hat = individual_shares_RC(μ_ij,δ;inside=false)
+        s_hat = calc_shares(μ_ij,δ)
         s_insured = sum(s_hat)
 
         for i in eachindex(idxitr)
@@ -400,68 +400,112 @@ end
     return sum(x[idx].*wgts)/sum(wgts)
 end
 
-function δ_update!{T}(d::InsuranceLogit,p::parDict{T};update=true)
+function δ_update!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
     # Calculate overall marketshares and update δ_j
     eps = 0.0
     J = length(d.deltas)
     δ_new = Array{T,1}(J)
+    rn = Array{T,1}(J)
     wgts = transpose(weight(d.data))[:,1]
     for j in d.prods
         j_index_all = d.data._productDict[j]
         #s_hat_j= mean(d.s_hat[j_index_all])
         s_hat_j= sliceMean_wgt(d.s_hat,wgts,j_index_all)
         s_j = d.shares[j]
-        chg = log(s_j) - log(s_hat_j)
+        rn[j] = log(s_j)-log(s_hat_j)
         #d.deltas[j] += chg
-        δ_new[j] = d.deltas[j] + chg
-        # if abs(chg)>eps
-        #     j_high = j
-        # end
-        eps = max(eps,abs(chg))
+        δ_new[j] = d.deltas[j]*(s_j/s_hat_j)
+
+        #err = log(chg)
+        eps = max(eps,rn[j])
     end
     if update
         d.deltas = δ_new
     end
-    return eps
+    return eps,δ_new,rn
 end
 
-function contraction!{T}(d::InsuranceLogit,p::parDict{T};update=true)
+function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
     # Contraction...
     rnd = 0
     eps = 1
-    tol = 1e-6
+    tol = 1e-10
     individual_values!(d,p)
-    while (eps>tol) & (rnd<501)
+    while (eps>tol) & (rnd<500)
         rnd+=1
+        #Step 1
+        δ_init = d.deltas
         individual_shares_RC(d,p)
-        if rnd>1
-            update = true
-        end
-        if !update & rnd==1
-            eps = δ_update!(d,p,update=false)
+        eps,δ_0,r0 = δ_update!(d,p)
+        unpack_δ!(p.δ,d)
+
+
+        #Step 2
+        individual_shares_RC(d,p)
+        eps,δ_1,r1 = δ_update!(d,p)
+        unpack_δ!(p.δ,d)
+
+        #Update
+        vn = r1 - r0
+        #αn1 = vecdot(r0,vn)/vecdot(vn,vn)
+        αn = vecdot(r0,r0)/vecdot(r0,vn)
+        #αn3 = -vecdot(r0,r0)/vecdot(vn,vn)
+
+        chg = - 2*αn.*r0 + αn^2.*vn
+        δ_new = δ_init.*exp.(chg)
+        #δ_new = δ_init - αn.*r0
+        if update
+            d.deltas = δ_new
         else
-            eps = δ_update!(d,p)
+            d.deltas = \delta_init
+            break
         end
         unpack_δ!(p.δ,d)
+        eps = maximum(abs.(chg))
         # println("Contraction Error")
         println(eps)
     end
 end
 
-function contraction!{T}(d::InsuranceLogit,p_vec::Array{T,1};update=true)
+
+# function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
+#     # Contraction...
+#     rnd = 0
+#     eps = 1
+#     tol = 1e-10
+#     individual_values!(d,p)
+#     while (eps>tol) & (rnd<501)
+#         rnd+=1
+#         individual_shares_RC(d,p)
+#         if rnd>1
+#             update = true
+#         end
+#         if !update & rnd==1
+#             eps,x,y = δ_update!(d,p,update=false)
+#         else
+#             eps,x,y = δ_update!(d,p)
+#         end
+#         unpack_δ!(p.δ,d)
+#         # println("Contraction Error")
+#         println(eps)
+#     end
+#     println(rnd)
+# end
+
+function contraction!{T}(d::InsuranceLogit,p_vec::Array{T,1};update::Bool=true)
     p = parDict(d,p_vec)
     return contraction!(d,p,update=update)
 end
 
 
-function evaluate_iteration{T}(d::InsuranceLogit,p::parDict{T};update=true)
+function evaluate_iteration{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
     contraction!(d,p,update=update)
     ll = log_likelihood(d,p)
     convert_δ!(d)
     return ll
 end
 
-function evaluate_iteration!{T}(d::InsuranceLogit, x::Array{T,1};update=true)
+function evaluate_iteration!{T}(d::InsuranceLogit, x::Array{T,1};update::Bool=true)
     # Create Parameter Types
     parameters = parDict(d,x)
     return evaluate_iteration(d,parameters,update=update)
@@ -471,9 +515,9 @@ end
 function estimate!(d::InsuranceLogit, p0)
     # Set up the optimization
     #opt = Opt(:LD_MMA, length(p0))
-    opt = Opt(:LN_NELDERMEAD, length(p0))
+    #opt = Opt(:LN_NELDERMEAD, length(p0))
     #opt = Opt(:LD_TNEWTON_PRECOND_RESTART,length(p0))
-    #opt = Opt(:LD_TNEWTON,length(p0))
+    opt = Opt(:LD_TNEWTON,length(p0))
     #opt = Opt(:LN_SBPLX, length(p0))
     xtol_rel!(opt, 1e-4)
     maxeval!(opt, 2000)
@@ -481,7 +525,7 @@ function estimate!(d::InsuranceLogit, p0)
     initial_step!(opt,5e-2)
 
     # Objective Function
-    #ll(x) = evaluate_iteration!(d, x)
+    #ll(x) = evaluate_iteration!(d, x,update=false)
     ll(x) = log_likelihood(d,x)
     #δ_cont(x) = contraction!(d,x,update=false)
     δ_cont(x) = contraction!(d,x)
@@ -492,9 +536,9 @@ function estimate!(d::InsuranceLogit, p0)
         #Store Gradient
         println("Step 1")
         δ_cont(x)
-        # println("Step 2")
-        # ForwardDiff.gradient!(grad, ll, x)
-        # println("Gradient: $grad")
+        println("Step 2")
+        ForwardDiff.gradient!(grad, ll, x)
+        println("Gradient: $grad")
         likelihood = ll(x)
         println("likelihood equals $likelihood at $x on iteration $count")
         return likelihood
@@ -511,12 +555,12 @@ function estimate!(d::InsuranceLogit, p0)
     return ret, minf, minx
 end
 
-function gradient_ascent(d,p0;init_step=1e-7,max_itr=2000)
+function gradient_ascent(d,p0;max_step=1e-5,max_itr=2000)
     ## Initialize Parameter Vector
     p_vec = p0
     # Step Size
     #max_step = 1e-7
-    step = init_step
+    step = max_step
     # Likelihood Functions
     ll(x) = log_likelihood(d,x)
     #ll(x) = evaluate_iteration!(d,x,update=false)
@@ -531,11 +575,9 @@ function gradient_ascent(d,p0;init_step=1e-7,max_itr=2000)
     while (err>tol) & (count<max_itr)
         count+=1
         # Compute δ with Contraction
-        if count % 2 == 0
-            println("Update δ")
-            param_dict = parDict(d,p_vec)
-            contraction!(d,param_dict)
-        end
+        println("Update δ")
+        param_dict = parDict(d,p_vec)
+        contraction!(d,param_dict)
         # Evaluate Likelihood
         f_eval = ll(p_vec)
         println("likelihood equals $f_eval on iteration $count")
@@ -558,7 +600,7 @@ function gradient_ascent(d,p0;init_step=1e-7,max_itr=2000)
         end
         #Update step size, gradient memory
         grad_old = copy(grad_new)
-        #step = min(step,max_step)
+        step = min(step,max_step)
     end
     return p_vec
 end
