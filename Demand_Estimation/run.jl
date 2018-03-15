@@ -9,11 +9,11 @@ include("InsChoiceData.jl")
 include("Halton.jl")
 
 # Random Coefficients MLE
-include("MLE_RC_untyped.jl")
+include("MLE_RC.jl")
 println("Code Loaded")
 
 # Load the Data
-include("load_sample.jl")
+include("load.jl")
 # Structre the data
 c = ChoiceData(df,df_mkt)
 

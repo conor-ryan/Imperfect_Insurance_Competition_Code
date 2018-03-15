@@ -295,7 +295,7 @@ choices[AGE>26&AGE<=30,AGE_bucket:= "26-30"]
 choices[AGE>30&AGE<=38,AGE_bucket:= "31-38"]
 choices[AGE>38&AGE<=46,AGE_bucket:= "39-46"]
 choices[AGE>46&AGE<=54,AGE_bucket:= "47-54"]
-choices[AGE>54&AGE<=64,AGE_bucket:= "55-64"]
+choices[AGE>54,AGE_bucket:= "55-64"]
 
 choices[,Mem_bucket:= "Single"]
 choices[MEMBERS==2,Mem_bucket:= "Couple"]
@@ -424,6 +424,8 @@ shares = merge(shares,unins_st,by.x="STATE",by.y="state")
 shares[,lives:=sum(enroll),by="Market"]
 shares[,s_inside:= enroll/pop_offered]
 shares$Share = shares$s_inside*(1-shares$unins_rate)
+
+
 
 firmShares = choices[,list(enroll=sum(S_ij*N*MEMBERS)),by=c("Firm","Market")]
 firmShares[,lives:=sum(enroll),by="Market"]

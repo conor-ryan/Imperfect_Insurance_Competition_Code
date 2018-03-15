@@ -9,11 +9,11 @@ include("InsChoiceData.jl")
 include("Halton.jl")
 
 # Random Coefficients MLE
-include("MLE_RC_untyped.jl")
+include("MLE_RC.jl")
 println("Code Loaded")
 
 # Load the Data
-include("load_sample.jl")
+include("load.jl")
 # Structre the data
 c = ChoiceData(df,df_mkt)
 
@@ -28,10 +28,46 @@ m = InsuranceLogit(c,500)
 σstart = [1,1,.5,1,1.5]/1000
 p0 = vcat(αstart,γstart,βstart,σstart)
 #p1 = p0/2
+p0 = [-0.260622, 0.269384, 0.255973, 0.116504,
+0.0797932, 0.114953, -0.0241331, 0.153463,
+ 0.229592, -0.0489806, 0.0809528, -0.167998,
+ -0.219146, -0.354901, -0.0752608, 0.0787359,
+ 0.264838, 0.0651117, 0.352503, 0.129392, 0.123992]
+#p1 = p0/2
 # unpack!(m,parStart)
 parStart0 = parDict(m,p0)
 #parStart1 = parDict(m,p1)
 println("Data Loaded")
+
+individual_values!(m,parStart0)
+δ_update!(m,parStart0)
+unpack_δ!(parStart0.δ,m)
+
+@benchmark individual_values!(m,parStart0)
+@benchmark δ_update!(m,parStart0)
+@benchmark unpack_δ!(parStart0.δ,m)
+
+@benchmark individual_values!(m,parStart0)
+
+Profile.clear()
+Profile.init()
+#@profile estimate!(m,parStart)
+@profile unpack_δ!(parStart0.δ,m)
+#@profile individual_shares_RC(μ_ij,δ;inside=true)
+Juno.profiletree()
+Juno.profiler()
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Estimate the Model
 p_est = estimate!(m, p0)
@@ -215,22 +251,6 @@ tic()
 log_likelihood(m)
 toc()
 
-@benchmark individual_values!(m)
-@benchmark unpack_δ!(m)
-@benchmark utility_val!(m)
-@benchmark individual_shares!(m)
-@benchmark δ_update!(m)
-
-
-@benchmark individual_values!(m,parStart0)
-
-Profile.clear()
-Profile.init(n=10^7,delay=.01)
-#@profile estimate!(m,parStart)
-@profile individual_values!(m,parStart0)
-#@profile individual_shares_RC(μ_ij,δ;inside=true)
-Juno.profiletree()
-Juno.profiler()
 
 @benchmark individual_shares!(m)
 @benchmark individual_values!(m)

@@ -23,14 +23,14 @@ struct ChoiceData <: ModelData
     prodchars   # Product Characteristics
     choice      # Binary choice indicator
     demoRaw    # Household Demographics - raw
-    demoFE     # Demographic Fixed Effects
+    wgt     # Number of People in each type
     unins     # Outside Option Share
     # Precomputed Indices
     _person::Array{Int,1}
     _prodchars::Array{Int,1}
     _choice::Array{Int,1}
     _demoRaw::Array{Int,1}
-    _demoFE::Array{Int,1}
+    _wgt::Array{Int,1}
     _unins::Array{Int,1}
 
     # ID Lookup Mappings
@@ -45,12 +45,9 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
         market=[:Market],
         product=[:Product],
         prodchars=[:Price,:MedDeduct,:MedOOP,:High],
-        choice=[:Y],
+        choice=[:S_ij],
         demoRaw=[:Age,:Family,:LowIncome],
-        demoFE=[:F0_Y0_LI0,:F0_Y0_LI1,
-                    :F0_Y1_LI0,:F0_Y1_LI1,
-                    :F1_Y0_LI0,:F1_Y0_LI1,
-                    :F1_Y1_LI0,:F1_Y1_LI1,],
+        wgt=[:N],
         unins=[:unins_rate])
 
     # Get the size of the data
@@ -64,7 +61,7 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
     X = hcat(Array{Float64}(data_choice[prodchars]))
     y = hcat(Array{Float64}(data_choice[choice]))
     Z = hcat(Array{Float64}(data_choice[demoRaw]))
-    D = hcat(Array{Float64}(data_choice[demoFE]))
+    w = hcat(Array{Float64}(data_choice[wgt]))
     s0= hcat(Array{Float64}(data_choice[unins]))
 
     index = Dict{Symbol, Int}()
@@ -72,8 +69,8 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
 
     # Create a data matrix, only including person id
     k = 0
-    for (d, var) in zip([i,X, y, Z, D, s0], [person,prodchars,
-        choice, demoRaw,demoFE,unins])
+    for (d, var) in zip([i,X, y, Z, w, s0], [person,prodchars,
+        choice, demoRaw,wgt,unins])
         for l=1:size(d,2)
             k+=1
             dmat = hcat(dmat, d[:,l])
@@ -91,7 +88,7 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
     _prodchars = getindex.(index, prodchars)
     _choice = getindex.(index, choice)
     _demoRaw = getindex.(index, demoRaw)
-    _demoFE = getindex.(index, demoFE)
+    _wgt = getindex.(index, wgt)
     _unins = getindex.(index, unins)
 
     # Get Person ID Dictionary Mapping for Easy Subsets
@@ -115,8 +112,8 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
 
     # Make the data object
     m = ChoiceData(dmat,data_market, i, j, f, m, index, prodchars, choice, demoRaw,
-            demoFE, unins, _person, _prodchars, _choice, _demoRaw,
-            _demoFE, _unins,uniqids,_personDict,_productDict)
+            wgt, unins, _person, _prodchars, _choice, _demoRaw,
+            _wgt, _unins,uniqids,_personDict,_productDict)
     return m
 end
 
@@ -130,12 +127,11 @@ getindex(m::ChoiceData, idx::Symbols) = m.data[getindex.(m.index, idx),:]
 getindex(m::ChoiceData, idx::Symbols, cols) = m.data[getindex.(m.index, idx),cols]
 
 # Define other retrieval methods on ChoiceData
-observables(m::ChoiceData) = m[vcat(m._prodchars,m._demoRaw,m._demoFE)]
 person(m::ChoiceData)      = m[m._person]
 prodchars(m::ChoiceData)   = m[m._prodchars]
 choice(m::ChoiceData)      = m[m._choice]
 demoRaw(m::ChoiceData)     = m[m._demoRaw]
-demoFE(m::ChoiceData)      = m[m._demoFE]
+weight(m::ChoiceData)      = m[m._wgt]
 unins(m::ChoiceData)       = m[m._unins]
 
 ########################################################################
@@ -159,14 +155,14 @@ function subset{T<:ModelData}(d::T, idx)
     d.prodchars,   # Product Characteristics
     d.choice,      # Binary choice indicator
     d.demoRaw,    # Household Demographics - raw
-    d.demoFE,     # Demographic Fixed Effects
+    d.wgt,     # Demographic Fixed Effects
     d.unins,    # Outside Option Share
     # Precomputed Indices
     d._person,
     d._prodchars,
     d._choice,
     d._demoRaw,
-    d._demoFE,
+    d._wgt,
     d._unins,
     d._personIDs,
     d._personDict,
