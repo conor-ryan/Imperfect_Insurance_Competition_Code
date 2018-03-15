@@ -457,7 +457,7 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
         if update
             d.deltas = δ_new
         else
-            d.deltas = \delta_init
+            d.deltas = δ_init
             break
         end
         unpack_δ!(p.δ,d)
@@ -515,12 +515,12 @@ end
 function estimate!(d::InsuranceLogit, p0)
     # Set up the optimization
     #opt = Opt(:LD_MMA, length(p0))
-    #opt = Opt(:LN_NELDERMEAD, length(p0))
+    opt = Opt(:LN_NELDERMEAD, length(p0))
     #opt = Opt(:LD_TNEWTON_PRECOND_RESTART,length(p0))
-    opt = Opt(:LD_TNEWTON,length(p0))
+    #opt = Opt(:LD_TNEWTON,length(p0))
     #opt = Opt(:LN_SBPLX, length(p0))
     xtol_rel!(opt, 1e-4)
-    maxeval!(opt, 2000)
+    maxeval!(opt, 4000)
     #upper_bounds!(opt, ones(length(p0))/10)
     initial_step!(opt,5e-2)
 

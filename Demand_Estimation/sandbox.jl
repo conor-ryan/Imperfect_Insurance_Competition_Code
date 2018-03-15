@@ -51,7 +51,7 @@ Juno.profiler()
 
 
 
-contraction_SQM!(m,parStart0)
+@time contraction!(m,parStart0)
 
 m.deltas = m.deltas./m.deltas
 unpack_δ!(parStart0.δ,m)
@@ -61,6 +61,8 @@ contraction!(m,parStart0)
 
 individual_values!(m,parStart0)
 individual_shares_RC(m,parStart0)
+
+
 
 δ_update!(m,parStart0)
 unpack_δ!(parStart0.δ,m)
