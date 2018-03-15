@@ -40,6 +40,8 @@ parStart0 = parDict(m,p0)
 println("Data Loaded")
 
 individual_values!(m,parStart0)
+individual_shares_RC(m,parStart0)
+
 δ_update!(m,parStart0)
 unpack_δ!(parStart0.δ,m)
 
@@ -54,7 +56,7 @@ ll = log_likelihood(m,parStart0)
 Profile.clear()
 Profile.init()
 #@profile estimate!(m,parStart)
-@profile unpack_δ!(parStart0.δ,m)
+@profile individual_shares_RC(m,parStart0)
 #@profile individual_shares_RC(μ_ij,δ;inside=true)
 Juno.profiletree()
 Juno.profiler()

@@ -103,7 +103,7 @@ function InsuranceLogit(data::ChoiceData,haltonDim::Int)
     μ_ij = Matrix{Float64}(haltonDim,k)
     # Copy Firm Level Data for Changing in Estimation
     pmat = c.pdata
-    pmat[:delta] = 0.0
+    pmat[:delta] = 1.0
     sort!(pmat)
 
     d = InsuranceLogit(parLength,data,
@@ -163,11 +163,11 @@ function individual_values!{T}(d::InsuranceLogit,p::parDict{T})
         (K,N) = size(chars)
         idxitr = d.data._personDict[ind]
         for k = 1:K,n = 1:N
-            d.μ_ij[n,idxitr[k]] = chars[k,n] + α*price[k] + γ_i[n]
+            d.μ_ij[n,idxitr[k]] = exp(chars[k,n] + α*price[k] + γ_i[n])
         end
-        δ = δ_long[idxitr]
-        μ_ij = d.μ_ij[:,idxitr]
-        d.s_hat[idxitr] = individual_shares_RC(μ_ij,δ)
+        # δ = δ_long[idxitr]
+        # μ_ij = d.μ_ij[:,idxitr]
+        # d.s_hat[idxitr] = individual_shares_RC(μ_ij,δ)
     end
     return Void
 end
@@ -283,31 +283,66 @@ end
 #     return Void
 # end
 
+#
+# function individual_shares_RC{T}(μ_ij::Array{T},δ;inside::Bool=false)
+#     (K,N) = size(μ_ij)
+#     util = Matrix{T}(K,N)
+#     s_hat = Matrix{T}(K,N)
+#     s_mean = Vector{T}(K)
+#     out = 1.0
+#     if inside
+#         out = 0.0
+#     end
+#     for n in 1:N
+#         expsum = out
+#         for i in 1:K
+#             a = exp(μ_ij[i,n] + δ[i])
+#             util[i,n] = a
+#             expsum += a
+#         end
+#         for i in 1:K
+#             s_hat[i,n] = util[i,n]/expsum
+#         end
+#     end
+#     for i in 1:K
+#         s_mean[i] = mean(s_hat[i,:])
+#     end
+#     return s_mean
+# end
 
-function individual_shares_RC{T}(μ_ij::Array{T},δ;inside::Bool=false)
-    (K,N) = size(μ_ij)
-    util = Matrix{T}(K,N)
-    s_hat = Matrix{T}(K,N)
-    s_mean = Vector{T}(K)
+
+function individual_shares_RC{T}(d::InsuranceLogit,p::parDict{T};inside::Bool=false)
+    P, N = size(d.draws)
+    L, M = size(d.data.data)
+
     out = 1.0
     if inside
         out = 0.0
     end
-    for n in 1:N
-        expsum = out
-        for i in 1:K
-            a = exp(μ_ij[i,n] + δ[i])
-            util[i,n] = a
-            expsum += a
+    for i in 1:length(m.data._personDict)
+        idxitr = m.data._personDict[i]
+        μ_ij = d.μ_ij[:,idxitr]
+        δ = p.δ[idxitr]
+        K = length(idxitr)
+        util = Matrix{T}(K,N)
+        s_hat = Matrix{T}(K,N)
+        s_mean = Vector{T}(K)
+        for n in 1:N
+            expsum = out
+            for k in 1:K
+                util[k,n] = μ_ij[n,k]*δ[k]
+                expsum += util[k,n]
+            end
+            for k in 1:K
+                s_hat[k,n] = util[k,n]/expsum
+            end
         end
-        for i in 1:K
-            s_hat[i,n] = util[i,n]/expsum
+        for k in 1:K
+            s_mean[k] = mean(s_hat[k,:])
         end
+        d.s_hat[idxitr] = s_mean
     end
-    for i in 1:K
-        s_mean[i] = mean(s_hat[i,:])
-    end
-    return s_mean
+    return Void
 end
 
 # Calculate Log Likelihood
@@ -419,13 +454,13 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update=true)
     rnd = 0
     eps = 1
     tol = 1e-6
+    individual_values!(d,p)
     while (eps>tol) & (rnd<501)
         rnd+=1
+        individual_shares_RC(d,p)
         if rnd>1
             update = true
         end
-        #Unpack δ_j into estimator data
-        individual_values!(d,p)
         if !update & rnd==1
             eps = δ_update!(d,p,update=false)
         else
