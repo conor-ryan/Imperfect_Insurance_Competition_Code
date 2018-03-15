@@ -161,12 +161,12 @@ function individual_values!{T}(d::InsuranceLogit,p::parDict{T})
         chars = X*β_i
 
         (K,N) = size(chars)
-        μ_ij = chars
-        for n = 1:N,k = 1:K
-            μ_ij[k,n] += α*price[k] + γ_i[n]
-        end
         idxitr = d.data._personDict[ind]
+        for k = 1:K,n = 1:N
+            d.μ_ij[n,idxitr[k]] = chars[k,n] + α*price[k] + γ_i[n]
+        end
         δ = δ_long[idxitr]
+        μ_ij = d.μ_ij[:,idxitr]
         d.s_hat[idxitr] = individual_shares_RC(μ_ij,δ)
     end
     return Void
