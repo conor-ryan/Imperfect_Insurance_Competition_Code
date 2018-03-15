@@ -1,0 +1,471 @@
+rm(list=ls())
+library(doBy)
+library(data.table)
+setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
+
+#### 2015 Subsidy Percentage Function ####
+
+subsPerc <- function(FPL){
+  x = FPL[!is.na(FPL)]
+  y = rep(100,length=length(x))
+  y[x>=1&x<1.33]   = 2.01 + (x-1)[x>=1&x<1.33]/(1.33-1)*(3.02-2.01)
+  y[x>=1.33&x<1.5] = 3.02 + (x-1.33)[x>=1.33&x<1.5]/(1.5-1.33)*(4.02-3.02)
+  y[x>=1.5&x<2]    = 4.02 + (x-1.5)[x>=1.5&x<2]/(2-1.5)*(6.34-4.02)
+  y[x>=2&x<2.5]    = 6.34 + (x-2)[x>=2&x<2.5]/(2.5-2)*(8.1-6.34)
+  y[x>=2.5&x<3]    = 8.1 + (x-2.5)[x>=2.5&x<3]/(3-2.5)*(9.56-8.1)
+  y[x>=3&x<=4]      = 9.56
+  
+  HHcont = rep(NA,length(FPL))
+  HHcont[!is.na(FPL)] = y/100
+  
+  return(HHcont)
+}
+
+# Based on Individual Income
+subsInv <- function(cont,pov_line = 11770){
+  
+  y = cont[!is.na(cont)]
+  x = rep(NA,length(y))
+  
+  # y[x>=1&x<1.33]   = (2.01*pov_line + (x-1)[x>=1&x<1.33]/(1.33-1)*(3.02*pov_line*1.33-2.01*pov_line))/100/12
+  # y[x>=1.33&x<1.5] = (3.02*pov_line*1.33 + (x-1.33)[x>=1.33&x<1.5]/(1.5-1.33)*(4.02*pov_line*1.5-3.02*pov_line*1.33))/100/12
+  # y[x>=1.5&x<2]    = (4.02*pov_line*1.5 + (x-1.5)[x>=1.5&x<2]/(2-1.5)*(6.34*pov_line*2-4.02*pov_line*1.5))/100/12
+  # y[x>=2&x<2.5]    = (6.34*pov_line*2 + (x-2)[x>=2&x<2.5]/(2.5-2)*(8.1*pov_line*2.5-6.34*pov_line*2))/100/12
+  # y[x>=2.5&x<3]    = (8.1*pov_line*2.5 + (x-2.5)[x>=2.5&x<3]/(3-2.5)*(9.56*pov_line*3-8.1*pov_line*2.5))/100/12
+  # y[x>=3&x<=4]      = (9.56*pov_line*3 + (x-3)[x>=3&x<=4]/(4-3)*(9.56*pov_line*4-9.56*pov_line*3))/100/12
+  
+  br1 = .0201*pov_line*1.00/12
+  br2 = .0302*pov_line*1.33/12
+  br3 = .0402*pov_line*1.50/12
+  br4 = .0643*pov_line*2.00/12
+  br5 = .0810*pov_line*2.50/12
+  br6 = .0956*pov_line*3.00/12
+  br7 = .0956*pov_line*4.00/12
+  
+  x[y>=br1&y<br2] = 1 + (y-br1)[y>=br1&y<br2]/(br2-br1)*(1.33-1)
+  x[y>=br2&y<br3] = 1.33 + (y-br2)[y>=br2&y<br3]/(br3-br2)*(1.5-1.33)
+  x[y>=br3&y<br4] = 1.5 + (y-br3)[y>=br3&y<br4]/(br4-br3)*(2-1.5)
+  x[y>=br4&y<br5] = 2 +  (y-br4)[y>=br4&y<br5]/(br5-br4)*(2.5-2)
+  x[y>=br5&y<br6] = 2.5 + (y-br5)[y>=br5&y<br6]/(br6-br5)*(3-2.5)
+  x[y>=br6&y<br7] = 3 +   (y-br6)[y>=br6&y<br7]/(br7-br6)*(4-3)
+  
+  
+  Income = rep(NA,length(cont))
+  Income[!is.na(cont)] = x*pov_line
+  
+  return(Income)
+}
+
+
+#### Read in eHealth Data and clean Premium Information ####
+eHealth = read.csv("C:/Users/Conor/Documents/Research/eHealth Data/eHealth_2015.csv",stringsAsFactors = FALSE)
+
+# Firm Crosswalk
+firmCrosswalk = read.csv("Intermediate_Output/FirmCrosswalk.csv")
+firmCrosswalk = unique(firmCrosswalk[,c("STATE","eHealth_CARRIER_NAME","Firm")])
+eHealth = merge(eHealth,firmCrosswalk,by.x=c("STATE","CARRIER_NAME"),by.y=c("STATE","eHealth_CARRIER_NAME"),all.x=TRUE)
+
+
+# Drop "referential integrity" rows
+eHealth = eHealth[eHealth$PLAN_NAME!="UNKNOWN PLAN - this row is used for referential integrity - DSTOCK",]
+
+# Drop eHealth observations with NA or 0 zip code
+eHealth = eHealth[with(eHealth,!is.na(TRUNCATED_ZIP)&TRUNCATED_ZIP!=0 ),]
+eHealth = eHealth[with(eHealth,PLAN_METAL_LEVEL!="N/A"),]
+
+
+# Subset eHealth for Valid Markets
+STselection = unique(firmCrosswalk$STATE)
+
+
+# Reconstruct from subsidy information
+# # Unclear what QUOTED_RATE means is the presence of subsidies
+# # We appear unable to reconstructed base premium if post-subsidiy premium is 0
+# eHealth$premium = eHealth$QUOTED_RATE
+# eHealth$premium[!is.na(eHealth$FFM_APTC_AMOUNT)] = with(eHealth[!is.na(eHealth$FFM_APTC_AMOUNT),],FFM_APTC_AMOUNT+FFM_PREMIUM_DUE)
+# eHealth$premium[eHealth$FFM_PREMIUM_DUE==0] = NA
+# #Sometimes subsidies are implied by income, but not listed in the data
+# eHealth$premium[eHealth$HOUSEHOLD_INCOME<50000&is.na(eHealth$FFM_PREMIUM_DUE)] = NA
+# #Some plans still have 0 premiums for no apparent reason. 
+# eHealth$premium[eHealth$premium==0] = NA
+
+
+#### Merge eHealth and Plan Data ####
+# Default Choice Set By Zip3
+choiceSets = read.csv("Intermediate_Output/Premiums/choiceSets2015.csv")
+mapping = read.csv("Intermediate_Output/Zip_RatingArea/Zip3_to_RatingArea.csv")
+
+choiceSets = as.data.table(choiceSets)
+setkey(choiceSets,ST,AREA)
+
+mapping = as.data.table(mapping)
+setkey(mapping,ST,RatingArea)
+
+choices = merge(choiceSets,mapping[,c("ST","Zip3","RatingArea","alloc")],by.x=c("ST","AREA"),by.y=c("ST","RatingArea"),
+                all.x=TRUE,allow.cartesian=TRUE)
+
+# Merge in eHealth data
+eHealth = as.data.table(eHealth[eHealth$TRUNCATED_ZIP%in%choices$Zip3,])
+setkey(eHealth,STATE,TRUNCATED_ZIP)
+setkey(choices,ST,Zip3)
+
+choices = merge(eHealth,choices,by.x=c("STATE","TRUNCATED_ZIP"),by.y=c("ST","Zip3"),
+                all.x=TRUE,allow.cartesian=TRUE)
+setkey(choices,APP_RECORD_NUM,METAL)
+
+names(choices)[names(choices)=="Firm.x"] = "Firm_Choice"
+choices[,Firm_Choice:= as.character(choices$Firm_Choice)]
+names(choices)[names(choices)=="Firm.y"] = "Firm"
+choices[,Firm:= as.character(choices$Firm)]
+# Not Dropping kids for now
+#choices = choices[with(choices,AGE>18),]
+
+#rm(mapping,eHealth,choiceSets)
+
+#### Create Valid Choice Sets ####
+
+# Set Choice Indicator
+choices[,METAL:= toupper(METAL)]
+choices[,Y:= 0]
+choices[METAL==PLAN_METAL_LEVEL&Firm_Choice==Firm,Y:=1]
+
+ids = unique(choices$APP_RECORD_NUM[choices$Y==1])
+missing = eHealth$APP_RECORD_NUM[!eHealth$APP_RECORD_NUM%in%ids]
+test = choices[choices$APP_RECORD_NUM%in%missing,]
+test = unique(test[!test$Firm_Choice%in%c("HEALTHYCT","SHARP_HEALTH_PLAN"),c("APP_RECORD_NUM","Firm_Choice","AREA","STATE")])
+
+
+#test = eHealth[eHealth$APP_RECORD_NUM%in%missing,]
+
+
+# Drop Catastrophic for over 30. 
+# Lose two observations that chose catas over 30
+choices = choices[!(AGE>30 & METAL=="CATASTROPHIC"),]
+
+
+# If choice is not available, then that individual is not in the right rating area
+# This step drops CA/CT (data collection needed), 3 obs in IL that don't have right rating area
+choices[,flag:= sum(Y),by=c("APP_RECORD_NUM","AREA")]
+choices = choices[flag!=0,]
+
+# Remove non-valid areas
+choices = choices[choices$valid,]
+
+# Keep only most likely rating area
+choices[,maxAlloc:=max(alloc),by="APP_RECORD_NUM"]
+choices = choices[alloc==maxAlloc,]
+
+
+
+# Roll in Family Characteristcs
+choices$MedDeduct[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"] = 
+  choices$MedDeductFam[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"]
+choices$MedOOP[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"] = 
+  choices$MedOOPFam[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"]
+
+
+# Keep only relevant variables
+choices = choices[,c("STATE","APP_RECORD_NUM","QUOTED_RATE","HOUSEHOLD_INCOME","FFM_APTC_AMOUNT","FFM_PREMIUM_DUE",
+                     "FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","SMOKER","AREA","Firm","METAL","hix","PREMI27",
+                     "MedDeduct","MedOOP","Y")]
+
+
+#### Set Rating & Subsidy Values ####
+rating = read.csv("Data/AgeRating.csv")
+
+# Create truncated Age variable
+choices$AgeMatch = choices$AGE
+choices$AgeMatch[choices$AGE<14] = 14
+choices$AgeMatch[choices$AGE>64] = 64
+
+# Merge in Default and State-Specific Age Rating Curves
+
+choices = merge(choices,rating[rating$State=="Default",c("Age","Rating")],by.x="AgeMatch",by.y="Age",all.x=TRUE)
+choices = merge(choices,rating[rating$State!="Default",],by.x=c("STATE","AgeMatch"),by.y=c("State","Age"),all.x=TRUE)
+choices$ageRate = choices$Rating.x
+choices$ageRate[!is.na(choices$Rating.y)] = choices$Rating.y[!is.na(choices$Rating.y)]
+# Drop redundant rating variables
+choices = choices[,c("Rating.x","Rating.y"):=NULL]
+rm(rating)
+
+
+# Modify Age Rate for Family and Smoker
+# Are the agents actually paying the extra smoking cost?? Seems unclear at the moment. 
+# Assume only one smoker per family
+choices$ageRate[choices$MEMBERS==1] = with(choices[choices$MEMBERS==1,],ageRate+.5*ageRate*(SMOKER=="Y"))
+choices$ageRate[choices$MEMBERS==2] = with(choices[choices$MEMBERS==2,],ageRate*1.9+.5*ageRate*(SMOKER=="Y"))
+choices$ageRate[choices$MEMBERS==3] = with(choices[choices$MEMBERS==3,],ageRate*2+.5+.5*ageRate*(SMOKER=="Y"))
+choices$ageRate[choices$MEMBERS>3] = with(choices[choices$MEMBERS>3,],ageRate*2+.6*(MEMBERS-2)+.5*ageRate*(SMOKER=="Y"))
+choices$ageRate[choices$MEMBERS>5] = with(choices[choices$MEMBERS>5,],ageRate*2+.5*(MEMBERS-2)+.5*ageRate*(SMOKER=="Y"))
+
+# Make Premium for Age Rating = 1
+choices$premBase = choices$PREMI27/1.048
+choices$premBase[choices$STATE=="DC"] = choices$PREMI27[choices$STATE=="DC"]/.727
+choices$premBase[choices$STATE=="MA"] = choices$PREMI27[choices$STATE=="MA"]/1.22
+choices$premBase[choices$STATE=="MN"] = choices$PREMI27[choices$STATE=="MN"]/1.048
+choices$premBase[choices$STATE=="UT"] = choices$PREMI27[choices$STATE=="UT"]/1.39
+
+
+# Merge in Benchmark
+benchmark = read.csv("Intermediate_Output/Premiums/benchmark2015.csv")
+choices = merge(choices,benchmark,by.x=c("STATE","AREA"),by.y=c("ST","AREA"),all.x=TRUE)
+rm(benchmark)
+
+# Make bechmark for Age Rating = 1
+choices$benchBase = choices$bench27/1.048
+choices$benchBase[choices$STATE=="DC"] = choices$bench27[choices$STATE=="DC"]/.727
+choices$benchBase[choices$STATE=="MA"] = choices$bench27[choices$STATE=="MA"]/1.22
+choices$benchBase[choices$STATE=="MN"] = choices$bench27[choices$STATE=="MN"]/1.048
+choices$benchBase[choices$STATE=="UT"] = choices$bench27[choices$STATE=="UT"]/1.39
+
+# 2015 FPL Calculation - Individual Only
+choices$FPL = with(choices,HOUSEHOLD_INCOME/(11770 + (MEMBERS-1)*4160))
+
+# Calculate Rated Subsidy
+choices$Benchmark = with(choices,benchBase*ageRate)
+choices$HHcont = subsPerc(choices$FPL)
+choices$subsidy = pmax(with(choices,Benchmark - HHcont*HOUSEHOLD_INCOME/12),0)
+
+# If HOUSEHOLD_INCOME is missing, but there is a subsidy observation, take it as true subsidy. 
+choices$subsidy[is.na(choices$subsidy)] = choices$FFM_APTC_AMOUNT[is.na(choices$subsidy)]
+choices$subsidy[is.na(choices$subsidy)] = 0
+
+
+#### Impute Income ####
+choices$IncCont = with(choices,Benchmark-subsidy)
+choices$IncCont[choices$subsidy==0] = NA
+choices$IncCont[choices$IncCont<.0201*(11770+(choices$MEMBERS-1)*4160)/12] = NA
+
+# This depends on Family Size to calculate the appropriate poverty line.
+# This function could probably be written better...
+choices$ImputedIncome[choices$MEMBERS==1] = subsInv(choices$IncCont[choices$MEMBERS==1],pov_line=11770)
+choices$ImputedIncome[choices$MEMBERS==2] = subsInv(choices$IncCont[choices$MEMBERS==2],pov_line=11770+4160)
+choices$ImputedIncome[choices$MEMBERS==3] = subsInv(choices$IncCont[choices$MEMBERS==3],pov_line=11770+4160*2)
+choices$ImputedIncome[choices$MEMBERS==4] = subsInv(choices$IncCont[choices$MEMBERS==4],pov_line=11770+4160*3)
+choices$ImputedIncome[choices$MEMBERS==5] = subsInv(choices$IncCont[choices$MEMBERS==5],pov_line=11770+4160*4)
+choices$ImputedIncome[choices$MEMBERS==6] = subsInv(choices$IncCont[choices$MEMBERS==6],pov_line=11770+4160*5)
+choices$ImputedIncome[choices$MEMBERS==7] = subsInv(choices$IncCont[choices$MEMBERS==7],pov_line=11770+4160*6)
+choices$ImputedIncome[choices$MEMBERS==8] = subsInv(choices$IncCont[choices$MEMBERS==8],pov_line=11770+4160*7)
+choices$ImputedIncome[choices$MEMBERS==9] = subsInv(choices$IncCont[choices$MEMBERS==9],pov_line=11770+4160*8)
+choices$ImputedIncome[choices$MEMBERS==10] = subsInv(choices$IncCont[choices$MEMBERS==10],pov_line=11770+4160*9)
+
+
+choices$Income = choices$HOUSEHOLD_INCOME
+choices$Income[is.na(choices$HOUSEHOLD_INCOME)] = choices$ImputedIncome[is.na(choices$HOUSEHOLD_INCOME)]
+
+
+# For now, drop missing income observations that recieve subsidies ~ 240 obs roughly divided btw fam and ind
+choices = choices[!(is.na(choices$Income)&choices$subsidy>0),]
+choices$Income[choices$Income<1000] = 1000
+
+# With Imputed Income, we can get the base premium w/subsidy
+choices$FPL_imp = with(choices,Income/(11770 + (MEMBERS-1)*4160))
+
+
+
+#### Set Income Specific Choice Sets ####
+choices$CSR = gsub("[A-Z]+ ?","",choices$METAL)
+choices$METAL = gsub(" [0-9]+","",choices$METAL)
+
+# Set Y = 1 for all Silver, if for any
+choices[,Y:= sum(Y),by=c("APP_RECORD_NUM","Firm","METAL")]
+# Set hix to be TRUE for all Silver, if for any
+choices[,hix:= any(hix),by=c("APP_RECORD_NUM","Firm","METAL")]
+
+choices$CSR_subs = ""
+choices$CSR_subs[with(choices,METAL=="SILVER"&hix&FPL_imp>=2 & FPL_imp<2.5)] = "73"
+choices$CSR_subs[with(choices,METAL=="SILVER"&hix&FPL_imp>=1.5 & FPL_imp<2)] = "87"
+choices$CSR_subs[with(choices,METAL=="SILVER"&hix&FPL_imp>=1 & FPL_imp<1.5)] = "94"
+
+# Keep only Silver plans for the appropriate income
+choices = choices[with(choices,CSR==CSR_subs),]
+
+
+##### Discretize the Data into Type Buckets #####
+choices[,FPL_bucket:= "Less than 1"]
+choices[FPL_imp>=1&FPL_imp<1.5,FPL_bucket:="1 - 1.5"]
+choices[FPL_imp>=1.5&FPL_imp<2,FPL_bucket:="1.5 - 2"]
+choices[FPL_imp>=2&FPL_imp<2.5,FPL_bucket:="2 - 2.5"]
+choices[FPL_imp>=2.5&FPL_imp<4,FPL_bucket:="2.5 - 4"]
+choices[is.na(FPL_imp)|FPL_imp>=4,FPL_bucket:="Greater than 4"]
+
+
+choices[,AGE_bucket:= "26 or Under"]
+choices[AGE>26&AGE<=30,AGE_bucket:= "26-30"]
+choices[AGE>30&AGE<=38,AGE_bucket:= "31-38"]
+choices[AGE>38&AGE<=46,AGE_bucket:= "39-46"]
+choices[AGE>46&AGE<=54,AGE_bucket:= "47-54"]
+choices[AGE>54&AGE<=64,AGE_bucket:= "55-64"]
+
+choices[,Mem_bucket:= "Single"]
+choices[MEMBERS==2,Mem_bucket:= "Couple"]
+choices[MEMBERS>=3,Mem_bucket:= "3+"]
+
+choices = choices[,list(AGE = mean(AGE),
+                        ageRate = mean(ageRate),
+                        #SMOKER = mean(SMOKER),
+                        MEMBERS = mean(MEMBERS),
+                        Income = mean(Income,na.rm=TRUE),
+                        FPL_imp = mean(FPL_imp,na.rm=TRUE),
+                        Y = sum(Y*MEMBERS),
+                        N = sum(MEMBERS),
+                        subsidy_mean= mean(subsidy)),
+                  by=c("STATE","AREA","FPL_bucket","AGE_bucket","Mem_bucket","FAMILY_OR_INDIVIDUAL","Firm","METAL","hix","CSR",
+                       "MedDeduct","MedOOP","benchBase","premBase")]
+
+choices[,S_ij:= Y/N]
+
+
+## Re-Calculate Premiums for Choice Set
+choices[,Benchmark:=benchBase*ageRate]
+choices[,HHcont:= subsPerc(FPL_imp)]
+choices[,subsidy:= pmax(Benchmark - HHcont*Income/12,0)]
+# Leave subsidies below 100 FPL
+choices[is.na(FPL_imp)|FPL_imp>4,subsidy:=0]
+choices[FPL_imp<1,subsidy:=subsidy_mean]
+choices[,diff:=subsidy-subsidy_mean]
+
+choices[,Quote:= premBase*ageRate]
+choices[,PremPaid:= pmax(premBase*ageRate - subsidy,0)]
+choices$PremPaid[choices$METAL=="CATASTROPHIC"] = with(choices[choices$METAL=="CATASTROPHIC",],premBase*ageRate)
+
+
+#### Calculate Mandate Penalty ####
+# Based on 2015 Tax Thresholds 
+choices$Income_Filled = choices$Income
+choices$Income_Filled[is.na(choices$Income)] = 70e3 # Check average income given greater than 400 FPL
+choices$filingThresh = 10150
+choices$filingThresh[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"] = 20300
+# Calculate Mandate using average income for non-subsidized people.
+choices$Mandate = with(choices, pmin(pmax(325,.02*(Income_Filled-filingThresh)),2484))
+choices$Mandate[choices$MEMBERS>1] = with(choices[choices$MEMBERS>1,], pmin(pmax(pmin(325*2+325*.5*(MEMBERS-2),975),
+                                                                                 .02*(Income_Filled-filingThresh)),
+                                                                            2484*2+2484*.5*(MEMBERS-2)))
+
+
+#### Merge in Uninsured Rate ####
+choices$inc_cat = 1
+choices$inc_cat[with(choices,is.na(FPL_imp)|FPL_imp>4)] = 2
+
+choices$AGE_cat = 1
+choices$AGE_cat[choices$AGE>35] = 2
+
+choices$mem_cat = 1
+choices$mem_cat[choices$MEMBERS==2] = 2
+choices$mem_cat[choices$MEMBERS>2] = 3
+
+unins = read.csv("Data/2015_ACS/uninsured_acs2015.csv")
+
+choices = merge(choices,unins,by.x=c("STATE","inc_cat","AGE_cat","mem_cat"),
+                    by.y=c("state","inc_cat","AGE_cat","mem_cat"),all.x=TRUE)
+
+
+choices = choices[,c("STATE","AREA","FPL_bucket","AGE_bucket","Mem_bucket",
+                     "FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","Firm","METAL","hix","CSR",
+                     "MedDeduct","MedOOP","ageRate","FPL_imp","Benchmark","HHcont","subsidy","Quote",
+                     "PremPaid","S_ij","N","Income","Mandate","unins_rate")]
+
+
+# 
+# 
+# #### Type-Specific Choice Set ####
+# # Create app specific metal segment
+# choices$sel_metal = NA
+# choices$sel_metal = NA
+# choices$sel_metal[choices$Y==1] = choices$METAL[choices$Y==1]
+# choices$sel_metal = ave(choices$sel_metal,choices$APP_RECORD_NUM,FUN=function(x){max(x,na.rm=TRUE)})
+# 
+# # Restrict choices to only the metal level inevitably chosen
+# # Need to think more on how to deal with CSR Silver and Catastrophic
+# choices = choices[choices$METAL==choices$sel_metal,]
+# choices = choices[with(choices,order(APP_RECORD_NUM,METAL)),]
+# 
+# choices = choices[,c("STATE","APP_RECORD_NUM","QUOTED_RATE","FFM_APTC_AMOUNT","FFM_PREMIUM_DUE",
+#                      "FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","SMOKER","AREA","Firm","METAL","hix",
+#                      "MedDeduct","MedOOP","ageRate","FPL_imp","Benchmark","HHcont","subsidy","Quote",
+#                      "PremPaid","Y","Income","logIncome","CSR","Mandate","unins_rate")]
+# 
+
+#### Create Dummy Variables ####
+choices$Family = 0 
+choices$Family[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"] = 1
+
+choices$Age = 0
+choices$Age[choices$AGE>=39] = 1
+
+choices$LowIncome = 1
+choices$LowIncome[with(choices,is.na(FPL_imp)|FPL_imp>4)] = 0
+
+choices$High = 0 
+choices$High[with(choices,METAL%in%c("GOLD","PLATINUM")|CSR%in%c("94","87"))] = 1
+
+
+#### Summary Stats for Tables ####
+t1 = choices[,list(enroll=sum(S_ij*N)),by="METAL"]
+t1[,share:=enroll/sum(enroll)]
+
+t2 = choices[LowIncome==1,list(enroll=sum(S_ij*N)),by="METAL"]
+t2[,share:=enroll/sum(enroll)]
+
+
+
+
+#### Break Down to Smallest Estimatable Data
+# Product Variables
+choices$Market = with(choices,paste(STATE,gsub("Rating Area ","",AREA),sep="_"))
+
+choices$Product = with(choices,paste(Firm,METAL,Market,sep="_"))
+
+#### Calculate Product Market Share ####
+unins_st = read.csv("Data/2015_ACS/uninsured_ST_acs2015.csv")
+
+shares = choices[,list(enroll=sum(S_ij*N),pop_offered=sum(N)),by=c("Product","Firm","Market","STATE")]
+shares = merge(shares,unins_st,by.x="STATE",by.y="state")
+shares[,lives:=sum(enroll),by="Market"]
+shares[,s_inside:= enroll/pop_offered]
+shares$Share = shares$s_inside*(1-shares$unins_rate)
+
+firmShares = choices[,list(enroll=sum(S_ij*N*MEMBERS)),by=c("Firm","Market")]
+firmShares[,lives:=sum(enroll),by="Market"]
+firmShares[,share:= enroll/lives]
+
+
+absent = firmShares[firmShares$share==0,]
+
+#Drop all firms that are absent in that market
+shares = shares[!with(shares,paste(Firm,Market))%in%with(absent,paste(Firm,Market)),]
+#Drop markets with less than 10 observations
+# One makret in Illinois. May need to re-add
+shares = shares[shares$lives>10,]
+#Drop Products with 0 market share
+shares = shares[shares$s_inside>0,]
+
+# Eliminate the 0 share products from the choice set
+choices = choices[choices$Product%in%shares$Product,]
+
+
+
+#### Clean and Print ####
+choices$Price = (choices$PremPaid*12-choices$Mandate)/1000
+choices$MedDeduct = choices$MedDeduct/1000
+choices$MedOOP = choices$MedOOP/1000
+
+choices[,Person:=as.factor(paste(Market,FPL_bucket,AGE_bucket,Mem_bucket))]
+choices[,Person:=as.numeric(Person)]
+
+choices$Product = as.factor(choices$Product)
+shares$Product_Name = factor(shares$Product,levels=levels(choices$Product))
+
+choices$Product = as.numeric(choices$Product)
+shares$Product = as.numeric(shares$Product_Name)
+
+choices = choices[with(choices,order(Person,Product)),]
+setkey(choices,Person,Product)
+setkey(shares,Product)
+
+write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price","MedDeduct","MedOOP","High","Family","Age","LowIncome","unins_rate")],
+          "Intermediate_Output/Estimation_Data/estimationData_discrete.csv",row.names=FALSE)
+write.csv(shares[,c("Product","Share")],
+          "Intermediate_Output/Estimation_Data/marketData_discrete.csv",row.names=FALSE)
+write.csv(shares[,c("Product_Name","Product","Share","Firm","Market","STATE")],
+          "Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv",row.names=FALSE)

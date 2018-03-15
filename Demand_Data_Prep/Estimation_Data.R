@@ -384,16 +384,17 @@ choices$Product = with(choices,paste(Firm,METAL,Market,sep="_"))
 #### Calculate Product Market Share ####
 unins_st = read.csv("Data/2015_ACS/uninsured_ST_acs2015.csv")
 
-choices$count = 1
-shares = summaryBy(count+Y~Product+Firm+Market+STATE,data=choices,FUN=sum,keep.names=TRUE)
-shares = merge(shares,unins_st,by.x="STATE",by.y="state")
-shares$s_inside = with(shares,Y/count)
-shares$Share = shares$s_inside*(1-shares$unins_rate)
-shares$marketTotal = ave(shares$Y,shares$Market,FUN=sum)
 
-firmShares = summaryBy(Y~Firm+Market,data=choices,FUN=sum,keep.names=TRUE)
-firmShares$marketTotal = ave(firmShares$Y,firmShares$Market,FUN=sum)
-firmShares$share = firmShares$Y/firmShares$marketTotal
+choices$count = choices$Y*choices$MEMBERS
+shares = summaryBy(MEMBERS+count~Product+Firm+Market+STATE,data=choices,FUN=sum,keep.names=TRUE)
+shares = merge(shares,unins_st,by.x="STATE",by.y="state")
+shares$s_inside = with(shares,count/MEMBERS)
+shares$Share = shares$s_inside*(1-shares$unins_rate)
+shares$marketTotal = ave(shares$count,shares$Market,FUN=sum)
+
+firmShares = summaryBy(count~Firm+Market,data=choices,FUN=sum,keep.names=TRUE)
+firmShares$marketTotal = ave(firmShares$count,firmShares$Market,FUN=sum)
+firmShares$share = firmShares$count/firmShares$marketTotal
 
 
 absent = firmShares[firmShares$share==0,]

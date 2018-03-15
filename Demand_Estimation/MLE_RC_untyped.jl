@@ -464,7 +464,8 @@ function estimate!(d::InsuranceLogit, p0)
     # Objective Function
     #ll(x) = evaluate_iteration!(d, x)
     ll(x) = log_likelihood(d,x)
-    δ_cont(x) = contraction!(d,x,update=false)
+    #δ_cont(x) = contraction!(d,x,update=false)
+    δ_cont(x) = contraction!(d,x)
     count = 0
     function ll(x, grad)
         count +=1
