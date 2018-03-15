@@ -15,7 +15,6 @@ type InsuranceLogit <: LogitModel
 
     # Store shares predictions for every (ij) pair
     s_hat
-    μ_ij
 
     # Product Level Data
     # Separate vectors, all sorted by product
@@ -35,6 +34,8 @@ type parDict{T}
     randCoeffs::Array{T,2}
     # δ values for (ij) pairs
     δ::Vector{T}
+    # Non-delta utility for (ij) pairs and draws
+    μ_ij::Matrix{T}
 end
 
 function parDict{T}(m::InsuranceLogit,x::Array{T})
@@ -68,9 +69,10 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
     #Initialize (ij) pairs of deltas
     L, M = size(m.data.data)
     δ = Vector{T}(M)
+    μ_ij = Matrix{Float64}(S,M)
     unpack_δ!(δ,m)
 
-    return parDict{T}(α,γ,β,σ,randCoeffs,δ)
+    return parDict{T}(α,γ,β,σ,randCoeffs,δ,μ_ij)
 end
 
 function calcRC!{T,S}(randCoeffs::Array{S},σ::Array{T},draws::Array{Float64,2})
@@ -100,7 +102,6 @@ function InsuranceLogit(data::ChoiceData,haltonDim::Int)
     # Initialize Empty value prediction objects
     n, k = size(c.data)
     s_hat = Vector{Float64}(k)
-    μ_ij = Matrix{Float64}(haltonDim,k)
     # Copy Firm Level Data for Changing in Estimation
     pmat = c.pdata
     pmat[:delta] = 1.0
@@ -108,7 +109,7 @@ function InsuranceLogit(data::ChoiceData,haltonDim::Int)
 
     d = InsuranceLogit(parLength,data,
                         draws,
-                        s_hat,μ_ij,
+                        s_hat,
                         pmat[:Product],pmat[:Share],pmat[:delta])
     return d
 end
@@ -163,7 +164,8 @@ function individual_values!{T}(d::InsuranceLogit,p::parDict{T})
         (K,N) = size(chars)
         idxitr = d.data._personDict[ind]
         for k = 1:K,n = 1:N
-            d.μ_ij[n,idxitr[k]] = exp(chars[k,n] + α*price[k] + γ_i[n])
+            u = exp(chars[k,n] + α*price[k] + γ_i[n])
+            p.μ_ij[n,idxitr[k]] = u
         end
         # δ = δ_long[idxitr]
         # μ_ij = d.μ_ij[:,idxitr]
@@ -283,67 +285,41 @@ end
 #     return Void
 # end
 
-#
-# function individual_shares_RC{T}(μ_ij::Array{T},δ;inside::Bool=false)
-#     (K,N) = size(μ_ij)
-#     util = Matrix{T}(K,N)
-#     s_hat = Matrix{T}(K,N)
-#     s_mean = Vector{T}(K)
-#     out = 1.0
-#     if inside
-#         out = 0.0
-#     end
-#     for n in 1:N
-#         expsum = out
-#         for i in 1:K
-#             a = exp(μ_ij[i,n] + δ[i])
-#             util[i,n] = a
-#             expsum += a
-#         end
-#         for i in 1:K
-#             s_hat[i,n] = util[i,n]/expsum
-#         end
-#     end
-#     for i in 1:K
-#         s_mean[i] = mean(s_hat[i,:])
-#     end
-#     return s_mean
-# end
-
-
-function individual_shares_RC{T}(d::InsuranceLogit,p::parDict{T};inside::Bool=false)
-    P, N = size(d.draws)
-    L, M = size(d.data.data)
-
-    out = 1.0
-    if inside
-        out = 0.0
+function calc_shares{T}(μ_ij::Array{T},δ::Vector{T})
+    (N,K) = size(μ_ij)
+    util = Matrix{T}(K,N)
+    s_hat = Matrix{T}(K,N)
+    #s_mean = Vector{T}(K)
+    for n in 1:N
+        expsum = 1.0
+        for i in 1:K
+            a = μ_ij[n,i]*δ[i]
+            util[i,n] = a
+            expsum += a
+        end
+        for i in 1:K
+            s_hat[i,n] = util[i,n]/expsum
+        end
     end
-    for i in 1:length(m.data._personDict)
-        idxitr = m.data._personDict[i]
-        μ_ij = d.μ_ij[:,idxitr]
-        δ = p.δ[idxitr]
-        K = length(idxitr)
-        util = Matrix{T}(K,N)
-        s_hat = Matrix{T}(K,N)
-        s_mean = Vector{T}(K)
-        for n in 1:N
-            expsum = out
-            for k in 1:K
-                util[k,n] = μ_ij[n,k]*δ[k]
-                expsum += util[k,n]
-            end
-            for k in 1:K
-                s_hat[k,n] = util[k,n]/expsum
-            end
-        end
-        for k in 1:K
-            s_mean[k] = mean(s_hat[k,:])
-        end
-        d.s_hat[idxitr] = s_mean
+    # for i in 1:K
+    #     s_mean[i] = mean(s_hat[i,:])
+    # end
+    return mean(s_hat,2)
+end
+
+function individual_shares_RC{T}(d::InsuranceLogit,p::parDict{T})
+    # Store Parameters
+    δ_long = p.δ
+    μ_ij_large = p.μ_ij
+    for idxitr in values(d.data._personDict)
+        δ = δ_long[idxitr]
+        u = μ_ij_large[:,idxitr]
+        s = calc_shares2(u,δ)
+        d.s_hat[idxitr] = s
     end
     return Void
 end
+
 
 # Calculate Log Likelihood
 function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})

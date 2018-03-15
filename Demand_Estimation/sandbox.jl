@@ -48,7 +48,9 @@ unpack_δ!(parStart0.δ,m)
 ll = log_likelihood(m,parStart0)
 
 @benchmark individual_values!(m,parStart0)
-@benchmark δ_update!(m,parStart0)
+@benchmark individual_shares_RC(m,parStart0)
+
+
 @benchmark unpack_δ!(parStart0.δ,m)
 
 @benchmark individual_values!(m,parStart0)
