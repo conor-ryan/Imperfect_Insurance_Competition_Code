@@ -527,8 +527,8 @@ function estimate!(d::InsuranceLogit, p0)
     initial_step!(opt,5e-2)
 
     # Objective Function
-    ll(x) = evaluate_iteration!(d, x,update=false)
-    #ll(x) = log_likelihood(d,x)
+    #ll(x) = evaluate_iteration!(d, x,update=false)
+    ll(x) = log_likelihood(d,x)
     #δ_cont(x) = contraction!(d,x,update=false)
     δ_cont(x) = contraction!(d,x)
     count = 0
@@ -536,11 +536,11 @@ function estimate!(d::InsuranceLogit, p0)
         count +=1
         println("Iteration $count at $x")
         #Store Gradient
-        println("Step 1")
+        # println("Step 1")
         δ_cont(x)
-        println("Step 2")
-        ForwardDiff.gradient!(grad, ll, x)
-        println("Gradient: $grad")
+        # println("Step 2")
+        # ForwardDiff.gradient!(grad, ll, x)
+        # println("Gradient: $grad")
         likelihood = ll(x)
         println("likelihood equals $likelihood at $x on iteration $count")
         return likelihood
