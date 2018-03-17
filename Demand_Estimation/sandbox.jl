@@ -93,27 +93,27 @@ ll = log_likelihood(m,p0)
 
 
 # Estimate the Model
-p_est = estimate!(m, p0)
+#p_est = estimate!(m, p0)
+
+p_est = [-0.326573, -0.861207, 1.56964, 1.49424, 0.00298468, 0.0711555, 0.0437188, 0.577937, 0.337729, 0.00181465, 0.0197669, -0.487562, -0.272428, -0.335795, -0.312408, -1.01044, 6.84523, -0.0410552, 0.245715, 0.0262984, -0.776266]
 
 run = Dates.today()
-file = "estimationresults_$run.jld"
-save(file,"p_est",p_est)
-paramFinal = parDict(m,p_est)
-contraction!(m,paramFinal)
-out1 = DataFrame(pars=p_est)
-
-file1 = "estimationresults_$run.csv"
-CSV.write(file1,out1)
-
-out2 = DataFrame(delta=m.deltas,prods=m.prods)
-file2 = "deltaresults_$run.csv"
-CSV.write(file2,out2)
-
-
+# file = "estimationresults_$run.jld"
+# save(file,"p_est",p_est)
+# paramFinal = parDict(m,p_est)
+# contraction!(m,paramFinal)
+# out1 = DataFrame(pars=p_est)
+#
+# file1 = "estimationresults_$run.csv"
+# CSV.write(file1,out1)
+#
+# out2 = DataFrame(delta=m.deltas,prods=m.prods)
+# file2 = "deltaresults_$run.csv"
+# CSV.write(file2,out2)
 
 # Predict on Full Data
-df = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Data/estimationData.csv")
-df_mkt = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Data/marketData.csv")
+df = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Data/estimationData_discrete.csv")
+df_mkt = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Data/marketData_discrete.csv")
 df[:Firm] = String.(df[:Firm])
 
 

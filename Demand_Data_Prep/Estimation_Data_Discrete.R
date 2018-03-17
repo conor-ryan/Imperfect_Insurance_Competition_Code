@@ -301,6 +301,7 @@ choices[,Mem_bucket:= "Single"]
 choices[MEMBERS==2,Mem_bucket:= "Couple"]
 choices[MEMBERS>=3,Mem_bucket:= "3+"]
 
+test = as.data.frame(choices)
 choices = choices[,list(AGE = mean(AGE),
                         ageRate = mean(ageRate),
                         #SMOKER = mean(SMOKER),

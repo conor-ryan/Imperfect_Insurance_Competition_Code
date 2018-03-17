@@ -13,8 +13,6 @@ type InsuranceLogit <: LogitModel
     #Store Halton Draws
     draws::Array{Float64,2}
 
-    # Store shares predictions for every (ij) pair
-    s_hat
 
     # Product Level Data
     # Separate vectors, all sorted by product
@@ -36,6 +34,8 @@ type parDict{T}
     δ::Vector{T}
     # Non-delta utility for (ij) pairs and draws
     μ_ij::Matrix{T}
+    # Shares for (ij) pairs
+    s_hat::Vector{T}
 end
 
 function parDict{T}(m::InsuranceLogit,x::Array{T})
@@ -69,10 +69,11 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
     #Initialize (ij) pairs of deltas
     L, M = size(m.data.data)
     δ = Vector{T}(M)
-    μ_ij = Matrix{Float64}(S,M)
+    μ_ij = Matrix{T}(S,M)
+    s_hat = Vector{T}(M)
     unpack_δ!(δ,m)
 
-    return parDict{T}(α,γ,β,σ,randCoeffs,δ,μ_ij)
+    return parDict{T}(α,γ,β,σ,randCoeffs,δ,μ_ij,s_hat)
 end
 
 function calcRC!{T,S}(randCoeffs::Array{S},σ::Array{T},draws::Array{Float64,2})
@@ -101,7 +102,6 @@ function InsuranceLogit(data::ChoiceData,haltonDim::Int)
 
     # Initialize Empty value prediction objects
     n, k = size(c.data)
-    s_hat = Vector{Float64}(k)
     # Copy Firm Level Data for Changing in Estimation
     pmat = c.pdata
     pmat[:delta] = 1.0
@@ -109,7 +109,6 @@ function InsuranceLogit(data::ChoiceData,haltonDim::Int)
 
     d = InsuranceLogit(parLength,data,
                         draws,
-                        s_hat,
                         pmat[:Product],pmat[:Share],pmat[:delta])
     return d
 end
@@ -315,7 +314,7 @@ function individual_shares_RC{T}(d::InsuranceLogit,p::parDict{T})
         δ = δ_long[idxitr]
         u = μ_ij_large[:,idxitr]
         s = calc_shares(u,δ)
-        d.s_hat[idxitr] = s
+        p.s_hat[idxitr] = s
     end
     return Void
 end
@@ -395,7 +394,7 @@ end
 
 # Update δ
 @views sliceMean{T}(x::Vector{T},idx::Array{Int64,1}) = mean(x[idx])
-@views function sliceMean_wgt{T}(x::Vector{T},w::Vector{T},idx::Array{Int64,1})
+@views function sliceMean_wgt{T}(x::Vector{T},w::Vector{Float64},idx::Array{Int64,1})
     wgts = w[idx]
     return sum(x[idx].*wgts)/sum(wgts)
 end
@@ -410,14 +409,14 @@ function δ_update!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
     for j in d.prods
         j_index_all = d.data._productDict[j]
         #s_hat_j= mean(d.s_hat[j_index_all])
-        s_hat_j= sliceMean_wgt(d.s_hat,wgts,j_index_all)
+        s_hat_j= sliceMean_wgt(p.s_hat,wgts,j_index_all)
         s_j = d.shares[j]
         rn[j] = log(s_j)-log(s_hat_j)
         #d.deltas[j] += chg
         δ_new[j] = d.deltas[j]*(s_j/s_hat_j)
 
         #err = log(chg)
-        eps = max(eps,rn[j])
+        eps = max(eps,abs(rn[j]))
     end
     if update
         d.deltas = δ_new
@@ -428,21 +427,21 @@ end
 function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
     # Contraction...
     rnd = 0
-    eps = 1
+    eps0 = 1
     tol = 1e-10
     individual_values!(d,p)
-    while (eps>tol) & (rnd<500)
+    while (eps0>tol) & (rnd<500)
         rnd+=1
         #Step 1
         δ_init = d.deltas
         individual_shares_RC(d,p)
-        eps,δ_0,r0 = δ_update!(d,p)
+        eps0,δ_0,r0 = δ_update!(d,p)
         unpack_δ!(p.δ,d)
 
 
         #Step 2
         individual_shares_RC(d,p)
-        eps,δ_1,r1 = δ_update!(d,p)
+        eps1,δ_1,r1 = δ_update!(d,p)
         unpack_δ!(p.δ,d)
 
         #Update
@@ -454,16 +453,19 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
         chg = - 2*αn.*r0 + αn^2.*vn
         δ_new = δ_init.*exp.(chg)
         #δ_new = δ_init - αn.*r0
-        if update
-            d.deltas = δ_new
-        else
+
+        d.deltas = δ_new
+        unpack_δ!(p.δ,d)
+        if !update
             d.deltas = δ_init
             break
         end
-        unpack_δ!(p.δ,d)
-        eps = maximum(abs.(chg))
+        #eps = maximum(abs.(chg))
         # println("Contraction Error")
-        println(eps)
+        #print("Intitial Error:  ")
+        println(eps0)
+        # print("SquareM Error:  ")
+        # println(eps)
     end
 end
 
@@ -520,13 +522,13 @@ function estimate!(d::InsuranceLogit, p0)
     #opt = Opt(:LD_TNEWTON,length(p0))
     #opt = Opt(:LN_SBPLX, length(p0))
     xtol_rel!(opt, 1e-4)
-    maxeval!(opt, 4000)
+    maxeval!(opt,10000)
     #upper_bounds!(opt, ones(length(p0))/10)
     initial_step!(opt,5e-2)
 
     # Objective Function
-    #ll(x) = evaluate_iteration!(d, x,update=false)
-    ll(x) = log_likelihood(d,x)
+    ll(x) = evaluate_iteration!(d, x,update=false)
+    #ll(x) = log_likelihood(d,x)
     #δ_cont(x) = contraction!(d,x,update=false)
     δ_cont(x) = contraction!(d,x)
     count = 0
@@ -534,11 +536,11 @@ function estimate!(d::InsuranceLogit, p0)
         count +=1
         println("Iteration $count at $x")
         #Store Gradient
-        # println("Step 1")
+        println("Step 1")
         δ_cont(x)
-        # println("Step 2")
-        # ForwardDiff.gradient!(grad, ll, x)
-        # println("Gradient: $grad")
+        println("Step 2")
+        ForwardDiff.gradient!(grad, ll, x)
+        println("Gradient: $grad")
         likelihood = ll(x)
         println("likelihood equals $likelihood at $x on iteration $count")
         return likelihood
@@ -555,24 +557,25 @@ function estimate!(d::InsuranceLogit, p0)
     return ret, minf, minx
 end
 
-function gradient_ascent(d,p0;max_step=1e-5,max_itr=2000)
+function gradient_ascent(d,p0;max_step=1e-5,init_step=1e-9,max_itr=2000)
     ## Initialize Parameter Vector
     p_vec = p0
     # Step Size
     #max_step = 1e-7
-    step = max_step
+    step = init_step
     # Likelihood Functions
-    ll(x) = log_likelihood(d,x)
-    #ll(x) = evaluate_iteration!(d,x,update=false)
+    #ll(x) = log_likelihood(d,x)
+    ll(x) = evaluate_iteration!(d,x,update=false)
     # Tracking Variables
     count = 0
-    err = 1
-    tol = .01
+    grad_size = 10
+    tol = 1
+    f_eval_old = 1.0
     # # Initialize δ
     param_dict = parDict(d,p_vec)
     contraction!(d,param_dict)
     # Maximize by Gradient Ascent
-    while (err>tol) & (count<max_itr)
+    while (grad_size>1) & (count<max_itr)
         count+=1
         # Compute δ with Contraction
         println("Update δ")
@@ -582,24 +585,118 @@ function gradient_ascent(d,p0;max_step=1e-5,max_itr=2000)
         f_eval = ll(p_vec)
         println("likelihood equals $f_eval on iteration $count")
 
+        if ((count>1) & ((f_eval-f_eval_old)/f_eval_old > 0.02)) | isnan(f_eval)
+            step = step_old/10
+            p_vec = p_old + step.*grad_new
+            println("Reset Parameters to $p_vecvec")
+            step_old = copy(step)
+            continue
+        end
+
         # Compute Gradient, holding δ fixed
         grad_new = similar(p_vec)
         ForwardDiff.gradient!(grad_new, ll, p_vec)
         println("Gradient is $grad_new")
 
+        #Save Iteration
+        p_old = copy(p_vec)
+        f_eval_old = copy(f_eval)
+        step_old = copy(step)
+
         # Update Parameters
         p_vec += step.*grad_new
         println("Update Parameters to $p_vec")
+
 
         # New Step Size
         if count>1
             grad_diff = (grad_new-grad_old)
             step = abs(vecdot(step.*grad_new,grad_diff)/vecdot(grad_diff,grad_diff))
-            grad_old = copy(grad_new)
             println("New optimal step size: $step")
         end
-        #Update step size, gradient memory
+        # Save Gradient
         grad_old = copy(grad_new)
+
+        grad_size = sqrt(vecdot(grad_new,grad_new))
+        println("Gradient Size: $grad_size")
+
+        #Update step size
+        step = min(step,max_step)
+    end
+    return p_vec
+end
+
+
+function newton_raphson(d,p0;max_step=1e-5,max_itr=2000)
+    ## Initialize Parameter Vector
+    p_vec = p0
+    N = length(p0)
+    # Step Size
+    #max_step = 1e-7
+    step = max_step
+    # Likelihood Functions
+    #ll(x) = log_likelihood(d,x)
+    ll(x) = evaluate_iteration!(d,x,update=false)
+    # Tracking Variables
+    count = 0
+    grad_size = 10
+    tol = 1
+    f_eval_old = 1.0
+    # # Initialize δ
+    param_dict = parDict(d,p_vec)
+    #cfg = ForwardDiff.GradientConfig(ll, p_vec, ForwardDiff.Chunk{4}())
+    #contraction!(d,param_dict)
+    # Maximize by Gradient Ascent
+    while (grad_size>1) & (count<max_itr)
+        count+=1
+        # Compute δ with Contraction
+        println("Update δ")
+        param_dict = parDict(d,p_vec)
+        contraction!(d,param_dict)
+        # Evaluate Likelihood
+        f_eval = ll(p_vec)
+        println("likelihood equals $f_eval on iteration $count")
+
+        # if (count>1) & ((f_eval-f_eval_old)/f_eval_old > 0.02)
+        #     println("Reset")
+        #     step = step_old/10
+        #     p_vec = p_old + step.*grad_new
+        #     continue
+        # end
+
+        # Compute Gradient, holding δ fixed
+        grad_new = similar(p_vec)
+        ForwardDiff.gradient!(grad_new, ll, p_vec)
+        println("Gradient is $grad_new")
+
+
+        hess_new = Matrix{Float64}(N,N)
+        ForwardDiff.hessian!(hess_new, ll, p_vec)
+        println("Hessian is $hess_new")
+
+        #Save Iteration
+        p_old = copy(p_vec)
+        f_eval_old = copy(f_eval)
+
+        # Update Parameters
+        p_vec += inv(hess_new)*grad_new
+        p_vec += step.*grad_new
+        println("Update Parameters to $p_vec")
+
+
+        # New Step Size
+        if count>1
+            grad_diff = (grad_new-grad_old)
+            step = abs(vecdot(step.*grad_new,grad_diff)/vecdot(grad_diff,grad_diff))
+            println("New optimal step size: $step")
+        end
+        # Save Gradient
+        grad_old = copy(grad_new)
+
+        grad_size = sqrt(vecdot(grad_new,grad_new))
+        println("Gradient Size: $grad_size")
+
+        #Update step size
         step = min(step,max_step)
     end
     return p_vec

@@ -59,7 +59,7 @@ acs = merge(acs,rating[rating$State!="Default",],by.x=c("ST","AgeMatch"),by.y=c(
 acs$ageRate = acs$Rating.x
 acs$ageRate[!is.na(acs$Rating.y)] = acs$Rating.y[!is.na(acs$Rating.y)]
 # Drop redundant rating variables
-#acs = acs[,which(!names(acs)%in%c("Rating.x","Rating.y"))]
+acs = acs[,c("Rating.x","Rating.y"):=NULL]
 rm(rating)
 
 #Count Members
@@ -143,15 +143,6 @@ acs[,Benchmark:=benchBase*ageRate]
 acs[,HHcont:=subsPerc(HHincomeFPL)]
 acs[,subsidy:=pmax(Benchmark-HHcont*HH_income/12,0)]
 
-# Calculate Premiums for Choice Set
-acs[,Quote:=premBase*ageRate]
-acs[,PremPaid:=pmax(premBase*ageRate-subsidy,0)]
-acs[METAL=="CATASTROPHIC",PremPaid:=premBase*ageRate]
-
-# Keep Relevant Variables
-acs = acs[,c("ST","household","HH_income","HHincomeFPL","FAMILY_OR_INDIVIDUAL","MEMBERS","AGE",
-           "AREA","Firm","METAL","hix","MedDeduct","MedOOP","ageRate","ageRate_avg","Benchmark","HHcont","subsidy","Quote","PremPaid","PERWT")]
-
 
 #### Choice Sets - Cost Sharing ####
 acs[,METAL:=toupper(METAL)]
@@ -169,6 +160,54 @@ acs[METAL=="SILVER"&hix&HHincomeFPL>=1 & HHincomeFPL<=1.5,CSR_subs:= "94"]
 
 # Keep only Silver plans for the appropriate income
 acs = acs[with(acs,CSR==CSR_subs),]
+
+
+##### Discretize the Data into Type Buckets #####
+acs[,FPL_bucket:= "Less than 1"]
+acs[HHincomeFPL>=1&HHincomeFPL<1.5,FPL_bucket:="1 - 1.5"]
+acs[HHincomeFPL>=1.5&HHincomeFPL<2,FPL_bucket:="1.5 - 2"]
+acs[HHincomeFPL>=2&HHincomeFPL<2.5,FPL_bucket:="2 - 2.5"]
+acs[HHincomeFPL>=2.5&HHincomeFPL<4,FPL_bucket:="2.5 - 4"]
+acs[is.na(HHincomeFPL)|HHincomeFPL>=4,FPL_bucket:="Greater than 4"]
+
+
+acs[,AGE_bucket:= "26 or Under"]
+acs[AGE>26&AGE<=30,AGE_bucket:= "26-30"]
+acs[AGE>30&AGE<=38,AGE_bucket:= "31-38"]
+acs[AGE>38&AGE<=46,AGE_bucket:= "39-46"]
+acs[AGE>46&AGE<=54,AGE_bucket:= "47-54"]
+acs[AGE>54,AGE_bucket:= "55-64"]
+
+acs[,Mem_bucket:= "Single"]
+acs[MEMBERS==2,Mem_bucket:= "Couple"]
+acs[MEMBERS>=3,Mem_bucket:= "3+"]
+
+test = as.data.frame(acs)
+acs = acs[,list(AGE = mean(AGE),
+                        ageRate = mean(ageRate),
+                        #SMOKER = mean(SMOKER),
+                        MEMBERS = mean(MEMBERS),
+                        Income = mean(Income,na.rm=TRUE),
+                        HHincomeFPL = mean(HHincomeFPL,na.rm=TRUE),
+                        Y = sum(Y*MEMBERS),
+                        N = sum(MEMBERS),
+                        subsidy_mean= mean(subsidy)),
+                  by=c("STATE","AREA","FPL_bucket","AGE_bucket","Mem_bucket","FAMILY_OR_INDIVIDUAL","Firm","METAL","hix","CSR",
+                       "MedDeduct","MedOOP","benchBase","premBase")]
+
+
+## Re-Calculate Premiums for Choice Set
+acs[,Benchmark:=benchBase*ageRate]
+acs[,HHcont:= subsPerc(HHincomeFPL)]
+acs[,subsidy:= pmax(Benchmark - HHcont*Income/12,0)]
+# Leave subsidies below 100 FPL
+acs[is.na(HHincomeFPL)|HHincomeFPL>4,subsidy:=0]
+acs[HHincomeFPL<1,subsidy:=subsidy_mean]
+acs[,diff:=subsidy-subsidy_mean]
+
+acs[,Quote:= premBase*ageRate]
+acs[,PremPaid:= pmax(premBase*ageRate - subsidy,0)]
+acs$PremPaid[acs$METAL=="CATASTROPHIC"] = with(acs[acs$METAL=="CATASTROPHIC",],premBase*ageRate)
 
 
 #### Calculate Mandate Penalty ####
