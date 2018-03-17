@@ -22,7 +22,7 @@ subsPerc <- function(FPL){
 }
 
 # Based on Individual Income
-subsInv <- function(cont,pov_line = 11770){
+subsInv <- function(cont,pov_line = 11770,FPL_flag=FALSE){
   
   y = cont[!is.na(cont)]
   x = rep(NA,length(y))
@@ -51,9 +51,15 @@ subsInv <- function(cont,pov_line = 11770){
   
   
   Income = rep(NA,length(cont))
+  FPL = rep(NA,length(cont))
   Income[!is.na(cont)] = x*pov_line
+  FPL[!is.na(cont)] = x
+  if(FPL_flag){
+    return(FPL)
+  }else{
+    return(Income)
+  }
   
-  return(Income)
 }
 
 
@@ -237,6 +243,7 @@ choices$IncCont[choices$subsidy==0] = NA
 choices$IncCont[choices$IncCont<.0201*(11770+(choices$MEMBERS-1)*4160)/12] = NA
 
 # This depends on Family Size to calculate the appropriate poverty line.
+# Potentially use reported income and subsidy to impute FPL
 # This function could probably be written better...
 choices$ImputedIncome[choices$MEMBERS==1] = subsInv(choices$IncCont[choices$MEMBERS==1],pov_line=11770)
 choices$ImputedIncome[choices$MEMBERS==2] = subsInv(choices$IncCont[choices$MEMBERS==2],pov_line=11770+4160)
@@ -417,11 +424,17 @@ choices$Market = with(choices,paste(STATE,gsub("Rating Area ","",AREA),sep="_"))
 
 choices$Product = with(choices,paste(Firm,METAL,Market,sep="_"))
 
+choices[,Person:=as.factor(paste(Market,FPL_bucket,AGE_bucket,Mem_bucket))]
+choices[,Person:=as.numeric(Person)]
+
 #### Calculate Product Market Share ####
-unins_st = read.csv("Data/2015_ACS/uninsured_ST_acs2015.csv")
+#unins_st = read.csv("Data/2015_ACS/uninsured_ST_acs2015.csv")
+# Take Uninsurance Rates implied in the sample
+insured = unique(choices[,c("Person","STATE","unins_rate","N")])
+insured = insured[,list(unins_rate=sum(unins_rate*N)/sum(N)),by="STATE"]
 
 shares = choices[,list(enroll=sum(S_ij*N),pop_offered=sum(N)),by=c("Product","Firm","Market","STATE")]
-shares = merge(shares,unins_st,by.x="STATE",by.y="state")
+shares = merge(shares,insured,by="STATE")
 shares[,lives:=sum(enroll),by="Market"]
 shares[,s_inside:= enroll/pop_offered]
 shares$Share = shares$s_inside*(1-shares$unins_rate)
@@ -453,9 +466,6 @@ choices$Price = (choices$PremPaid*12-choices$Mandate)/1000
 choices$MedDeduct = choices$MedDeduct/1000
 choices$MedOOP = choices$MedOOP/1000
 
-choices[,Person:=as.factor(paste(Market,FPL_bucket,AGE_bucket,Mem_bucket))]
-choices[,Person:=as.numeric(Person)]
-
 choices$Product = as.factor(choices$Product)
 shares$Product_Name = factor(shares$Product,levels=levels(choices$Product))
 
@@ -470,5 +480,36 @@ write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price","MedD
           "Intermediate_Output/Estimation_Data/estimationData_discrete.csv",row.names=FALSE)
 write.csv(shares[,c("Product","Share")],
           "Intermediate_Output/Estimation_Data/marketData_discrete.csv",row.names=FALSE)
-write.csv(shares[,c("Product_Name","Product","Share","Firm","Market","STATE")],
+write.csv(shares[,c("Product_Name","Product","Share","s_inside","Firm","Market","STATE")],
           "Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv",row.names=FALSE)
+
+# Create mini Michigan Dataset and Renumber Products
+MI = choices[STATE=="MI",]
+MI_mkt = shares[STATE=="MI",]
+
+MI$Product = as.factor(MI$Product)
+MI_mkt$Product = factor(MI_mkt$Product,levels=levels(MI$Product))
+
+MI$Product = as.numeric(MI$Product)
+MI_mkt$Product = as.numeric(MI_mkt$Product)
+
+setkey(MI,Person,Product)
+setkey(MI_mkt,Product)
+
+
+write.csv(MI[,c("Person","Firm","Market","Product","S_ij","N","Price","MedDeduct","MedOOP","High","Family","Age","LowIncome","unins_rate")],
+          "Intermediate_Output/Estimation_Data/estimationData_MI_discrete.csv",row.names=FALSE)
+write.csv(MI_mkt[,c("Product","Share")],
+          "Intermediate_Output/Estimation_Data/marketData_MI_discrete.csv",row.names=FALSE)
+write.csv(MI_mkt[,c("Product_Name","Product","Share","s_inside","Firm","Market","STATE")],
+          "Intermediate_Output/Estimation_Data/marketDataMap_MI_discrete.csv",row.names=FALSE)
+
+
+
+#### Tests
+
+shares = choices[,list(enroll=sum(S_ij*N),pop_offered=sum(N)),by=c("Product","Firm","Market","STATE")]
+shares = merge(shares,unins_st,by.x="STATE",by.y="state")
+shares[,lives:=sum(enroll),by="Market"]
+shares[,s_inside:= enroll/pop_offered]
+shares$Share = shares$s_inside*(1-shares$unins_rate)

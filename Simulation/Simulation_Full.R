@@ -182,24 +182,25 @@ acs[,Mem_bucket:= "Single"]
 acs[MEMBERS==2,Mem_bucket:= "Couple"]
 acs[MEMBERS>=3,Mem_bucket:= "3+"]
 
-test = as.data.frame(acs)
+# test = as.data.frame(acs)
+# test
 acs = acs[,list(AGE = mean(AGE),
-                        ageRate = mean(ageRate),
+                        ageRate = sum(ageRate*PERWT)/sum(PERWT),
+                        ageRate_avg = sum(ageRate_avg*PERWT)/sum(PERWT),
                         #SMOKER = mean(SMOKER),
-                        MEMBERS = mean(MEMBERS),
-                        Income = mean(Income,na.rm=TRUE),
-                        HHincomeFPL = mean(HHincomeFPL,na.rm=TRUE),
-                        Y = sum(Y*MEMBERS),
-                        N = sum(MEMBERS),
-                        subsidy_mean= mean(subsidy)),
-                  by=c("STATE","AREA","FPL_bucket","AGE_bucket","Mem_bucket","FAMILY_OR_INDIVIDUAL","Firm","METAL","hix","CSR",
+                        MEMBERS = sum(MEMBERS*PERWT)/sum(PERWT),
+                        HH_income = sum(HH_income*PERWT)/sum(PERWT),
+                        HHincomeFPL = sum(HHincomeFPL*PERWT)/sum(PERWT),
+                        PERWT = sum(PERWT),
+                        subsidy_mean= sum(subsidy*PERWT)/sum(PERWT)),
+                  by=c("ST","AREA","FPL_bucket","AGE_bucket","Mem_bucket","FAMILY_OR_INDIVIDUAL","Firm","METAL","hix","CSR",
                        "MedDeduct","MedOOP","benchBase","premBase")]
 
 
 ## Re-Calculate Premiums for Choice Set
 acs[,Benchmark:=benchBase*ageRate]
 acs[,HHcont:= subsPerc(HHincomeFPL)]
-acs[,subsidy:= pmax(Benchmark - HHcont*Income/12,0)]
+acs[,subsidy:= pmax(Benchmark - HHcont*HH_income/12,0)]
 # Leave subsidies below 100 FPL
 acs[is.na(HHincomeFPL)|HHincomeFPL>4,subsidy:=0]
 acs[HHincomeFPL<1,subsidy:=subsidy_mean]
@@ -220,9 +221,6 @@ acs[MEMBERS>1,Mandate:=min(
        .02*(HH_income-filingThresh)),
   2484*ageRate)]
 
-acs = acs[,c("ST","household","FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","AREA","Firm","METAL","hix",
-                     "MedDeduct","MedOOP","ageRate","ageRate_avg","HHincomeFPL","Benchmark","HHcont","subsidy","Quote",
-                     "PremPaid","HH_income","CSR","Mandate","PERWT")]
 
 #### Dummy Variables ####
 acs[,Family:= 0] 
@@ -240,14 +238,17 @@ acs[,MedDeduct:= MedDeduct/1000]
 acs[,MedOOP:= MedOOP/1000]
 
 acs[,Age := 0]
-acs[AGE>=40,Age:= 1]
+acs[AGE>=39,Age:= 1]
 
-acs[,Person:= household]
 
 # Product Variables
 acs[,Market:= paste(ST,gsub("Rating Area ","",AREA),sep="_")]
 
 acs[,Product_Name:= paste(Firm,METAL,Market,sep="_")]
+
+acs[,Person:=as.factor(paste(Market,FPL_bucket,AGE_bucket,Mem_bucket))]
+acs[,Person:=as.numeric(Person)]
+
 
 acs = acs[,c("Person","Firm","Market","Product_Name","Price","MedDeduct","MedOOP","High","Family","Age","LowIncome","ageRate_avg","PERWT")]
 
@@ -263,11 +264,13 @@ acs = merge(acs,prod_map[,c("Product_Name","Product")],by="Product_Name",all.x=T
 acs = acs[!is.na(acs$Product),]
 
 
-#### Read in Parameters ####
-n_draws = 100
-pars = read.csv("Estimation_Output/estimationresults_fullapprox2018-03-07.csv")
 
-deltas = read.csv("Estimation_Output/deltaresults_fullapprox2018-03-07.csv")
+
+#### Read in Parameters ####
+n_draws = 500
+pars = read.csv("Estimation_Output/estimationresults_2018-03-17.csv")
+
+deltas = read.csv("Estimation_Output/deltaresults_2018-03-17.csv")
 
 alpha = pars$pars[1]
 gamma = pars$pars[2:4]
@@ -279,7 +282,7 @@ randCoeffs = matrix(nrow=n_draws,ncol=length(sigma))
 j = 1
 for (k in 1:5){
   if (k<3){j=j+1}
-  randCoeffs[,k] = draws[,3]*sigma[k]
+  randCoeffs[,k] = draws[,j]*sigma[k]
 }
 
 acs = merge(acs,deltas,by.x="Product",by.y="prods")
@@ -326,11 +329,10 @@ predict_data = predict_data[repl, ]
 predict_data[,d_ind:=ind_draw]
 setkey(predict_data,Person)
 
-
-
 #### Predict ####
 cnt = 0
 start = Sys.time()
+acs[,s_pred:=vector("double",nrow(acs))]
 for (p in people){
   cnt = cnt+1
   perData = acs[.(p),]
@@ -353,15 +355,14 @@ for (p in people){
   util = matrix(NA,nrow=nrow(chars),ncol=n_draws)
   shares = matrix(NA,nrow=nrow(chars),ncol=n_draws)
   for(k in 1:n_draws){
-    util[,k] = exp(intercept[k] + price_int + chars%*%beta_zi[k,] + delta)
+    util[,k] = exp(intercept[k] + price_int + chars%*%beta_zi[k,])*delta
   }
   expsum = apply(util,MARGIN=2,sum)
   for(k in 1:n_draws){
     shares[,k] = util[,k]/(1+expsum[k])
   }
-  
+  acs[.(p),s_pred:=apply(shares,MARGIN=1,FUN=mean)]
   predict_data[.(p),s_pred:=as.vector(shares)]
-  
   if (cnt%%500==0){
     print(cnt)
   }
@@ -370,23 +371,21 @@ Sys.time() - start
 
 save(acs,predict_data,randCoeffs,file="simData.rData")
 
-Person_Predict = predict_data[,list(s_pred=mean(s_pred)),by=c("Person","Product")]
 
-acs_predict = merge(Person_Predict,acs,by=c("Person","Product"))
-acs_predict$ST = gsub("_.*","",acs_predict$Market)
-###############
-insured = acs_predict[,list(s_pred=sum(s_pred)),by=c("Person","PERWT","ST")]
-insured[,sum(s_pred*PERWT)/sum(PERWT),by="ST"]
-sum(insured$s_pred*insured$PERWT)/sum(insured$PERWT)
+### Predicted Product Shares ####
+shares = acs[,list(e_pred=sum(s_pred*PERWT),pop_offered=sum(PERWT)),by=c("Product","Firm","Market")]
+shares[,S_pred:= e_pred/pop_offered]
 
-# shares = summaryBy(s_pred*PERWT+PERWT~Product+Share+Product_Name,data=acs,FUN=sum,keep.names=TRUE)
-# shares$s_pred = shares["s_pred * PERWT"]/shares$PERWT
-# 
-# acs$enroll = acs$PERWT*acs$s_pred
-# acs$ST = gsub("_.*","",acs$Market)
-# enrollment = summaryBy(enroll~ST+Firm,data=acs,FUN=sum,keep.names=TRUE)
-# enrollment$share = enrollment$enroll/ave(enrollment$enroll,enrollment$ST,FUN=sum)
-# 
-# #Uninsured Rate
-# insured = summaryBy(s_pred~Person+PERWT,data=acs,FUN=sum,keep.names=TRUE)
-# sum(insured$s_pred*insured$PERWT)/sum(insured$PERWT)
+## Test against moments
+share_moment = read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv")
+share_test = merge(shares,share_moment,by=c("Product","Firm","Market"),all=TRUE)
+share_test[,diff:=S_pred-Share]
+
+insured = acs[,list(s_pred=sum(s_pred)),by=c("Person","PERWT","Market")]
+insured[,ST:=gsub("_.*","",Market)]
+insured = insured[,list(insured=sum(s_pred*PERWT),lives=sum(PERWT)),by="ST"]
+insured[,urate:=1 - insured/lives]
+
+unins_st = read.csv("Data/2015_ACS/uninsured_ST_acs2015.csv")
+ins_test = merge(insured,unins_st,by.x="ST",by.y="state")
+

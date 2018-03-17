@@ -129,13 +129,13 @@ function calc_indCoeffs{T}(p::parDict{T},β::Array{T,1},γ::T)
     return β_i, γ_i
 end
 
-function calc_indCoeffs{T}(randCoeffs::Array{T,2},β::Array{T,1},γ::T)
+function calc_indCoeffs{T}(randCoeffs::Array{T,2},β::Array{T,1},d::T)
     Q = length(β)
     (K,N) = size(randCoeffs)
     β_i = Array{T,2}(Q,N)
     γ_i = Array{T,1}(N)
     for n in 1:N
-        γ_i[n] = γ + randCoeffs[1,n]
+        γ_i[n] = d + randCoeffs[1,n]
         for k in 1:Q
             β_i[k,n] = β[k] + randCoeffs[k+1,n]
         end

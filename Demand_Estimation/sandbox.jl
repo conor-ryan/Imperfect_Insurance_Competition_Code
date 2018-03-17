@@ -129,11 +129,11 @@ contraction!(m,paramFinal)
 
 run = Dates.today()
 out1 = DataFrame(pars=p_est)
-file1 = "estimationresults_fullapprox$run.csv"
+file1 = "estimationresults_$run.csv"
 CSV.write(file1,out1)
 
 out2 = DataFrame(delta=m.deltas,prods=m.prods)
-file2 = "deltaresults_fullapprox$run.csv"
+file2 = "deltaresults_$run.csv"
 CSV.write(file2,out2)
 
 
