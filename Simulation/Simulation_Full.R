@@ -4,6 +4,9 @@ library(randtoolbox)
 library(data.table)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
 
+## Run
+run = "2018-03-18"
+
 #### 2015 Subsidy Percentage Function ####
 
 subsPerc <- function(FPL){
@@ -72,7 +75,7 @@ acs[,childRank:=rank(AGE,ties.method="first"),by="household"]
 acs$childRank[acs$AGE>18] = NA
 acs$ageRate[!is.na(acs$childRank)&acs$childRank>3]=0
 
-acs$catas_cnt = as.numeric(acs$AGE<30)
+acs$catas_cnt = as.numeric(acs$AGE<=30)
 acs$ageRate_avg = acs$ageRate*acs$PERWT
 acs = acs[,lapply(.SD,sum),by=c("household","HHincomeFPL","HH_income","MaxAge","AREA","ST"),
           .SDcols = c("MEMBERS","ageRate","ageRate_avg","PERWT","catas_cnt")]
@@ -98,7 +101,7 @@ acs = acs[acs$ST%in%choiceSets$ST,]
 acs = merge(acs,choiceSets,by=c("ST","AREA"),all.x=TRUE,allow.cartesian=TRUE)
 
 #### Set Correct Characteristics ####
-acs = acs[!with(acs,catas_elig & METAL=="CATASTROPHIC"),]
+acs = subset(acs,!(!catas_elig & METAL=="Catastrophic"))
 
 # Remove non-valid areas
 acs = acs[acs$valid,]
@@ -154,9 +157,9 @@ acs[,METAL:=gsub(" [0-9]+","",METAL)]
 acs[,hix:=any(hix),by=c("household","Firm","METAL")]
 
 acs[,CSR_subs:= ""]
-acs[METAL=="SILVER"&hix&HHincomeFPL>2 & HHincomeFPL<=2.5,CSR_subs:= "73"]
-acs[METAL=="SILVER"&hix&HHincomeFPL>1.5 & HHincomeFPL<=2,CSR_subs:= "87"]
-acs[METAL=="SILVER"&hix&HHincomeFPL>=1 & HHincomeFPL<=1.5,CSR_subs:= "94"]
+acs[METAL=="SILVER"&hix&HHincomeFPL>=2 & HHincomeFPL<2.5,CSR_subs:= "73"]
+acs[METAL=="SILVER"&hix&HHincomeFPL>=1.5 & HHincomeFPL<2,CSR_subs:= "87"]
+acs[METAL=="SILVER"&hix&HHincomeFPL>=1 & HHincomeFPL<1.5,CSR_subs:= "94"]
 
 # Keep only Silver plans for the appropriate income
 acs = acs[with(acs,CSR==CSR_subs),]
@@ -182,8 +185,7 @@ acs[,Mem_bucket:= "Single"]
 acs[MEMBERS==2,Mem_bucket:= "Couple"]
 acs[MEMBERS>=3,Mem_bucket:= "3+"]
 
-# test = as.data.frame(acs)
-# test
+#test = as.data.frame(acs)
 acs = acs[,list(AGE = mean(AGE),
                         ageRate = sum(ageRate*PERWT)/sum(PERWT),
                         ageRate_avg = sum(ageRate_avg*PERWT)/sum(PERWT),
@@ -250,7 +252,7 @@ acs[,Person:=as.factor(paste(Market,FPL_bucket,AGE_bucket,Mem_bucket))]
 acs[,Person:=as.numeric(Person)]
 
 
-acs = acs[,c("Person","Firm","Market","Product_Name","Price","MedDeduct","MedOOP","High","Family","Age","LowIncome","ageRate_avg","PERWT")]
+acs = acs[,c("Person","Firm","Market","Product_Name","Price","MedDeduct","MedOOP","High","Family","Age","LowIncome","ageRate","ageRate_avg","PERWT")]
 
 
 #### Merge in Product Map #### 
@@ -267,10 +269,13 @@ acs = acs[!is.na(acs$Product),]
 
 
 #### Read in Parameters ####
-n_draws = 500
-pars = read.csv("Estimation_Output/estimationresults_2018-03-17.csv")
+n_draws = 100
 
-deltas = read.csv("Estimation_Output/deltaresults_2018-03-17.csv")
+parFile = paste("Estimation_Output/estimationresults_",run,".csv",sep="")
+pars = read.csv(parFile)
+
+delFile = paste("Estimation_Output/deltaresults_",run,".csv",sep="")
+deltas = read.csv(delFile)
 
 alpha = pars$pars[1]
 gamma = pars$pars[2:4]
@@ -279,9 +284,8 @@ sigma = pars$pars[17:21]
 
 draws = halton(n_draws,dim=3,usetime=TRUE,normal=TRUE)
 randCoeffs = matrix(nrow=n_draws,ncol=length(sigma))
-j = 1
 for (k in 1:5){
-  if (k<3){j=j+1}
+  j = min(k,3)
   randCoeffs[,k] = draws[,j]*sigma[k]
 }
 
@@ -332,7 +336,7 @@ setkey(predict_data,Person)
 #### Predict ####
 cnt = 0
 start = Sys.time()
-acs[,s_pred:=vector("double",nrow(acs))]
+acs[,s_pred_mean:=vector("double",nrow(acs))]
 for (p in people){
   cnt = cnt+1
   perData = acs[.(p),]
@@ -361,7 +365,7 @@ for (p in people){
   for(k in 1:n_draws){
     shares[,k] = util[,k]/(1+expsum[k])
   }
-  acs[.(p),s_pred:=apply(shares,MARGIN=1,FUN=mean)]
+  acs[.(p),s_pred_mean:=apply(shares,MARGIN=1,FUN=mean)]
   predict_data[.(p),s_pred:=as.vector(shares)]
   if (cnt%%500==0){
     print(cnt)
@@ -369,11 +373,12 @@ for (p in people){
 }
 Sys.time() - start
 
-save(acs,predict_data,randCoeffs,file="simData.rData")
+simFile = paste("Simulation_Risk_Output/simData_",run,".rData",sep="")
+save(acs,predict_data,randCoeffs,file=simFile)
 
 
 ### Predicted Product Shares ####
-shares = acs[,list(e_pred=sum(s_pred*PERWT),pop_offered=sum(PERWT)),by=c("Product","Firm","Market")]
+shares = acs[,list(e_pred=sum(s_pred_mean*PERWT),pop_offered=sum(PERWT)),by=c("Product","Firm","Market")]
 shares[,S_pred:= e_pred/pop_offered]
 
 ## Test against moments
@@ -381,7 +386,13 @@ share_moment = read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discr
 share_test = merge(shares,share_moment,by=c("Product","Firm","Market"),all=TRUE)
 share_test[,diff:=S_pred-Share]
 
-insured = acs[,list(s_pred=sum(s_pred)),by=c("Person","PERWT","Market")]
+share_test[,Catas:=0]
+share_test[grepl("CATASTROPHIC",Product_Name),Catas:=1]
+
+catas_test = share_test[,list(enroll = sum(e_pred)),by=c("Catas")]
+catas_test[,share:=enroll/sum(enroll)]
+
+insured = acs[,list(s_pred=sum(s_pred_mean)),by=c("Person","PERWT","Market")]
 insured[,ST:=gsub("_.*","",Market)]
 insured = insured[,list(insured=sum(s_pred*PERWT),lives=sum(PERWT)),by="ST"]
 insured[,urate:=1 - insured/lives]

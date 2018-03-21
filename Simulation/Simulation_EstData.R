@@ -4,6 +4,9 @@ library(randtoolbox)
 library(data.table)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
 
+## Run 
+run = "2018-03-18"
+
 #### Read in Data ####
 estData = read.csv("Intermediate_Output/Estimation_Data/estimationData_discrete.csv")
 estData = as.data.table(estData)
@@ -11,10 +14,12 @@ setkey(estData,Person,Product)
 
 
 #### Read in Parameters ####
-n_draws = 500
-pars = read.csv("Estimation_Output/estimationresults_2018-03-17.csv")
+n_draws=1000
+parFile = paste("Estimation_Output/estimationresults_",run,".csv",sep="")
+pars = read.csv(parFile)
 
-deltas = read.csv("Estimation_Output/deltaresults_2018-03-17.csv")
+delFile = paste("Estimation_Output/deltaresults_",run,".csv",sep="")
+deltas = read.csv(delFile)
 
 alpha = pars$pars[1]
 gamma = pars$pars[2:4]
@@ -23,9 +28,9 @@ sigma = pars$pars[17:21]
 
 draws = halton(n_draws,dim=3,usetime=TRUE,normal=TRUE)
 randCoeffs = matrix(nrow=n_draws,ncol=length(sigma))
-j = 1
+
 for (k in 1:5){
-  if (k<3){j=j+1}
+  j = min(k,3)
   randCoeffs[,k] = draws[,j]*sigma[k]
 }
 

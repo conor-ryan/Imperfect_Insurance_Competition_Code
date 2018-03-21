@@ -37,6 +37,10 @@ p0 = vcat(αstart,γstart,βstart,σstart)
   -0.0571023, -0.490412, -0.0738414, -0.115849, -0.136463,
    -1.37222, 3.69372, -0.0660455, -0.0162958, -0.167433, -3.92012]
 
+p0 = [-0.0162396, 0.314508, 2.12447, -0.0773287, -0.000348166,
+0.0202988, 0.0263916, 0.175525, 0.0034852, -0.0185302, -0.0593699,
+0.072032, -0.0608892, -0.129298, -0.09745, -1.66462, -0.135903,
+-0.00324694, -0.0314416, -0.145326, -3.97585]
 
 #p1 = p0/2
 # unpack!(m,parStart)
@@ -45,8 +49,8 @@ parStart0 = parDict(m,p0)
 println("Data Loaded")
 
 # Estimate the Model
-p_est = estimate!(m, p0)
-#p_est = gradient_ascent(m,p0,max_step=1e-5)
+#p_est = estimate!(m, p0)
+p_est = gradient_ascent(m,p0,max_step=1e-7,grad_tol=500)
 
 run = Dates.today()
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_$run.jld"

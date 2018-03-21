@@ -293,16 +293,22 @@ choices[,FPL_bucket:= "Less than 1"]
 choices[FPL_imp>=1&FPL_imp<1.5,FPL_bucket:="1 - 1.5"]
 choices[FPL_imp>=1.5&FPL_imp<2,FPL_bucket:="1.5 - 2"]
 choices[FPL_imp>=2&FPL_imp<2.5,FPL_bucket:="2 - 2.5"]
-choices[FPL_imp>=2.5&FPL_imp<4,FPL_bucket:="2.5 - 4"]
+choices[FPL_imp>=2.5&FPL_imp<3,FPL_bucket:="2.5 - 3"]
+choices[FPL_imp>=3&FPL_imp<3.5,FPL_bucket:="3 - 3.5"]
+choices[FPL_imp>=3.5&FPL_imp<4,FPL_bucket:="3.5 - 4"]
 choices[is.na(FPL_imp)|FPL_imp>=4,FPL_bucket:="Greater than 4"]
 
 
 choices[,AGE_bucket:= "26 or Under"]
 choices[AGE>26&AGE<=30,AGE_bucket:= "26-30"]
-choices[AGE>30&AGE<=38,AGE_bucket:= "31-38"]
-choices[AGE>38&AGE<=46,AGE_bucket:= "39-46"]
-choices[AGE>46&AGE<=54,AGE_bucket:= "47-54"]
-choices[AGE>54,AGE_bucket:= "55-64"]
+choices[AGE>30&AGE<=36,AGE_bucket:= "31-34"]
+choices[AGE>36&AGE<=42,AGE_bucket:= "35-38"]
+choices[AGE>42&AGE<=48,AGE_bucket:= "39-42"]
+choices[AGE>48&AGE<=54,AGE_bucket:= "43-46"]
+choices[AGE>54&AGE<=60,AGE_bucket:= "47-50"]
+choices[AGE>54&AGE<=60,AGE_bucket:= "51-54"]
+choices[AGE>54&AGE<=60,AGE_bucket:= "55-58"]
+choices[AGE>61,AGE_bucket:= "58-64"]
 
 choices[,Mem_bucket:= "Single"]
 choices[MEMBERS==2,Mem_bucket:= "Couple"]
@@ -508,8 +514,8 @@ write.csv(MI_mkt[,c("Product_Name","Product","Share","s_inside","Firm","Market",
 
 #### Tests
 
-shares = choices[,list(enroll=sum(S_ij*N),pop_offered=sum(N)),by=c("Product","Firm","Market","STATE")]
-shares = merge(shares,unins_st,by.x="STATE",by.y="state")
-shares[,lives:=sum(enroll),by="Market"]
-shares[,s_inside:= enroll/pop_offered]
-shares$Share = shares$s_inside*(1-shares$unins_rate)
+# shares = choices[,list(enroll=sum(S_ij*N),pop_offered=sum(N)),by=c("Product","Firm","Market","STATE")]
+# shares = merge(shares,unins_st,by.x="STATE",by.y="state")
+# shares[,lives:=sum(enroll),by="Market"]
+# shares[,s_inside:= enroll/pop_offered]
+# shares$Share = shares$s_inside*(1-shares$unins_rate)

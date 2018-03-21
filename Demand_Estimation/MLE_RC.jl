@@ -115,29 +115,15 @@ end
 
 
 
-function calc_indCoeffs{T}(p::parDict{T},β::Array{T,1},γ::T)
+function calc_indCoeffs{T}(p::parDict{T},β::Array{T,1},d::T)
     Q = length(β)
     (K,N) = size(p.randCoeffs)
     β_i = Array{T,2}(Q,N)
     γ_i = Array{T,1}(N)
     for n in 1:N
-        γ_i[n] = γ + p.randCoeffs[1,n]
+        γ_i[n] = d + p.randCoeffs[1,n]
         for k in 1:Q
             β_i[k,n] = β[k] + p.randCoeffs[k+1,n]
-        end
-    end
-    return β_i, γ_i
-end
-
-function calc_indCoeffs{T}(randCoeffs::Array{T,2},β::Array{T,1},d::T)
-    Q = length(β)
-    (K,N) = size(randCoeffs)
-    β_i = Array{T,2}(Q,N)
-    γ_i = Array{T,1}(N)
-    for n in 1:N
-        γ_i[n] = d + randCoeffs[1,n]
-        for k in 1:Q
-            β_i[k,n] = β[k] + randCoeffs[k+1,n]
         end
     end
     return β_i, γ_i
@@ -428,7 +414,7 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
     # Contraction...
     rnd = 0
     eps0 = 1
-    tol = 1e-10
+    tol = 1e-14
     individual_values!(d,p)
     while (eps0>tol) & (rnd<500)
         rnd+=1
@@ -557,7 +543,7 @@ function estimate!(d::InsuranceLogit, p0)
     return ret, minf, minx
 end
 
-function gradient_ascent(d,p0;max_step=1e-5,init_step=1e-9,max_itr=2000)
+function gradient_ascent(d,p0;max_step=1e-5,init_step=1e-9,max_itr=2000,grad_tol=1e2)
     ## Initialize Parameter Vector
     p_vec = p0
     # Step Size
@@ -568,14 +554,14 @@ function gradient_ascent(d,p0;max_step=1e-5,init_step=1e-9,max_itr=2000)
     ll(x) = evaluate_iteration!(d,x,update=false)
     # Tracking Variables
     count = 0
-    grad_size = 10
+    grad_size = 1e8
     tol = 1
     f_eval_old = 1.0
     # # Initialize δ
     param_dict = parDict(d,p_vec)
     contraction!(d,param_dict)
     # Maximize by Gradient Ascent
-    while (grad_size>1) & (count<max_itr)
+    while (grad_size>grad_tol) & (count<max_itr)
         count+=1
         # Compute δ with Contraction
         println("Update δ")
@@ -639,7 +625,7 @@ function newton_raphson(d,p0;max_step=1e-5,max_itr=2000)
     ll(x) = evaluate_iteration!(d,x,update=false)
     # Tracking Variables
     count = 0
-    grad_size = 10
+    grad_size = 10000
     tol = 1
     f_eval_old = 1.0
     # # Initialize δ
@@ -647,7 +633,7 @@ function newton_raphson(d,p0;max_step=1e-5,max_itr=2000)
     #cfg = ForwardDiff.GradientConfig(ll, p_vec, ForwardDiff.Chunk{4}())
     #contraction!(d,param_dict)
     # Maximize by Gradient Ascent
-    while (grad_size>1) & (count<max_itr)
+    while (grad_size>1000) & (count<max_itr)
         count+=1
         # Compute δ with Contraction
         println("Update δ")

@@ -13,9 +13,10 @@ function firmshares{T}(d::InsuranceLogit,p::parDict{T})
     # Calculate overall marketshares
     J = length(d.shares)
     shares_pred = Array{T,1}(J)
+    wgts = transpose(weight(d.data))[:,1]
     for j in d.prods
         j_index_all = d.data._productDict[j]
-        shares_pred[j] = sliceMean(d.s_hat,j_index_all)
+        shares_pred[j] =  sliceMean_wgt(p.s_hat,wgts,j_index_all)
     end
     return shares_pred
 end
