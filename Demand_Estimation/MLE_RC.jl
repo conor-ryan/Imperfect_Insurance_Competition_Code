@@ -309,6 +309,7 @@ end
 # Calculate Log Likelihood
 function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
     ll = 0.0
+    N = 0.0
     γ = p.γ
     β = p.β
     α = p.α[1]
@@ -340,9 +341,10 @@ function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
 
         for i in eachindex(idxitr)
             ll+=wgt[i]*S_ij[i]*(log(s_hat[i])-urate[i]*(log(s_insured)-log(1-s_insured)))
+            N+=wgt[i]*S_ij[i]
         end
     end
-    return ll
+    return ll/N
 end
 
 function log_likelihood{T}(d::InsuranceLogit,p::Array{T})
