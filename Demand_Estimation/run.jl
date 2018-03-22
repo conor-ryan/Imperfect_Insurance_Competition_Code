@@ -49,8 +49,8 @@ parStart0 = parDict(m,p0)
 println("Data Loaded")
 
 # Estimate the Model
-#p_est = estimate!(m, p0)
-p_est = gradient_ascent(m,p0,max_step=1e-7,grad_tol=500)
+p_est = estimate!(m, p0)
+#p_est = gradient_ascent(m,p0,max_step=1e-7,grad_tol=500)
 
 run = Dates.today()
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_$run.jld"
