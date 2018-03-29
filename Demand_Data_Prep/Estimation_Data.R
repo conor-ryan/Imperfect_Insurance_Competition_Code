@@ -184,7 +184,7 @@ choices$ageRate[choices$MEMBERS==1] = with(choices[choices$MEMBERS==1,],ageRate+
 choices$ageRate[choices$MEMBERS==2] = with(choices[choices$MEMBERS==2,],ageRate*1.9+.5*ageRate*(SMOKER=="Y"))
 choices$ageRate[choices$MEMBERS==3] = with(choices[choices$MEMBERS==3,],ageRate*2+.5+.5*ageRate*(SMOKER=="Y"))
 choices$ageRate[choices$MEMBERS>3] = with(choices[choices$MEMBERS>3,],ageRate*2+.6*(MEMBERS-2)+.5*ageRate*(SMOKER=="Y"))
-choices$ageRate[choices$MEMBERS>5] = with(choices[choices$MEMBERS>5,],ageRate*2+.5*(MEMBERS-2)+.5*ageRate*(SMOKER=="Y"))
+choices$ageRate[choices$MEMBERS>5] = with(choices[choices$MEMBERS>5,],ageRate*2+.5*3+.5*ageRate*(SMOKER=="Y"))
 
 # Make Premium for Age Rating = 1
 choices$premBase = choices$PREMI27/1.048

@@ -27,6 +27,12 @@ for (i in 1:length(res_list)){
 opt = which(unlist(f_list)==min(unlist(f_list)))
 psi_final = res_list[[opt]]$par[1:4]
 
+## Marginal Cost Function
+costFile = paste("Simulation_Risk_Output/costParameters_",run,".rData",sep="")
+load(costFile)
+phi_final = res$par
+
+
 ## Demand Parameters
 parFile = paste("Estimation_Output/estimationresults_",run,".csv",sep="")
 pars = read.csv(parFile)
@@ -348,12 +354,14 @@ for (m in markets){
   
   deriv = per_derivs[[m]]
   dpvar_list = names(deriv)[grepl("dsdp",names(deriv))]
-  deriv = deriv[,.SD,.SDcol=c("Person","d_ind","Market","Firm","Product","ageRate_avg","premBase","mkt_density","s_pred",
-                              dpvar_list)]
+
+  deriv[,cost:=exp(phi_final[1] + phi_final[2]*GCF + phi_final[3]*MedDeduct + phi_final[4]*MedOOP + phi_final[5]*High + 
+                     phi_final[6]*nu_h + phi_final[7]*Age + phi_final[7]*Family + phi_final[9]*LowIncome + 
+                     phi_final[10]*nu_h*High)]
   dsdp = prod_derivs[[m]]
   prods = sort(unique(deriv$Product))
   
-  prod_dRev = deriv[,lapply(.SD,function(x){sum(x*ageRate_avg*premBase*mkt_density,na.rm=TRUE)}),
+  prod_dRev = deriv[,lapply(.SD,function(x){sum(x*(ageRate_avg*premBase-cost)*mkt_density,na.rm=TRUE)}),
                     by="Product",.SDcol=dpvar_list]
   
   prod_dRev = as.matrix(prod_dRev[,-1])
@@ -369,129 +377,8 @@ for (m in markets){
   
   S_mkt = as.matrix(RA_transfers[.(m),"S_j"])
   S_st = as.matrix(RA_transfers[ST==st,"S_j"])
-  
-  foc = prod_dRev + dsdp%*%T_j + S_mkt*age_j +  t(dTdp)%*%S_st
-  c_j = solve(dsdp)%*%foc
   
   foc_data[Product%in%prods,foc:=prod_dRev + dsdp%*%T_j + S_mkt*age_j +  t(dTdp)%*%S_st]
 }
 
 setkey(foc_data,Product)
-#### Dummy Marginal Cost Estimate ####
-
-
-#### Full Marginal Cost Estimate ####
-phi_start = rep(0,10)
-phi_start[1] = 1
-
-marginalCostEst <- function(phi){
-  for (m in markets){
-    deriv = per_derivs[[m]]
-    #setkey(deriv,Firm)
-    dpvar_list = names(deriv)[grepl("dsdp",names(deriv))]
-    # deriv = deriv[,.SD,.SDcol=c("Person","d_ind","Product","Firm","mkt_density",
-    #                             "MedDeduct","MedOOP","High","GCF",
-    #                             "Age","Family","LowIncome","nu_h",
-    #                             dpvar_list)]
-    
-    deriv[,cost:=exp(phi[1] + phi[2]*GCF + phi[3]*MedDeduct + phi[4]*MedOOP + phi[5]*High + 
-                       phi[6]*nu_h + phi[7]*Age + phi[8]*Family + phi[9]*LowIncome + 
-                       phi[10]*nu_h*High)]
-    prods = deriv$Product
-    prod_dCost = t(as.matrix(deriv[,lapply(.SD,function(x){sum(x*cost*mkt_density,na.rm=TRUE)}),.SDcol=dpvar_list]))
-    foc_data[Product%in%prods,MC:=prod_dCost]
-  }
-  err = foc_data[,sum((foc - MC)^2)]
-  print(err)
-  print(phi)
-  return(err)
-}
-
-marginalCostEst(phi_start)
-res = optim(par=phi_start,fn=marginalCostEst,control=list(maxit=5000))
-
-costFile = paste("Simulation_Risk_Output/costParameters_",run,".rData",sep="")
-save(res,file=costFile)
-load(costFile)
-phi=res$par
-
-
-#### Test ####
-
-full_predict[,cost:=exp(phi[1] + phi[2]*GCF + phi[3]*MedDeduct + phi[4]*MedOOP + phi[5]*High + 
-                   phi[6]*nu_h + phi[7]*Age + phi[8]*Family + phi[9]*LowIncome + 
-                   phi[10]*nu_h*High)]
-
-
-cost_test = full_predict[,list(avgPrem = sum(ageRate_avg*premBase*s_pred*mkt_density)/sum(s_pred*mkt_density),
-                               avgCost = sum(cost*s_pred*mkt_density)/sum(s_pred*mkt_density)),
-             by=c("Product")]
-cost_test = merge(cost_test,RA_transfers[,c("Product","Firm","Market","S_j","T_j")],by="Product")
-cost_test[,post_transfer_rev:=avgPrem + T_j]
-cost_test[,per_profit:=avgPrem -avgCost + T_j]
-
-#### Simulate Prices ####
-simPrices <- function(p,m){
-  ## Create Ownership Matrix
-  st = unique(acs$ST[acs$Market==m])
-  Firms = unique(acs[.(m),c("Firm","Product")])
-  firm_levels = unique(as.character(Firms$Firm))
-  firms = factor(Firms$Firm,levels=firm_levels)
-  if (length(firm_levels)>1){
-    ownMat = model.matrix(1:nrow(ownMat)~-1+firms)
-    ownMat = tcrossprod(ownMat)
-  }else{
-    ownMat = matrix(1,nrow=length(firms),ncol=length(firms))
-  }
-  Firms[,p_est:=p]
-  
-  ownMat_st = unique(acs[ST==st,c("Firm","Product")])
-  firms = factor(ownMat_st$Firm,levels=unique(as.character(ownMat_st$Firm)))
-  ownMat_st = model.matrix(1:nrow(ownMat_st)~-1+firms)
-  ownMat_st = tcrossprod(ownMat_st)
-  
-  deriv = per_derivs[[m]]
-  dpvar_list = names(deriv)[grepl("dsdp",names(deriv))]
-  # deriv = deriv[,.SD,.SDcol=c("Person","d_ind","Market","Firm","Product","ageRate_avg","premBase","mkt_density","s_pred",
-  #                             dpvar_list)]
-  dsdp = prod_derivs[[m]]
-  prods = sort(unique(deriv$Product))
-  
-  
-  deriv[,cost:=exp(phi[1] + phi[2]*GCF + phi[3]*MedDeduct + phi[4]*MedOOP + phi[5]*High + 
-                     phi[6]*nu_h + phi[7]*Age + phi[8]*Family + phi[9]*LowIncome + 
-                     phi[10]*nu_h*High)]
-  deriv = merge(deriv,Firms,by=c("Firm","Product"))
-  
-  prod_dRev = deriv[,lapply(.SD,function(x){sum(x*(ageRate_avg*p_est-cost)*mkt_density,na.rm=TRUE)}),
-                    by="Product",.SDcol=dpvar_list]
-  
-  prod_dRev = as.matrix(prod_dRev[,-1])
-  prod_dRev = colSums(prod_dRev)
-  
-  prod_dCost = deriv[,lapply(.SD,function(x){sum(x*(cost)*mkt_density,na.rm=TRUE)}),
-                    by="Product",.SDcol=dpvar_list]
-  
-  prod_dCost = as.matrix(prod_dCost[,-1])
-  prod_dCost = colSums(prod_dCost)
-  
-  dsdp = as.matrix(dsdp[,-1]) *ownMat
-  age_j = as.matrix(RA_transfers[.(m),"Age_j"])
-  T_j = as.matrix(RA_transfers[.(m),"T_j"])
-  vars = paste("dTdp",prods,sep="_")
-  dTdp = T_derivs[[st]]
-  dTdp = as.matrix(dTdp[,-c(1,2,3)])*ownMat_st
-  dTdp = dTdp[,vars]
-  
-  S_mkt = as.matrix(RA_transfers[.(m),"S_j"])
-  S_st = as.matrix(RA_transfers[ST==st,"S_j"])
-  
-  foc_err = prod_dRev + S_mkt*age_j + dsdp%*%T_j  +  t(dTdp)%*%S_st
-  return(foc_err)
-}
-
-phi = res$par
-m = "AK_1"
-p = foc_data$premBase[foc_data$Market==m]
-simPrices(p,m)
-res = nleqslv(p,simPrices,m=m)

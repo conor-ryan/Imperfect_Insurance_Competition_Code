@@ -30,6 +30,12 @@ acs[Metal=="SILVER",IDF:=1.03]
 acs[Metal=="GOLD",IDF:=1.08]
 acs[Metal=="PLATINUM",IDF:=1.15]
 
+# Set AV Values
+acs[Metal=="BRONZE",AV:=.6]
+acs[Metal=="SILVER",AV:=.7]
+acs[Metal=="GOLD",AV:=.8]
+acs[Metal=="PLATINUM",AV:=.9]
+
 # Set Regulatory Factor
 acs[,Gamma_j:=IDF*GCF]
 
@@ -172,7 +178,7 @@ risk_function_est<- function(psi){
   prodData[,R_j:=R_wgt/enroll]
   
   #firmData = prodData[,list(R_wgt=sum(R_wgt*Gamma_j),Enroll=sum(S_j)),by=c("Firm","ST","marketPop","R_pred")]
-  firmData = prodData[,list(R_f_pred=sum(enroll*R_j*Gamma_j)/sum(enroll)),by=c("Firm","ST","RA_share","R_f")]
+  firmData = prodData[,list(R_f_pred=sum(enroll*AV*R_j*Gamma_j)/sum(enroll)),by=c("Firm","ST","RA_share","R_f")]
   firmData[R_f==1,R_bench:=R_f_pred]
   firmData[,R_bench:=max(R_bench,na.rm=TRUE),by="ST"]
   firmData[,R_f_pred:=R_f_pred/R_bench]

@@ -95,3 +95,6 @@ CSV.write(file2,out2)
 
 grad = similar(p_est)
 @benchmark FiniteDiff.gradient!(grad,exp_ll,p_est,buff)
+
+grad2 = similar(p_est)
+@benchmark ForwardDiff.gradient!(grad2,exp_ll,p_est)

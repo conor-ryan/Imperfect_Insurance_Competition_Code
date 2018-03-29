@@ -44,12 +44,12 @@ setkey(predict_data,Product,Person)
 
 
 # Get Mean Firm Shares
-per_predict = predict_data[,mean(s_pred),by=c("Product","Person")]
+per_predict = predict_data[,list(s_pred_mean=mean(s_pred)),by=c("Product","Person")]
 predict_full = merge(acs,per_predict,by=c("Product","Person"))
 
 # Calculate Rating Factors
-predict_full[,lives:=V1*PERWT]
-predict_full[,ageR_wt:=V1*PERWT*ageRate_avg]
+predict_full[,lives:=s_pred_mean*PERWT]
+predict_full[,ageR_wt:=s_pred_mean*PERWT*ageRate_avg]
 
 pred_prods = predict_full[,lapply(.SD,sum),by=c("Product","Product_Name","Firm","ST","AV","GCF","IDF"),.SDcols=c("lives","ageR_wt")]
 pred_prods[,ARF:=ageR_wt/lives]

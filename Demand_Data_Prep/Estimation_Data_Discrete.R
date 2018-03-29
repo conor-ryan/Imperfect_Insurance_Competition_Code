@@ -202,7 +202,7 @@ choices$ageRate[choices$MEMBERS==1] = with(choices[choices$MEMBERS==1,],ageRate+
 choices$ageRate[choices$MEMBERS==2] = with(choices[choices$MEMBERS==2,],ageRate*1.9+.5*ageRate*(SMOKER=="Y"))
 choices$ageRate[choices$MEMBERS==3] = with(choices[choices$MEMBERS==3,],ageRate*2+.5+.5*ageRate*(SMOKER=="Y"))
 choices$ageRate[choices$MEMBERS>3] = with(choices[choices$MEMBERS>3,],ageRate*2+.6*(MEMBERS-2)+.5*ageRate*(SMOKER=="Y"))
-choices$ageRate[choices$MEMBERS>5] = with(choices[choices$MEMBERS>5,],ageRate*2+.5*(MEMBERS-2)+.5*ageRate*(SMOKER=="Y"))
+choices$ageRate[choices$MEMBERS>5] = with(choices[choices$MEMBERS>5,],ageRate*2+.5*3+.5*ageRate*(SMOKER=="Y"))
 
 # Make Premium for Age Rating = 1
 choices$premBase = choices$PREMI27/1.048
@@ -471,6 +471,7 @@ choices = choices[choices$Product%in%shares$Product,]
 choices$Price = (choices$PremPaid*12-choices$Mandate)/1000
 choices$MedDeduct = choices$MedDeduct/1000
 choices$MedOOP = choices$MedOOP/1000
+choices[,excOOP:= MedOOP - MedDeduct]
 
 choices$Product = as.factor(choices$Product)
 shares$Product_Name = factor(shares$Product,levels=levels(choices$Product))
@@ -503,7 +504,7 @@ setkey(MI,Person,Product)
 setkey(MI_mkt,Product)
 
 
-write.csv(MI[,c("Person","Firm","Market","Product","S_ij","N","Price","MedDeduct","MedOOP","High","Family","Age","LowIncome","unins_rate")],
+write.csv(MI[,c("Person","Firm","Market","Product","S_ij","N","Price","MedDeduct","excOOP","High","Family","Age","LowIncome","unins_rate")],
           "Intermediate_Output/Estimation_Data/estimationData_MI_discrete.csv",row.names=FALSE)
 write.csv(MI_mkt[,c("Product","Share")],
           "Intermediate_Output/Estimation_Data/marketData_MI_discrete.csv",row.names=FALSE)
