@@ -44,9 +44,9 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
         firm=[:Firm],
         market=[:Market],
         product=[:Product],
-        prodchars=[:Price,:MedDeduct,:MedOOP,:High],
+        prodchars=[:Price,:MedDeduct,:ExcOOP,:High],
         choice=[:S_ij],
-        demoRaw=[:Age,:Family,:LowIncome],
+        demoRaw=[:constant,:Age,:Family,:LowIncome],
         wgt=[:N],
         unins=[:unins_rate])
 

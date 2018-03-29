@@ -12,4 +12,4 @@ df_mkt = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competiti
 # end
 df[:Firm] = String.(df[:Firm])
 # No constant
-#df[:constant] = ones(size(df, 1))
+df[:constant] = ones(size(df, 1))

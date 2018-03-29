@@ -40,21 +40,21 @@ end
 
 function parDict{T}(m::InsuranceLogit,x::Array{T})
     # Parameter Lengths from model
-    αlen = 1
+    αlen = 0
     γlen = αlen + m.parLength[:γ]
-    βlen = γlen + m.parLength[:β]*m.parLength[:γ]
+    βlen = γlen + m.parLength[:β]^2 #*m.parLength[:γ]
     σlen = βlen + m.parLength[:σ]
 
     #Distribute Parameters
-    α = x[1:αlen]
+    #α = x[1:αlen]
     γ = x[(αlen+1):γlen]
     β_vec = x[(γlen+1):βlen]
     σ = x[βlen+1:σlen]
 
     # Stack Beta into a matrix
     K = m.parLength[:β]
-    N = m.parLength[:γ]
-    β = Matrix{T}(K,N)
+    #N = m.parLength[:γ]
+    β = Matrix{T}(K,K)
     ind = 0
     for i in 1:N, j in 1:K
         ind+=1
@@ -133,13 +133,13 @@ function individual_values!{T}(d::InsuranceLogit,p::parDict{T})
     # Store Parameters
     γ = p.γ
     β = p.β
-    α = p.α[1]
+    #α = p.α[1]
     δ_long = p.δ
     # Calculate μ_ij, which depends only on parameters
     for app in eachperson(d.data)
         ind = person(app)[1]
         X = permutedims(prodchars(app),(2,1))
-        price = X[:,1]
+        #price = X[:,1]
         Z = demoRaw(app)[:,1]
         β_z = β*Z
         demos = vecdot(γ,Z)
@@ -149,7 +149,8 @@ function individual_values!{T}(d::InsuranceLogit,p::parDict{T})
         (K,N) = size(chars)
         idxitr = d.data._personDict[ind]
         for k = 1:K,n = 1:N
-            u = exp(chars[k,n] + α*price[k] + γ_i[n])
+            #u = exp(chars[k,n] + α*price[k] + γ_i[n])
+            u = exp(chars[k,n] + γ_i[n])
             p.μ_ij[n,idxitr[k]] = u
         end
         # δ = δ_long[idxitr]
@@ -312,7 +313,7 @@ function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
     N = 0.0
     γ = p.γ
     β = p.β
-    α = p.α[1]
+    #α = p.α[1]
     # Calculate μ_ij, which depends only on parameters
     for app in eachperson(d.data)
         ind = person(app)[1]
@@ -321,7 +322,7 @@ function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
         urate = transpose(unins(app))
 
         X = permutedims(prodchars(app),(2,1))
-        price = X[:,1]
+        #price = X[:,1]
         Z = demoRaw(app)[:,1]
         β_z = β*Z
         demos = vecdot(γ,Z)
@@ -332,7 +333,8 @@ function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
         μ_ij = transpose(similar(chars))
         idxitr = d.data._personDict[ind]
         for n = 1:N,k = 1:K
-            μ_ij[n,k] = exp(chars[k,n] + α*price[k] + γ_i[n])
+            #μ_ij[n,k] = exp(chars[k,n] + α*price[k] + γ_i[n])
+            μ_ij[n,k] = exp(chars[k,n] + γ_i[n])
         end
 
         δ = p.δ[idxitr]
