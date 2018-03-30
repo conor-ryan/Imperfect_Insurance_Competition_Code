@@ -24,7 +24,7 @@ end
 
 type parDict{T}
     # Parameters
-    α::Vector{T}
+    #α::Vector{T}
     γ::Vector{T}
     β::Matrix{T}
     σ::Vector{T}
@@ -56,7 +56,7 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
     #N = m.parLength[:γ]
     β = Matrix{T}(K,K)
     ind = 0
-    for i in 1:N, j in 1:K
+    for i in 1:K, j in 1:K
         ind+=1
         β[j,i] = β_vec[ind]
     end
@@ -73,7 +73,7 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
     s_hat = Vector{T}(M)
     unpack_δ!(δ,m)
 
-    return parDict{T}(α,γ,β,σ,randCoeffs,δ,μ_ij,s_hat)
+    return parDict{T}(γ,β,σ,randCoeffs,δ,μ_ij,s_hat)
 end
 
 function calcRC!{T,S}(randCoeffs::Array{S},σ::Array{T},draws::Array{Float64,2})
