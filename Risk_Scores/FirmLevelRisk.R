@@ -44,8 +44,8 @@ setkey(predict_data,Product,Person)
 
 
 # Get Mean Firm Shares
-per_predict = predict_data[,list(s_pred_mean=mean(s_pred)),by=c("Product","Person")]
-predict_full = merge(acs,per_predict,by=c("Product","Person"))
+#per_predict = predict_data[,list(s_pred_mean=mean(s_pred)),by=c("Product","Person")]
+predict_full = acs
 
 # Calculate Rating Factors
 predict_full[,lives:=s_pred_mean*PERWT]
@@ -219,9 +219,10 @@ firm_RA = firm_RA[,c("Firm","ST","RA_share","R_f","R_bench")]
 
 
 firmRiskFile = paste("Simulation_Risk_Output/FirmRiskScores_",run,".rData",sep="")
-save(firm_RA,file=firmRiskFile)
+save(firm_RA[,c("Firm","ST","RA_share","R_f","R_bench")],file=firmRiskFile)
 
-
+otherRiskFile = paste("Simulation_Risk_Output/FirmRiskScores_",run,".rData",sep="")
+save(firm_RA[,c("Firm","ST","RA_share","R_f","R_bench")],file=firmRiskFile)
 
 
 

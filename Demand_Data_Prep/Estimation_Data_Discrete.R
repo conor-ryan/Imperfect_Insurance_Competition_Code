@@ -471,7 +471,7 @@ choices = choices[choices$Product%in%shares$Product,]
 choices$Price = (choices$PremPaid*12-choices$Mandate)/1000
 choices$MedDeduct = choices$MedDeduct/1000
 choices$MedOOP = choices$MedOOP/1000
-choices[,excOOP:= MedOOP - MedDeduct]
+choices[,ExcOOP:= MedOOP - MedDeduct]
 
 choices$Product = as.factor(choices$Product)
 shares$Product_Name = factor(shares$Product,levels=levels(choices$Product))
@@ -483,7 +483,7 @@ choices = choices[with(choices,order(Person,Product)),]
 setkey(choices,Person,Product)
 setkey(shares,Product)
 
-write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price","MedDeduct","MedOOP","High","Family","Age","LowIncome","unins_rate")],
+write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price","MedDeduct","ExcOOP","High","Family","Age","LowIncome","unins_rate")],
           "Intermediate_Output/Estimation_Data/estimationData_discrete.csv",row.names=FALSE)
 write.csv(shares[,c("Product","Share")],
           "Intermediate_Output/Estimation_Data/marketData_discrete.csv",row.names=FALSE)
@@ -504,7 +504,7 @@ setkey(MI,Person,Product)
 setkey(MI_mkt,Product)
 
 
-write.csv(MI[,c("Person","Firm","Market","Product","S_ij","N","Price","MedDeduct","excOOP","High","Family","Age","LowIncome","unins_rate")],
+write.csv(MI[,c("Person","Firm","Market","Product","S_ij","N","Price","MedDeduct","ExcOOP","High","Family","Age","LowIncome","unins_rate")],
           "Intermediate_Output/Estimation_Data/estimationData_MI_discrete.csv",row.names=FALSE)
 write.csv(MI_mkt[,c("Product","Share")],
           "Intermediate_Output/Estimation_Data/marketData_MI_discrete.csv",row.names=FALSE)
