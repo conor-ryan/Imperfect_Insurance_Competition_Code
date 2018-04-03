@@ -301,14 +301,14 @@ choices[is.na(FPL_imp)|FPL_imp>=4,FPL_bucket:="Greater than 4"]
 
 choices[,AGE_bucket:= "26 or Under"]
 choices[AGE>26&AGE<=30,AGE_bucket:= "26-30"]
-choices[AGE>30&AGE<=36,AGE_bucket:= "31-34"]
-choices[AGE>36&AGE<=42,AGE_bucket:= "35-38"]
-choices[AGE>42&AGE<=48,AGE_bucket:= "39-42"]
-choices[AGE>48&AGE<=54,AGE_bucket:= "43-46"]
-choices[AGE>54&AGE<=60,AGE_bucket:= "47-50"]
-choices[AGE>54&AGE<=60,AGE_bucket:= "51-54"]
-choices[AGE>54&AGE<=60,AGE_bucket:= "55-58"]
-choices[AGE>61,AGE_bucket:= "58-64"]
+choices[AGE>31&AGE<=34,AGE_bucket:= "31-34"]
+choices[AGE>35&AGE<=38,AGE_bucket:= "35-38"]
+choices[AGE>39&AGE<=42,AGE_bucket:= "39-42"]
+choices[AGE>43&AGE<=46,AGE_bucket:= "43-46"]
+choices[AGE>47&AGE<=50,AGE_bucket:= "47-50"]
+choices[AGE>51&AGE<=54,AGE_bucket:= "51-54"]
+choices[AGE>55&AGE<=58,AGE_bucket:= "55-58"]
+choices[AGE>58,AGE_bucket:= "58-64"]
 
 choices[,Mem_bucket:= "Single"]
 choices[MEMBERS==2,Mem_bucket:= "Couple"]
@@ -485,6 +485,7 @@ setkey(shares,Product)
 
 write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price","MedDeduct","ExcOOP","High","Family","Age","LowIncome","unins_rate")],
           "Intermediate_Output/Estimation_Data/estimationData_discrete.csv",row.names=FALSE)
+write.csv(choices,"Intermediate_Output/Estimation_Data/descriptiveData_discrete.csv",row.names=FALSE)
 write.csv(shares[,c("Product","Share")],
           "Intermediate_Output/Estimation_Data/marketData_discrete.csv",row.names=FALSE)
 write.csv(shares[,c("Product_Name","Product","Share","s_inside","Firm","Market","STATE")],

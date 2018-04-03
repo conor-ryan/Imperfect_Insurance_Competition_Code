@@ -506,20 +506,20 @@ end
 
 function estimate!(d::InsuranceLogit, p0)
     # Set up the optimization
-    opt = Opt(:LD_MMA, length(p0))
-    #opt = Opt(:LN_NELDERMEAD, length(p0))
+    #opt = Opt(:LD_MMA, length(p0))
+    opt = Opt(:LN_NELDERMEAD, length(p0))
     #opt = Opt(:LD_TNEWTON_PRECOND_RESTART,length(p0))
     #opt = Opt(:LD_TNEWTON,length(p0))
     #opt = Opt(:LN_SBPLX, length(p0))
     xtol_rel!(opt, 1e-4)
-    maxeval!(opt,10000)
+    maxeval!(opt,2100)
     #upper_bounds!(opt, ones(length(p0))/10)
-    initial_step!(opt,5e-2)
+    initial_step!(opt,1e-2)
 
     # Objective Function
-    ll(x) = evaluate_iteration!(d, x,update=false)
-    cfg = ForwardDiff.GradientConfig(ll, p_vec, ForwardDiff.Chunk{6}());
-    #ll(x) = log_likelihood(d,x)
+    # ll(x) = evaluate_iteration!(d, x,update=false)
+    # cfg = ForwardDiff.GradientConfig(ll, p0, ForwardDiff.Chunk{6}());
+    ll(x) = log_likelihood(d,x)
     #δ_cont(x) = contraction!(d,x,update=false)
     δ_cont(x) = contraction!(d,x)
     count = 0
@@ -527,11 +527,11 @@ function estimate!(d::InsuranceLogit, p0)
         count +=1
         println("Iteration $count at $x")
         #Store Gradient
-        println("Step 1")
+        # println("Step 1")
         δ_cont(x)
-        println("Step 2")
-        ForwardDiff.gradient!(grad, ll, x,cfg)
-        println("Gradient: $grad")
+        # println("Step 2")
+        # ForwardDiff.gradient!(grad, ll, x,cfg)
+        # println("Gradient: $grad")
         likelihood = ll(x)
         println("likelihood equals $likelihood at $x on iteration $count")
         return likelihood
