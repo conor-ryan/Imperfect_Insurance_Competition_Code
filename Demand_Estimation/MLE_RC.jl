@@ -310,7 +310,7 @@ end
 # Calculate Log Likelihood
 function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
     ll = 0.0
-    N = 0.0
+    Pop = 0.0
     γ = p.γ
     β = p.β
     #α = p.α[1]
@@ -343,10 +343,10 @@ function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
 
         for i in eachindex(idxitr)
             ll+=wgt[i]*S_ij[i]*(log(s_hat[i])-urate[i]*(log(s_insured)-log(1-s_insured)))
-            N+=wgt[i]*S_ij[i]
+            Pop+=wgt[i]*S_ij[i]
         end
     end
-    return ll/N
+    return ll/Pop
 end
 
 function log_likelihood{T}(d::InsuranceLogit,p::Array{T})
@@ -506,8 +506,8 @@ end
 
 function estimate!(d::InsuranceLogit, p0)
     # Set up the optimization
-    #opt = Opt(:LD_MMA, length(p0))
-    opt = Opt(:LN_NELDERMEAD, length(p0))
+    opt = Opt(:LD_MMA, length(p0))
+    #opt = Opt(:LN_NELDERMEAD, length(p0))
     #opt = Opt(:LD_TNEWTON_PRECOND_RESTART,length(p0))
     #opt = Opt(:LD_TNEWTON,length(p0))
     #opt = Opt(:LN_SBPLX, length(p0))
@@ -517,8 +517,9 @@ function estimate!(d::InsuranceLogit, p0)
     initial_step!(opt,5e-2)
 
     # Objective Function
-    #ll(x) = evaluate_iteration!(d, x,update=false)
-    ll(x) = log_likelihood(d,x)
+    ll(x) = evaluate_iteration!(d, x,update=false)
+    cfg = ForwardDiff.GradientConfig(ll, p_vec, ForwardDiff.Chunk{6}());
+    #ll(x) = log_likelihood(d,x)
     #δ_cont(x) = contraction!(d,x,update=false)
     δ_cont(x) = contraction!(d,x)
     count = 0
@@ -526,11 +527,11 @@ function estimate!(d::InsuranceLogit, p0)
         count +=1
         println("Iteration $count at $x")
         #Store Gradient
-        # println("Step 1")
+        println("Step 1")
         δ_cont(x)
-        # println("Step 2")
-        # ForwardDiff.gradient!(grad, ll, x)
-        # println("Gradient: $grad")
+        println("Step 2")
+        ForwardDiff.gradient!(grad, ll, x,cfg)
+        println("Gradient: $grad")
         likelihood = ll(x)
         println("likelihood equals $likelihood at $x on iteration $count")
         return likelihood
@@ -564,6 +565,7 @@ function gradient_ascent(d,p0;max_step=1e-5,init_step=1e-9,max_itr=2000,grad_tol
     # # Initialize δ
     param_dict = parDict(d,p_vec)
     contraction!(d,param_dict)
+    cfg = ForwardDiff.GradientConfig(ll, p_vec, ForwardDiff.Chunk{6}());
     # Maximize by Gradient Ascent
     while (grad_size>grad_tol) & (count<max_itr)
         count+=1
@@ -585,7 +587,7 @@ function gradient_ascent(d,p0;max_step=1e-5,init_step=1e-9,max_itr=2000,grad_tol
 
         # Compute Gradient, holding δ fixed
         grad_new = similar(p_vec)
-        ForwardDiff.gradient!(grad_new, ll, p_vec)
+        ForwardDiff.gradient!(grad_new, ll, p_vec,cfg)
         println("Gradient is $grad_new")
 
         #Save Iteration

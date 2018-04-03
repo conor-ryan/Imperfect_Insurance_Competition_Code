@@ -28,11 +28,11 @@ m = InsuranceLogit(c,500)
 σstart = [1,1,.5,1,1.5]/1000
 p0 = vcat(αstart,γstart,βstart,σstart)
 #p1 = p0/2
-p0 = [-0.260622, 0.269384, 0.255973, 0.116504,
-0.0797932, 0.114953, -0.0241331, 0.153463,
- 0.229592, -0.0489806, 0.0809528, -0.167998,
- -0.219146, -0.354901, -0.0752608, 0.0787359,
- 0.264838, 0.0651117, 0.352503, 0.129392, 0.123992]
+p0 = [-0.197159, 0.253734, 0.51662, -0.166343, -0.0547134,
+ -0.53111, -0.39775, -0.152077, 0.00889907, 0.0552391, 0.0313981,
+  -0.142324, 0.0656932, 0.281034, 0.216577, 0.105576, -0.0155838,
+   -0.258925, -0.0887626, -1.21513, 0.232384, -0.0155108, 0.159628,
+    0.0843623, 0.0722192]
 #p1 = p0/2
 # unpack!(m,parStart)
 parStart0 = parDict(m,p0)
@@ -58,6 +58,16 @@ unpack_δ!(parStart0.δ,m)
 contraction!(m,parStart0)
 
 
+m1 = InsuranceLogit(c,100)
+par1 = parDict(m1,p0)
+m2 = InsuranceLogit(c,50)
+par2 = parDict(m2,p0)
+
+contraction!(m1,par1)
+contraction!(m2,par2)
+
+log_likelihood(m1,par1)
+log_likelihood(m2,par2)
 
 individual_values!(m,parStart0)
 individual_shares_RC(m,parStart0)

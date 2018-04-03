@@ -119,8 +119,10 @@ nu_large = randCoeffs[full_predict$d_ind,c("nu_h")]
 full_predict[,alpha_draw:=alpha_large]
 full_predict[,nu_h:=alpha_large]
 
-full_predict[,alpha:=alpha+beta[1,1]*Age+beta[1,2]*Family+beta[1,3]*LowIncome + alpha_draw]
+full_predict[,alpha:=(alpha+beta[1,1]*Age+beta[1,2]*Family+beta[1,3]*LowIncome + alpha_draw)*12/1000]
 full_predict[,pref_h:=nu_h/alpha]
+full_predict[,elas:=alpha*(1-s_pred)*Price*1000/12]
+
 
 rm(alpha_large,nu_large)
 
@@ -133,7 +135,83 @@ full_predict[,R:=R_dem+psi_final[4]*nu_h]
 
 ## Market Shares
 full_predict[Metal!="CATASTROPHIC",s_pred_inside:=s_pred/sum(s_pred),by=c("Person","d_ind")]
+full_predict[Metal!="CATASTROPHIC",s_pred_outside:=1-sum(s_pred),by=c("Person","d_ind")]
+
+
 catas_prods = unique(acs$Product[acs$Metal=="CATASTROPHIC"])
+
+# test = full_predict[Metal!="CATASTROPHIC",list(l1 = sum(s_pred*PERWT/n_draws),
+#                           s_i = sum(s_pred_inside*mkt_density*(1-s_pred_outside))/sum(mkt_density*(1-s_pred_outside)),
+#                           s = sum(s_pred*mkt_density),
+#                           l4 = sum(s_pred*PERWT/n_draws),
+#                           d=sum(mkt_density)),
+#                     by=c("Product","S_m","st_insured","ST","mkt_size")]
+# test[,l2:=s_i*S_m*st_insured]
+# test[,l3:=s*mkt_size]
+# test[,st_2:=sum(l1),by="ST"]
+
+#### Calibrate Outside Risk Transfer ####
+otherRiskFile = paste("Simulation_Risk_Output/otherRiskScores_",run,".rData",sep="")
+load(otherRiskFile)
+
+## Get Predicted Market Level Risk
+inside_RA_pred = full_predict[Metal!="CATASTROPHIC",
+                              list(R_tot_pred = sum(s_pred*AV*Gamma_j*R*PERWT/n_draws)/
+                                     sum(s_pred*PERWT/n_draws)),by="ST"]
+## Compare to Predicted Outside Firm Risk
+inside_Est = other_RA[Firm_Ag=="Inside",c("ST","avg_prem","ST_MLR_lives","payments_adj","RA_share","R_tot")]
+outside_Est = other_RA[Firm_Ag=="Other",c("ST","R_tot")]
+names(outside_Est) = c("ST","R_tot_other")
+## Merge firm-level estimates
+inside_RA_pred = merge(inside_RA_pred,inside_Est,by="ST",all.x=TRUE)
+inside_RA_pred = merge(inside_RA_pred,outside_Est,by="ST",all.x=TRUE)
+## Calculate state-level risk, taking outside firm into account
+inside_RA_pred[,R_rel:= R_tot_other/R_tot]
+inside_RA_pred[,ST_R:=RA_share*R_tot_pred + (1-RA_share)*R_rel*R_tot_pred]
+inside_RA_pred[,t_test:=ST_MLR_lives*avg_prem*RA_share*((R_tot_pred/ST_R) - 1)]
+
+inside_RA_pred = inside_RA_pred[,c("ST","ST_R","RA_share","avg_prem","ST_MLR_lives","payments_adj")]
+
+## Adjust RA Market Shares 
+full_predict = merge(full_predict,inside_RA_pred[,c("ST","RA_share")],by="ST",all.x=TRUE)
+full_predict[,S_m:=RA_share*S_m]
+
+
+#### Risk Adjustment Transfers ####
+RA_transfers = full_predict[,list(share_tilde=sum(S_m*s_pred*mkt_density)/sum(mkt_density*(1-s_pred_outside)),
+                                  S_j = sum(s_pred*mkt_density),
+                                  S_0 = sum(mkt_density*(1-s_pred_outside)),
+                                  R_j = sum(s_pred*R*mkt_density)/sum(s_pred*mkt_density),
+                                  Age_j = sum(s_pred*ageRate_avg*mkt_density)/sum(s_pred*mkt_density)),
+                            by=c("Product","Metal","Market","ST","Firm","premBase","Gamma_j","AV","S_m","mkt_size","st_insured")]
+RA_transfers[Metal=="CATASTROPHIC",share_tilde:=0]
+RA_transfers = merge(RA_transfers,inside_RA_pred,by="ST",all.x=TRUE)
+
+
+## Average State Premium
+#RA_transfers[,avg_prem_check:=sum(12*share_tilde*premBase*Age_j,na.rm=TRUE)/sum(share_tilde),by="ST"]
+RA_transfers[,avg_prem:=avg_prem/12]
+#RA_transfers[,ST_R_check:=sum(share_tilde*R_j*AV*Gamma_j,na.rm=TRUE)/sum(share_tilde),by="ST"]
+RA_transfers[,ST_A:=sum(share_tilde*AV*Age_j*Gamma_j,na.rm=TRUE)/sum(share_tilde),by="ST"]
+RA_transfers[,T_norm_j:=(R_j*AV*Gamma_j/ST_R - AV*Age_j*Gamma_j/ST_A)]
+RA_transfers[,R_norm_j:=(R_j*AV*Gamma_j/ST_R)]
+RA_transfers[,A_norm_j:=(Age_j*AV*Gamma_j/ST_A)]
+RA_transfers[,T_j:=T_norm_j*avg_prem]
+RA_transfers[Metal=="CATASTROPHIC",T_j:=0]
+
+# ## Check
+# firmRiskFile = paste("Simulation_Risk_Output/firmRiskScores_",run,".rData",sep="")
+# load(firmRiskFile)
+# firm_pred = RA_transfers[,list(tran_pred=sum(T_j*12*S_j*mkt_size)),by=c("Firm","ST")]
+# firm_RA = merge(firm_RA,firm_pred,by= c("ST","Firm"),all.x=TRUE)
+# firm_RA[,check:=(payments_adj+tran_pred)/payments_adj]
+# 
+# 
+# RA_transfers = RA_transfers[,c("Product","Market","ST","Firm","Gamma_j","AV","premBase",
+#                                "share_tilde","S_j","R_j","Age_j",
+#                                "avg_prem","ST_R","ST_A","R_norm_j","A_norm_j","T_norm_j","T_j")]
+
+
 
 #### Calculate Person Level Demand Derivatives ####
 markets = unique(acs$Market)
@@ -187,26 +265,6 @@ for (m in markets){
   rm(m_data)
 }
 
-#### Risk Adjustment Transfers ####
-RA_transfers = full_predict[,list(share_tilde=sum(S_m*s_pred_inside*mkt_density),
-                                  S_j = sum(s_pred*mkt_density),
-                                  R_j = sum(s_pred*R*mkt_density)/sum(s_pred*mkt_density),
-                                  Age_j = sum(s_pred*ageRate_avg*mkt_density)/sum(s_pred*mkt_density)),
-                            by=c("Product","Metal","Market","ST","Firm","premBase","Gamma_j","AV","S_m","mkt_size","st_insured")]
-RA_transfers[Metal=="CATASTROPHIC",share_tilde:=0]
-## Average State Premium
-RA_transfers[,avg_prem:=sum(share_tilde*premBase*Age_j,na.rm=TRUE),by="ST"]
-RA_transfers[,ST_R:=sum(share_tilde*R_j*Gamma_j,na.rm=TRUE),by="ST"]
-RA_transfers[,ST_A:=sum(share_tilde*AV*Age_j*Gamma_j,na.rm=TRUE),by="ST"]
-RA_transfers[,T_norm_j:=(R_j*Gamma_j/ST_R - AV*Age_j*Gamma_j/ST_A)]
-RA_transfers[,R_norm_j:=(R_j*Gamma_j/ST_R)]
-RA_transfers[,A_norm_j:=(Age_j*AV*Gamma_j/ST_A)]
-RA_transfers[,T_j:=T_norm_j*avg_prem]
-RA_transfers[Metal=="CATASTROPHIC",T_j:=0]
-
-RA_transfers = RA_transfers[,c("Product","Market","ST","Firm","Gamma_j","AV","premBase",
-                               "share_tilde","S_j","R_j","Age_j",
-                               "avg_prem","ST_R","ST_A","R_norm_j","A_norm_j","T_norm_j","T_j")]
 
 #### Transfer Derivatives ####
 setkey(full_predict,Person,d_ind,Product)
@@ -217,7 +275,7 @@ T_derivs = list()
 for (st in states){
   
   # Initialize product data
-  prod_temp = RA_transfers[ST==st,c("Product","share_tilde","T_j")]
+  prod_temp = RA_transfers[ST==st,c("Product","share_tilde","S_j","S_0","T_j")]
   setkey(prod_temp,Product)
   
   
@@ -230,7 +288,8 @@ for (st in states){
     st_data = full_predict[ST==st,c("Person","d_ind","Product","Market","premBase",
                                     "s_pred_inside","mkt_density",
                                     "R","ageRate_avg","ageRate",
-                                    "S_m","mkt_size","st_insured")]
+                                    "S_m","mkt_size","st_insured",
+                                    "s_pred","s_pred_outside")]
     
     dpvar = paste("dsdp",p,sep="_")
     dTvar = paste("dTdp",p,sep="_")
@@ -244,24 +303,28 @@ for (st in states){
     
     # Match
     st_data = merge(st_data,deriv,by=c("Person","d_ind","Product"),all.x=TRUE)
+    st_data = merge(st_data,RA_transfers[ST==st,c("Product","S_j","S_0")],by="Product",all.x=TRUE)
     setkey(st_data,Product,Market)
     
     # Calculate Adjusted State Derivatives
-    st_data[,c(dpvar_0):=max(.SD,na.rm=TRUE),.SDcol=dpvar_0]
+    st_data[,ds_0_dp:=max(.SD,na.rm=TRUE),.SDcol=dpvar_0]
     st_data[Market==m,L_m:=mkt_size]
     st_data[,L_m:=max(L_m,na.rm=TRUE)]
     
-    st_data[,dsMdp:=-(.SD*L_m/st_insured)*(1-S_m),.SDcol=dpvar_0]
-    st_data[Market!=m,dsMdp:=(.SD*L_m/st_insured)*(S_m),.SDcol=dpvar_0]
+    st_data[,dsMdp:=-(ds_0_dp*L_m/st_insured)*(1-S_m)]
+    st_data[Market!=m,dsMdp:=(ds_0_dp*L_m/st_insured)*(S_m)]
     
     
     if (!p%in%catas_prods){
-      st_data[,ds_tilde_dp:=.SD*S_m + dsMdp*s_pred_inside,.SDcol=dpvar_insi]
-      st_data[Market!=m,ds_tilde_dp:=dsMdp*s_pred_inside]
-      
-      
+      #Derivatives will be negative in sum, bc of OTHER firm
+      st_data[,ds_tilde_dp:=dsMdp*S_j/S_0 + S_m*.SD/S_0 + S_m*ds_0_dp*S_j/(S_0^2),
+              .SDcol=dpvar]
+      st_data[Market!=m,ds_tilde_dp:=dsMdp*S_j/S_0]
+      # Wrong
+      # st_data[,ds_tilde_dp2:=.SD*S_m + dsMdp*s_pred_inside,.SDcol=dpvar_insi]
+      # st_data[Market!=m,ds_tilde_dp:=dsMdp*s_pred_inside]
     }else{
-      st_data[,ds_tilde_dp:=dsMdp*s_pred_inside]
+      st_data[,ds_tilde_dp:=dsMdp*S_j/S_0]
     }
     st_data[Market!=m,c(dpvar):=0]
     
@@ -270,27 +333,33 @@ for (st in states){
     # Risk and Average Age Derivatives
     st_data[,dR_ij:=(.SD*R) ,.SDcol=dpvar]
     st_data[,dA_ij:=(.SD*ageRate_avg) ,.SDcol=dpvar]
-    
-    # Average Price Derivative
-    st_data[,dP_s:=(ds_tilde_dp*ageRate_avg*premBase)]
-    st_data[Product==p,dP_s:=dP_s + s_pred_inside*S_m*ageRate_avg]
-    st_data[,dP_s:=sum(dP_s*mkt_density,na.rm=TRUE)]
-    
+  
     # Aggregate to Product Level Data
     prod_T_deriv = st_data[,list(dR_j=sum(dR_ij*mkt_density),
                                  dA_j=sum(dA_ij*mkt_density),
                                  dsdp = sum(.SD*mkt_density),
                                  ds_tilde_dp = sum(ds_tilde_dp*mkt_density)),
-                           by=c("Product","dP_s"),.SDcol=dpvar]
+                           by=c("Product"),.SDcol=dpvar]
+    
     # Merge with product level RA info
     prod_T_deriv = merge(prod_T_deriv,RA_transfers,by="Product",all.x=TRUE)
     
-    # Transfer Index Derivative
-    prod_T_deriv[,dR_j:=dR_j/S_j - R_j*dsdp/S_j]
-    prod_T_deriv[,dA_j:=dA_j/S_j - Age_j*dsdp/S_j]
+    #prod_T_deriv[,elas:=dsdp*Age_j*premBase/S_j]
     
-    prod_T_deriv[,dR_norm_j:=(dR_j*Gamma_j/ST_R - 
-                                R_norm_j*sum(Gamma_j*(ds_tilde_dp*R_j + share_tilde*dR_j),na.rm=TRUE)/ST_R)]
+    # Finish R and A derivatives 
+    prod_T_deriv[,dR_j:=dR_j/S_j - dsdp*R_j/S_j]
+    prod_T_deriv[,dA_j:=dA_j/S_j - dsdp*Age_j/S_j]
+    
+    # Average Price Derivative
+    prod_T_deriv[,dP_s:=(ds_tilde_dp*Age_j*premBase + share_tilde*dA_j*premBase)]
+    prod_T_deriv[Product==p,dP_s:=dP_s + share_tilde*Age_j]
+    prod_T_deriv[,dP_s:=sum(dP_s,na.rm=TRUE)]
+    
+    
+    #Transfer Derivatives
+    prod_T_deriv[,dR_norm_j:=(dR_j*AV*Gamma_j/ST_R - 
+                                R_norm_j*sum(Gamma_j*AV*(ds_tilde_dp*R_j + share_tilde*dR_j),na.rm=TRUE)/ST_R)]
+
     prod_T_deriv[,dA_norm_j:=(dA_j*AV*Gamma_j/ST_A - 
                                 A_norm_j*sum(Gamma_j*AV*(ds_tilde_dp*Age_j + share_tilde*dA_j),na.rm=TRUE)/ST_A)]
     
@@ -300,8 +369,9 @@ for (st in states){
     prod_T_deriv[,c(dTvar):=dT_norm_j*avg_prem+T_norm_j*dP_s]
     prod_T_deriv[Product%in%catas_prods,c(dTvar):=0]
     prod_temp = merge(prod_temp,prod_T_deriv[,.SD,.SDcol=c("Product",dTvar)],by="Product",all=TRUE)
-    err = prod_T_deriv[,sum(share_tilde*.SD + ds_tilde_dp*T_j,na.rm=TRUE),.SDcol=dTvar]
-    print(err)
+    #Error won't be 0 because of outside RA firm
+    # err = prod_T_deriv[,sum(share_tilde*.SD + ds_tilde_dp*T_j,na.rm=TRUE),.SDcol=dTvar]
+    # print(err)
     rm(prod_T_deriv,st_data,deriv)
   }
   T_derivs[[st]] = prod_temp
@@ -325,7 +395,7 @@ markets = unique(acs$Market)
 setkey(full_predict,Market,Person,d_ind,Product)
 setkey(RA_transfers,Market,Product)
 
-foc_data = RA_transfers[,c("Product","Firm","Market","premBase","T_j","S_j")]
+foc_data = RA_transfers[,c("Product","Firm","ST","Market","premBase","T_j","S_j")]
 for (m in markets){
   print(m)
   st = unique(acs$ST[acs$Market==m])
@@ -353,7 +423,7 @@ for (m in markets){
   dsdp = prod_derivs[[m]]
   prods = sort(unique(deriv$Product))
   
-  prod_dRev = deriv[,lapply(.SD,function(x){sum(x*ageRate_avg*premBase*mkt_density,na.rm=TRUE)}),
+  prod_dRev = deriv[,lapply(.SD,function(x){sum(x*(ageRate_avg*premBase)*mkt_density,na.rm=TRUE)}),
                     by="Product",.SDcol=dpvar_list]
   
   prod_dRev = as.matrix(prod_dRev[,-1])
@@ -364,7 +434,7 @@ for (m in markets){
   T_j = as.matrix(RA_transfers[.(m),"T_j"])
   vars = paste("dTdp",prods,sep="_")
   dTdp = T_derivs[[st]]
-  dTdp = as.matrix(dTdp[,-c(1,2,3)])*ownMat_st
+  dTdp = as.matrix(dTdp[,-c(1:5)])*ownMat_st
   dTdp = dTdp[,vars]
   
   S_mkt = as.matrix(RA_transfers[.(m),"S_j"])
@@ -373,7 +443,7 @@ for (m in markets){
   foc = prod_dRev + dsdp%*%T_j + S_mkt*age_j +  t(dTdp)%*%S_st
   c_j = solve(dsdp)%*%foc
   
-  foc_data[Product%in%prods,foc:=prod_dRev + dsdp%*%T_j + S_mkt*age_j +  t(dTdp)%*%S_st]
+  foc_data[Product%in%prods,foc:=prod_dRev + S_mkt*age_j]# dsdp%*%T_j +  t(dTdp)%*%S_st]
 }
 
 setkey(foc_data,Product)
@@ -381,6 +451,8 @@ setkey(foc_data,Product)
 
 
 #### Full Marginal Cost Estimate ####
+s_length = length(unique(foc_data$ST))
+f_length = length(unique(foc_data$Firm))
 phi_start = rep(0,10)
 phi_start[1] = 1
 

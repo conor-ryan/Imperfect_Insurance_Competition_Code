@@ -34,8 +34,7 @@ acs[Metal=="SILVER",IDF:=1.03]
 acs[Metal=="GOLD",IDF:=1.08]
 acs[Metal=="PLATINUM",IDF:=1.15]
 
-# Remove Catastrophic Plans for now. 
-acs = acs[Metal!="CATASTROPHIC",]
+
 
 #### Predict Plan Average Allowable Rating Factors
 setkey(acs,Product,Person)
@@ -45,7 +44,8 @@ setkey(predict_data,Product,Person)
 
 # Get Mean Firm Shares
 #per_predict = predict_data[,list(s_pred_mean=mean(s_pred)),by=c("Product","Person")]
-predict_full = acs
+# Remove Catastrophic Plans for now. 
+predict_full = acs[Metal!="CATASTROPHIC",]
 
 # Calculate Rating Factors
 predict_full[,lives:=s_pred_mean*PERWT]
@@ -211,24 +211,31 @@ firm_RA[,R_f:=R_pred_wgt/RA_share]
 # firm_RA[,R_avg:=sum(R_pred_wgt),by="ST"]
 # firm_RA[,R_f:=R_f/R_avg]
 
-firm_RA = firm_RA[Firm!="OTHER",]
-firm_RA[,R_bench:=max(R_f),by="ST"]
+#firm_RA = firm_RA[Firm!="OTHER",]
+firm_RA[Firm!="OTHER",R_bench:=max(R_f),by="ST"]
+firm_RA[,R_bench:=max(R_bench,na.rm=TRUE),by="ST"]
 firm_RA[,R_f:=R_f/R_bench]
+firm_RA[,R_pred_wgt:=R_f*RA_share]
 
-firm_RA = firm_RA[,c("Firm","ST","RA_share","R_f","R_bench")]
 
-
+#### Other Calibrate Data Set ####
+firm_RA[,Firm_Ag:="Inside"]
+firm_RA[Firm=="OTHER",Firm_Ag:="Other"]
+other_RA = firm_RA[,list(payments_adj=sum(payments_adj),
+                         RA_share = sum(RA_share),
+                         R_tot = sum(RA_share*R_f)/sum(RA_share),
+                         A_tot = sum(RA_share*A_f)/sum(RA_share)),
+                   by=c("Firm_Ag","ST","avg_prem","ST_MLR_lives")]
+#### Save Files ####
+firm_RA = firm_RA[Firm!="OTHER",c("Firm","ST","RA_share","R_f","R_bench","payments_adj")]
 firmRiskFile = paste("Simulation_Risk_Output/FirmRiskScores_",run,".rData",sep="")
-save(firm_RA[,c("Firm","ST","RA_share","R_f","R_bench")],file=firmRiskFile)
+save(firm_RA,file=firmRiskFile)
 
-otherRiskFile = paste("Simulation_Risk_Output/FirmRiskScores_",run,".rData",sep="")
-save(firm_RA[,c("Firm","ST","RA_share","R_f","R_bench")],file=firmRiskFile)
+otherRiskFile = paste("Simulation_Risk_Output/otherRiskScores_",run,".rData",sep="")
+save(other_RA,file=otherRiskFile)
 
 
 
-# firm_RA[,R_avg2:=sum(R_pred*RA_share)/sum(RA_share),by="ST"]
-# 
-# 
 # firm_RA[,A_sum:=sum(A_wtd),by="ST"]
 # firm_RA[,R_sum:=sum(R_pred_wgt),by="ST"]
 # # firm_RA[,R_rel:=R_pred/R_sum]
@@ -239,3 +246,7 @@ save(firm_RA[,c("Firm","ST","RA_share","R_f","R_bench")],file=firmRiskFile)
 # 
 # firm_RA[,error:=payments_adj-transfer_pred]
 # plot(firm_RA$R_f[firm_RA$R_f>0],firm_RA$pp_payments_adj[firm_RA$R_f>0])
+# 
+# 
+# other_RA[,R_sum:=sum(RA_share*R_tot),by="ST"]
+# other_RA[,t_pred:=-ST_MLR_lives*avg_prem*RA_share*(R_tot/R_sum -1)]
