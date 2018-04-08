@@ -12,15 +12,11 @@ struct ChoiceData <: ModelData
     data::Matrix{Float64}
     # Matrix of the product level data (pre-sorted)
     pdata
-    # Identifiers
-    person      # Application ID
-    product     # Firm offerings in each market
-    firm       # Firm ID
-    market      # Rating Area - Metal Level
     # Index of the data column names
     index
     # Names of rows (columns of input data)
     prodchars   # Product Characteristics
+    prodchars_0   # Product Characteristics
     choice      # Binary choice indicator
     demoRaw    # Household Demographics - raw
     wgt     # Number of People in each type
@@ -28,6 +24,7 @@ struct ChoiceData <: ModelData
     # Precomputed Indices
     _person::Array{Int,1}
     _prodchars::Array{Int,1}
+    _prodchars_0::Array{Int,1}
     _choice::Array{Int,1}
     _demoRaw::Array{Int,1}
     _wgt::Array{Int,1}
@@ -41,12 +38,11 @@ end
 
 function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
         person=[:Person],
-        firm=[:Firm],
-        market=[:Market],
         product=[:Product],
         prodchars=[:Price,:MedDeduct,:ExcOOP,:High],
+        prodchars_0=[:Price,:MedDeductDiff,:ExcOOPDiff,:HighDiff],
         choice=[:S_ij],
-        demoRaw=[:constant,:Age,:Family,:LowIncome],
+        demoRaw=[:Age,:Family,:LowIncome],
         wgt=[:N],
         unins=[:unins_rate])
 
@@ -55,10 +51,9 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
 
     # Convert everything to an array once for performance
     i = hcat(Array{Float64}(data_choice[person]))
-    f = hcat(Array(data_choice[firm]))
-    m = hcat(Array(data_choice[market]))
     j = hcat(Array(data_choice[product]))
     X = hcat(Array{Float64}(data_choice[prodchars]))
+    X_0 = hcat(Array{Float64}(data_choice[prodchars_0]))
     y = hcat(Array{Float64}(data_choice[choice]))
     Z = hcat(Array{Float64}(data_choice[demoRaw]))
     w = hcat(Array{Float64}(data_choice[wgt]))
@@ -69,8 +64,8 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
 
     # Create a data matrix, only including person id
     k = 0
-    for (d, var) in zip([i,X, y, Z, w, s0], [person,prodchars,
-        choice, demoRaw,wgt,unins])
+    for (d, var) in zip([i,X,X_0, y, Z, w, s0], [person,prodchars,
+        prodchars_0,choice, demoRaw,wgt,unins])
         for l=1:size(d,2)
             k+=1
             dmat = hcat(dmat, d[:,l])
@@ -86,6 +81,7 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
     # Precompute the row indices
     _person = getindex.(index,person)
     _prodchars = getindex.(index, prodchars)
+    _prodchars_0 = getindex.(index, prodchars_0)
     _choice = getindex.(index, choice)
     _demoRaw = getindex.(index, demoRaw)
     _wgt = getindex.(index, wgt)
@@ -111,9 +107,9 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
     end
 
     # Make the data object
-    m = ChoiceData(dmat,data_market, i, j, f, m, index, prodchars, choice, demoRaw,
-            wgt, unins, _person, _prodchars, _choice, _demoRaw,
-            _wgt, _unins,uniqids,_personDict,_productDict)
+    m = ChoiceData(dmat,data_market, index, prodchars,prodchars_0,
+            choice, demoRaw,wgt, unins, _person, _prodchars,_prodchars_0,
+            _choice, _demoRaw, _wgt, _unins,uniqids,_personDict,_productDict)
     return m
 end
 
@@ -129,6 +125,7 @@ getindex(m::ChoiceData, idx::Symbols, cols) = m.data[getindex.(m.index, idx),col
 # Define other retrieval methods on ChoiceData
 person(m::ChoiceData)      = m[m._person]
 prodchars(m::ChoiceData)   = m[m._prodchars]
+prodchars0(m::ChoiceData)   = m[m._prodchars_0]
 choice(m::ChoiceData)      = m[m._choice]
 demoRaw(m::ChoiceData)     = m[m._demoRaw]
 weight(m::ChoiceData)      = m[m._wgt]
@@ -142,17 +139,14 @@ unins(m::ChoiceData)       = m[m._unins]
 function subset{T<:ModelData}(d::T, idx)
     data = d.data[:,idx]
 #    people = data[d._person,:]
-    people = d.person
-    products = d.product
 
     # Don't subset any other fields for now...
-    return T(data,d.pdata, people,products,
-    d.firm,    # Firm ID
-    d.market,      # Rating Area - Metal Level
+    return T(data,d.pdata,
     # Index of the column names
     d.index,
     # Names of rows (columns of input data)
     d.prodchars,   # Product Characteristics
+    d.prodchars_0,   # Product Characteristics
     d.choice,      # Binary choice indicator
     d.demoRaw,    # Household Demographics - raw
     d.wgt,     # Demographic Fixed Effects
@@ -160,6 +154,7 @@ function subset{T<:ModelData}(d::T, idx)
     # Precomputed Indices
     d._person,
     d._prodchars,
+    d._prodchars_0,
     d._choice,
     d._demoRaw,
     d._wgt,

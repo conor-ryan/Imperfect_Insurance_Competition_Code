@@ -26,6 +26,7 @@ type parDict{T}
     # Parameters
     #α::Vector{T}
     γ::Vector{T}
+    β_0::Vector{T}
     β::Matrix{T}
     σ::Vector{T}
     #Random Coefficients stored (function of σ and draws)
@@ -42,26 +43,29 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
     # Parameter Lengths from model
     αlen = 0
     γlen = αlen + m.parLength[:γ]
-    βlen = γlen + m.parLength[:β]^2 #*m.parLength[:γ]
-    σlen = βlen + m.parLength[:σ]
+    β0len = γlen + m.parLength[:β]
+    βlen = β0len + m.parLength[:β]*m.parLength[:γ]
+    σlen = βlen + (m.parLength[:σ] -1) # No σ value for price
 
     #Distribute Parameters
     #α = x[1:αlen]
     γ = x[(αlen+1):γlen]
-    β_vec = x[(γlen+1):βlen]
+    β_0 = x[(γlen+1):β0len]
+    β_vec = x[(β0len+1):βlen]
     σ = x[βlen+1:σlen]
 
     # Stack Beta into a matrix
     K = m.parLength[:β]
-    #N = m.parLength[:γ]
-    β = Matrix{T}(K,K)
+    N = m.parLength[:γ]
+    β = Matrix{T}(K,N)
     ind = 0
-    for i in 1:K, j in 1:K
+    for i in 1:N, j in 1:K
         ind+=1
         β[j,i] = β_vec[ind]
     end
 
     #Calculate Random Coefficients matrix
+    #Includes RC on Price, set to 0 atm
     (R,S) = size(m.draws)
     randCoeffs = Array{T,2}(m.parLength[:σ],S)
     calcRC!(randCoeffs,σ,m.draws)
@@ -73,14 +77,15 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
     s_hat = Vector{T}(M)
     unpack_δ!(δ,m)
 
-    return parDict{T}(γ,β,σ,randCoeffs,δ,μ_ij,s_hat)
+    return parDict{T}(γ,β_0,β,σ,randCoeffs,δ,μ_ij,s_hat)
 end
 
 function calcRC!{T,S}(randCoeffs::Array{S},σ::Array{T},draws::Array{Float64,2})
     (K, N) = size(randCoeffs)
-    for k in 1:K,n in 1:N
-        l = min(k,3)
-        randCoeffs[k,n] = draws[l,n]*σ[k]
+    randCoeffs[1,:] = draws[1,:].*σ[1]
+    randCoeffs[2,:] = 0
+    for k in 3:K,n in 1:N
+        randCoeffs[k,n] = draws[2,n]*σ[k-1]
     end
     return Void
 end
@@ -92,13 +97,13 @@ function InsuranceLogit(data::ChoiceData,haltonDim::Int)
     # Get Parameter Lengths
     γlen = size(demoRaw(data),1)
     βlen = size(prodchars(data),1)
-    σlen = βlen+1
+    σlen = βlen + 1
 
     parLength = Dict(:γ=>γlen,:β=>βlen,:σ=>σlen)
 
     # Initialize Halton Draws
     # These are the same across all individuals
-    draws = permutedims(MVHaltonNormal(haltonDim,3),(2,1))
+    draws = permutedims(MVHaltonNormal(haltonDim,2),(2,1))
 
     # Initialize Empty value prediction objects
     n, k = size(c.data)
@@ -132,25 +137,27 @@ end
 function individual_values!{T}(d::InsuranceLogit,p::parDict{T})
     # Store Parameters
     γ = p.γ
+    β_0= p.β_0
     β = p.β
-    #α = p.α[1]
     δ_long = p.δ
     # Calculate μ_ij, which depends only on parameters
     for app in eachperson(d.data)
         ind = person(app)[1]
         X = permutedims(prodchars(app),(2,1))
-        #price = X[:,1]
+        X_0 = permutedims(prodchars0(app),(2,1))
         Z = demoRaw(app)[:,1]
         β_z = β*Z
         demos = vecdot(γ,Z)
         β_i, γ_i = calc_indCoeffs(p,β_z,demos)
+
         chars = X*β_i
+        chars_0 = X_0*β_0
 
         (K,N) = size(chars)
         idxitr = d.data._personDict[ind]
         for k = 1:K,n = 1:N
             #u = exp(chars[k,n] + α*price[k] + γ_i[n])
-            u = exp(chars[k,n] + γ_i[n])
+            u = exp(chars[k,n] + chars_0[k] + γ_i[n])
             p.μ_ij[n,idxitr[k]] = u
         end
         # δ = δ_long[idxitr]
@@ -512,6 +519,8 @@ function estimate!(d::InsuranceLogit, p0)
     #opt = Opt(:LD_TNEWTON,length(p0))
     #opt = Opt(:LN_SBPLX, length(p0))
     xtol_rel!(opt, 1e-4)
+    xtol_abs!(opt, 1e-8)
+    ftol_rel!(opt, 1e-8)
     maxeval!(opt,2100)
     #upper_bounds!(opt, ones(length(p0))/10)
     initial_step!(opt,1e-2)

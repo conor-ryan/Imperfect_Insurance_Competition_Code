@@ -279,6 +279,22 @@ choices[,Y:= sum(Y),by=c("APP_RECORD_NUM","Firm","METAL")]
 # Set hix to be TRUE for all Silver, if for any
 choices[,hix:= any(hix),by=c("APP_RECORD_NUM","Firm","METAL")]
 
+## Create Character Difference Variables 
+choices$High = 0 
+choices$High[with(choices,METAL%in%c("GOLD","PLATINUM")|CSR%in%c("94","87"))] = 1
+
+choices[CSR=="",MedDeductStandard:=MedDeduct,by=c("STATE","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+choices[,MedDeductStandard:=max(MedDeductStandard,na.rm=TRUE),by=c("STATE","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+choices[CSR=="",MedOOPStandard:=MedOOP,by=c("STATE","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+choices[,MedOOPStandard:=max(MedOOPStandard,na.rm=TRUE),by=c("STATE","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+choices[CSR=="",HighStandard:=High,by=c("STATE","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+choices[,HighStandard:=max(HighStandard,na.rm=TRUE),by=c("STATE","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+
+choices[,MedDeductDiff:=MedDeduct - MedDeductStandard]
+choices[,MedOOPDiff:=MedOOP - MedOOPStandard]
+choices[,HighDiff:=High - HighStandard]
+
+## Set Income Specific Choice Sets
 choices$CSR_subs = ""
 choices$CSR_subs[with(choices,METAL=="SILVER"&hix&FPL_imp>=2 & FPL_imp<2.5)] = "73"
 choices$CSR_subs[with(choices,METAL=="SILVER"&hix&FPL_imp>=1.5 & FPL_imp<2)] = "87"
@@ -325,7 +341,7 @@ choices = choices[,list(AGE = mean(AGE),
                         N = sum(MEMBERS),
                         subsidy_mean= mean(subsidy)),
                   by=c("STATE","AREA","FPL_bucket","AGE_bucket","Mem_bucket","FAMILY_OR_INDIVIDUAL","Firm","METAL","hix","CSR",
-                       "MedDeduct","MedOOP","benchBase","premBase")]
+                       "MedDeduct","MedOOP","High","MedDeductDiff","MedOOPDiff","HighDiff","benchBase","premBase")]
 
 choices[,S_ij:= Y/N]
 
@@ -376,7 +392,8 @@ choices = merge(choices,unins,by.x=c("STATE","inc_cat","AGE_cat","mem_cat"),
 
 choices = choices[,c("STATE","AREA","FPL_bucket","AGE_bucket","Mem_bucket",
                      "FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","Firm","METAL","hix","CSR",
-                     "MedDeduct","MedOOP","ageRate","FPL_imp","Benchmark","HHcont","subsidy","Quote",
+                     "MedDeduct","MedOOP","High","MedDeductDiff","MedOOPDiff","HighDiff",
+                     "ageRate","FPL_imp","Benchmark","HHcont","subsidy","Quote",
                      "PremPaid","S_ij","N","Income","Mandate","unins_rate")]
 
 
@@ -409,9 +426,6 @@ choices$Age[choices$AGE>=39] = 1
 
 choices$LowIncome = 1
 choices$LowIncome[with(choices,is.na(FPL_imp)|FPL_imp>4)] = 0
-
-choices$High = 0 
-choices$High[with(choices,METAL%in%c("GOLD","PLATINUM")|CSR%in%c("94","87"))] = 1
 
 
 #### Summary Stats for Tables ####
@@ -472,6 +486,7 @@ choices$Price = (choices$PremPaid*12-choices$Mandate)/1000
 choices$MedDeduct = choices$MedDeduct/1000
 choices$MedOOP = choices$MedOOP/1000
 choices[,ExcOOP:= MedOOP - MedDeduct]
+choices[,ExcOOPDiff:= MedOOPDiff - MedDeductDiff]
 
 choices$Product = as.factor(choices$Product)
 shares$Product_Name = factor(shares$Product,levels=levels(choices$Product))
@@ -483,7 +498,7 @@ choices = choices[with(choices,order(Person,Product)),]
 setkey(choices,Person,Product)
 setkey(shares,Product)
 
-write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price","MedDeduct","ExcOOP","High","Family","Age","LowIncome","unins_rate")],
+write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price","MedDeduct","ExcOOP","High","MedDeductDiff","ExcOOPDiff","HighDiff","Family","Age","LowIncome","unins_rate")],
           "Intermediate_Output/Estimation_Data/estimationData_discrete.csv",row.names=FALSE)
 write.csv(choices,"Intermediate_Output/Estimation_Data/descriptiveData_discrete.csv",row.names=FALSE)
 write.csv(shares[,c("Product","Share")],
