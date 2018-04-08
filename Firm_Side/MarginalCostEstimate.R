@@ -117,9 +117,11 @@ alpha_large = randCoeffs[full_predict$d_ind,c("alpha_draw")]
 nu_large = randCoeffs[full_predict$d_ind,c("nu_h")]
 
 full_predict[,alpha_draw:=alpha_large]
-full_predict[,nu_h:=alpha_large]
+full_predict[,nu_h:=nu_large]
 
 full_predict[,alpha:=(alpha+beta[1,1]*Age+beta[1,2]*Family+beta[1,3]*LowIncome + alpha_draw)*12/1000]
+# Test Larger Elasticty
+full_predict[,alpha:=alpha*4]
 full_predict[,pref_h:=nu_h/alpha]
 full_predict[,elas:=alpha*(1-s_pred)*Price*1000/12]
 
@@ -198,6 +200,7 @@ RA_transfers[,R_norm_j:=(R_j*AV*Gamma_j/ST_R)]
 RA_transfers[,A_norm_j:=(Age_j*AV*Gamma_j/ST_A)]
 RA_transfers[,T_j:=T_norm_j*avg_prem]
 RA_transfers[Metal=="CATASTROPHIC",T_j:=0]
+RA_transfers[,Revenue:=Age_j*premBase+T_j]
 
 # ## Check
 # firmRiskFile = paste("Simulation_Risk_Output/firmRiskScores_",run,".rData",sep="")
@@ -231,7 +234,8 @@ for (m in markets){
   prods = sort(unique(m_data$Product))
   for (p in prods){
     dpvar = paste("dsdp",p,sep="_")
-    dpvar_insi = paste("ds_insi_dp",p,sep="_")
+    #dpvar_insi = paste("ds_insi_dp",p,sep="_")
+    evar = paste("elas",p,sep="_")
     dpvar_0 = paste("ds_0_dp",p,sep="_")
     prodtemp = m_data[Product==p,c("Person","d_ind","s_pred","s_pred_inside")]
     names(prodtemp) = c("Person","d_ind","s_prod","s_prod_inside")
@@ -244,14 +248,15 @@ for (m in markets){
     # Demand Derivatives
     m_data[,c(dpvar):=-alpha*ageRate*s_pred*s_prod]
     m_data[Product==p,c(dpvar):=alpha*ageRate*s_pred*(1-s_pred)]
+  
     
     # State Mkt Share Derivs - Outside Good
     m_data[!Product%in%catas_prods,c(dpvar_0):=-sum(.SD*mkt_density,na.rm=TRUE),.SDcol=dpvar]
     #m_data[,dsMdp:=-(.SD*L_m/st_insured)*(1-S_m),.SDcol=dpvar_0]
     
     # Inside Market Share Derivatives 
-    m_data[,c(dpvar_insi):=-alpha*ageRate*s_pred_inside*s_prod_inside]
-    m_data[Product==p,c(dpvar_insi):=alpha*ageRate*s_pred_inside*(1-s_pred_inside)]
+    # m_data[,c(dpvar_insi):=-alpha*ageRate*s_pred_inside*s_prod_inside]
+    # m_data[Product==p,c(dpvar_insi):=alpha*ageRate*s_pred_inside*(1-s_pred_inside)]
     # m_data[,c(dpvar_tilde):=dsdp_inside*S_m + dsMdp*s_pred_inside]
     # m_data[Market!=m,c(dpvar_tilde):=dsMdp*s_pred_inside]
     
@@ -259,8 +264,23 @@ for (m in markets){
     rm(prodtemp)
     
   }
-  varlist = names(m_data)[grepl("dsdp",names(m_data))]
-  prod_derivs[[m]] = m_data[,lapply(.SD,function(x){sum(x*mkt_density)}),by="Product",.SDcol=varlist]
+  varlist = c("s_pred",names(m_data)[grepl("dsdp",names(m_data))])
+  p_data = m_data[,lapply(.SD,function(x){sum(x*mkt_density)}),by=c("Product","premBase"),.SDcol=varlist]
+  ### Calculate Elasticities
+  dsdp = as.matrix(p_data[,-c(1,2,3)])
+  p_j = t(matrix(p_data$premBase,nrow=length(prods),ncol=length(prods)))
+  s_j = matrix(p_data$s_pred,nrow=length(prods),ncol=length(prods))
+  elas = dsdp*p_j/s_j
+  
+  ### Calculate Diversion 
+  dsdp_own = matrix(diag(dsdp),nrow=length(prods),ncol=length(prods))
+  div = -dsdp/dsdp_own
+  
+  o_share = matrix(1-p_data$s_pred,nrow=length(prods),ncol=length(prods))
+  div_share = t(s_j)/o_share
+  diag(div_share) = -1
+  
+  prod_derivs[[m]] = p_data[,-c(2,3)]
   per_derivs[[m]] = m_data
   rm(m_data)
 }
@@ -293,13 +313,13 @@ for (st in states){
     
     dpvar = paste("dsdp",p,sep="_")
     dTvar = paste("dTdp",p,sep="_")
-    dpvar_insi = paste("ds_insi_dp",p,sep="_")
+    #dpvar_insi = paste("ds_insi_dp",p,sep="_")
     dpvar_0 = paste("ds_0_dp",p,sep="_")
     
     
     # Market Derivatives
     deriv = per_derivs[[m]]
-    deriv = deriv[,.SD,.SDcol=c("Person","d_ind","Product",dpvar,dpvar_0,dpvar_insi)]
+    deriv = deriv[,.SD,.SDcol=c("Person","d_ind","Product",dpvar,dpvar_0)]
     
     # Match
     st_data = merge(st_data,deriv,by=c("Person","d_ind","Product"),all.x=TRUE)
@@ -333,6 +353,7 @@ for (st in states){
     # Risk and Average Age Derivatives
     st_data[,dR_ij:=(.SD*R) ,.SDcol=dpvar]
     st_data[,dA_ij:=(.SD*ageRate_avg) ,.SDcol=dpvar]
+    st_data[,elas:=.SD/s_pred*premBase,.SDcol=dpvar]
   
     # Aggregate to Product Level Data
     prod_T_deriv = st_data[,list(dR_j=sum(dR_ij*mkt_density),
@@ -390,10 +411,11 @@ for (m in names(per_derivs)){
 }
 
 #### Prepare First Order Conditions ####
-markets = unique(acs$Market)
+markets = sort(unique(acs$Market))
 
 setkey(full_predict,Market,Person,d_ind,Product)
-setkey(RA_transfers,Market,Product)
+setkey(RA_transfers,Product,Market)
+setkey(acs,Product)
 
 foc_data = RA_transfers[,c("Product","Firm","ST","Market","premBase","T_j","S_j")]
 for (m in markets){
@@ -401,7 +423,7 @@ for (m in markets){
   st = unique(acs$ST[acs$Market==m])
   
   ## Create Ownership Matrix
-  ownMat = unique(acs[.(m),c("Firm","Product")])
+  ownMat = unique(acs[Market==m,c("Firm","Product")])
   firm_levels = unique(as.character(ownMat$Firm))
   firms = factor(ownMat$Firm,levels=firm_levels)
   if (length(firm_levels)>1){
@@ -430,20 +452,27 @@ for (m in markets){
   prod_dRev = colSums(prod_dRev)
   
   dsdp = as.matrix(dsdp[,-1]) *ownMat
-  age_j = as.matrix(RA_transfers[.(m),"Age_j"])
-  T_j = as.matrix(RA_transfers[.(m),"T_j"])
+  age_j = as.matrix(RA_transfers[Market==m,"Age_j"])
+  T_j = as.matrix(RA_transfers[Market==m,"T_j"])
   vars = paste("dTdp",prods,sep="_")
   dTdp = T_derivs[[st]]
   dTdp = as.matrix(dTdp[,-c(1:5)])*ownMat_st
   dTdp = dTdp[,vars]
   
-  S_mkt = as.matrix(RA_transfers[.(m),"S_j"])
+  S_mkt = as.matrix(RA_transfers[Market==m,"S_j"])
   S_st = as.matrix(RA_transfers[ST==st,"S_j"])
   
-  foc = prod_dRev + dsdp%*%T_j + S_mkt*age_j +  t(dTdp)%*%S_st
-  c_j = solve(dsdp)%*%foc
+  foc1 = prod_dRev  + S_mkt*age_j 
+  foc2 =  dsdp%*%T_j 
+  foc3 = t(dTdp)%*%S_st
+  c_j = solve(dsdp)%*%(foc1+foc2+foc3)
   
-  foc_data[Product%in%prods,foc:=prod_dRev + S_mkt*age_j]# dsdp%*%T_j +  t(dTdp)%*%S_st]
+  # 
+  df = deriv[,sum(s_pred*(ageRate_avg*premBase)*mkt_density,na.rm=TRUE),by=c("Product","premBase")]#/S_mkt# + S_mkt*T_j
+  avg_price = df$V1/S_mkt
+  # foc_data[Product%in%prods,foc:=prod_dRev + S_mkt*age_j + dsdp%*%T_j +  t(dTdp)%*%S_st]
+  foc_data[Product%in%prods,foc:=prod_dRev + S_mkt*age_j + dsdp%*%T_j +  t(dTdp)%*%S_st]
+  foc_data[Product%in%prods,c_j:=solve(dsdp)%*%(foc1+foc2+foc3)]
 }
 
 setkey(foc_data,Product)

@@ -281,12 +281,12 @@ AVplot$Metal = factor(AVplot$Metal,levels=c("Catastrophic","Bronze","Silver","Go
 plans = plans[plans$CSR=="",]
 
 png("Writing/Images/AVtarget.png",width=2000,height=1500,res=275)
-ggplot(AVplot[AVplot$Metal!="Catastrophic",]) + 
-  aes(x=distance) + 
-  facet_wrap(~Metal,ncol=1,scales="free_y") + 
-  geom_histogram(binwidth=.002) + 
-  xlab("Distance from AV Target") + 
-  ylab("") + 
+ggplot(AVplot[AVplot$Metal!="Catastrophic",]) +
+  aes(x=distance) +
+  facet_wrap(~Metal,ncol=1,scales="free_y") +
+  geom_histogram(binwidth=.002) +
+  xlab("Distance from AV Target") +
+  ylab("") +
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
     strip.background = element_blank(),
     #panel.grid.major = element_line(color=grey(.8)),
@@ -301,9 +301,7 @@ ggplot(AVplot[AVplot$Metal!="Catastrophic",]) +
 dev.off()
 
 
-#### Merge with Market Shares ####
-# plans$Firm = gsub(" ","_",plans$CARRIER)
-# plans$Firm = gsub("[,.&'-:]","",plans$Firm)
+#### Merge with eHealth Market Shares ####
 plans$RatingArea = gsub("(.*) ([0-9]+)","\\2",plans$RatingArea)
 plans$Market = paste(plans$State,plans$RatingArea,sep="_")
 
@@ -315,9 +313,25 @@ firmShares$marketTotal = ave(firmShares$Y,firmShares$Market,FUN=sum)
 firmShares$share = firmShares$Y/firmShares$marketTotal
 firmShares = firmShares[firmShares$marketTotal>50,]
 firmShares = firmShares[with(firmShares,order(Market,Firm)),]
+names(firmShares) = c("Firm","Market","Y","marketTotal","eHealthShare")
 
-plans = merge(plans,firmShares,by=c("Firm","Market"),all.x=TRUE)
-plans$share = plans$share*100
+plans = merge(plans,firmShares[,c("Firm","Market","eHealthShare")],by=c("Firm","Market"),all.x=TRUE)
+plans$eHealthShare = plans$eHealthShare*100
+rm(choices)
+
+#### Merge with HIX Market Shares ####
+hixEnroll = read.csv("Data/2015_HIX_Enroll/2015_Issuer_Data.csv")
+firms = unique(plans[,c("Firm","Plan.ID","State")])
+hixEnroll = merge(firms,hixEnroll,by.x="Plan.ID",by.y="selected_insurance_plan")
+hixEnroll$ever_enrolled_plan_sel = gsub("[*]","0",hixEnroll$ever_enrolled_plan_sel)
+hixEnroll$ever_enrolled_plan_sel = as.numeric(hixEnroll$ever_enrolled_plan_sel)
+hixEnroll$Market_Total = ave(hixEnroll$ever_enrolled_plan_sel,hixEnroll$State,FUN=function(x){sum(x,na.rm=TRUE)})
+hixShare = summaryBy(ever_enrolled_plan_sel~Firm+State+Market_Total,data=hixEnroll,FUN=sum,keep.names=TRUE)
+hixShare$hixShare = with(hixShare,ever_enrolled_plan_sel/Market_Total)
+hixShare = hixShare[order(hixShare$State,hixShare$ever_enrolled_plan_sel),]
+
+plans = merge(plans,hixShare[,c("Firm","State","hixShare")],by=c("Firm","State"),all.x=TRUE )
+
 
 #### Screening Regression ####
 for (v in c("Prem27","MedDeduct","MedOOP")){
@@ -333,7 +347,7 @@ plans$AV.Calculator.Output.Number[plans$Metal=="Catastrophic"] = .57
 plans$unitPrice = plans$Prem27/plans$AV.Calculator.Output.Number
 plans$Metal = factor(plans$Metal,levels=c("Catastrophic","Bronze","Silver","Gold","Platinum"))
 plans$MeanUnitPrice = ave(plans$unitPrice,plans$Market,FUN=mean)
-plans$unitPricenorm = with(plans,unitPrice-MeanUnitPrice)
+plans$unitPricenorm = with(plans,unitPrice/MeanUnitPrice)
 
 png("Writing/Images/UnitPriceMeans.png",width=2000,height=1500,res=275)
 ggplot(plans) + 
@@ -425,17 +439,21 @@ dev.off()
 
 
 #### Plot Quantile Differences ####
-qtspread = summaryBy(resid+Prem27+unitPrice~Market+Firm+shareBucket+share,
+qtspread = summaryBy(Prem27+unitPrice~Market+Firm+eHealthShare,
                    data=plans,
                    FUN=quantile,probs=c(.25,.75),na.rm=TRUE)
+# qtspread = summaryBy(Prem27+unitPrice+unitPricenorm~Market+Firm+hixShare,
+#                      data=plans,
+#                      FUN=quantile,probs=c(.25,.75),na.rm=TRUE)
 
 qtspread$premGap = qtspread$`Prem27.75%`-qtspread$`Prem27.25%`
-qtspread$resGap = qtspread$`resid.75%`-qtspread$`resid.25%`
+#qtspread$resGap = qtspread$`resid.75%`-qtspread$`resid.25%`
 qtspread$unitGap = qtspread$`unitPrice.75%`-qtspread$`unitPrice.25%`
+qtspread$unitGap = qtspread$`unitPricenorm.75%`-qtspread$`unitPricenorm.25%`
 
 png("Writing/Images/UnitPriceSpread.png",width=2000,height=1500,res=275)
 ggplot(qtspread) + 
-  aes(x=share,y=unitGap) + 
+  aes(x=hixShare,y=unitGap) + 
   geom_point(alpha=.6) + 
   xlab("Market Share") + 
   ylab("Unit Price Inter-Quartile Spread") + 
