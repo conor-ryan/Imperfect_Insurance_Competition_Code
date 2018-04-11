@@ -52,8 +52,8 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
     γ = x[(αlen+1):γlen]
     β_0 = x[(γlen+1):β0len]
     β_vec = x[(β0len+1):βlen]
-    #σ = x[βlen+1:σlen]
-    σ = [0]
+    σ = x[βlen+1:σlen]
+    #σ = [0]
 
     # Stack Beta into a matrix
     K = m.parLength[:β]
@@ -83,12 +83,12 @@ end
 
 function calcRC!{T,S}(randCoeffs::Array{S},σ::Array{T},draws::Array{Float64,2})
     (K, N) = size(randCoeffs)
-    #randCoeffs[1,:] = draws[1,:].*σ[1]
-    randCoeffs[1,:] = 0
+    randCoeffs[1,:] = draws[1,:].*σ[1]
+    #randCoeffs[1,:] = 0
     randCoeffs[2,:] = 0
     for k in 3:K,n in 1:N
-        #randCoeffs[k,n] = draws[2,n]*σ[k-1]
-        randCoeffs[k,n] = 0
+        randCoeffs[k,n] = draws[2,n]*σ[k-1]
+        #randCoeffs[k,n] = 0
     end
     return Void
 end
@@ -164,7 +164,7 @@ function individual_values!{T}(d::InsuranceLogit,p::parDict{T})
         #     p.μ_ij[n,idxitr[k]] = u
         # end
 
-        burn = util_value!(app,p)
+        burn = util_value!(app,p,false)
         # δ = δ_long[idxitr]
         # μ_ij = d.μ_ij[:,idxitr]
         # d.s_hat[idxitr] = individual_shares_RC(μ_ij,δ)
@@ -172,7 +172,7 @@ function individual_values!{T}(d::InsuranceLogit,p::parDict{T})
     return Void
 end
 
-function util_value!{T}(app::ChoiceData,p::parDict{T})
+function util_value!{T}(app::ChoiceData,p::parDict{T},ret=false)
     γ = p.γ
     β_0= p.β_0
     β = p.β
@@ -195,7 +195,11 @@ function util_value!{T}(app::ChoiceData,p::parDict{T})
         u = exp(chars[k,n] + chars_0[k] + γ_i[n])
         p.μ_ij[n,idxitr[k]] = u
     end
-    return p.μ_ij[:,idxitr]
+    if ret
+        return p.μ_ij[:,idxitr]
+    else
+        return similar(chars)
+    end
 end
 
 # function grad_test(x)
@@ -209,7 +213,7 @@ function util_gradient{T}(d::InsuranceLogit,app::ChoiceData,p::parDict{T})
     γ = p.γ
     β_0= p.β_0
     β = p.β
-    p_num = length(p.γ) + length(p.β_0) + length(p.β) #+ length(p.σ)
+    p_num = length(p.γ) + length(p.β_0) + length(p.β) + length(p.σ)
 
     ind = person(app)[1]
     X = permutedims(prodchars(app),(2,1))
@@ -418,7 +422,7 @@ function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
     # Calculate μ_ij, which depends only on parameters
     for app in eachperson(d.data)
     #app = next(eachperson(d.data),100)[1]
-        μ_ij = util_value!(app,p)
+        μ_ij = util_value!(app,p,true)
         ind = person(app)[1]
         S_ij = transpose(choice(app))
         wgt = transpose(weight(app))
@@ -447,7 +451,7 @@ end
 
 # Calculate Log Likelihood
 function ll_gradient{T}(d::InsuranceLogit,p::parDict{T})
-    p_num = length(p.γ) + length(p.β_0) + length(p.β) #+ length(p.σ)
+    p_num = length(p.γ) + length(p.β_0) + length(p.β) + length(p.σ)
     ll = fill(0.0,(p_num))
     Pop = 0.0
     γ = p.γ
@@ -576,7 +580,7 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
     # Contraction...
     rnd = 0
     eps0 = 1
-    tol = 5e-15
+    tol = 1e-14
     individual_values!(d,p)
     while (eps0>tol) & (rnd<5000)
         rnd+=1
@@ -611,7 +615,7 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
         #eps = maximum(abs.(chg))
         # println("Contraction Error")
         #print("Intitial Error:  ")
-        # println(eps0)
+        println(eps0)
         # print("SquareM Error:  ")
         # println(eps)
     end
@@ -665,10 +669,11 @@ end
 function estimate!(d::InsuranceLogit, p0)
     # Set up the optimization
     #opt = Opt(:LD_MMA, length(p0))
-    #opt = Opt(:LN_NELDERMEAD, length(p0))
+    opt = Opt(:LN_NELDERMEAD, length(p0))
     #opt = Opt(:LD_TNEWTON_PRECOND_RESTART,length(p0))
     #opt = Opt(:LD_TNEWTON,length(p0))
-    opt = Opt(:LN_SBPLX, length(p0))
+    #opt = Opt(:LN_SBPLX, length(p0))
+    #opt = Opt(:LN_COBYLA, length(p0))
     xtol_rel!(opt, 1e-6)
     xtol_abs!(opt, 1e-6)
     ftol_rel!(opt, 1e-8)
@@ -676,7 +681,7 @@ function estimate!(d::InsuranceLogit, p0)
     maxtime!(opt, 600000)
     #upper_bounds!(opt, ones(length(p0))/10)
     initial_step!(opt,1e-1)
-
+    #stopval!(opt,.00040)
     # Objective Function
     # ll(x) = evaluate_iteration!(d, x,update=false)
     # cfg = ForwardDiff.GradientConfig(ll, p0, ForwardDiff.Chunk{6}());
@@ -694,11 +699,11 @@ function estimate!(d::InsuranceLogit, p0)
         # println("Step 2")
         #ForwardDiff.gradient!(grad, gmm, x)
         # println("Gradient: $grad")
-        obj = gmm(x)
         #obj = gmm(x)
+        obj = ll(x)
         #likelihood = ll(x)
         println("Objective equals $obj on iteration $count")
-        return -obj
+        return obj
     end
 
     # Set Objective
