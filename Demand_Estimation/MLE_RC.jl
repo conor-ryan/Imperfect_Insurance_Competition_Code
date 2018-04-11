@@ -51,9 +51,10 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
     #α = x[1:αlen]
     γ = x[(αlen+1):γlen]
     β_0 = x[(γlen+1):β0len]
-    β_vec = x[(β0len+1):βlen]
-    σ = x[βlen+1:σlen]
-    #σ = [0]
+    # β_vec = x[(β0len+1):βlen]
+    # σ = x[βlen+1:σlen]
+    # σ = [0]
+    σ = x[8:11]
 
     # Stack Beta into a matrix
     K = m.parLength[:β]
@@ -62,7 +63,8 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
     ind = 0
     for i in 1:N, j in 1:K
         ind+=1
-        β[j,i] = β_vec[ind]
+        #β[j,i] = β_vec[ind]
+        β[j,i] = 0
     end
 
     #Calculate Random Coefficients matrix
@@ -615,7 +617,7 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
         #eps = maximum(abs.(chg))
         # println("Contraction Error")
         #print("Intitial Error:  ")
-        println(eps0)
+        #println(eps0)
         # print("SquareM Error:  ")
         # println(eps)
     end
@@ -676,7 +678,7 @@ function estimate!(d::InsuranceLogit, p0)
     #opt = Opt(:LN_COBYLA, length(p0))
     xtol_rel!(opt, 1e-6)
     xtol_abs!(opt, 1e-6)
-    ftol_rel!(opt, 1e-8)
+    #ftol_rel!(opt, 1e-12)
     #maxeval!(opt,2100)
     maxtime!(opt, 600000)
     #upper_bounds!(opt, ones(length(p0))/10)
@@ -690,7 +692,7 @@ function estimate!(d::InsuranceLogit, p0)
     #δ_cont(x) = contraction!(d,x,update=false)
     δ_cont(x) = contraction!(d,x)
     count = 0
-    function gmm(x, grad)
+    function ll(x, grad)
         count +=1
         println("Iteration $count at $x")
         #Store Gradient
@@ -707,7 +709,7 @@ function estimate!(d::InsuranceLogit, p0)
     end
 
     # Set Objective
-    max_objective!(opt, gmm)
+    max_objective!(opt, ll)
 
     # Run Optimization
     minf, minx, ret = optimize(opt, p0)

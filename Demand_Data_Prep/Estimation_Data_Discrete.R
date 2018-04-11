@@ -164,10 +164,10 @@ choices = choices[alloc==maxAlloc,]
 
 
 # Roll in Family Characteristcs
-choices$MedDeduct[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"] = 
-  choices$MedDeductFam[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"]
-choices$MedOOP[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"] = 
-  choices$MedOOPFam[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"]
+# choices$MedDeduct[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"] = 
+#   choices$MedDeductFam[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"]
+# choices$MedOOP[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"] = 
+#   choices$MedOOPFam[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"]
 
 
 # Keep only relevant variables
@@ -359,6 +359,8 @@ choices[,Quote:= premBase*ageRate]
 choices[,PremPaid:= pmax(premBase*ageRate - subsidy,0)]
 choices$PremPaid[choices$METAL=="CATASTROPHIC"] = with(choices[choices$METAL=="CATASTROPHIC",],premBase*ageRate)
 
+# Per Member Premium
+choices[,PremPaid:=PremPaid/MEMBERS]
 
 #### Calculate Mandate Penalty ####
 # Based on 2015 Tax Thresholds 
@@ -428,15 +430,6 @@ choices$LowIncome = 1
 choices$LowIncome[with(choices,is.na(FPL_imp)|FPL_imp>4)] = 0
 
 
-#### Summary Stats for Tables ####
-t1 = choices[,list(enroll=sum(S_ij*N)),by="METAL"]
-t1[,share:=enroll/sum(enroll)]
-
-t2 = choices[LowIncome==1,list(enroll=sum(S_ij*N)),by="METAL"]
-t2[,share:=enroll/sum(enroll)]
-
-
-
 
 #### Break Down to Smallest Estimatable Data
 # Product Variables
@@ -446,6 +439,20 @@ choices$Product = with(choices,paste(Firm,METAL,Market,sep="_"))
 
 choices[,Person:=as.factor(paste(Market,FPL_bucket,AGE_bucket,Mem_bucket))]
 choices[,Person:=as.numeric(Person)]
+
+
+#### Summary Stats for Tables ####
+choices[,premMin:=min(PremPaid),by=c("Person","METAL")]
+choices[,lowestPrem:=as.numeric(premMin==PremPaid)]
+
+t1 = choices[,list(enroll=sum(S_ij*N)),by=c("METAL","lowestPrem")]
+t1[,share:=enroll/sum(enroll)]
+setkey(t1,METAL,lowestPrem)
+
+t1 = choices[Family==1,list(enroll=sum(S_ij*N)),by=c("METAL","lowestPrem")]
+t1[,share:=enroll/sum(enroll)]
+setkey(t1,METAL,lowestPrem)
+
 
 #### Calculate Product Market Share ####
 #unins_st = read.csv("Data/2015_ACS/uninsured_ST_acs2015.csv")
@@ -484,9 +491,11 @@ choices = choices[choices$Product%in%shares$Product,]
 #### Clean and Print ####
 choices$Price = (choices$PremPaid*12-choices$Mandate)/1000
 choices$MedDeduct = choices$MedDeduct/1000
+choices$MedDeductDiff = choices$MedDeductDiff/1000
 choices$MedOOP = choices$MedOOP/1000
-choices[,ExcOOP:= MedOOP - MedDeduct]
-choices[,ExcOOPDiff:= MedOOPDiff - MedDeductDiff]
+choices$MedOOPDiff = choices$MedOOPDiff/1000
+choices[,ExcOOP:= (MedOOP - MedDeduct)/1000]
+choices[,ExcOOPDiff:= (MedOOPDiff - MedDeductDiff)/1000]
 
 choices$Product = as.factor(choices$Product)
 shares$Product_Name = factor(shares$Product,levels=levels(choices$Product))
@@ -520,7 +529,7 @@ setkey(MI,Person,Product)
 setkey(MI_mkt,Product)
 
 
-write.csv(MI[,c("Person","Firm","Market","Product","S_ij","N","Price","MedDeduct","ExcOOP","High","Family","Age","LowIncome","unins_rate")],
+write.csv(MI[,c("Person","Firm","Market","Product","S_ij","N","Price","MedDeduct","ExcOOP","High","MedDeductDiff","ExcOOPDiff","HighDiff","Family","Age","LowIncome","unins_rate")],
           "Intermediate_Output/Estimation_Data/estimationData_MI_discrete.csv",row.names=FALSE)
 write.csv(MI_mkt[,c("Product","Share")],
           "Intermediate_Output/Estimation_Data/marketData_MI_discrete.csv",row.names=FALSE)
