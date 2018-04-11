@@ -13,36 +13,32 @@ include("MLE_RC.jl")
 println("Code Loaded")
 
 # Load the Data
-include("load.jl")
+include("load_sample.jl")
 # Structre the data
 c = ChoiceData(df,df_mkt)
 
 # Fit into model
-m = InsuranceLogit(c,500)
+m = InsuranceLogit(c,50)
 
 
 # Initial Parameters
 γstart = Array{Float64}([0,0,0])/100
-αstart = -.4
+β0start = -ones(4)/5
 βstart = -ones(4*3)/10
-σstart = [1,1,.5,1,1.5]/1000
-p0 = vcat(αstart,γstart,βstart,σstart)
-#p1 = p0/2
-p0 = [-0.197159, 0.253734, 0.51662, -0.166343, -0.0547134,
- -0.53111, -0.39775, -0.152077, 0.00889907, 0.0552391, 0.0313981,
-  -0.142324, 0.0656932, 0.281034, 0.216577, 0.105576, -0.0155838,
-   -0.258925, -0.0887626, -1.21513, 0.232384, -0.0155108, 0.159628,
-    0.0843623, 0.0722192]
+σstart = [1,.5,1,-1.5]/100
+p0 = vcat(γstart,β0start,βstart,σstart)
 #p1 = p0/2
 # unpack!(m,parStart)
 parStart0 = parDict(m,p0)
 #parStart1 = parDict(m,p1)
 println("Data Loaded")
 
+
 Profile.clear()
 Profile.init()
 #@profile estimate!(m,parStart)
-@profile contraction_SQM!(m,parStart0)
+@profile ll_gradient(m,parStart0)
+#@profile log_likelihood(m,parStart0)
 #@profile individual_shares_RC(μ_ij,δ;inside=true)
 Juno.profiletree()
 Juno.profiler()
