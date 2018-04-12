@@ -13,21 +13,25 @@ include("MLE_RC.jl")
 println("Code Loaded")
 
 # Load the Data
-include("load_sample.jl")
+include("load.jl")
 # Structre the data
 c = ChoiceData(df,df_mkt)
 
 # Fit into model
-m = InsuranceLogit(c,5000)
+m = InsuranceLogit(c,1000)
 
-
+# -2.6967 in 1727 evaluations
 # Initial Parameters
 γstart = Array{Float64}([0,0,0])/100
-β0start = -ones(4)/5
-βstart = -ones(4*3)/10
-σstart = [1,.5,1,-1.5]/100
-p0 = vcat(γstart,β0start)#,βstart,σstart)
-p0 = vcat(γstart,β0start,σstart)
+#γstart = Array{Float64}([0,0,0,0,0,0,0])/100
+β0start = -ones(3)/10
+βstart = -ones(2)/10
+σstart = [1,1,-1.5]/10
+p0 = vcat(γstart,β0start,βstart,σstart)
+
+# p0 = [1.80041, 1.55477, -5.43947, -0.363799, -0.525593,
+# 1.52131, -0.06377, -0.35665, -8.09913, -0.0519747, 0.742158]
+#p0 = vcat(β0start,βstart)
 # p0 = [-0.195938, 0.253235, 0.516015, -0.168222, -0.0508759, -0.527343, -0.396065,
 #     -0.149112, 0.00705938, 0.0588234, 0.0315465, -0.141726, 0.0651431, 0.279406, 0.217439,
 #     0.106517, -0.016283, -0.258406, -0.0900659, -1.21492, 0.233004, -0.0147776, 0.1635,

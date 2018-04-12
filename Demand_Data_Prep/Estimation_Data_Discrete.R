@@ -429,6 +429,18 @@ choices$Age[choices$AGE>=39] = 1
 choices$LowIncome = 1
 choices$LowIncome[with(choices,is.na(FPL_imp)|FPL_imp>4)] = 0
 
+# Create Group Fixed Effects
+for (fam in 0:1){
+  for (you in 0:1){
+    for (inc in 0:1){
+      var = paste("F",fam,"_Y",you,"_LI",inc,sep="")
+      choices[[var]]=0
+      choices[[var]][with(choices,Family==fam&Age==you&LowIncome==inc)]=1
+    }
+  }
+}
+
+
 
 
 #### Break Down to Smallest Estimatable Data
@@ -453,6 +465,9 @@ t1 = choices[Family==1,list(enroll=sum(S_ij*N)),by=c("METAL","lowestPrem")]
 t1[,share:=enroll/sum(enroll)]
 setkey(t1,METAL,lowestPrem)
 
+t1 = choices[,list(enroll=sum(S_ij*N)),by=c("METAL","LowIncome")]
+t1[,share:=enroll/sum(enroll)]
+setkey(t1,METAL,LowIncome)
 
 #### Calculate Product Market Share ####
 #unins_st = read.csv("Data/2015_ACS/uninsured_ST_acs2015.csv")
@@ -494,8 +509,8 @@ choices$MedDeduct = choices$MedDeduct/1000
 choices$MedDeductDiff = choices$MedDeductDiff/1000
 choices$MedOOP = choices$MedOOP/1000
 choices$MedOOPDiff = choices$MedOOPDiff/1000
-choices[,ExcOOP:= (MedOOP - MedDeduct)/1000]
-choices[,ExcOOPDiff:= (MedOOPDiff - MedDeductDiff)/1000]
+choices[,ExcOOP:= (MedOOP - MedDeduct)]
+choices[,ExcOOPDiff:= (MedOOPDiff - MedDeductDiff)]
 
 choices$Product = as.factor(choices$Product)
 shares$Product_Name = factor(shares$Product,levels=levels(choices$Product))
@@ -507,7 +522,11 @@ choices = choices[with(choices,order(Person,Product)),]
 setkey(choices,Person,Product)
 setkey(shares,Product)
 
-write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price","MedDeduct","ExcOOP","High","MedDeductDiff","ExcOOPDiff","HighDiff","Family","Age","LowIncome","unins_rate")],
+write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price",
+                     "MedDeduct","ExcOOP","High","MedDeductDiff","ExcOOPDiff","HighDiff",
+                     "Family","Age","LowIncome",
+                     "F0_Y0_LI0","F0_Y0_LI1","F0_Y1_LI0","F0_Y1_LI1",
+                     "F1_Y0_LI0","F1_Y0_LI1","F1_Y1_LI0","F1_Y1_LI1","unins_rate")],
           "Intermediate_Output/Estimation_Data/estimationData_discrete.csv",row.names=FALSE)
 write.csv(choices,"Intermediate_Output/Estimation_Data/descriptiveData_discrete.csv",row.names=FALSE)
 write.csv(shares[,c("Product","Share")],
@@ -528,8 +547,15 @@ MI_mkt$Product = as.numeric(MI_mkt$Product)
 setkey(MI,Person,Product)
 setkey(MI_mkt,Product)
 
+vars = c("Person","Firm","Market","Product","S_ij","N","Price",
+         "MedDeduct","ExcOOP","High","MedDeductDiff","ExcOOPDiff","HighDiff",
+         "Family","Age","LowIncome",names(choices)[grepl("F[0-9]_Y.*",names(choices))],"unins_rate")
 
-write.csv(MI[,c("Person","Firm","Market","Product","S_ij","N","Price","MedDeduct","ExcOOP","High","MedDeductDiff","ExcOOPDiff","HighDiff","Family","Age","LowIncome","unins_rate")],
+write.csv(MI[,c("Person","Firm","Market","Product","S_ij","N","Price",
+                "MedDeduct","ExcOOP","High","MedDeductDiff","ExcOOPDiff","HighDiff",
+                "Family","Age","LowIncome",
+                "F0_Y0_LI0","F0_Y0_LI1","F0_Y1_LI0","F0_Y1_LI1",
+                "F1_Y0_LI0","F1_Y0_LI1","F1_Y1_LI0","F1_Y1_LI1","unins_rate")],
           "Intermediate_Output/Estimation_Data/estimationData_MI_discrete.csv",row.names=FALSE)
 write.csv(MI_mkt[,c("Product","Share")],
           "Intermediate_Output/Estimation_Data/marketData_MI_discrete.csv",row.names=FALSE)

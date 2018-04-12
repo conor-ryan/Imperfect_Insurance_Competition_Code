@@ -49,12 +49,16 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
 
     #Distribute Parameters
     #α = x[1:αlen]
-    γ = x[(αlen+1):γlen]
-    β_0 = x[(γlen+1):β0len]
-    # β_vec = x[(β0len+1):βlen]
+    # γ = x[(αlen+1):γlen]
+    # β_0 = x[(γlen+1):β0len]
+    #β_vec = x[12:18]
     # σ = x[βlen+1:σlen]
-    # σ = [0]
-    σ = x[8:11]
+
+    γ = x[1:3]
+    β_0 = x[4:6]
+    β_vec = x[7:8]
+    σ = x[9:11]
+    #σ = x[8:11]
 
     # Stack Beta into a matrix
     K = m.parLength[:β]
@@ -65,7 +69,21 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
         ind+=1
         #β[j,i] = β_vec[ind]
         β[j,i] = 0
+        # if j==2 & i==1
+        #     println(β)
+        #     β[j,i] =  β_vec[1]
+        # elseif j==3 & i==1
+        #     println(β)
+        #     β[j,i] =  β_vec[2]
+        # else
+        #     β[j,i] = 0
+        # end
     end
+    β[2,1] = β_vec[1]
+    β[3,1] = β_vec[2]
+    # println(γ)
+    # println(β)
+    # println(β_0)
 
     #Calculate Random Coefficients matrix
     #Includes RC on Price, set to 0 atm
@@ -536,7 +554,7 @@ function convert_δ!(d::InsuranceLogit)
     deltas_new = Array{Float64}(J)
     for j in d.prods
         if isnan(d.deltas[j])
-            deltas_new[j] = 0.0
+            deltas_new[j] = 1.0
         else
             deltas_new[j] = ForwardDiff.value(d.deltas[j])
         end
@@ -582,7 +600,7 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
     # Contraction...
     rnd = 0
     eps0 = 1
-    tol = 1e-14
+    tol = 1e-10
     individual_values!(d,p)
     while (eps0>tol) & (rnd<5000)
         rnd+=1
@@ -617,7 +635,7 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
         #eps = maximum(abs.(chg))
         # println("Contraction Error")
         #print("Intitial Error:  ")
-        #println(eps0)
+        println(eps0)
         # print("SquareM Error:  ")
         # println(eps)
     end
@@ -678,7 +696,7 @@ function estimate!(d::InsuranceLogit, p0)
     #opt = Opt(:LN_COBYLA, length(p0))
     xtol_rel!(opt, 1e-6)
     xtol_abs!(opt, 1e-6)
-    #ftol_rel!(opt, 1e-12)
+    ftol_rel!(opt, 1e-10)
     #maxeval!(opt,2100)
     maxtime!(opt, 600000)
     #upper_bounds!(opt, ones(length(p0))/10)

@@ -39,10 +39,14 @@ end
 function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
         person=[:Person],
         product=[:Product],
-        prodchars=[:Price,:MedDeduct,:ExcOOP,:High],
-        prodchars_0=[:Price,:MedDeductDiff,:ExcOOPDiff,:HighDiff],
+        prodchars=[:Price,:MedDeduct,:High],
+        prodchars_0=[:Price,:MedDeductDiff,:HighDiff],
         choice=[:S_ij],
         demoRaw=[:Age,:Family,:LowIncome],
+        # demoRaw=[:F0_Y0_LI1,
+        #          :F0_Y1_LI0,:F0_Y1_LI1,
+        #          :F1_Y0_LI0,:F1_Y0_LI1,
+        #          :F1_Y1_LI0,:F1_Y1_LI1],
         wgt=[:N],
         unins=[:unins_rate])
 
