@@ -4,7 +4,7 @@ library(nleqslv)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 ## Run
-run = "2018-03-18"
+run = "2018-04-12"
 
 #### Read in GCF ####
 gcf = read.csv("Data/2015_MLR/2015_GCF.csv")
@@ -49,21 +49,32 @@ setkey(predict_data,Product,Person)
 parFile = paste("Estimation_Output/estimationresults_",run,".csv",sep="")
 pars = read.csv(parFile)
 
+# 
+# alpha = pars$pars[1]
+# gamma = pars$pars[2:4]
+# beta = matrix(pars$pars[5:16],nrow=4,ncol=3,byrow=FALSE)
+# sigma = pars$pars[17:21]
 
-alpha = pars$pars[1]
-gamma = pars$pars[2:4]
-beta = matrix(pars$pars[5:16],nrow=4,ncol=3,byrow=FALSE)
-sigma = pars$pars[17:21]
+gamma = pars$pars[1:3]
+beta0 = pars$pars[4:6]
+beta = matrix(0,nrow=3,ncol=3)
+beta[2,1] = pars$pars[7]
+beta[3,1] = pars$pars[8]
+sigma = pars$pars[9:11]
+
+alpha = beta0[1]
 
 ## Calculate alpha for each demographic ##
 acs[,alpha:=alpha+beta[1,1]*Age+beta[1,2]*Family+beta[1,3]*LowIncome]
 
 
 ## Integrate Draws and Prediction Data
+randCoeffs = as.data.frame(randCoeffs)
+randCoeffs$nu_h = randCoeffs[,ncol(randCoeffs)]/abs(sigma[length(sigma)])
+randCoeffs$alpha_draw = randCoeffs[,2]
+
 randCoeffs = as.data.table(randCoeffs)
 n_draws = nrow(randCoeffs)
-randCoeffs[,nu_h:=V5/abs(sigma[5])]
-randCoeffs[,alpha_draw:=V2]
 randCoeffs[,d_ind:=as.integer(1:n_draws)]
 randCoeffs = randCoeffs[,c("d_ind","alpha_draw","nu_h")]
 setkey(randCoeffs,d_ind)

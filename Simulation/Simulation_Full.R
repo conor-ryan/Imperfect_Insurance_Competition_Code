@@ -5,7 +5,7 @@ library(data.table)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
 
 ## Run
-run = "2018-03-18"
+run = "2018-04-12"
 
 #### 2015 Subsidy Percentage Function ####
 
@@ -108,10 +108,10 @@ acs = acs[acs$valid,]
 
 
 # Roll in Family Characteristcs
-acs$MedDeduct[acs$FAMILY_OR_INDIVIDUAL=="FAMILY"] = 
-  acs$MedDeductFam[acs$FAMILY_OR_INDIVIDUAL=="FAMILY"]
-acs$MedOOP[acs$FAMILY_OR_INDIVIDUAL=="FAMILY"] = 
-  acs$MedOOPFam[acs$FAMILY_OR_INDIVIDUAL=="FAMILY"]
+# acs$MedDeduct[acs$FAMILY_OR_INDIVIDUAL=="FAMILY"] = 
+#   acs$MedDeductFam[acs$FAMILY_OR_INDIVIDUAL=="FAMILY"]
+# acs$MedOOP[acs$FAMILY_OR_INDIVIDUAL=="FAMILY"] = 
+#   acs$MedOOPFam[acs$FAMILY_OR_INDIVIDUAL=="FAMILY"]
 
 
 # Keep only relevant variables
@@ -151,6 +151,22 @@ acs[,subsidy:=pmax(Benchmark-HHcont*HH_income/12,0)]
 acs[,METAL:=toupper(METAL)]
 acs[,CSR:=gsub("[A-Z]+ ?","",METAL,perl=TRUE)]
 acs[,METAL:=gsub(" [0-9]+","",METAL)]
+
+## Create Character Difference Variables 
+acs$High = 0 
+acs$High[with(acs,METAL%in%c("GOLD","PLATINUM")|CSR%in%c("94","87"))] = 1
+
+acs[CSR=="",MedDeductStandard:=MedDeduct,by=c("ST","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+acs[,MedDeductStandard:=max(MedDeductStandard,na.rm=TRUE),by=c("ST","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+acs[CSR=="",MedOOPStandard:=MedOOP,by=c("ST","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+acs[,MedOOPStandard:=max(MedOOPStandard,na.rm=TRUE),by=c("ST","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+acs[CSR=="",HighStandard:=High,by=c("ST","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+acs[,HighStandard:=max(HighStandard,na.rm=TRUE),by=c("ST","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+
+acs[,MedDeductDiff:=MedDeduct - MedDeductStandard]
+acs[,MedOOPDiff:=MedOOP - MedOOPStandard]
+acs[,HighDiff:=High - HighStandard]
+
 
 
 # Set hix to be TRUE for all Silver, if for any
@@ -196,7 +212,7 @@ acs = acs[,list(AGE = mean(AGE),
                         PERWT = sum(PERWT),
                         subsidy_mean= sum(subsidy*PERWT)/sum(PERWT)),
                   by=c("ST","AREA","FPL_bucket","AGE_bucket","Mem_bucket","FAMILY_OR_INDIVIDUAL","Firm","METAL","hix","CSR",
-                       "MedDeduct","MedOOP","benchBase","premBase")]
+                       "MedDeduct","MedOOP","High","MedDeductDiff","MedOOPDiff","HighDiff", "benchBase","premBase")]
 
 
 ## Re-Calculate Premiums for Choice Set
@@ -211,6 +227,11 @@ acs[,diff:=subsidy-subsidy_mean]
 acs[,Quote:= premBase*ageRate]
 acs[,PremPaid:= pmax(premBase*ageRate - subsidy,0)]
 acs$PremPaid[acs$METAL=="CATASTROPHIC"] = with(acs[acs$METAL=="CATASTROPHIC",],premBase*ageRate)
+
+
+# Per Member Premium
+acs[,PremPaid:=PremPaid/MEMBERS]
+
 
 
 #### Calculate Mandate Penalty ####
@@ -231,13 +252,14 @@ acs[FAMILY_OR_INDIVIDUAL=="FAMILY",Family:= 1]
 acs[,LowIncome:= 1]
 acs[is.na(HHincomeFPL)|HHincomeFPL>4,LowIncome:= 0]
 
-acs[,High:= 0 ]
-acs[METAL%in%c("GOLD","PLATINUM")|CSR%in%c("94","87"),High:= 1 ]
-
 #### Clean ####
 acs[,Price:=(PremPaid*12-Mandate)/1000]
-acs[,MedDeduct:= MedDeduct/1000]
-acs[,MedOOP:= MedOOP/1000]
+acs$MedDeduct = acs$MedDeduct/1000
+acs$MedDeductDiff = acs$MedDeductDiff/1000
+acs$MedOOP = acs$MedOOP/1000
+acs$MedOOPDiff = acs$MedOOPDiff/1000
+acs[,ExcOOP:= (MedOOP - MedDeduct)]
+acs[,ExcOOPDiff:= (MedOOPDiff - MedDeductDiff)]
 
 acs[,Age := 0]
 acs[AGE>=39,Age:= 1]
@@ -252,7 +274,8 @@ acs[,Person:=as.factor(paste(Market,FPL_bucket,AGE_bucket,Mem_bucket))]
 acs[,Person:=as.numeric(Person)]
 
 
-acs = acs[,c("Person","Firm","Market","Product_Name","Price","MedDeduct","MedOOP","High","Family","Age","LowIncome","ageRate","ageRate_avg","PERWT")]
+acs = acs[,c("Person","Firm","Market","Product_Name","Price","MedDeduct","MedOOP","High",
+             "MedDeductDiff","MedOOPDiff","HighDiff","Family","Age","LowIncome","ageRate","ageRate_avg","PERWT")]
 
 
 #### Merge in Product Map #### 
@@ -277,16 +300,23 @@ pars = read.csv(parFile)
 delFile = paste("Estimation_Output/deltaresults_",run,".csv",sep="")
 deltas = read.csv(delFile)
 
-alpha = pars$pars[1]
-gamma = pars$pars[2:4]
-beta = matrix(pars$pars[5:16],nrow=4,ncol=3,byrow=FALSE)
-sigma = pars$pars[17:21]
+# alpha = pars$pars[1]
+# gamma = pars$pars[2:4]
+# beta = matrix(pars$pars[5:16],nrow=4,ncol=3,byrow=FALSE)
+# sigma = pars$pars[17:21]
+gamma = pars$pars[1:3]
+beta0 = pars$pars[4:6]
+beta = matrix(0,nrow=3,ncol=3)
+beta[2,1] = pars$pars[7]
+beta[3,1] = pars$pars[8]
+sigma = pars$pars[9:11]
 
 draws = halton(n_draws,dim=3,usetime=TRUE,normal=TRUE)
-randCoeffs = matrix(nrow=n_draws,ncol=length(sigma))
-for (k in 1:5){
-  j = min(k,3)
-  randCoeffs[,k] = draws[,j]*sigma[k]
+randCoeffs = matrix(nrow=n_draws,ncol=length(sigma)+1)
+randCoeffs[,1] = draws[,1]*sigma[1]
+randCoeffs[,2] = 0
+for (k in 3:4){
+  randCoeffs[,k] = draws[,2]*sigma[k-1]
 }
 
 acs = merge(acs,deltas,by.x="Product",by.y="prods")
@@ -342,24 +372,26 @@ for (p in people){
   perData = acs[.(p),]
   
   demos = as.matrix(perData[1,c("Age","Family","LowIncome")])
-  chars = as.matrix(perData[,c("Price","MedDeduct","MedOOP","High")])
+  #chars = as.matrix(perData[,c("Price","MedDeduct","MedOOP","High")])
+  chars = as.matrix(perData[,c("Price","MedDeduct","High")])
+  chars_0 = as.matrix(perData[,c("Price","MedDeductDiff","HighDiff")])
   delta = perData$delta
   
   intercept = (demos%*%gamma)[1,1] + randCoeffs[,1]
   
-  price_int = alpha*chars[,1]
+  chars_int = chars_0%*%beta0
   
   beta_z = demos%*%t(beta)
   beta_zi = matrix(beta_z,nrow=n_draws,ncol=length(beta_z),byrow=TRUE)
   for (k in 1:n_draws){
-    beta_zi[k,] = beta_zi[k,] + randCoeffs[k,2:5]
+    beta_zi[k,] = beta_zi[k,] + randCoeffs[k,2:4]
   }
   
   
   util = matrix(NA,nrow=nrow(chars),ncol=n_draws)
   shares = matrix(NA,nrow=nrow(chars),ncol=n_draws)
   for(k in 1:n_draws){
-    util[,k] = exp(intercept[k] + price_int + chars%*%beta_zi[k,])*delta
+    util[,k] = exp(intercept[k] + chars_int + chars%*%beta_zi[k,])*delta
   }
   expsum = apply(util,MARGIN=2,sum)
   for(k in 1:n_draws){

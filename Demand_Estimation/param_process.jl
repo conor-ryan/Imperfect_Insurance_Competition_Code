@@ -13,19 +13,18 @@ include("MLE_RC.jl")
 println("Code Loaded")
 
 # Predict on Full Data
-cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition")
-df = CSV.read("Intermediate_Output/Estimation_Data/estimationData_discrete.csv")
-df_mkt = CSV.read("Intermediate_Output/Estimation_Data/marketData_discrete.csv")
-df[:Firm] = String.(df[:Firm])
+include("load.jl")
 
 
 c = ChoiceData(df,df_mkt)
 # Fit into model
-m = InsuranceLogit(c,500)
-rundate = "2018-03-20"
-file = "Estimation_Output/estimationresults_2018-03-20.jld"
+m = InsuranceLogit(c,5000)
+
+cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/")
+rundate = "2018-04-12"
+file = "Estimation_Output/estimationresults_$rundate.jld"
 #flag, fval, p_est = load(file)["p_est"]
-p_est = load(file)["p_est"]
+flag, fval, p_est = load(file)["p_est"]
 paramFinal = parDict(m,p_est)
 
 

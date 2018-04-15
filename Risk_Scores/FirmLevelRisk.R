@@ -5,7 +5,7 @@ library(nleqslv)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 ## Run
-run = "2018-03-18"
+run = "2018-04-12"
 
 #### Read in GCF ####
 gcf = read.csv("Data/2015_MLR/2015_GCF.csv")

@@ -56,9 +56,9 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
 
     γ = x[1:3]
     β_0 = x[4:6]
-    β_vec = x[7:8]
-    σ = x[9:11]
-    #σ = x[8:11]
+    β_vec = x[7:11]
+    #σ = x[9:11]
+    σ = [0]
 
     # Stack Beta into a matrix
     K = m.parLength[:β]
@@ -81,6 +81,7 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
     end
     β[2,1] = β_vec[1]
     β[3,1] = β_vec[2]
+    β[1,:] = β_vec[3:5]
     # println(γ)
     # println(β)
     # println(β_0)
@@ -103,12 +104,12 @@ end
 
 function calcRC!{T,S}(randCoeffs::Array{S},σ::Array{T},draws::Array{Float64,2})
     (K, N) = size(randCoeffs)
-    randCoeffs[1,:] = draws[1,:].*σ[1]
-    #randCoeffs[1,:] = 0
+    #randCoeffs[1,:] = draws[1,:].*σ[1]
+    randCoeffs[1,:] = 0
     randCoeffs[2,:] = 0
     for k in 3:K,n in 1:N
-        randCoeffs[k,n] = draws[2,n]*σ[k-1]
-        #randCoeffs[k,n] = 0
+        #randCoeffs[k,n] = draws[2,n]*σ[k-1]
+        randCoeffs[k,n] = 0
     end
     return Void
 end
@@ -635,7 +636,7 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
         #eps = maximum(abs.(chg))
         # println("Contraction Error")
         #print("Intitial Error:  ")
-        println(eps0)
+        #println(eps0)
         # print("SquareM Error:  ")
         # println(eps)
     end

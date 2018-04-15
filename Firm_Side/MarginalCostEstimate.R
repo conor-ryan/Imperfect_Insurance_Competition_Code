@@ -4,7 +4,8 @@ library(nleqslv)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 ## Run
-run = "2018-03-18"
+run = "2018-04-12"
+#1811770644
 
 #### Read in Data ####
 ## Geographic Rating Factors
@@ -99,16 +100,27 @@ rm(predict_data)
 
 
 #### Incorporate Parameters ####
-alpha = pars$pars[1]
-gamma = pars$pars[2:4]
-beta = matrix(pars$pars[5:16],nrow=4,ncol=3,byrow=FALSE)
-sigma = pars$pars[17:21]
+# alpha = pars$pars[1]
+# gamma = pars$pars[2:4]
+# beta = matrix(pars$pars[5:16],nrow=4,ncol=3,byrow=FALSE)
+# sigma = pars$pars[17:21]
+
+gamma = pars$pars[1:3]
+beta0 = pars$pars[4:6]
+beta = matrix(0,nrow=3,ncol=3)
+beta[2,1] = pars$pars[7]
+beta[3,1] = pars$pars[8]
+sigma = pars$pars[9:11]
+
+alpha = beta0[1]
 
 ## Calculate alpha/health pref for each demographic ##
+randCoeffs = as.data.frame(randCoeffs)
+randCoeffs$nu_h = randCoeffs[,ncol(randCoeffs)]/abs(sigma[length(sigma)])
+randCoeffs$alpha_draw = randCoeffs[,2]
+
 randCoeffs = as.data.table(randCoeffs)
 n_draws = nrow(randCoeffs)
-randCoeffs[,nu_h:=V5/abs(sigma[5])]
-randCoeffs[,alpha_draw:=V2]
 randCoeffs[,d_ind:=as.integer(1:n_draws)]
 randCoeffs = randCoeffs[,c("d_ind","alpha_draw","nu_h")]
 setkey(randCoeffs,d_ind)
@@ -121,9 +133,10 @@ full_predict[,nu_h:=nu_large]
 
 full_predict[,alpha:=(alpha+beta[1,1]*Age+beta[1,2]*Family+beta[1,3]*LowIncome + alpha_draw)*12/1000]
 # Test Larger Elasticty
-full_predict[,alpha:=alpha*4]
+full_predict[,alpha:=alpha*2.5]
 full_predict[,pref_h:=nu_h/alpha]
 full_predict[,elas:=alpha*(1-s_pred)*Price*1000/12]
+full_predict[,semi_elas:=alpha*(1-s_pred)*100*100/12]
 
 
 rm(alpha_large,nu_large)
@@ -185,7 +198,7 @@ RA_transfers = full_predict[,list(share_tilde=sum(S_m*s_pred*mkt_density)/sum(mk
                                   S_0 = sum(mkt_density*(1-s_pred_outside)),
                                   R_j = sum(s_pred*R*mkt_density)/sum(s_pred*mkt_density),
                                   Age_j = sum(s_pred*ageRate_avg*mkt_density)/sum(s_pred*mkt_density)),
-                            by=c("Product","Metal","Market","ST","Firm","premBase","Gamma_j","AV","S_m","mkt_size","st_insured")]
+                            by=c("Product","Metal","Market","ST","Firm","premBase","Gamma_j","GCF","AV","S_m","mkt_size","st_insured")]
 RA_transfers[Metal=="CATASTROPHIC",share_tilde:=0]
 RA_transfers = merge(RA_transfers,inside_RA_pred,by="ST",all.x=TRUE)
 
@@ -223,6 +236,7 @@ setkey(full_predict,Market,Person,d_ind,Product)
 
 per_derivs = list()
 prod_derivs = list()
+prod_rev_derivs = list()
 
 for (m in markets){
   print(m)
@@ -246,8 +260,8 @@ for (m in markets){
     #m_data[,L_m:=max(L_m,na.rm=TRUE)]
     
     # Demand Derivatives
-    m_data[,c(dpvar):=-alpha*ageRate*s_pred*s_prod]
-    m_data[Product==p,c(dpvar):=alpha*ageRate*s_pred*(1-s_pred)]
+    m_data[,c(dpvar):=-alpha*ageRate_avg*s_pred*s_prod]
+    m_data[Product==p,c(dpvar):=alpha*ageRate_avg*s_pred*(1-s_pred)]
   
     
     # State Mkt Share Derivs - Outside Good
@@ -266,6 +280,8 @@ for (m in markets){
   }
   varlist = c("s_pred",names(m_data)[grepl("dsdp",names(m_data))])
   p_data = m_data[,lapply(.SD,function(x){sum(x*mkt_density)}),by=c("Product","premBase"),.SDcol=varlist]
+  p_data_rev = m_data[,lapply(.SD,function(x){sum(x*ageRate_avg*mkt_density)}),by=c("Product","premBase"),.SDcol=varlist]
+  setkey(p_data,Product)
   ### Calculate Elasticities
   dsdp = as.matrix(p_data[,-c(1,2,3)])
   p_j = t(matrix(p_data$premBase,nrow=length(prods),ncol=length(prods)))
@@ -281,6 +297,7 @@ for (m in markets){
   diag(div_share) = -1
   
   prod_derivs[[m]] = p_data[,-c(2,3)]
+  prod_rev_derivs[[m]] = p_data_rev[,-c(2,3)]
   per_derivs[[m]] = m_data
   rm(m_data)
 }
@@ -417,7 +434,7 @@ setkey(full_predict,Market,Person,d_ind,Product)
 setkey(RA_transfers,Product,Market)
 setkey(acs,Product)
 
-foc_data = RA_transfers[,c("Product","Firm","ST","Market","premBase","T_j","S_j")]
+foc_data = RA_transfers[,c("Product","Firm","ST","Market","GCF","premBase","T_j","S_j")]
 for (m in markets){
   print(m)
   st = unique(acs$ST[acs$Market==m])
@@ -471,6 +488,7 @@ for (m in markets){
   df = deriv[,sum(s_pred*(ageRate_avg*premBase)*mkt_density,na.rm=TRUE),by=c("Product","premBase")]#/S_mkt# + S_mkt*T_j
   avg_price = df$V1/S_mkt
   # foc_data[Product%in%prods,foc:=prod_dRev + S_mkt*age_j + dsdp%*%T_j +  t(dTdp)%*%S_st]
+  
   foc_data[Product%in%prods,foc:=prod_dRev + S_mkt*age_j + dsdp%*%T_j +  t(dTdp)%*%S_st]
   foc_data[Product%in%prods,c_j:=solve(dsdp)%*%(foc1+foc2+foc3)]
 }
@@ -480,35 +498,91 @@ setkey(foc_data,Product)
 
 
 #### Full Marginal Cost Estimate ####
-s_length = length(unique(foc_data$ST))
-f_length = length(unique(foc_data$Firm))
-phi_start = rep(0,10)
+ST_data = unique(foc_data[,c("ST")])
+F_data = unique(foc_data[,c("Firm")])
+setkey(ST_data,ST)
+setkey(F_data,Firm)
+setkey(foc_data,Product)
+phi_start = rep(0,9)
 phi_start[1] = 1
 
+phi_start = c(rep(1,(nrow(ST_data)+nrow(F_data))),phi_start)
 marginalCostEst <- function(phi){
+  ST_data[,st_effect:=phi[1:nrow(ST_data)]]
+  F_data[,f_effect:=phi[nrow(ST_data) + 1:nrow(F_data)]]
+  ind = nrow(ST_data) + nrow(F_data)
+  
   for (m in markets){
-    deriv = per_derivs[[m]]
-    #setkey(deriv,Firm)
-    dpvar_list = names(deriv)[grepl("dsdp",names(deriv))]
-    # deriv = deriv[,.SD,.SDcol=c("Person","d_ind","Product","Firm","mkt_density",
-    #                             "MedDeduct","MedOOP","High","GCF",
-    #                             "Age","Family","LowIncome","nu_h",
-    #                             dpvar_list)]
+    st = unique(acs$ST[acs$Market==m])
+    ## Create Ownership Matrix
+    ownMat = unique(acs[Market==m,c("Firm","Product")])
+    firm_levels = unique(as.character(ownMat$Firm))
+    firms = factor(ownMat$Firm,levels=firm_levels)
+    if (length(firm_levels)>1){
+      ownMat = model.matrix(1:nrow(ownMat)~-1+firms)
+      ownMat = tcrossprod(ownMat)
+    }else{
+      ownMat = matrix(1,nrow=length(firms),ncol=length(firms))
+    }
     
-    deriv[,cost:=exp(phi[1] + phi[2]*GCF + phi[3]*MedDeduct + phi[4]*MedOOP + phi[5]*High + 
-                       phi[6]*nu_h + phi[7]*Age + phi[8]*Family + phi[9]*LowIncome + 
-                       phi[10]*nu_h*High)]
-    prods = deriv$Product
-    prod_dCost = t(as.matrix(deriv[,lapply(.SD,function(x){sum(x*cost*mkt_density,na.rm=TRUE)}),.SDcol=dpvar_list]))
-    foc_data[Product%in%prods,MC:=prod_dCost]
+    ownMat_st = unique(acs[ST==st,c("Firm","Product")])
+    firms = factor(ownMat_st$Firm,levels=unique(as.character(ownMat_st$Firm)))
+    ownMat_st = model.matrix(1:nrow(ownMat_st)~-1+firms)
+    ownMat_st = tcrossprod(ownMat_st)
+    
+    deriv = per_derivs[[m]]
+    dpvar_list = names(deriv)[grepl("dsdp",names(deriv))]
+    prods = sort(unique(deriv$Product))
+    
+    deriv = merge(deriv,F_data,by="Firm",all.x=TRUE)
+    st_multiple = ST_data$st_effect[ST_data$ST==st]
+    
+    deriv[,cost:=st_multiple*f_effect*exp(phi[ind+1] + phi[ind+2]*MedDeduct + phi[ind+3]*MedOOP + phi[ind+4]*High + 
+                       phi[ind+5]*nu_h + phi[ind+6]*Age + phi[ind+7]*Family + phi[ind+8]*LowIncome + 
+                       phi[ind+9]*nu_h*High)]
+    
+    prod_dCost = t(deriv[,lapply(.SD,function(x){sum(x*cost*mkt_density,na.rm=TRUE)}),.SDcol=dpvar_list])
+
+    
+    dsdp = prod_derivs[[m]]
+    dsdp_rev = prod_rev_derivs[[m]]
+    
+    dsdp = as.matrix(dsdp[,-1]) *ownMat
+    dsdp_rev = as.matrix(dsdp_rev[,-1]) *ownMat
+    
+    age_j = as.matrix(RA_transfers[Market==m,"Age_j"])
+    #P_j = as.matrix(RA_transfers[Market==m,"premBase"])
+    T_j = as.matrix(RA_transfers[Market==m,"T_j"])
+    vars = paste("dTdp",prods,sep="_")
+    dTdp = T_derivs[[st]]
+    dTdp = as.matrix(dTdp[,-c(1:5)])*ownMat_st
+    dTdp = dTdp[,vars]
+    
+    S_mkt = as.matrix(RA_transfers[Market==m,"S_j"])
+    S_st = as.matrix(RA_transfers[ST==st,"S_j"])
+    
+    # c_j = rep(exp(1),length(S_mkt))
+    # p_test = solve(dsdp_rev)%*%(dsdp%*%c_j - dsdp%*%T_j - S_mkt*age_j - t(dTdp)%*%S_st)
+    # 
+    p_j = solve(dsdp_rev)%*%(prod_dCost - dsdp%*%T_j - S_mkt*age_j - t(dTdp)%*%S_st)
+
+    prod_dCost = t(deriv[,lapply(.SD,function(x){sum(x*cost*mkt_density,na.rm=TRUE)}),.SDcol=dpvar_list])
+    foc_data[Product%in%prods,premBase_pred:=p_j]
+    # print(m)
+    # print(p_pred)
   }
-  err = foc_data[,sum((foc - MC)^2)]
+
+  err = foc_data[,sum((premBase - premBase_pred)^2)]
+  foc_data[,premBase_pred:=NA]
   print(err)
   print(phi)
   return(err)
 }
 
+t = Sys.time()
 marginalCostEst(phi_start)
+Sys.time() - t
+
 res = optim(par=phi_start,fn=marginalCostEst,control=list(maxit=5000))
 
 costFile = paste("Simulation_Risk_Output/costParameters_",run,".rData",sep="")

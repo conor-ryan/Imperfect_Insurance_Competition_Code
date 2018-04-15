@@ -7,7 +7,7 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
 
 subsPerc <- function(FPL){
   x = FPL[!is.na(FPL)]
-  y = vector(mode="numeric",length=length(x))
+  y = rep(100,length=length(x))
   y[x>=1&x<1.33]   = 2.01 + (x-1)[x>=1&x<1.33]/(1.33-1)*(3.02-2.01)
   y[x>=1.33&x<1.5] = 3.02 + (x-1.33)[x>=1.33&x<1.5]/(1.5-1.33)*(4.02-3.02)
   y[x>=1.5&x<2]    = 4.02 + (x-1.5)[x>=1.5&x<2]/(2-1.5)*(6.34-4.02)
@@ -22,7 +22,7 @@ subsPerc <- function(FPL){
 }
 
 # Based on Individual Income
-subsInv <- function(cont,pov_line = 11770){
+subsInv <- function(cont,pov_line = 11770,FPL_flag=FALSE){
   
   y = cont[!is.na(cont)]
   x = rep(NA,length(y))
@@ -51,9 +51,15 @@ subsInv <- function(cont,pov_line = 11770){
   
   
   Income = rep(NA,length(cont))
+  FPL = rep(NA,length(cont))
   Income[!is.na(cont)] = x*pov_line
+  FPL[!is.na(cont)] = x
+  if(FPL_flag){
+    return(FPL)
+  }else{
+    return(Income)
+  }
   
-  return(Income)
 }
 
 
@@ -94,17 +100,29 @@ STselection = unique(firmCrosswalk$STATE)
 # Default Choice Set By Zip3
 choiceSets = read.csv("Intermediate_Output/Premiums/choiceSets2015.csv")
 mapping = read.csv("Intermediate_Output/Zip_RatingArea/Zip3_to_RatingArea.csv")
-choices = merge(choiceSets,mapping[,c("ST","Zip3","RatingArea","alloc")],by.x=c("ST","AREA"),by.y=c("ST","RatingArea"),all.x=TRUE)
+
+choiceSets = as.data.table(choiceSets)
+setkey(choiceSets,ST,AREA)
+
+mapping = as.data.table(mapping)
+setkey(mapping,ST,RatingArea)
+
+choices = merge(choiceSets,mapping[,c("ST","Zip3","RatingArea","alloc")],by.x=c("ST","AREA"),by.y=c("ST","RatingArea"),
+                all.x=TRUE,allow.cartesian=TRUE)
 
 # Merge in eHealth data
-eHealth = eHealth[eHealth$TRUNCATED_ZIP%in%choices$Zip3,]
-choices = merge(eHealth,choices,by.x=c("STATE","TRUNCATED_ZIP"),by.y=c("ST","Zip3"),all.x=TRUE)
-choices = choices[with(choices,order(APP_RECORD_NUM,METAL)),]
+eHealth = as.data.table(eHealth[eHealth$TRUNCATED_ZIP%in%choices$Zip3,])
+setkey(eHealth,STATE,TRUNCATED_ZIP)
+setkey(choices,ST,Zip3)
+
+choices = merge(eHealth,choices,by.x=c("STATE","TRUNCATED_ZIP"),by.y=c("ST","Zip3"),
+                all.x=TRUE,allow.cartesian=TRUE)
+setkey(choices,APP_RECORD_NUM,METAL)
 
 names(choices)[names(choices)=="Firm.x"] = "Firm_Choice"
-choices$Firm_Choice = as.character(choices$Firm_Choice)
+choices[,Firm_Choice:= as.character(choices$Firm_Choice)]
 names(choices)[names(choices)=="Firm.y"] = "Firm"
-choices$Firm = as.character(choices$Firm)
+choices[,Firm:= as.character(choices$Firm)]
 # Not Dropping kids for now
 #choices = choices[with(choices,AGE>18),]
 
@@ -113,9 +131,9 @@ choices$Firm = as.character(choices$Firm)
 #### Create Valid Choice Sets ####
 
 # Set Choice Indicator
-choices$METAL = toupper(choices$METAL)
-choices$Y = 0
-choices$Y[with(choices,METAL==PLAN_METAL_LEVEL&Firm_Choice==Firm)]=1
+choices[,METAL:= toupper(METAL)]
+choices[,Y:= 0]
+choices[METAL==PLAN_METAL_LEVEL&Firm_Choice==Firm,Y:=1]
 
 ids = unique(choices$APP_RECORD_NUM[choices$Y==1])
 missing = eHealth$APP_RECORD_NUM[!eHealth$APP_RECORD_NUM%in%ids]
@@ -128,28 +146,28 @@ test = unique(test[!test$Firm_Choice%in%c("HEALTHYCT","SHARP_HEALTH_PLAN"),c("AP
 
 # Drop Catastrophic for over 30. 
 # Lose two observations that chose catas over 30
-choices = choices[!with(choices,AGE>30 & METAL=="CATASTROPHIC"),]
+choices = choices[!(AGE>30 & METAL=="CATASTROPHIC"),]
 
 
 # If choice is not available, then that individual is not in the right rating area
 # This step drops CA/CT (data collection needed), 3 obs in IL that don't have right rating area
-choices$flag = ave(choices$Y,with(choices,paste(APP_RECORD_NUM,AREA)),FUN=sum)
-choices = choices[choices$flag!=0,]
+choices[,flag:= sum(Y),by=c("APP_RECORD_NUM","AREA")]
+choices = choices[flag!=0,]
 
 # Remove non-valid areas
 choices = choices[choices$valid,]
 
 # Keep only most likely rating area
-choices$maxAlloc = ave(choices$alloc,choices$APP_RECORD_NUM,FUN=max)
-choices = choices[with(choices,alloc==maxAlloc),]
+choices[,maxAlloc:=max(alloc),by="APP_RECORD_NUM"]
+choices = choices[alloc==maxAlloc,]
 
 
 
 # Roll in Family Characteristcs
-choices$MedDeduct[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"] = 
-  choices$MedDeductFam[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"]
-choices$MedOOP[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"] = 
-  choices$MedOOPFam[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"]
+# choices$MedDeduct[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"] = 
+#   choices$MedDeductFam[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"]
+# choices$MedOOP[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"] = 
+#   choices$MedOOPFam[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"]
 
 
 # Keep only relevant variables
@@ -158,7 +176,7 @@ choices = choices[,c("STATE","APP_RECORD_NUM","QUOTED_RATE","HOUSEHOLD_INCOME","
                      "MedDeduct","MedOOP","Y")]
 
 
-#### Set Correct Premiums ####
+#### Set Rating & Subsidy Values ####
 rating = read.csv("Data/AgeRating.csv")
 
 # Create truncated Age variable
@@ -173,7 +191,7 @@ choices = merge(choices,rating[rating$State!="Default",],by.x=c("STATE","AgeMatc
 choices$ageRate = choices$Rating.x
 choices$ageRate[!is.na(choices$Rating.y)] = choices$Rating.y[!is.na(choices$Rating.y)]
 # Drop redundant rating variables
-choices = choices[,which(!names(choices)%in%c("Rating.x","Rating.y"))]
+choices = choices[,c("Rating.x","Rating.y"):=NULL]
 rm(rating)
 
 
@@ -219,24 +237,13 @@ choices$subsidy[is.na(choices$subsidy)] = choices$FFM_APTC_AMOUNT[is.na(choices$
 choices$subsidy[is.na(choices$subsidy)] = 0
 
 
-# Calculate Premiums for Choice Set
-choices$Quote = with(choices,premBase*ageRate)
-choices$PremPaid = pmax(with(choices,premBase*ageRate - subsidy),0)
-choices$PremPaid[choices$METAL=="CATASTROPHIC"] = with(choices[choices$METAL=="CATASTROPHIC",],premBase*ageRate)
-
-# Keep Relevant Variables
-choices = choices[,c("STATE","APP_RECORD_NUM","QUOTED_RATE","HOUSEHOLD_INCOME","FFM_APTC_AMOUNT","FFM_PREMIUM_DUE",
-                     "FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","SMOKER","AREA","Firm","METAL","hix",
-                     "MedDeduct","MedOOP","ageRate","FPL","Benchmark","HHcont","subsidy","Quote","PremPaid","Y")]
-
 #### Impute Income ####
-
-
 choices$IncCont = with(choices,Benchmark-subsidy)
 choices$IncCont[choices$subsidy==0] = NA
 choices$IncCont[choices$IncCont<.0201*(11770+(choices$MEMBERS-1)*4160)/12] = NA
 
 # This depends on Family Size to calculate the appropriate poverty line.
+# Potentially use reported income and subsidy to impute FPL
 # This function could probably be written better...
 choices$ImputedIncome[choices$MEMBERS==1] = subsInv(choices$IncCont[choices$MEMBERS==1],pov_line=11770)
 choices$ImputedIncome[choices$MEMBERS==2] = subsInv(choices$IncCont[choices$MEMBERS==2],pov_line=11770+4160)
@@ -258,30 +265,102 @@ choices$Income[is.na(choices$HOUSEHOLD_INCOME)] = choices$ImputedIncome[is.na(ch
 choices = choices[!(is.na(choices$Income)&choices$subsidy>0),]
 choices$Income[choices$Income<1000] = 1000
 
-# Use Log Income
-choices$logIncome = log(choices$Income)
-choices$logIncome[choices$logIncome<0] = 0
-
 # With Imputed Income, we can get the base premium w/subsidy
 choices$FPL_imp = with(choices,Income/(11770 + (MEMBERS-1)*4160))
+
+
 
 #### Set Income Specific Choice Sets ####
 choices$CSR = gsub("[A-Z]+ ?","",choices$METAL)
 choices$METAL = gsub(" [0-9]+","",choices$METAL)
 
 # Set Y = 1 for all Silver, if for any
-choices$Y = ave(choices$Y,with(choices,paste(APP_RECORD_NUM,Firm,METAL)),FUN=sum)
+choices[,Y:= sum(Y),by=c("APP_RECORD_NUM","Firm","METAL")]
 # Set hix to be TRUE for all Silver, if for any
-choices$hix = ave(choices$hix,with(choices,paste(APP_RECORD_NUM,Firm,METAL)),FUN=any)
+choices[,hix:= any(hix),by=c("APP_RECORD_NUM","Firm","METAL")]
 
+## Create Character Difference Variables 
+choices$High = 0 
+choices$High[with(choices,METAL%in%c("GOLD","PLATINUM")|CSR%in%c("94","87"))] = 1
+
+choices[CSR=="",MedDeductStandard:=MedDeduct,by=c("STATE","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+choices[,MedDeductStandard:=max(MedDeductStandard,na.rm=TRUE),by=c("STATE","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+choices[CSR=="",MedOOPStandard:=MedOOP,by=c("STATE","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+choices[,MedOOPStandard:=max(MedOOPStandard,na.rm=TRUE),by=c("STATE","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+choices[CSR=="",HighStandard:=High,by=c("STATE","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+choices[,HighStandard:=max(HighStandard,na.rm=TRUE),by=c("STATE","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+
+choices[,MedDeductDiff:=MedDeduct - MedDeductStandard]
+choices[,MedOOPDiff:=MedOOP - MedOOPStandard]
+choices[,HighDiff:=High - HighStandard]
+
+## Set Income Specific Choice Sets
 choices$CSR_subs = ""
-choices$CSR_subs[with(choices,METAL=="SILVER"&hix&FPL_imp>2 & FPL_imp<=2.5)] = "73"
-choices$CSR_subs[with(choices,METAL=="SILVER"&hix&FPL_imp>1.5 & FPL_imp<=2)] = "87"
-choices$CSR_subs[with(choices,METAL=="SILVER"&hix&FPL_imp>=1 & FPL_imp<=1.5)] = "94"
+choices$CSR_subs[with(choices,METAL=="SILVER"&hix&FPL_imp>=2 & FPL_imp<2.5)] = "73"
+choices$CSR_subs[with(choices,METAL=="SILVER"&hix&FPL_imp>=1.5 & FPL_imp<2)] = "87"
+choices$CSR_subs[with(choices,METAL=="SILVER"&hix&FPL_imp>=1 & FPL_imp<1.5)] = "94"
 
 # Keep only Silver plans for the appropriate income
 choices = choices[with(choices,CSR==CSR_subs),]
 
+
+##### Discretize the Data into Type Buckets #####
+choices[,FPL_bucket:= "Less than 1"]
+choices[FPL_imp>=1&FPL_imp<1.5,FPL_bucket:="1 - 1.5"]
+choices[FPL_imp>=1.5&FPL_imp<2,FPL_bucket:="1.5 - 2"]
+choices[FPL_imp>=2&FPL_imp<2.5,FPL_bucket:="2 - 2.5"]
+choices[FPL_imp>=2.5&FPL_imp<3,FPL_bucket:="2.5 - 3"]
+choices[FPL_imp>=3&FPL_imp<3.5,FPL_bucket:="3 - 3.5"]
+choices[FPL_imp>=3.5&FPL_imp<4,FPL_bucket:="3.5 - 4"]
+choices[is.na(FPL_imp)|FPL_imp>=4,FPL_bucket:="Greater than 4"]
+
+
+choices[,AGE_bucket:= "26 or Under"]
+choices[AGE>26&AGE<=30,AGE_bucket:= "26-30"]
+choices[AGE>31&AGE<=34,AGE_bucket:= "31-34"]
+choices[AGE>35&AGE<=38,AGE_bucket:= "35-38"]
+choices[AGE>39&AGE<=42,AGE_bucket:= "39-42"]
+choices[AGE>43&AGE<=46,AGE_bucket:= "43-46"]
+choices[AGE>47&AGE<=50,AGE_bucket:= "47-50"]
+choices[AGE>51&AGE<=54,AGE_bucket:= "51-54"]
+choices[AGE>55&AGE<=58,AGE_bucket:= "55-58"]
+choices[AGE>58,AGE_bucket:= "58-64"]
+
+choices[,Mem_bucket:= "Single"]
+choices[MEMBERS==2,Mem_bucket:= "Couple"]
+choices[MEMBERS>=3,Mem_bucket:= "3+"]
+
+test = as.data.frame(choices)
+choices = choices[,list(AGE = mean(AGE),
+                        ageRate = mean(ageRate),
+                        #SMOKER = mean(SMOKER),
+                        MEMBERS = mean(MEMBERS),
+                        Income = mean(Income,na.rm=TRUE),
+                        FPL_imp = mean(FPL_imp,na.rm=TRUE),
+                        Y = sum(Y*MEMBERS),
+                        N = sum(MEMBERS),
+                        subsidy_mean= mean(subsidy)),
+                  by=c("STATE","AREA","FPL_bucket","AGE_bucket","Mem_bucket","FAMILY_OR_INDIVIDUAL","Firm","METAL","hix","CSR",
+                       "MedDeduct","MedOOP","High","MedDeductDiff","MedOOPDiff","HighDiff","benchBase","premBase")]
+
+choices[,S_ij:= Y/N]
+
+
+## Re-Calculate Premiums for Choice Set
+choices[,Benchmark:=benchBase*ageRate]
+choices[,HHcont:= subsPerc(FPL_imp)]
+choices[,subsidy:= pmax(Benchmark - HHcont*Income/12,0)]
+# Leave subsidies below 100 FPL
+choices[is.na(FPL_imp)|FPL_imp>4,subsidy:=0]
+choices[FPL_imp<1,subsidy:=subsidy_mean]
+choices[,diff:=subsidy-subsidy_mean]
+
+choices[,Quote:= premBase*ageRate]
+choices[,PremPaid:= pmax(premBase*ageRate - subsidy,0)]
+choices$PremPaid[choices$METAL=="CATASTROPHIC"] = with(choices[choices$METAL=="CATASTROPHIC",],premBase*ageRate)
+
+# Per Member Premium
+choices[,PremPaid:=PremPaid/MEMBERS]
 
 #### Calculate Mandate Penalty ####
 # Based on 2015 Tax Thresholds 
@@ -294,12 +373,6 @@ choices$Mandate = with(choices, pmin(pmax(325,.02*(Income_Filled-filingThresh)),
 choices$Mandate[choices$MEMBERS>1] = with(choices[choices$MEMBERS>1,], pmin(pmax(pmin(325*2+325*.5*(MEMBERS-2),975),
                                                                                  .02*(Income_Filled-filingThresh)),
                                                                             2484*2+2484*.5*(MEMBERS-2)))
-
-
-choices = choices[,c("STATE","APP_RECORD_NUM","QUOTED_RATE","FFM_APTC_AMOUNT","FFM_PREMIUM_DUE",
-                     "FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","SMOKER","AREA","Firm","METAL","hix",
-                     "MedDeduct","MedOOP","ageRate","FPL_imp","Benchmark","HHcont","subsidy","Quote",
-                     "PremPaid","Y","Income","logIncome","CSR","Mandate")]
 
 
 #### Merge in Uninsured Rate ####
@@ -317,6 +390,14 @@ unins = read.csv("Data/2015_ACS/uninsured_acs2015.csv")
 
 choices = merge(choices,unins,by.x=c("STATE","inc_cat","AGE_cat","mem_cat"),
                     by.y=c("state","inc_cat","AGE_cat","mem_cat"),all.x=TRUE)
+
+
+choices = choices[,c("STATE","AREA","FPL_bucket","AGE_bucket","Mem_bucket",
+                     "FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","Firm","METAL","hix","CSR",
+                     "MedDeduct","MedOOP","High","MedDeductDiff","MedOOPDiff","HighDiff",
+                     "ageRate","FPL_imp","Benchmark","HHcont","subsidy","Quote",
+                     "PremPaid","S_ij","N","Income","Mandate","unins_rate")]
+
 
 # 
 # 
@@ -342,15 +423,11 @@ choices = merge(choices,unins,by.x=c("STATE","inc_cat","AGE_cat","mem_cat"),
 choices$Family = 0 
 choices$Family[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"] = 1
 
-choices$Youth = 1
-choices$Youth[choices$AGE>35] = 0
+choices$Age = 0
+choices$Age[choices$AGE>=39] = 1
 
 choices$LowIncome = 1
 choices$LowIncome[with(choices,is.na(FPL_imp)|FPL_imp>4)] = 0
-
-choices$High = 0 
-choices$High[with(choices,METAL%in%c("GOLD","PLATINUM")|CSR%in%c("94","87"))] = 1
-
 
 # Create Group Fixed Effects
 for (fam in 0:1){
@@ -358,19 +435,10 @@ for (fam in 0:1){
     for (inc in 0:1){
       var = paste("F",fam,"_Y",you,"_LI",inc,sep="")
       choices[[var]]=0
-      choices[[var]][with(choices,Family==fam&Youth==you&LowIncome==inc)]=1
+      choices[[var]][with(choices,Family==fam&Age==you&LowIncome==inc)]=1
     }
   }
 }
-
-
-#### Summary Stats for Tables ####
-sumData = choices[choices$Y==1,]
-t1 = summaryBy(MEMBERS~METAL,data=sumData,FUN=sum,keep.names=TRUE)
-t1$MEMBERS = t1$MEMBERS/sum(t1$MEMBERS)
-
-t2 = summaryBy(MEMBERS~METAL,data=sumData[sumData$LowIncome==0,],FUN=sum,keep.names=TRUE)
-t2$MEMBERS = t2$MEMBERS/sum(t2$MEMBERS)
 
 
 
@@ -381,20 +449,43 @@ choices$Market = with(choices,paste(STATE,gsub("Rating Area ","",AREA),sep="_"))
 
 choices$Product = with(choices,paste(Firm,METAL,Market,sep="_"))
 
+choices[,Person:=as.factor(paste(Market,FPL_bucket,AGE_bucket,Mem_bucket))]
+choices[,Person:=as.numeric(Person)]
+
+
+#### Summary Stats for Tables ####
+choices[,premMin:=min(PremPaid),by=c("Person","METAL")]
+choices[,lowestPrem:=as.numeric(premMin==PremPaid)]
+
+t1 = choices[,list(enroll=sum(S_ij*N)),by=c("METAL","lowestPrem")]
+t1[,share:=enroll/sum(enroll)]
+setkey(t1,METAL,lowestPrem)
+
+t1 = choices[Family==1,list(enroll=sum(S_ij*N)),by=c("METAL","lowestPrem")]
+t1[,share:=enroll/sum(enroll)]
+setkey(t1,METAL,lowestPrem)
+
+t1 = choices[,list(enroll=sum(S_ij*N)),by=c("METAL","LowIncome")]
+t1[,share:=enroll/sum(enroll)]
+setkey(t1,METAL,LowIncome)
+
 #### Calculate Product Market Share ####
-unins_st = read.csv("Data/2015_ACS/uninsured_ST_acs2015.csv")
+#unins_st = read.csv("Data/2015_ACS/uninsured_ST_acs2015.csv")
+# Take Uninsurance Rates implied in the sample
+insured = unique(choices[,c("Person","STATE","unins_rate","N")])
+insured = insured[,list(unins_rate=sum(unins_rate*N)/sum(N)),by="STATE"]
 
-
-choices$count = choices$Y*choices$MEMBERS
-shares = summaryBy(MEMBERS+count~Product+Firm+Market+STATE,data=choices,FUN=sum,keep.names=TRUE)
-shares = merge(shares,unins_st,by.x="STATE",by.y="state")
-shares$s_inside = with(shares,count/MEMBERS)
+shares = choices[,list(enroll=sum(S_ij*N),pop_offered=sum(N)),by=c("Product","Firm","Market","STATE")]
+shares = merge(shares,insured,by="STATE")
+shares[,lives:=sum(enroll),by="Market"]
+shares[,s_inside:= enroll/pop_offered]
 shares$Share = shares$s_inside*(1-shares$unins_rate)
-shares$marketTotal = ave(shares$count,shares$Market,FUN=sum)
 
-firmShares = summaryBy(count~Firm+Market,data=choices,FUN=sum,keep.names=TRUE)
-firmShares$marketTotal = ave(firmShares$count,firmShares$Market,FUN=sum)
-firmShares$share = firmShares$count/firmShares$marketTotal
+
+
+firmShares = choices[,list(enroll=sum(S_ij*N*MEMBERS)),by=c("Firm","Market")]
+firmShares[,lives:=sum(enroll),by="Market"]
+firmShares[,share:= enroll/lives]
 
 
 absent = firmShares[firmShares$share==0,]
@@ -402,21 +493,24 @@ absent = firmShares[firmShares$share==0,]
 #Drop all firms that are absent in that market
 shares = shares[!with(shares,paste(Firm,Market))%in%with(absent,paste(Firm,Market)),]
 #Drop markets with less than 10 observations
-shares = shares[shares$marketTotal>10,]
+# One makret in Illinois. May need to re-add
+shares = shares[shares$lives>10,]
 #Drop Products with 0 market share
 shares = shares[shares$s_inside>0,]
 
 # Eliminate the 0 share products from the choice set
 choices = choices[choices$Product%in%shares$Product,]
 
+
+
 #### Clean and Print ####
 choices$Price = (choices$PremPaid*12-choices$Mandate)/1000
 choices$MedDeduct = choices$MedDeduct/1000
+choices$MedDeductDiff = choices$MedDeductDiff/1000
 choices$MedOOP = choices$MedOOP/1000
-
-choices$Age = 0
-choices$Age[choices$AGE>=40] = 1
-choices$Person = as.character(choices$APP_RECORD_NUM)
+choices$MedOOPDiff = choices$MedOOPDiff/1000
+choices[,ExcOOP:= (MedOOP - MedDeduct)]
+choices[,ExcOOPDiff:= (MedOOPDiff - MedDeductDiff)]
 
 choices$Product = as.factor(choices$Product)
 shares$Product_Name = factor(shares$Product,levels=levels(choices$Product))
@@ -425,18 +519,24 @@ choices$Product = as.numeric(choices$Product)
 shares$Product = as.numeric(shares$Product_Name)
 
 choices = choices[with(choices,order(Person,Product)),]
-shares = shares[order(shares$Product),]
+setkey(choices,Person,Product)
+setkey(shares,Product)
 
-write.csv(choices[,c("Person","Firm","Market","Product","Y","Price","MedDeduct","MedOOP","High","Family","Age","LowIncome",names(choices)[grepl("F[0-9]_Y.*",names(choices))],"unins_rate")],
-          "Intermediate_Output/Estimation_Data/estimationData.csv",row.names=FALSE)
+write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price",
+                     "MedDeduct","ExcOOP","High","MedDeductDiff","ExcOOPDiff","HighDiff",
+                     "Family","Age","LowIncome",
+                     "F0_Y0_LI0","F0_Y0_LI1","F0_Y1_LI0","F0_Y1_LI1",
+                     "F1_Y0_LI0","F1_Y0_LI1","F1_Y1_LI0","F1_Y1_LI1","unins_rate")],
+          "Intermediate_Output/Estimation_Data/estimationData_discrete.csv",row.names=FALSE)
+write.csv(choices,"Intermediate_Output/Estimation_Data/descriptiveData_discrete.csv",row.names=FALSE)
 write.csv(shares[,c("Product","Share")],
-          "Intermediate_Output/Estimation_Data/marketData.csv",row.names=FALSE)
-write.csv(shares[,c("Product_Name","Product","Share","Firm","Market","STATE")],
-          "Intermediate_Output/Estimation_Data/marketDataMap.csv",row.names=FALSE)
+          "Intermediate_Output/Estimation_Data/marketData_discrete.csv",row.names=FALSE)
+write.csv(shares[,c("Product_Name","Product","Share","s_inside","Firm","Market","STATE")],
+          "Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv",row.names=FALSE)
 
 # Create mini Michigan Dataset and Renumber Products
-MI = choices[choices$STATE=="MI",]
-MI_mkt = shares[shares$STATE=="MI",]
+MI = choices[STATE=="MI",]
+MI_mkt = shares[STATE=="MI",]
 
 MI$Product = as.factor(MI$Product)
 MI_mkt$Product = factor(MI_mkt$Product,levels=levels(MI$Product))
@@ -444,141 +544,30 @@ MI_mkt$Product = factor(MI_mkt$Product,levels=levels(MI$Product))
 MI$Product = as.numeric(MI$Product)
 MI_mkt$Product = as.numeric(MI_mkt$Product)
 
-MI = MI[with(MI,order(Person,Product)),]
-MI_mkt = MI_mkt[order(MI_mkt$Product),]
+setkey(MI,Person,Product)
+setkey(MI_mkt,Product)
 
-write.csv(MI[,c("Person","Firm","Market","Product","Y","Price","MedDeduct","MedOOP","High","Family","Age","LowIncome",names(choices)[grepl("F[0-9]_Y.*",names(choices))],"unins_rate")],
-          "Intermediate_Output/Estimation_Data/estimationData_MI.csv",row.names=FALSE)
+vars = c("Person","Firm","Market","Product","S_ij","N","Price",
+         "MedDeduct","ExcOOP","High","MedDeductDiff","ExcOOPDiff","HighDiff",
+         "Family","Age","LowIncome",names(choices)[grepl("F[0-9]_Y.*",names(choices))],"unins_rate")
+
+write.csv(MI[,c("Person","Firm","Market","Product","S_ij","N","Price",
+                "MedDeduct","ExcOOP","High","MedDeductDiff","ExcOOPDiff","HighDiff",
+                "Family","Age","LowIncome",
+                "F0_Y0_LI0","F0_Y0_LI1","F0_Y1_LI0","F0_Y1_LI1",
+                "F1_Y0_LI0","F1_Y0_LI1","F1_Y1_LI0","F1_Y1_LI1","unins_rate")],
+          "Intermediate_Output/Estimation_Data/estimationData_MI_discrete.csv",row.names=FALSE)
 write.csv(MI_mkt[,c("Product","Share")],
-          "Intermediate_Output/Estimation_Data/marketData_MI.csv",row.names=FALSE)
-write.csv(MI_mkt[,c("Product_Name","Product","Share","Firm","Market","STATE")],
-          "Intermediate_Output/Estimation_Data/marketDataMap_MI.csv",row.names=FALSE)
+          "Intermediate_Output/Estimation_Data/marketData_MI_discrete.csv",row.names=FALSE)
+write.csv(MI_mkt[,c("Product_Name","Product","Share","s_inside","Firm","Market","STATE")],
+          "Intermediate_Output/Estimation_Data/marketDataMap_MI_discrete.csv",row.names=FALSE)
 
 
-#### Product Analysis #### 
-products = unique(choices[,c("STATE","Market","Firm")])
-nrow(products)
-products$count = 1
-products = summaryBy(count~Firm+METAL,data=products,FUN=sum,keep.names=TRUE)
-products = products[order(products$count),]
 
+#### Tests
 
-#### Benchmark ####
-alpha = seq(0,1,length.out=9)/1000
-beta = c(1,1)/1000
-phi  = seq(0,1,length.out=9)/1000
-gamma = c(1,1,1,1)/1000
-
-par = c(alpha,beta,phi,gamma)
-
-#### Likelihood Function #####
-
-choices.Est = as.data.table(choices[,
-                                    c("Person","Firm","Market","Product","Y","Price","MedDeduct",
-                                      "MedOOP","Family","Age","LowIncome",
-                                      names(choices)[grepl("F[0-9]_Y.*",names(choices))],
-                                      "unins_rate")]
-)
-
-
-delta = data.table(delta = 0, Product = unique(choices.Est$Product))
-setkey(delta,Product)
-setorder(delta,Product)
-
-merge_helper = choices.Est[,"Product"]
-
-setkey(choices.Est,Person)
-setkey(choices.Est,Product)
-setkey(merge_helper,Product)
-
-choices.Est$count = 1
-marketshares = choices.Est[,.(sum(Y), sum(count)),keyby=Product]
-marketshares$share = with(marketshares,V1/V2)
-# Get rid of 0s
-marketshares$share[marketshares$share==0] = NA
-
-
-logsumExp <- function(x){log(1+sum(exp(x)))}
-sumExp <- function(x){sum(exp(x))}
-
-insideLL <- function(par){
-  alpha = par[1:9]
-  beta = par[10:11]
-  phi  = par[12:20]
-  gamma = par[21:length(par)]
-  
-  dataEst = choices.Est
-  
-  dataEst$withinMarket = with(dataEst,
-                          Price*(alpha[1]+
-                                   alpha[2]*F0_Y0_LI0 + 
-                                   alpha[3]*F0_Y0_LI1 + 
-                                   alpha[4]*F0_Y1_LI0 + 
-                                   alpha[5]*F0_Y1_LI1 + 
-                                   alpha[6]*F1_Y0_LI0 + 
-                                   alpha[7]*F1_Y0_LI1 + 
-                                   alpha[8]*F1_Y1_LI0 + 
-                                   alpha[9]*F1_Y1_LI1) +
-                            (MedDeduct*beta[1] + MedOOP*beta[2])*(phi[1] +
-                                                                    phi[2]*F0_Y0_LI0 + 
-                                                                    phi[3]*F0_Y0_LI1 + 
-                                                                    phi[4]*F0_Y1_LI0 + 
-                                                                    phi[5]*F0_Y1_LI1 + 
-                                                                    phi[6]*F1_Y0_LI0 + 
-                                                                    phi[7]*F1_Y0_LI1 + 
-                                                                    phi[8]*F1_Y1_LI0 + 
-                                                                    phi[9]*F1_Y1_LI1) +
-                            gamma[1] +
-                            Family*gamma[2] + 
-                            Age*gamma[3] + 
-                            LowIncome*gamma[4]
-  )
-
-  
-  # Contraction Mapping
-  err = 1
-  tol = 1e-10
-  cnt = 0
-  while (err>tol&cnt<1000){
-    delta_long = merge(merge_helper,delta)
-    dataEst[,delta:=delta_long$delta]
-    dataEst[,delta_ij:= delta + withinMarket]
-    dataEst[,exp_ij:= exp(delta_ij)]
-    dataEst[,exp_sum:=lapply(.SD,sum,na.rm=TRUE),by = Person,.SDcols = "exp_ij"]
-    dataEst[,s_ij:=exp_ij/(exp_sum)]
-    s_j = dataEst[,mean(s_ij),keyby=Product]
-    #delta[,delta:= delta + (log(marketshares$share) - log(s_j$V1))]
-    delta$delta = delta$delta + (log(marketshares$share) - log(s_j$V1))
-    err = max(abs(log(marketshares$share) - log(s_j$V1)),na.rm=TRUE)
-    # if (err>1 & cnt>5){
-    #   delta$delta=1
-    #   break
-    # }
-    cnt = cnt + 1
-    #print(err)
-  }
-  print(cnt)
-  delta$delta[is.na(delta$delta)] = -10
-  delta_long = merge(merge_helper,delta)
-  dataEst[,delta:=delta_long$delta]
-  dataEst[,delta_ij:= delta + withinMarket]
-
-  dataEst[,totexp:=sumExp(delta_ij), by=Person]
-  dataEst[,logtotexp:=logsumExp(delta_ij), by=Person ]
-  
-  LL_Inside = dataEst[,sum((1-unins_rate)*Y*(delta_ij-log(totexp)))]
-  LL_Outside = dataEst[,sum(Y*((1-unins_rate)*log(totexp)-logtotexp))]
-  LL = LL_Inside+LL_Outside
-  print(LL)
-  # print(beta)
-  return(-LL)
-}
-
-start.time <- Sys.time()
-insideLL(par)
-Sys.time()-start.time
-
-x = rep(5.5,55e6)
-start.time <- Sys.time()
-y=exp(x)
-Sys.time()-start.time
+# shares = choices[,list(enroll=sum(S_ij*N),pop_offered=sum(N)),by=c("Product","Firm","Market","STATE")]
+# shares = merge(shares,unins_st,by.x="STATE",by.y="state")
+# shares[,lives:=sum(enroll),by="Market"]
+# shares[,s_inside:= enroll/pop_offered]
+# shares$Share = shares$s_inside*(1-shares$unins_rate)
