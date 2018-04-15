@@ -304,57 +304,12 @@ choices$CSR_subs[with(choices,METAL=="SILVER"&hix&FPL_imp>=1 & FPL_imp<1.5)] = "
 choices = choices[with(choices,CSR==CSR_subs),]
 
 
-##### Discretize the Data into Type Buckets #####
-choices[,FPL_bucket:= "Less than 1"]
-choices[FPL_imp>=1&FPL_imp<1.5,FPL_bucket:="1 - 1.5"]
-choices[FPL_imp>=1.5&FPL_imp<2,FPL_bucket:="1.5 - 2"]
-choices[FPL_imp>=2&FPL_imp<2.5,FPL_bucket:="2 - 2.5"]
-choices[FPL_imp>=2.5&FPL_imp<3,FPL_bucket:="2.5 - 3"]
-choices[FPL_imp>=3&FPL_imp<3.5,FPL_bucket:="3 - 3.5"]
-choices[FPL_imp>=3.5&FPL_imp<4,FPL_bucket:="3.5 - 4"]
-choices[is.na(FPL_imp)|FPL_imp>=4,FPL_bucket:="Greater than 4"]
+##### Keep Full Data #####
 
-
-choices[,AGE_bucket:= "26 or Under"]
-choices[AGE>26&AGE<=30,AGE_bucket:= "26-30"]
-choices[AGE>31&AGE<=34,AGE_bucket:= "31-34"]
-choices[AGE>35&AGE<=38,AGE_bucket:= "35-38"]
-choices[AGE>39&AGE<=42,AGE_bucket:= "39-42"]
-choices[AGE>43&AGE<=46,AGE_bucket:= "43-46"]
-choices[AGE>47&AGE<=50,AGE_bucket:= "47-50"]
-choices[AGE>51&AGE<=54,AGE_bucket:= "51-54"]
-choices[AGE>55&AGE<=58,AGE_bucket:= "55-58"]
-choices[AGE>58,AGE_bucket:= "58-64"]
-
-choices[,Mem_bucket:= "Single"]
-choices[MEMBERS==2,Mem_bucket:= "Couple"]
-choices[MEMBERS>=3,Mem_bucket:= "3+"]
-
-test = as.data.frame(choices)
-choices = choices[,list(AGE = mean(AGE),
-                        ageRate = mean(ageRate),
-                        #SMOKER = mean(SMOKER),
-                        MEMBERS = mean(MEMBERS),
-                        Income = mean(Income,na.rm=TRUE),
-                        FPL_imp = mean(FPL_imp,na.rm=TRUE),
-                        Y = sum(Y*MEMBERS),
-                        N = sum(MEMBERS),
-                        subsidy_mean= mean(subsidy)),
-                  by=c("STATE","AREA","FPL_bucket","AGE_bucket","Mem_bucket","FAMILY_OR_INDIVIDUAL","Firm","METAL","hix","CSR",
-                       "MedDeduct","MedOOP","High","MedDeductDiff","MedOOPDiff","HighDiff","benchBase","premBase")]
-
-choices[,S_ij:= Y/N]
-
+choices[,S_ij:= Y]
+choices[,N:=MEMBERS]
 
 ## Re-Calculate Premiums for Choice Set
-choices[,Benchmark:=benchBase*ageRate]
-choices[,HHcont:= subsPerc(FPL_imp)]
-choices[,subsidy:= pmax(Benchmark - HHcont*Income/12,0)]
-# Leave subsidies below 100 FPL
-choices[is.na(FPL_imp)|FPL_imp>4,subsidy:=0]
-choices[FPL_imp<1,subsidy:=subsidy_mean]
-choices[,diff:=subsidy-subsidy_mean]
-
 choices[,Quote:= premBase*ageRate]
 choices[,PremPaid:= pmax(premBase*ageRate - subsidy,0)]
 choices$PremPaid[choices$METAL=="CATASTROPHIC"] = with(choices[choices$METAL=="CATASTROPHIC",],premBase*ageRate)
@@ -449,8 +404,7 @@ choices$Market = with(choices,paste(STATE,gsub("Rating Area ","",AREA),sep="_"))
 
 choices$Product = with(choices,paste(Firm,METAL,Market,sep="_"))
 
-choices[,Person:=as.factor(paste(Market,FPL_bucket,AGE_bucket,Mem_bucket))]
-choices[,Person:=as.numeric(Person)]
+choices[,Person:=APP_RECORD_NUM]
 
 
 #### Summary Stats for Tables ####
@@ -527,12 +481,12 @@ write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price",
                      "Family","Age","LowIncome",
                      "F0_Y0_LI0","F0_Y0_LI1","F0_Y1_LI0","F0_Y1_LI1",
                      "F1_Y0_LI0","F1_Y0_LI1","F1_Y1_LI0","F1_Y1_LI1","unins_rate")],
-          "Intermediate_Output/Estimation_Data/estimationData_discrete.csv",row.names=FALSE)
-write.csv(choices,"Intermediate_Output/Estimation_Data/descriptiveData_discrete.csv",row.names=FALSE)
+          "Intermediate_Output/Estimation_Data/estimationData.csv",row.names=FALSE)
+write.csv(choices,"Intermediate_Output/Estimation_Data/descriptiveData.csv",row.names=FALSE)
 write.csv(shares[,c("Product","Share")],
-          "Intermediate_Output/Estimation_Data/marketData_discrete.csv",row.names=FALSE)
+          "Intermediate_Output/Estimation_Data/marketData.csv",row.names=FALSE)
 write.csv(shares[,c("Product_Name","Product","Share","s_inside","Firm","Market","STATE")],
-          "Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv",row.names=FALSE)
+          "Intermediate_Output/Estimation_Data/marketDataMap.csv",row.names=FALSE)
 
 # Create mini Michigan Dataset and Renumber Products
 MI = choices[STATE=="MI",]
@@ -556,11 +510,11 @@ write.csv(MI[,c("Person","Firm","Market","Product","S_ij","N","Price",
                 "Family","Age","LowIncome",
                 "F0_Y0_LI0","F0_Y0_LI1","F0_Y1_LI0","F0_Y1_LI1",
                 "F1_Y0_LI0","F1_Y0_LI1","F1_Y1_LI0","F1_Y1_LI1","unins_rate")],
-          "Intermediate_Output/Estimation_Data/estimationData_MI_discrete.csv",row.names=FALSE)
+          "Intermediate_Output/Estimation_Data/estimationData_MI.csv",row.names=FALSE)
 write.csv(MI_mkt[,c("Product","Share")],
-          "Intermediate_Output/Estimation_Data/marketData_MI_discrete.csv",row.names=FALSE)
+          "Intermediate_Output/Estimation_Data/marketData_MI.csv",row.names=FALSE)
 write.csv(MI_mkt[,c("Product_Name","Product","Share","s_inside","Firm","Market","STATE")],
-          "Intermediate_Output/Estimation_Data/marketDataMap_MI_discrete.csv",row.names=FALSE)
+          "Intermediate_Output/Estimation_Data/marketDataMap_MI.csv",row.names=FALSE)
 
 
 

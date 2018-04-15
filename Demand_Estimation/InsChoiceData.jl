@@ -40,7 +40,7 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
         person=[:Person],
         product=[:Product],
         prodchars=[:Price,:MedDeduct,:High],
-        prodchars_0=[:Price,:MedDeductDiff,:HighDiff],
+        prodchars_0=[:PriceDiff,:MedDeductDiff,:HighDiff],
         choice=[:S_ij],
         demoRaw=[:Age,:Family,:LowIncome],
         # demoRaw=[:F0_Y0_LI1,

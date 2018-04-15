@@ -359,8 +359,11 @@ choices[,Quote:= premBase*ageRate]
 choices[,PremPaid:= pmax(premBase*ageRate - subsidy,0)]
 choices$PremPaid[choices$METAL=="CATASTROPHIC"] = with(choices[choices$METAL=="CATASTROPHIC",],premBase*ageRate)
 
+
 # Per Member Premium
 choices[,PremPaid:=PremPaid/MEMBERS]
+# Difference Out the Base Premium
+choices[,PremPaidDiff:=PremPaid-premBase]
 
 #### Calculate Mandate Penalty ####
 # Based on 2015 Tax Thresholds 
@@ -396,7 +399,7 @@ choices = choices[,c("STATE","AREA","FPL_bucket","AGE_bucket","Mem_bucket",
                      "FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","Firm","METAL","hix","CSR",
                      "MedDeduct","MedOOP","High","MedDeductDiff","MedOOPDiff","HighDiff",
                      "ageRate","FPL_imp","Benchmark","HHcont","subsidy","Quote",
-                     "PremPaid","S_ij","N","Income","Mandate","unins_rate")]
+                     "PremPaid","PremPaidDiff","S_ij","N","Income","Mandate","unins_rate")]
 
 
 # 
@@ -505,6 +508,7 @@ choices = choices[choices$Product%in%shares$Product,]
 
 #### Clean and Print ####
 choices$Price = (choices$PremPaid*12-choices$Mandate)/1000
+choices$PriceDiff = (choices$PremPaidDiff*12-choices$Mandate)/1000
 choices$MedDeduct = choices$MedDeduct/1000
 choices$MedDeductDiff = choices$MedDeductDiff/1000
 choices$MedOOP = choices$MedOOP/1000
@@ -522,7 +526,7 @@ choices = choices[with(choices,order(Person,Product)),]
 setkey(choices,Person,Product)
 setkey(shares,Product)
 
-write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price",
+write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price","PriceDiff",
                      "MedDeduct","ExcOOP","High","MedDeductDiff","ExcOOPDiff","HighDiff",
                      "Family","Age","LowIncome",
                      "F0_Y0_LI0","F0_Y0_LI1","F0_Y1_LI0","F0_Y1_LI1",
@@ -551,7 +555,7 @@ vars = c("Person","Firm","Market","Product","S_ij","N","Price",
          "MedDeduct","ExcOOP","High","MedDeductDiff","ExcOOPDiff","HighDiff",
          "Family","Age","LowIncome",names(choices)[grepl("F[0-9]_Y.*",names(choices))],"unins_rate")
 
-write.csv(MI[,c("Person","Firm","Market","Product","S_ij","N","Price",
+write.csv(MI[,c("Person","Firm","Market","Product","S_ij","N","Price","PriceDiff",
                 "MedDeduct","ExcOOP","High","MedDeductDiff","ExcOOPDiff","HighDiff",
                 "Family","Age","LowIncome",
                 "F0_Y0_LI0","F0_Y0_LI1","F0_Y1_LI0","F0_Y1_LI1",
