@@ -9,7 +9,9 @@ include("InsChoiceData.jl")
 include("Halton.jl")
 
 # Random Coefficients MLE
-include("MLE_RC.jl")
+include("RandomCoefficients.jl")
+include("Contraction.jl")
+include("Estimate_MLE.jl")
 println("Code Loaded")
 
 # Load the Data
@@ -22,10 +24,10 @@ m = InsuranceLogit(c,500)
 
 # -2.6967 in 1727 evaluations
 # Initial Parameters
-γstart = Array{Float64}([0,0,0])/100
+γstart = Array{Float64}([2,2,2])/100
 #γstart = Array{Float64}([0,0,0,0,0,0,0])/100
-β0start = -ones(3)/10
-βstart = -ones(1)/10
+β0start = -ones(3)
+βstart = -ones(1)/5
 σstart = [1,1,-1.5]/10
 p0 = vcat(γstart,β0start,βstart,σstart)
 
