@@ -56,8 +56,8 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
 
     γ = x[1:3]
     β_0 = x[4:6]
-    β_vec = x[7:8]
-    σ = x[9:11]
+    β_vec = x[7]
+    σ = x[8:10]
     #σ = [0]
 
     # Stack Beta into a matrix
@@ -79,8 +79,9 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
         #     β[j,i] = 0
         # end
     end
-    β[2,1] = β_vec[1]
-    β[3,1] = β_vec[2]
+    β[1,3] = β_vec[1]
+    # β[2,1] = β_vec[1]
+    # β[3,1] = β_vec[2]
     # println(γ)
     # println(β)
     # println(β_0)
@@ -625,8 +626,12 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
         chg = - 2*αn.*r0 + αn^2.*vn
         δ_new = δ_init.*exp.(chg)
         #δ_new = δ_init - αn.*r0
+        if eps0>10
+            d.deltas = δ_1
+        else
+            d.deltas = δ_new
+        end
 
-        d.deltas = δ_new
         unpack_δ!(p.δ,d)
         if !update
             d.deltas = δ_init

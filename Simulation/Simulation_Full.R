@@ -42,8 +42,8 @@ acs = merge(acs,areaMatch[,c("PUMA","RatingArea","ST","STATEFIP","alloc")],by=c(
 acs[,PERWT:=PERWT*alloc]
 acs[,household:=as.factor(paste(household,gsub("Rating Area ","",RatingArea),sep="-"))]
 
-acs = acs[,c("household","HHincomeFPL","HH_income","AGE","PERWT","RatingArea","ST")]
-names(acs) = c("household","HHincomeFPL","HH_income","AGE","PERWT","AREA","ST")
+acs = acs[,c("household","HHincomeFPL","HH_income","AGE","SEX","PERWT","RatingArea","ST")]
+names(acs) = c("household","HHincomeFPL","HH_income","AGE","SEX","PERWT","AREA","ST")
 
 
 
@@ -65,6 +65,13 @@ acs$ageRate[!is.na(acs$Rating.y)] = acs$Rating.y[!is.na(acs$Rating.y)]
 acs = acs[,c("Rating.x","Rating.y"):=NULL]
 rm(rating)
 
+
+# Merge in Age-specific HHS-HCC Risk Adjustment Factors
+HCC = read.csv("Risk_Adjustment/2014_HHS_HCC_AgeRA_Coefficients.csv")
+names(HCC) = c("Sex","Age","PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age")
+acs[,AgeMatch:= pmax(floor(AGE/5)*5,21)]
+acs = merge(acs,HCC,by.x=c("AgeMatch","SEX"),by.y=c("Age","Sex"))
+
 #Count Members
 setkey(acs,household)
 acs$MEMBERS=1
@@ -77,11 +84,26 @@ acs$ageRate[!is.na(acs$childRank)&acs$childRank>3]=0
 
 acs$catas_cnt = as.numeric(acs$AGE<=30)
 acs$ageRate_avg = acs$ageRate*acs$PERWT
-acs = acs[,lapply(.SD,sum),by=c("household","HHincomeFPL","HH_income","MaxAge","AREA","ST"),
-          .SDcols = c("MEMBERS","ageRate","ageRate_avg","PERWT","catas_cnt")]
 
-names(acs) = c("household","HHincomeFPL","HH_income","AGE","AREA","ST","MEMBERS","ageRate","ageRate_avg","PERWT","catas_cnt")
+acs[,PlatHCC_Age:=PlatHCC_Age*PERWT]
+acs[,GoldHCC_Age:=GoldHCC_Age*PERWT]
+acs[,SilvHCC_Age:=SilvHCC_Age*PERWT]
+acs[,BronHCC_Age:=BronHCC_Age*PERWT]
+acs[,CataHCC_Age:=CataHCC_Age*PERWT]
+
+
+acs = acs[,lapply(.SD,sum),by=c("household","HHincomeFPL","HH_income","MaxAge","AREA","ST"),
+          .SDcols = c("MEMBERS","ageRate","ageRate_avg","PERWT","catas_cnt",
+                      "PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age")]
+
+names(acs) = c("household","HHincomeFPL","HH_income","AGE","AREA","ST","MEMBERS","ageRate","ageRate_avg","PERWT","catas_cnt",
+               "PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age")
 acs$ageRate_avg = with(acs,ageRate_avg/PERWT)
+acs[,PlatHCC_Age:=PlatHCC_Age/PERWT]
+acs[,GoldHCC_Age:=GoldHCC_Age/PERWT]
+acs[,SilvHCC_Age:=SilvHCC_Age/PERWT]
+acs[,BronHCC_Age:=BronHCC_Age/PERWT]
+acs[,CataHCC_Age:=CataHCC_Age/PERWT]
 
 
 acs$FAMILY_OR_INDIVIDUAL = "INDIVIDUAL"
@@ -115,8 +137,10 @@ acs = acs[acs$valid,]
 
 
 # Keep only relevant variables
-acs = acs[,c("ST","household","HHincomeFPL","HH_income","FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","AREA","Firm","METAL","hix","PREMI27",
-                     "MedDeduct","MedOOP","ageRate","ageRate_avg","PERWT")]
+acs = acs[,c("ST","household","HHincomeFPL","HH_income","FAMILY_OR_INDIVIDUAL","MEMBERS","AGE",
+             "AREA","Firm","METAL","hix","PREMI27",
+             "PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age",
+             "MedDeduct","MedOOP","ageRate","ageRate_avg","PERWT")]
 
 
 # Make Premium for Age Rating = 1
@@ -203,16 +227,21 @@ acs[MEMBERS>=3,Mem_bucket:= "3+"]
 
 #test = as.data.frame(acs)
 acs = acs[,list(AGE = mean(AGE),
-                        ageRate = sum(ageRate*PERWT)/sum(PERWT),
-                        ageRate_avg = sum(ageRate_avg*PERWT)/sum(PERWT),
-                        #SMOKER = mean(SMOKER),
-                        MEMBERS = sum(MEMBERS*PERWT)/sum(PERWT),
-                        HH_income = sum(HH_income*PERWT)/sum(PERWT),
-                        HHincomeFPL = sum(HHincomeFPL*PERWT)/sum(PERWT),
-                        PERWT = sum(PERWT),
-                        subsidy_mean= sum(subsidy*PERWT)/sum(PERWT)),
-                  by=c("ST","AREA","FPL_bucket","AGE_bucket","Mem_bucket","FAMILY_OR_INDIVIDUAL","Firm","METAL","hix","CSR",
-                       "MedDeduct","MedOOP","High","MedDeductDiff","MedOOPDiff","HighDiff", "benchBase","premBase")]
+                ageRate = sum(ageRate*PERWT)/sum(PERWT),
+                ageRate_avg = sum(ageRate_avg*PERWT)/sum(PERWT),
+                PlatHCC_Age = sum(PlatHCC_Age*PERWT)/sum(PERWT),
+                GoldHCC_Age = sum(GoldHCC_Age*PERWT)/sum(PERWT),
+                SilvHCC_Age = sum(SilvHCC_Age*PERWT)/sum(PERWT),
+                BronHCC_Age = sum(BronHCC_Age*PERWT)/sum(PERWT),
+                CataHCC_Age = sum(CataHCC_Age*PERWT)/sum(PERWT),
+                #SMOKER = mean(SMOKER),
+                MEMBERS = sum(MEMBERS*PERWT)/sum(PERWT),
+                HH_income = sum(HH_income*PERWT)/sum(PERWT),
+                HHincomeFPL = sum(HHincomeFPL*PERWT)/sum(PERWT),
+                PERWT = sum(PERWT),
+                subsidy_mean= sum(subsidy*PERWT)/sum(PERWT)),
+          by=c("ST","AREA","FPL_bucket","AGE_bucket","Mem_bucket","FAMILY_OR_INDIVIDUAL","Firm","METAL","hix","CSR",
+               "MedDeduct","MedOOP","High","MedDeductDiff","MedOOPDiff","HighDiff", "benchBase","premBase")]
 
 
 ## Re-Calculate Premiums for Choice Set
@@ -231,6 +260,8 @@ acs$PremPaid[acs$METAL=="CATASTROPHIC"] = with(acs[acs$METAL=="CATASTROPHIC",],p
 
 # Per Member Premium
 acs[,PremPaid:=PremPaid/MEMBERS]
+# Difference Out the Base Premium
+acs[,PremPaidDiff:=PremPaid-premBase]
 
 
 
@@ -254,6 +285,7 @@ acs[is.na(HHincomeFPL)|HHincomeFPL>4,LowIncome:= 0]
 
 #### Clean ####
 acs[,Price:=(PremPaid*12-Mandate)/1000]
+acs[,PriceDiff:=PremPaidDiff*12/1000]
 acs$MedDeduct = acs$MedDeduct/1000
 acs$MedDeductDiff = acs$MedDeductDiff/1000
 acs$MedOOP = acs$MedOOP/1000
@@ -274,7 +306,8 @@ acs[,Person:=as.factor(paste(Market,FPL_bucket,AGE_bucket,Mem_bucket))]
 acs[,Person:=as.numeric(Person)]
 
 
-acs = acs[,c("Person","Firm","Market","Product_Name","Price","MedDeduct","MedOOP","High",
+acs = acs[,c("Person","Firm","Market","Product_Name","Price","PriceDiff","MedDeduct","MedOOP","High",
+             "PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age",
              "MedDeductDiff","MedOOPDiff","HighDiff","Family","Age","LowIncome","ageRate","ageRate_avg","PERWT")]
 
 
@@ -311,7 +344,7 @@ beta[2,1] = pars$pars[7]
 beta[3,1] = pars$pars[8]
 sigma = pars$pars[9:11]
 
-draws = halton(n_draws,dim=3,usetime=TRUE,normal=TRUE)
+draws = halton(n_draws,dim=2,usetime=TRUE,normal=TRUE)
 randCoeffs = matrix(nrow=n_draws,ncol=length(sigma)+1)
 randCoeffs[,1] = draws[,1]*sigma[1]
 randCoeffs[,2] = 0
@@ -374,7 +407,7 @@ for (p in people){
   demos = as.matrix(perData[1,c("Age","Family","LowIncome")])
   #chars = as.matrix(perData[,c("Price","MedDeduct","MedOOP","High")])
   chars = as.matrix(perData[,c("Price","MedDeduct","High")])
-  chars_0 = as.matrix(perData[,c("Price","MedDeductDiff","HighDiff")])
+  chars_0 = as.matrix(perData[,c("PriceDiff","MedDeductDiff","HighDiff")])
   delta = perData$delta
   
   intercept = (demos%*%gamma)[1,1] + randCoeffs[,1]
@@ -406,7 +439,7 @@ for (p in people){
 Sys.time() - start
 
 simFile = paste("Simulation_Risk_Output/simData_",run,".rData",sep="")
-save(acs,predict_data,randCoeffs,file=simFile)
+save(acs,predict_data,draws,file=simFile)
 
 
 ### Predicted Product Shares ####

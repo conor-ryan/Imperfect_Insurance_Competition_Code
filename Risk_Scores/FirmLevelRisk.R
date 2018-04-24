@@ -221,13 +221,18 @@ firm_RA[,R_pred_wgt:=R_f*RA_share]
 #### Other Calibrate Data Set ####
 firm_RA[,Firm_Ag:="Inside"]
 firm_RA[Firm=="OTHER",Firm_Ag:="Other"]
+firm_RA[,ST_R:=sum(R_pred_wgt),by="ST"]
 other_RA = firm_RA[,list(payments_adj=sum(payments_adj),
                          RA_share = sum(RA_share),
                          R_tot = sum(RA_share*R_f)/sum(RA_share),
                          A_tot = sum(RA_share*A_f)/sum(RA_share)),
-                   by=c("Firm_Ag","ST","avg_prem","ST_MLR_lives")]
+                   by=c("Firm_Ag","ST","avg_prem","ST_MLR_lives","R_bench","ST_R")]
+
 #### Save Files ####
-firm_RA = firm_RA[Firm!="OTHER",c("Firm","ST","RA_share","R_f","R_bench","payments_adj")]
+firmRiskFile = paste("Simulation_Risk_Output/FirmRiskScores_Full_",run,".rData",sep="")
+save(firm_RA,file=firmRiskFile)
+
+firm_RA = firm_RA[Firm!="OTHER",c("Firm","ST","RA_share","R_f","R_bench","ST_R","payments_adj")]
 firmRiskFile = paste("Simulation_Risk_Output/FirmRiskScores_",run,".rData",sep="")
 save(firm_RA,file=firmRiskFile)
 
@@ -235,12 +240,9 @@ otherRiskFile = paste("Simulation_Risk_Output/otherRiskScores_",run,".rData",sep
 save(other_RA,file=otherRiskFile)
 
 
-
+#### Check ####
 # firm_RA[,A_sum:=sum(A_wtd),by="ST"]
 # firm_RA[,R_sum:=sum(R_pred_wgt),by="ST"]
-# # firm_RA[,R_rel:=R_pred/R_sum]
-# # firm_RA[,A_rel:=A_wtd/A_sum]
-# # firm_RA[,R_A:=R_rel-A_rel]
 # firm_RA[,transfer_pred:=-ST_MLR_lives*avg_prem*(R_pred_wgt/R_sum - A_wtd/A_sum)]
 # firm_RA[,transfer_pp:=-avg_prem*(R_f/R_sum - A_f/A_sum)]
 # 

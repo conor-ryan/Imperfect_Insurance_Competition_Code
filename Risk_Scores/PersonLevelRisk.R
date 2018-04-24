@@ -69,22 +69,22 @@ acs[,alpha:=alpha+beta[1,1]*Age+beta[1,2]*Family+beta[1,3]*LowIncome]
 
 
 ## Integrate Draws and Prediction Data
-randCoeffs = as.data.frame(randCoeffs)
-randCoeffs$nu_h = randCoeffs[,ncol(randCoeffs)]/abs(sigma[length(sigma)])
-randCoeffs$alpha_draw = randCoeffs[,2]
-
-randCoeffs = as.data.table(randCoeffs)
-n_draws = nrow(randCoeffs)
-randCoeffs[,d_ind:=as.integer(1:n_draws)]
-randCoeffs = randCoeffs[,c("d_ind","alpha_draw","nu_h")]
-setkey(randCoeffs,d_ind)
+draws = as.data.table(draws)
+n_draws = nrow(draws)
+draws[,d_ind:=as.integer(1:n_draws)]
+setkey(draws,d_ind)
 setkey(predict_data,d_ind,Person)
-alpha_large = randCoeffs[predict_data$d_ind,c("alpha_draw")]
-nu_large = randCoeffs[predict_data$d_ind,c("nu_h")]
+nu_h_large = draws[predict_data$d_ind,2]*sign(sigma[3])
+nu_i_large = draws[predict_data$d_ind,1]*sign(sigma[1])
 
-predict_data[,alpha_draw:=alpha_large]
-predict_data[,nu_h:=nu_large]
-rm(alpha_large,nu_large)
+predict_data[,alpha_draw:=0]
+predict_data[,nu_h:=nu_h_large]
+predict_data[,nu_i:=nu_i_large]
+rm(nu_h_large,nu_i_large)
+
+## indication
+predict_data[,nu_h_ind:=as.numeric(nu_h>.6)]
+predict_data[,nu_i_ind:=as.numeric(nu_i>.6)]
 
 #### State Populations ####
 states = unique(acs[,c("ST","Person","PERWT")])
@@ -95,7 +95,7 @@ acs = merge(acs,states,by="ST")
 setkey(acs,Product,Person)
 setkey(predict_data,Product,Person,d_ind)
 
-prodData = acs[,list(enroll=sum(s_pred_mean*PERWT)),by=c("Product","Firm","ST","marketPop","AV","Gamma_j")]
+prodData = acs[,list(enroll=sum(s_pred_mean*PERWT)),by=c("Product","Metal","Firm","ST","marketPop","AV","Gamma_j")]
 prodData[,R_wgt:=vector(mode="numeric",length=nrow(prodData))]
 # Check insured rate...
 prodData[,ST_lives:=sum(enroll),by="ST"]
@@ -130,7 +130,15 @@ acs[,rows:=NULL]
 # clear = ls()[!grepl("(acs|predict_data|index|prodData|n_draws|run)",ls())]
 # rm(list=clear)
 
-acs = acs[,c("Product","Age","Family","LowIncome","Person","alpha","PERWT","AV","Gamma_j","Firm","ST","ageRate_avg")]
+#### Define HCC Age ####
+acs[Metal=="PLATINUM",HCC_age:=PlatHCC_Age]
+acs[Metal=="GOLD",HCC_age:=GoldHCC_Age]
+acs[Metal=="SILVER",HCC_age:=SilvHCC_Age]
+acs[Metal=="BRONZE",HCC_age:=BronHCC_Age]
+acs[Metal=="CATASTROPHIC",HCC_age:=CataHCC_Age]
+
+acs = acs[,c("Product","Age","Family","LowIncome","HCC_age",
+             "Person","alpha","PERWT","AV","Gamma_j","Firm","ST","ageRate_avg")]
 # gc()
 
 #### Define Risk Function ####
@@ -154,12 +162,17 @@ risk_predict[pref_h>max_pref_h,pref_h:=max_pref_h]
 risk_predict[pref_h<min_pref_h,pref_h:=min_pref_h]
 hist(risk_predict$pref_h)
 
+#### Base Firm Risk Data ####
+firmRiskFile = paste("Simulation_Risk_Output/FirmRiskScores_Full_",run,".rData",sep="")
+load(firmRiskFile)
+
+firm_RA_est = firm_RA[,c("Firm","ST","avg_prem","A_wtd","RA_share","pp_payments_adj","R_f")]
+firm_RA_est[,A_sum:=sum(A_wtd),by="ST"]
+firm_RA_est[,T_norm_data:=pp_payments_adj/avg_prem]
+setkey(firm_RA,ST,Firm)
+
+#### Risk Function 
 risk_function_est<- function(psi){
-  prodData[,R_wgt:=vector(mode="numeric",length=nrow(prodData))]
- 
-  
-  cnt=0
-  start = Sys.time()
   #for (i in 1:length(index_acs)){
   #cnt=cnt+1
   
@@ -177,27 +190,26 @@ risk_function_est<- function(psi){
   
   #risk_predict[,pref_ratio:=exp(psi[6]*nu_h)/(1+exp(psi[6]*nu_h))]
   ## Demographic Risk
-  risk_predict[,R:= 1+psi[1]*Age+psi[2]*Family+psi[3]*LowIncome+psi[4]*nu_h]
+  risk_predict[,R:= HCC_age + AV*(psi[1]*nu_h + psi[2]*nu_i + psi[3]*nu_i*nu_h+psi[4]*Age+psi[5]*Age*nu_h)]
   #R_wgt_temp = risk_predict[,list(R_wgt=sum(R*s_pred*PERWT/n_draws),enroll=sum(s_pred*PERWT/n_draws)),by="Product"]
-  R_wgt_temp = risk_predict[,list(R_wgt=sum(R*s_pred*PERWT/n_draws)),by="Product"]
-  prodData[,R_wgt:=R_wgt_temp$R_wgt]
-  # print(cnt)
-  #}
+  R_wgt_temp = risk_predict[,list(R_wgt=sum(R*Gamma_j*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws)),by=c("ST","Firm")]
+  setkey(R_wgt_temp,ST,Firm)
   
-  #print(Sys.time()-start)
+
+  firm_RA_est[Firm!="OTHER",R_f_pred:=R_wgt_temp$R_wgt]
   
-  prodData[,R_j:=R_wgt/enroll]
+  firm_RA_est[R_f==1,R_bench:=R_f_pred]
+  firm_RA_est[,R_bench:=max(R_bench,na.rm=TRUE),by="ST"]
+  firm_RA_est[,R_f_pred:=R_f_pred/R_bench]
+  firm_RA_est[Firm=="OTHER",R_f_pred:=R_f]
   
-  #firmData = prodData[,list(R_wgt=sum(R_wgt*Gamma_j),Enroll=sum(S_j)),by=c("Firm","ST","marketPop","R_pred")]
-  firmData = prodData[,list(R_f_pred=sum(enroll*AV*R_j*Gamma_j)/sum(enroll)),by=c("Firm","ST","RA_share","R_f")]
-  firmData[R_f==1,R_bench:=R_f_pred]
-  firmData[,R_bench:=max(R_bench,na.rm=TRUE),by="ST"]
-  firmData[,R_f_pred:=R_f_pred/R_bench]
-  #firmData[,R_f:=R_wgt/marketPop]
+  firm_RA_est[,R_sum:=sum(R_f_pred*RA_share),by="ST"]
+  firm_RA_est[,T_norm_pred:=-(R_f_pred*RA_share/R_sum - A_wtd/A_sum)]
   
-  error = firmData[!Firm%in%c("HEALTH_REPUBLIC_INSURANCE","ASSURANT_HEALTH")
-                   ,sum((R_f_pred-R_f)^2)]
-  rm(firmData)
+  
+  error = firm_RA_est[!Firm%in%c("HEALTH_REPUBLIC_INSURANCE","ASSURANT_HEALTH")
+                   ,sum((T_norm_data-T_norm_pred)^2)]
+  firm_RA_est[,c("R_f_pred","R_bench","R_sum","T_norm_pred"):=NULL]
   print(error)
   print(psi)
   return(error)
@@ -250,6 +262,7 @@ risk_function_est<- function(psi){
 #   return(error)
 # }
 
+psi = rep(0,6)
 
 risk_function_est(psi)
 #risk_function_est2(psi)
@@ -258,8 +271,12 @@ res_list = list()
 f_list = list()
 p_list = list()
 
-for (i in 1:20){
-  psi = c(runif(4)*4-2)
+for (i in 1:10){
+  if (i==1){
+    psi = c(0,0,0,0,0,0)
+  }else{
+    psi = c(runif(5)*4-2)
+  }
   res = optim(par=psi,fn=risk_function_est,control=list(maxit=2000))
   res_list[[i]]=res
   f_list[[i]] = res$value
@@ -268,78 +285,16 @@ for (i in 1:20){
 
 
 
-riskFile = paste("Simulation_Risk_Output/riskParameters_",run,".rData",sep="")
+riskFile = paste("Simulation_Risk_Output/riskParameters_exp_",run,".rData",sep="")
 save(res_list,file=riskFile)
 
 
-
-#### Linear Regression ####
-
-risk_predict[,R:= 1+psi[1]*Age+psi[2]*Family+psi[3]*LowIncome+psi[4]*nu_h+psi[5]*alpha_i]
-
-F_temp = risk_predict[,list(Int=sum(AV*Gamma_j*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws),
-                            Age=sum(AV*Gamma_j*Age*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws),
-                            #ageRate_avg=sum(AV*Gamma_j*ageRate_avg*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws),
-                            Family =sum(AV*Gamma_j*Family*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws),
-                            LowIncome = sum(AV*Gamma_j*LowIncome*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws),
-                            nu_h = sum(AV*Gamma_j*nu_h*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws),
-                            alpha = sum(AV*Gamma_j*alpha*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws),
-                            pref_h = sum(AV*Gamma_j*pref_h*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws)),
-                      by=c("Firm","ST")]
-firm_reg = merge(F_temp,firm_RA,by=c("Firm","ST"))
-setkey(firm_reg,ST,Firm)
-
-firm_reg[R_f==1,Int_bench:=Int]
-firm_reg[,Int_bench:=max(Int_bench,na.rm=TRUE),by="ST"]
-firm_reg[,Int_reg:=(Int - Int_bench)]
-
-firm_reg[R_f==1,Age_bench:=Age]
-firm_reg[,Age_bench:=max(Age_bench,na.rm=TRUE),by="ST"]
-firm_reg[,Age_reg:=(Age - Age_bench)]
-
-firm_reg[R_f==1,Fam_bench:=Family]
-firm_reg[,Fam_bench:=max(Fam_bench,na.rm=TRUE),by="ST"]
-firm_reg[,Fam_reg:=(Family - Fam_bench)]
-
-firm_reg[R_f==1,Inc_bench:=LowIncome]
-firm_reg[,Inc_bench:=max(Inc_bench,na.rm=TRUE),by="ST"]
-firm_reg[,Inc_reg:=(LowIncome - Inc_bench)]
-
-firm_reg[R_f==1,nu_bench:=nu_h]
-firm_reg[,nu_bench:=max(nu_bench,na.rm=TRUE),by="ST"]
-firm_reg[,nu_reg:=(nu_h-nu_bench)]
-
-firm_reg[R_f==1,alpha_bench:=alpha]
-firm_reg[,alpha_bench:=max(alpha_bench,na.rm=TRUE),by="ST"]
-firm_reg[,alpha_reg:=(alpha-alpha_bench)]
-
-firm_reg[R_f==1,pref_h_bench:=pref_h]
-firm_reg[,pref_h_bench:=max(pref_h_bench,na.rm=TRUE),by="ST"]
-firm_reg[,pref_h_reg:=(pref_h-pref_h_bench)]
-
-firm_reg[,target:=log(R_f)-Int_reg]
-
-res = lm(target~-1+Age_reg+Fam_reg+Inc_reg + alpha + pref_h_reg,data=firm_reg[!Firm%in%c("HEALTH_REPUBLIC_INSURANCE","ASSURANT_HEALTH"),])
-#res = lm(Int_reg~-1+Age_reg+Fam_reg+Inc_reg+nu_reg,data=firm_reg[!Firm%in%c("HEALTH_REPUBLIC_INSURANCE","ASSURANT_HEALTH"),])
-
-psi_final = res$coefficients
-
-firm_reg[,R_f_pred:=exp(Int + psi_final[1]*Age + psi_final[2]*Family + psi_final[3]*LowIncome + 
-                          psi_final[4]*alpha + psi_final[5]*pref_h)]
-firm_reg[R_f==1,R_f_bench:=R_f_pred]
-firm_reg[,R_f_bench:=max(R_f_bench,na.rm=TRUE),by="ST"]
-firm_reg[,R_f_pred:=R_f_pred/R_f_bench]
-# firm_reg[,R_f_pred:=predict(res,firm_reg)]
-# 
-firm_reg[!Firm%in%c("HEALTH_REPUBLIC_INSURANCE","ASSURANT_HEALTH")
-         ,sum((R_f_pred-R_f)^2)]
-
 #### Calibrate Other Firm Risk ####
-firmRiskFile = paste("Simulation_Risk_Output/FirmRiskScores_",run,".rData",sep="")
+firmRiskFile = paste("Simulation_Risk_Output/FirmRiskScores_Full_",run,".rData",sep="")
 load(firmRiskFile)
 
 #### Check ####
-riskFile = paste("Simulation_Risk_Output/riskParameters_",run,".rData",sep="")
+riskFile = paste("Simulation_Risk_Output/riskParameters_exp_",run,".rData",sep="")
 
 load(riskFile)
 f_list = list()
@@ -347,22 +302,21 @@ for (i in 1:length(res_list)){
   f_list[[i]] = res_list[[i]]$value
 }
 opt = which(unlist(f_list)==min(unlist(f_list)))
-psi_final_2 = res_list[[opt]]$par[1:4]
+psi = res_list[[opt]]$par
 
-risk_function_est(psi_final)
-risk_function_est(psi_final_2)
+risk_function_est(psi)
+#risk_function_est(psi_final_2)
 
-risk_predict[,R:= 1+psi_final[1]*Age+psi_final[2]*Family+psi_final[3]*LowIncome+
-               psi_final[4]*alpha + psi_final[5]*pref_h]
+risk_predict[,R:= HCC_age + AV*(psi[1]*nu_h + psi[2]*nu_i+ psi[3]*nu_i*nu_h)]
 
 R_temp = risk_predict[,list(R_wgt=sum(R*s_pred*PERWT/n_draws),
-                              enroll = sum(s_pred*PERWT/n_draws),
-                              enroll_Fam = sum(Family*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws),
-                              enroll_Age = sum(Age*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws),
-                              enroll_Inc = sum(LowIncome*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws),
-                              nu_h_avg = sum(nu_h*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws),
-                              pref_h_avg = sum(pref_h*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws)),
-                        by=c("Product")]
+                            enroll = sum(s_pred*PERWT/n_draws),
+                            enroll_Fam = sum(Family*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws),
+                            enroll_Age = sum(Age*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws),
+                            enroll_Inc = sum(LowIncome*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws),
+                            nu_h_avg = sum(nu_h*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws),
+                            nu_i_avg = sum(nu_i*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws)),
+                      by=c("Product")]
 
 
 R_temp[,R_j:=R_wgt/enroll]
@@ -373,26 +327,29 @@ with(R_temp,plot(nu_h_avg,R_j))
 prodData = merge(prodData,R_temp,by="Product")
 
 
-firmData = prodData[,list(R_f_pred=sum(enroll*R_j*AV*Gamma_j)/sum(enroll),
+
+firmData = prodData[,list(R_f_pred=sum(enroll*R_j*Gamma_j)/sum(enroll),
                           enroll_Fam=sum(enroll_Fam*enroll)/sum(enroll),
                           enroll_Age=sum(enroll_Age*enroll)/sum(enroll),
                           enroll_Inc=sum(enroll_Inc*enroll)/sum(enroll),
-                          nu_h_avg=sum(nu_h_avg*enroll)/sum(enroll)),by=c("Firm","ST","RA_share","R_f")]
+                          nu_h_avg=sum(nu_h_avg*enroll)/sum(enroll),
+                          nu_i_avg=sum(nu_i_avg*enroll)/sum(enroll)),
+                    by=c("Firm","ST","RA_share","R_f")]
 firmData[R_f==1,R_bench:=R_f_pred]
 firmData[,R_bench:=max(R_bench,na.rm=TRUE),by="ST"]
 firmData[,R_f_pred:=R_f_pred/R_bench]
 setkey(firmData,ST,Firm)
 
+firm_RA = merge(firm_RA,firmData[,c("ST","Firm","R_f_pred")],by=c("ST","Firm"),all.x=TRUE)
+setkey(firm_RA,ST,Firm)
+firm_RA[Firm=="OTHER",R_f_pred:=R_f]
 
-acs[,R_dem:= psi_final[1]+psi_final[2]*Age+psi_final[3]*Family+psi_final[4]*LowIncome]
-risk_predict = merge(acs,predict_data,by=c("Product","Person"))
-risk_predict[,pref_h:=nu_h/(alpha+alpha_draw)]
-risk_predict[,pref_ratio:=exp(psi_final[6]*pref_h)/(1+exp(psi_final[6]*pref_h))]
-risk_predict[,R:=R_dem+psi_final[5]*pref_ratio]
-R_wgt_temp = risk_predict[,list(R_wgt=sum(R*s_pred*PERWT/n_draws)),by="Product"]
-prodData[,R_wgt:=NULL]
-prod_pred = merge(prodData,R_wgt_temp,by="Product")
-prod_pred[,R_j:=R_wgt/marketPop]
-firmData = prod_pred[,list(R_wgt=sum(R_wgt*Gamma_j)),by=c("Firm","ST","marketPop","R_pred")]
-firmData[,R_f:=R_wgt/marketPop]
-plot(firmData$R_pred,firmData$R_f)
+firm_RA[,A_sum:=sum(A_wtd),by="ST"]
+firm_RA[,R_sum:=sum(R_f_pred*RA_share),by="ST"]
+firm_RA[,transfer_pred:=-ST_MLR_lives*avg_prem*(R_f_pred*RA_share/R_sum - A_wtd/A_sum)]
+firm_RA[,transfer_pp:=-avg_prem*(R_f_pred*RA_share/R_sum - A_wtd/A_sum)]
+
+firm_RA[R_f>0,plot(R_f,R_f_pred)]
+firm_RA[R_f>0,plot(transfer_pp/avg_prem,pp_payments_adj/avg_prem)]
+firm_RA[R_f>0,plot(transfer_pred,payments_adj)]
+

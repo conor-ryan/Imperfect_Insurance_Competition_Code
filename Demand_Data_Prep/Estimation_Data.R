@@ -316,6 +316,8 @@ choices$PremPaid[choices$METAL=="CATASTROPHIC"] = with(choices[choices$METAL=="C
 
 # Per Member Premium
 choices[,PremPaid:=PremPaid/MEMBERS]
+# Difference Out the Base Premium
+choices[,PremPaidDiff:=PremPaid-premBase]
 
 #### Calculate Mandate Penalty ####
 # Based on 2015 Tax Thresholds 
@@ -347,11 +349,11 @@ choices = merge(choices,unins,by.x=c("STATE","inc_cat","AGE_cat","mem_cat"),
                     by.y=c("state","inc_cat","AGE_cat","mem_cat"),all.x=TRUE)
 
 
-choices = choices[,c("STATE","AREA","FPL_bucket","AGE_bucket","Mem_bucket",
+choices = choices[,c("STATE","AREA","APP_RECORD_NUM",
                      "FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","Firm","METAL","hix","CSR",
                      "MedDeduct","MedOOP","High","MedDeductDiff","MedOOPDiff","HighDiff",
                      "ageRate","FPL_imp","Benchmark","HHcont","subsidy","Quote",
-                     "PremPaid","S_ij","N","Income","Mandate","unins_rate")]
+                     "PremPaid","PremPaidDiff","S_ij","N","Income","Mandate","unins_rate")]
 
 
 # 
@@ -459,6 +461,7 @@ choices = choices[choices$Product%in%shares$Product,]
 
 #### Clean and Print ####
 choices$Price = (choices$PremPaid*12-choices$Mandate)/1000
+choices$PriceDiff = (choices$PremPaidDiff*12)/1000
 choices$MedDeduct = choices$MedDeduct/1000
 choices$MedDeductDiff = choices$MedDeductDiff/1000
 choices$MedOOP = choices$MedOOP/1000
@@ -476,7 +479,7 @@ choices = choices[with(choices,order(Person,Product)),]
 setkey(choices,Person,Product)
 setkey(shares,Product)
 
-write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price",
+write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price","PriceDiff",
                      "MedDeduct","ExcOOP","High","MedDeductDiff","ExcOOPDiff","HighDiff",
                      "Family","Age","LowIncome",
                      "F0_Y0_LI0","F0_Y0_LI1","F0_Y1_LI0","F0_Y1_LI1",
@@ -489,8 +492,8 @@ write.csv(shares[,c("Product_Name","Product","Share","s_inside","Firm","Market",
           "Intermediate_Output/Estimation_Data/marketDataMap.csv",row.names=FALSE)
 
 # Create mini Michigan Dataset and Renumber Products
-MI = choices[STATE=="MI",]
-MI_mkt = shares[STATE=="MI",]
+MI = choices[STATE=="MI"&AREA=="Rating Area 1",]
+MI_mkt = shares[STATE=="MI"&Market=="MI_1",]
 
 MI$Product = as.factor(MI$Product)
 MI_mkt$Product = factor(MI_mkt$Product,levels=levels(MI$Product))
@@ -505,7 +508,7 @@ vars = c("Person","Firm","Market","Product","S_ij","N","Price",
          "MedDeduct","ExcOOP","High","MedDeductDiff","ExcOOPDiff","HighDiff",
          "Family","Age","LowIncome",names(choices)[grepl("F[0-9]_Y.*",names(choices))],"unins_rate")
 
-write.csv(MI[,c("Person","Firm","Market","Product","S_ij","N","Price",
+write.csv(MI[,c("Person","Firm","Market","Product","S_ij","N","Price","PriceDiff",
                 "MedDeduct","ExcOOP","High","MedDeductDiff","ExcOOPDiff","HighDiff",
                 "Family","Age","LowIncome",
                 "F0_Y0_LI0","F0_Y0_LI1","F0_Y1_LI0","F0_Y1_LI1",

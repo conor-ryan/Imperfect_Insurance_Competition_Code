@@ -18,14 +18,14 @@ include("load_sample.jl")
 c = ChoiceData(df,df_mkt)
 
 # Fit into model
-m = InsuranceLogit(c,1000)
+m = InsuranceLogit(c,500)
 
 # -2.6967 in 1727 evaluations
 # Initial Parameters
 γstart = Array{Float64}([0,0,0])/100
 #γstart = Array{Float64}([0,0,0,0,0,0,0])/100
 β0start = -ones(3)/10
-βstart = -ones(2)/10
+βstart = -ones(1)/10
 σstart = [1,1,-1.5]/10
 p0 = vcat(γstart,β0start,βstart,σstart)
 

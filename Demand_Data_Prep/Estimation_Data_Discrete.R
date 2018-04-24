@@ -314,17 +314,22 @@ choices[FPL_imp>=3&FPL_imp<3.5,FPL_bucket:="3 - 3.5"]
 choices[FPL_imp>=3.5&FPL_imp<4,FPL_bucket:="3.5 - 4"]
 choices[is.na(FPL_imp)|FPL_imp>=4,FPL_bucket:="Greater than 4"]
 
+# 
+# choices[,AGE_bucket:= "26 or Under"]
+# choices[AGE>26&AGE<=30,AGE_bucket:= "26-30"]
+# choices[AGE>31&AGE<=34,AGE_bucket:= "31-34"]
+# choices[AGE>35&AGE<=38,AGE_bucket:= "35-38"]
+# choices[AGE>39&AGE<=42,AGE_bucket:= "39-42"]
+# choices[AGE>43&AGE<=46,AGE_bucket:= "43-46"]
+# choices[AGE>47&AGE<=50,AGE_bucket:= "47-50"]
+# choices[AGE>51&AGE<=54,AGE_bucket:= "51-54"]
+# choices[AGE>55&AGE<=58,AGE_bucket:= "55-58"]
+# choices[AGE>58,AGE_bucket:= "58-64"]
 
-choices[,AGE_bucket:= "26 or Under"]
-choices[AGE>26&AGE<=30,AGE_bucket:= "26-30"]
-choices[AGE>31&AGE<=34,AGE_bucket:= "31-34"]
-choices[AGE>35&AGE<=38,AGE_bucket:= "35-38"]
-choices[AGE>39&AGE<=42,AGE_bucket:= "39-42"]
-choices[AGE>43&AGE<=46,AGE_bucket:= "43-46"]
-choices[AGE>47&AGE<=50,AGE_bucket:= "47-50"]
-choices[AGE>51&AGE<=54,AGE_bucket:= "51-54"]
-choices[AGE>55&AGE<=58,AGE_bucket:= "55-58"]
-choices[AGE>58,AGE_bucket:= "58-64"]
+choices[,AGE_bucket:=vector(mode="integer",nrow(choices))]
+choices[AGE>=26,AGE_bucket:=AGE]
+choices[AGE<26,AGE_bucket:=0]
+
 
 choices[,Mem_bucket:= "Single"]
 choices[MEMBERS==2,Mem_bucket:= "Couple"]
@@ -508,7 +513,7 @@ choices = choices[choices$Product%in%shares$Product,]
 
 #### Clean and Print ####
 choices$Price = (choices$PremPaid*12-choices$Mandate)/1000
-choices$PriceDiff = (choices$PremPaidDiff*12-choices$Mandate)/1000
+choices$PriceDiff = (choices$PremPaidDiff*12)/1000
 choices$MedDeduct = choices$MedDeduct/1000
 choices$MedDeductDiff = choices$MedDeductDiff/1000
 choices$MedOOP = choices$MedOOP/1000
@@ -539,8 +544,8 @@ write.csv(shares[,c("Product_Name","Product","Share","s_inside","Firm","Market",
           "Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv",row.names=FALSE)
 
 # Create mini Michigan Dataset and Renumber Products
-MI = choices[STATE=="MI",]
-MI_mkt = shares[STATE=="MI",]
+MI = choices[STATE=="MI"&AREA=="Rating Area 1",]
+MI_mkt = shares[STATE=="MI"&Market=="MI_1",]
 
 MI$Product = as.factor(MI$Product)
 MI_mkt$Product = factor(MI_mkt$Product,levels=levels(MI$Product))
