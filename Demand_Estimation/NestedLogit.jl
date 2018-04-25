@@ -26,21 +26,16 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
     # Parameter Lengths from model
     αlen = 0
     γlen = αlen + m.parLength[:γ]
-    β0len = γlen + m.parLength[:β]
-    βlen = β0len + m.parLength[:β]*m.parLength[:γ]
+    β0len = γlen + m.parLength[:β0]
+    βlen = β0len + m.parLength[:β]*m.parLength[:γ] - 2
     σlen = βlen +  1
 
     #Distribute Parameters
-    #α = x[1:αlen]
-    # γ = x[(αlen+1):γlen]
-    # β_0 = x[(γlen+1):β0len]
-    #β_vec = x[12:18]
-    # σ = x[βlen+1:σlen]
-
-    γ = x[1:3]
-    β_0 = x[4:6]
-    β_vec = x[7]
-    σ = x[8]
+    α = x[1:αlen]
+    γ = x[(αlen+1):γlen]
+    β_0 = x[(γlen+1):β0len]
+    β_vec = x[(β0len+1):βlen]
+    σ = x[σlen]
 
     # Stack Beta into a matrix
     K = m.parLength[:β]
@@ -48,25 +43,13 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
     β = Matrix{T}(K,N)
     ind = 0
     for i in 1:N, j in 1:K
-        ind+=1
-        #β[j,i] = β_vec[ind]
-        β[j,i] = 0
-        # if j==2 & i==1
-        #     println(β)
-        #     β[j,i] =  β_vec[1]
-        # elseif j==3 & i==1
-        #     println(β)
-        #     β[j,i] =  β_vec[2]
-        # else
-        #     β[j,i] = 0
-        # end
+        if (j<3) & (i==1)
+            β[j,i] = 0
+        else
+            ind+=1
+            β[j,i] =  β_vec[ind]
+        end
     end
-    β[1,3] = β_vec[1]
-    # β[2,1] = β_vec[1]
-    # β[3,1] = β_vec[2]
-    # println(γ)
-    # println(β)
-    # println(β_0)
 
     #Initialize (ij) pairs of deltas
     L, M = size(m.data.data)
@@ -149,6 +132,20 @@ function individual_shares{T}(d::InsuranceLogit,p::parDict{T})
         u = μ_ij_large[idxitr]
         s = calc_shares(u,δ,σ)
         p.s_hat[idxitr] = s
+    end
+    return Void
+end
+
+function unpack_δ!{T}(δ::Vector{T},d::InsuranceLogit)
+    for j in d.prods
+        idx_j = d.data._productDict[j]
+        for idx in idx_j
+            if isnan(d.deltas[j])
+                δ[idx] = 1.0
+            else
+                δ[idx] = d.deltas[j]
+            end
+        end
     end
     return Void
 end

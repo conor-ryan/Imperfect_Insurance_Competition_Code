@@ -27,10 +27,10 @@ m = InsuranceLogit(c,1)
 
 # -2.6967 in 1727 evaluations
 # Initial Parameters
-γstart = Array{Float64}([2,2,2])/100
+γstart = Array{Float64}([2,2,2,2])/100
 #γstart = Array{Float64}([0,0,0,0,0,0,0])/100
-β0start = -ones(3)
-βstart = -ones(1)/5
+β0start = -ones(2)
+βstart = -ones(6*3+4)/5
 σstart = .7
 p0 = vcat(γstart,β0start,βstart,σstart)
 parStart0 = parDict(m,p0)

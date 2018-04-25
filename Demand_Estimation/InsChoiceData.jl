@@ -223,15 +223,17 @@ type InsuranceLogit <: LogitModel
     deltas
 end
 
+
 function InsuranceLogit(data::ChoiceData,haltonDim::Int)
     # Construct the model instance
 
     # Get Parameter Lengths
     γlen = size(demoRaw(data),1)
+    β0len = size(prodchars0(data),1)
     βlen = size(prodchars(data),1)
     σlen = βlen + 1
 
-    parLength = Dict(:γ=>γlen,:β=>βlen,:σ=>σlen)
+    parLength = Dict(:γ=>γlen,:β0=>β0len,:β=>βlen,:σ=>σlen)
 
     # Initialize Halton Draws
     # These are the same across all individuals

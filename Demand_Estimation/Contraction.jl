@@ -71,17 +71,6 @@ end
 #     return evaluate_iteration(d,parameters,update=update)
 # end
 
-
-function unpack_δ!{T}(δ::Vector{T},d::InsuranceLogit)
-    for j in d.prods
-        idx_j = d.data._productDict[j]
-        for idx in idx_j
-            δ[idx] = d.deltas[j]
-        end
-    end
-    return Void
-end
-
 function convert_δ!(d::InsuranceLogit)
     J = length(d.deltas)
     deltas_new = Array{Float64}(J)
