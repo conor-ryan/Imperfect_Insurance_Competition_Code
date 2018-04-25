@@ -1,7 +1,6 @@
-addprocs()
-using BenchmarkTools
-@everywhere using JLD
-@everywhere using CSV
+addprocs(10)
+using JLD
+using CSV
 
 @everywhere cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Code/Demand_Estimation")
 # Data Structure

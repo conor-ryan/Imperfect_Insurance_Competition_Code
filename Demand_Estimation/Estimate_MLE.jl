@@ -1,7 +1,5 @@
-import Base.getindex, Base.setindex!, Base.show
 using NLopt
 using ForwardDiff
-
 
 # Calculate Log Likelihood
 function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})

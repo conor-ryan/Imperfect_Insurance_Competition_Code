@@ -1,8 +1,3 @@
-import Base.getindex, Base.setindex!, Base.show
-using NLopt
-using ForwardDiff
-
-
 function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
     # Contraction...
     rnd = 0
