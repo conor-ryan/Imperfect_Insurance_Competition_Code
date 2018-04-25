@@ -11,9 +11,10 @@ function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
     β = p.β
     #α = p.α[1]
     # Calculate μ_ij, which depends only on parameters
+    individual_values!(d,p)
+    individual_shares(d,p)
     for app in eachperson(d.data)
     #app = next(eachperson(d.data),100)[1]
-        μ_ij = util_value!(app,p,true)
         ind = person(app)[1]
         S_ij = transpose(choice(app))
         wgt = transpose(weight(app))
@@ -22,7 +23,7 @@ function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
 
 
         δ = p.δ[idxitr]
-        s_hat = calc_shares(μ_ij,δ)
+        s_hat = p.s_hat[idxitr]
         s_insured = sum(s_hat)
 
         for i in eachindex(idxitr)

@@ -7,7 +7,7 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
     # Contraction...
     rnd = 0
     eps0 = 1
-    tol = 1e-10
+    tol = 1e-11
     individual_values!(d,p)
     while (eps0>tol) & (rnd<5000)
         rnd+=1

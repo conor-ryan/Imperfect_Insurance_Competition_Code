@@ -197,3 +197,55 @@ function next(itr::PersonIterator, state)
     return submod, state + 1
 end
 done(itr::PersonIterator, state) = state > length(itr.id)
+
+
+###########################################################
+### Model Object ########
+
+
+abstract type LogitModel end
+
+type InsuranceLogit <: LogitModel
+    # Dictionary of Parameters and implied lengths
+    parLength::Dict{Symbol, Int}
+    # ChoiceData struct
+    data::ChoiceData
+
+    #Store Halton Draws
+    draws::Array{Float64,2}
+
+
+    # Product Level Data
+    # Separate vectors, all sorted by product
+    prods
+    shares
+    #Unique firm-level deltas
+    deltas
+end
+
+function InsuranceLogit(data::ChoiceData,haltonDim::Int)
+    # Construct the model instance
+
+    # Get Parameter Lengths
+    γlen = size(demoRaw(data),1)
+    βlen = size(prodchars(data),1)
+    σlen = βlen + 1
+
+    parLength = Dict(:γ=>γlen,:β=>βlen,:σ=>σlen)
+
+    # Initialize Halton Draws
+    # These are the same across all individuals
+    draws = permutedims(MVHaltonNormal(haltonDim,2),(2,1))
+
+    # Initialize Empty value prediction objects
+    n, k = size(c.data)
+    # Copy Firm Level Data for Changing in Estimation
+    pmat = c.pdata
+    pmat[:delta] = 1.0
+    sort!(pmat)
+
+    d = InsuranceLogit(parLength,data,
+                        draws,
+                        pmat[:Product],pmat[:Share],pmat[:delta])
+    return d
+end

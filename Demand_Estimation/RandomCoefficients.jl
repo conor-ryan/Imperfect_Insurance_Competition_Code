@@ -2,25 +2,11 @@ import Base.getindex, Base.setindex!, Base.show
 using NLopt
 using ForwardDiff
 
-abstract type LogitModel end
 
-type InsuranceLogit <: LogitModel
-    # Dictionary of Parameters and implied lengths
-    parLength::Dict{Symbol, Int}
-    # ChoiceData struct
-    data::ChoiceData
+########
+# Parameter Structure
+#########
 
-    #Store Halton Draws
-    draws::Array{Float64,2}
-
-
-    # Product Level Data
-    # Separate vectors, all sorted by product
-    prods
-    shares
-    #Unique firm-level deltas
-    deltas
-end
 
 type parDict{T}
     # Parameters
@@ -115,34 +101,9 @@ function calcRC!{T,S}(randCoeffs::Array{S},σ::Array{T},draws::Array{Float64,2})
 end
 
 
-function InsuranceLogit(data::ChoiceData,haltonDim::Int)
-    # Construct the model instance
-
-    # Get Parameter Lengths
-    γlen = size(demoRaw(data),1)
-    βlen = size(prodchars(data),1)
-    σlen = βlen + 1
-
-    parLength = Dict(:γ=>γlen,:β=>βlen,:σ=>σlen)
-
-    # Initialize Halton Draws
-    # These are the same across all individuals
-    draws = permutedims(MVHaltonNormal(haltonDim,2),(2,1))
-
-    # Initialize Empty value prediction objects
-    n, k = size(c.data)
-    # Copy Firm Level Data for Changing in Estimation
-    pmat = c.pdata
-    pmat[:delta] = 1.0
-    sort!(pmat)
-
-    d = InsuranceLogit(parLength,data,
-                        draws,
-                        pmat[:Product],pmat[:Share],pmat[:delta])
-    return d
-end
-
-
+###########
+# Calculating Preferences
+###########
 
 function calc_indCoeffs{T}(p::parDict{T},β::Array{T,1},d::T)
     Q = length(β)

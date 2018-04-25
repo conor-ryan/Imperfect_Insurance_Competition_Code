@@ -365,6 +365,14 @@ choices[,PremPaid:= pmax(premBase*ageRate - subsidy,0)]
 choices$PremPaid[choices$METAL=="CATASTROPHIC"] = with(choices[choices$METAL=="CATASTROPHIC",],premBase*ageRate)
 
 
+# choices[,premMean:=mean(PremPaid),by="APP_RECORD_NUM"]
+# test1 = choices[Y==1,list(avg1=mean(PremPaid/premMean),N=sum(Y)),by=c("FPL_bucket","Mem_bucket")]
+# setkey(test1,FPL_bucket,Mem_bucket)
+# 
+# test2 = choices[,list(avg2=mean(PremPaid)),by=c("FPL_bucket","Mem_bucket")]
+# test = merge(test1,test2,by=c("FPL_bucket","Mem_bucket"))
+# test[,diff:=avg1/avg2]
+
 # Per Member Premium
 choices[,PremPaid:=PremPaid/MEMBERS]
 # Difference Out the Base Premium
