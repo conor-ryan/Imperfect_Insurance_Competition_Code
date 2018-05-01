@@ -306,13 +306,13 @@ acs[,Person:=as.factor(paste(Market,FPL_bucket,AGE_bucket,Mem_bucket))]
 acs[,Person:=as.numeric(Person)]
 
 
-acs = acs[,c("Person","Firm","Market","Product_Name","Price","PriceDiff","MedDeduct","MedOOP","High",
+acs = acs[,c("Person","Firm","Market","Product_Name","Price","PriceDiff","MedDeduct","MedOOP","High","PremBase",
              "PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age",
              "MedDeductDiff","MedOOPDiff","HighDiff","Family","Age","LowIncome","ageRate","ageRate_avg","PERWT")]
 
 
 #### Merge in Product Map #### 
-prod_map = read.csv("Intermediate_Output/Estimation_Data/marketDataMap.csv")
+prod_map = read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv")
 prod_map = as.data.table(prod_map)
 
 setkey(acs,Product_Name)

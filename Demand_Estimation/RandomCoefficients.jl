@@ -41,10 +41,11 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
     # σ = x[βlen+1:σlen]
 
     γ = x[1:3]
-    β_0 = x[4:6]
-    β_vec = x[7]
-    σ = x[8:10]
-    #σ = [0]
+    γ = [0,0,0]
+    β_0 = x[1:3]
+    #β_vec = x[7:8]
+    #σ = x[6:8]
+    σ = [0,0,0]
 
     # Stack Beta into a matrix
     K = m.parLength[:β]
@@ -65,7 +66,8 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
         #     β[j,i] = 0
         # end
     end
-    β[1,3] = β_vec[1]
+    # β[1,1] = β_vec[1]
+    # β[1,2] = β_vec[2]
     # β[2,1] = β_vec[1]
     # β[3,1] = β_vec[2]
     # println(γ)
@@ -120,11 +122,6 @@ function calc_indCoeffs{T}(p::parDict{T},β::Array{T,1},d::T)
 end
 
 function individual_values!{T}(d::InsuranceLogit,p::parDict{T})
-    # Store Parameters
-    γ = p.γ
-    β_0= p.β_0
-    β = p.β
-    δ_long = p.δ
     # Calculate μ_ij, which depends only on parameters
     for app in eachperson(d.data)
         burn = util_value!(app,p,false)

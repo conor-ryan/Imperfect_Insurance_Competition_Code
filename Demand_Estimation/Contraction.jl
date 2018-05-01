@@ -2,7 +2,7 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
     # Contraction...
     rnd = 0
     eps0 = 1
-    tol = 1e-11
+    tol = 1e-12
     individual_values!(d,p)
     while (eps0>tol) & (rnd<5000)
         rnd+=1
@@ -111,4 +111,19 @@ function δ_update!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
         d.deltas = δ_new
     end
     return eps,δ_new,rn
+end
+
+
+function unpack_δ!{T}(δ::Vector{T},d::InsuranceLogit)
+    for j in d.prods
+        idx_j = d.data._productDict[j]
+        for idx in idx_j
+            if isnan(d.deltas[j])
+                δ[idx] = 1.0
+            else
+                δ[idx] = d.deltas[j]
+            end
+        end
+    end
+    return Void
 end

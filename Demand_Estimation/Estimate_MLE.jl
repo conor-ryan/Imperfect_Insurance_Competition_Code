@@ -5,8 +5,6 @@ using ForwardDiff
 function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
     ll = 0.0
     Pop = 0.0
-    γ = p.γ
-    β = p.β
     #α = p.α[1]
     # Calculate μ_ij, which depends only on parameters
     individual_values!(d,p)
@@ -25,7 +23,7 @@ function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
         s_insured = sum(s_hat)
 
         for i in eachindex(idxitr)
-            ll+=wgt[i]*S_ij[i]*(log(s_hat[i]) -urate[i]*(log(s_insured)-log(1-s_insured)))
+            ll+=wgt[i]*S_ij[i]*(log(s_hat[i]/s_insured)) -urate[i]*(log(s_insured)-log(1-s_insured)))
             Pop+=wgt[i]*S_ij[i]
         end
     end
@@ -152,7 +150,9 @@ function estimate!(d::InsuranceLogit, p0)
         println("Iteration $count at $x")
         #Store Gradient
         # println("Step 1")
-        δ_cont(x)
+
+    #    δ_cont(x)
+
         # println("Step 2")
         #ForwardDiff.gradient!(grad, gmm, x)
         # println("Gradient: $grad")
