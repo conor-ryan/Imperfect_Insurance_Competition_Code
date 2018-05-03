@@ -21,24 +21,18 @@ end
 
 function parDict{T}(m::InsuranceLogit,x::Array{T})
     # Parameter Lengths from model
-    αlen = 0
-    γlen = αlen + m.parLength[:γ]
-    β0len = γlen + m.parLength[:β0]
+    γ0len = 1
+    γlen = γ0len + m.parLength[:γ]
+    β0len = γlen + m.parLength[:β]
     βlen = β0len + m.parLength[:β]*m.parLength[:γ] - 2
     σlen = βlen +  1
 
     #Distribute Parameters
-    # α = x[1:αlen]
-    # γ = x[(αlen+1):γlen]
-    # β_0 = x[(γlen+1):β0len]
-    # β_vec = x[(β0len+1):βlen]
-    # σ = x[σlen]
-
-    γ = [0,0,0]
-    γ_0 = x[1]
-    β_0 = x[2:4]
-    σ = x[5]
-    #β_vec = x[7:8]
+    γ_0 = x[γ0len]
+    γ = x[(γ0len+1):γlen]
+    β_0 = x[(γlen+1):β0len]
+    β_vec = x[(β0len+1):βlen]
+    σ = x[σlen]
 
     # Stack Beta into a matrix
     K = m.parLength[:β]
@@ -46,18 +40,12 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
     β = Matrix{T}(K,N)
     ind = 0
     for i in 1:N, j in 1:K
-        ind+=1
-        #β[j,i] = β_vec[ind]
-        β[j,i] = 0
-        # if j==2 & i==1
-        #     println(β)
-        #     β[j,i] =  β_vec[1]
-        # elseif j==3 & i==1
-        #     println(β)
-        #     β[j,i] =  β_vec[2]
-        # else
-        #     β[j,i] = 0
-        # end
+        if (j<3) & (i==1)
+            β[j,i] = 0
+        else
+            ind+=1
+            β[j,i] =  β_vec[ind]
+        end
     end
 
     #Initialize (ij) pairs of deltas
