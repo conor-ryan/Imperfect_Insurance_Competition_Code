@@ -136,7 +136,7 @@ function estimate!(d::InsuranceLogit, p0)
     #maxeval!(opt,2100)
     maxtime!(opt, 600000)
     #upper_bounds!(opt, ones(length(p0))/10)
-    initial_step!(opt,1e-1)
+    initial_step!(opt,1e-2)
     #stopval!(opt,.00040)
     # Objective Function
     # ll(x) = evaluate_iteration!(d, x,update=false)

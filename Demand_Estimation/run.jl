@@ -26,7 +26,7 @@ m = InsuranceLogit(c,500)
 
 # -2.6967 in 1727 evaluations
 # Initial Parameters
-γstart = Array{Float64}([0,0,0,0])/100
+γstart = Array{Float64}([0.1,0.1,0.1,0.1])/100
 #γstart = Array{Float64}([0,0,0,0,0,0,0])/100
 β0start = [-1.0] #,-1,1]
 βstart = [0,0,0.0]

@@ -4,8 +4,6 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
     eps0 = 1
     tol = 1e-10
     individual_values!(d,p)
-    eps_old = 10
-    delta_old = d.deltas
     while (eps0>tol) & (rnd<5000)
         rnd+=1
         #Step 1
@@ -29,8 +27,8 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
         chg = - 2*αn.*r0 + αn^2.*vn
         δ_new = δ_init.*exp.(chg)
         #δ_new = δ_init - αn.*r0
-        if rnd % 10==0
-            println(eps1)
+        if rnd % 20==0
+            println(eps0)
         end
 
         if (eps0>10)
@@ -50,9 +48,6 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
         #eps = maximum(abs.(chg))
         # println("Contraction Error")
         #print("Intitial Error:  ")
-
-        eps_old=eps1
-        delta_old = δ_1
         # print("SquareM Error:  ")
         # println(eps)
     end
