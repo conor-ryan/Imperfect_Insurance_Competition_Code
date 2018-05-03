@@ -43,4 +43,4 @@ res = pmap(estimate_parallel,p_list)
 
 run = Dates.today()
 file = "$(homedir())/Documents/Research/ARCOLA/Detailed Demand Estimation/estimationresults_pb_$run.jld"
-save(file,"p_est",p_est)
+save(file,"p_est",res)
