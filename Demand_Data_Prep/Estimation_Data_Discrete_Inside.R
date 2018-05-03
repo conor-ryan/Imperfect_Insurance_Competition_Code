@@ -306,7 +306,7 @@ choices[SILVER&hix&FPL_imp>=1.5 & FPL_imp<2,CSR_subs:="87"]
 choices[SILVER&hix&FPL_imp>=1 & FPL_imp<1.5,CSR_subs:="94"]
 
 # Keep only Silver plans for the appropriate income
-choices = choices[with(choices,CSR==CSR_subs),]
+choices = choices[CSR==CSR_subs,]
 
 # Set CSR at the Person Level
 choices$CSR = ""
@@ -349,7 +349,7 @@ choices[,Mem_bucket:= "Single"]
 choices[MEMBERS==2,Mem_bucket:= "Couple"]
 choices[MEMBERS>=3,Mem_bucket:= "3+"]
 
-#test = as.data.frame(choices)
+test = as.data.frame(choices)
 choices = choices[,list(AGE = mean(AGE),
                         ageRate = mean(ageRate),
                         #SMOKER = mean(SMOKER),
@@ -409,33 +409,6 @@ choices$Mandate = with(choices, pmin(pmax(325,.02*(Income_Filled-filingThresh)),
 choices$Mandate[choices$MEMBERS>1] = with(choices[choices$MEMBERS>1,], pmin(pmax(pmin(325*2+325*.5*(MEMBERS-2),975),
                                                                                  .02*(Income_Filled-filingThresh)),
                                                                             2484*2+2484*.5*(MEMBERS-2)))
-
-
-#### Merge in Uninsured Rate ####
-choices$inc_cat = 1
-choices$inc_cat[with(choices,is.na(FPL_imp)|FPL_imp>4)] = 2
-
-choices$AGE_cat = 1
-choices$AGE_cat[choices$AGE>35] = 2
-
-choices$mem_cat = 1
-choices$mem_cat[choices$MEMBERS==2] = 2
-choices$mem_cat[choices$MEMBERS>2] = 3
-
-unins = read.csv("Data/2015_ACS/uninsured_acs2015.csv")
-
-choices = merge(choices,unins,by.x=c("STATE","inc_cat","AGE_cat","mem_cat"),
-                    by.y=c("state","inc_cat","AGE_cat","mem_cat"),all.x=TRUE)
-
-
-choices = choices[,c("STATE","AREA","FPL_bucket","AGE_bucket","Mem_bucket",
-                     "FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","Firm","METAL","hix","CSR",
-                     "MedDeduct","MedOOP","High",
-                     #"MedDeductDiff","MedOOPDiff","HighDiff",
-                     #"MedDeductStandard","MedOOPStandard","HighStandard",
-                     "ageRate","FPL_imp","Benchmark","HHcont","subsidy","Quote","premBase",
-                     "PremPaid","PremPaidDiff","S_ij","N","Income","Mandate","unins_rate")]
-
 
 # 
 # 
@@ -497,8 +470,6 @@ choices$Product = with(choices,paste(Firm,METAL,Market,sep="_"))
 choices[,Person:=as.factor(paste(Market,FPL_bucket,AGE_bucket,Mem_bucket))]
 choices[,Person:=as.numeric(Person)]
 
-## Only Singles: Experiment
-choices = choices[Family==0,]
 
 #### Summary Stats for Tables ####
 choices[,premMin:=min(PremPaid),by=c("Person")]
@@ -519,16 +490,16 @@ setkey(t1,METAL,LowIncome)
 #### Calculate Product Market Share ####
 #unins_st = read.csv("Data/2015_ACS/uninsured_ST_acs2015.csv")
 # Take Uninsurance Rates implied in the sample
-insured = unique(choices[,c("Person","STATE","unins_rate","N")])
-insured = insured[,list(unins_rate=sum(unins_rate*N)/sum(N)),by="STATE"]
+#insured = unique(choices[,c("Person","STATE","unins_rate","N")])
+#insured = insured[,list(unins_rate=sum(unins_rate*N)/sum(N)),by="STATE"]
 
 shares = choices[,list(enroll=sum(S_ij*N),pop_offered=sum(N)),by=c("Product","Firm","Market","STATE","METAL",
                                                                    "MedDeduct","MedOOP","High","premBase")]
-shares = merge(shares,insured,by="STATE")
+#shares = merge(shares,insured,by="STATE")
 shares[,lives:=sum(enroll),by="Market"]
 shares[,s_inside:= enroll/pop_offered]
-shares$Share = shares$s_inside*(1-shares$unins_rate)
-
+#shares$Share = shares$s_inside*(1-shares$unins_rate)
+shares$Share = shares$s_inside
 
 
 firmShares = choices[,list(enroll=sum(S_ij*N*MEMBERS)),by=c("Firm","Market")]
@@ -546,11 +517,7 @@ shares = shares[shares$lives>10,]
 #Drop Products with 0 market share
 shares = shares[shares$s_inside>0,]
 
-#Drop TX market with only one plan pruchased
-shares = shares[Market!="TX_1_94_1",]
 
-# Eliminate the 0 share products from the choice set
-choices = choices[choices$Product%in%shares$Product,]
 
 ##### Dummy Logit Test ####
 # shares[,regvar:=log(Share) - log(1-s_inside)]
@@ -570,10 +537,39 @@ choices = choices[choices$Product%in%shares$Product,]
 # shares[!Market%in%c("AK_1","AK_2","AK_3"),resid:=exp(Share)-exp(reg_pred)]
 
 
+#### Designate Outside Good ####
+shares[,HighPrice:=max(premBase),by="Market"]
+shares[,Outside:=HighPrice==premBase]
+
+
+
+#Drop MI_4 where there is no gold plans purchased.
+
+#Drop TX market with only one plan pruchased
+shares = shares[Market!="TX_1_94_1",]
+
+#Drop Markets with too low outside share
+mkts = shares$Market[with(shares,Outside==TRUE&Share<.001)]
+shares = shares[!Market%in%mkts,]
+
+outsideProducts = shares$Product[shares$Outside]
+# Identify Outside Products
+choices[,Outside:=Product%in%outsideProducts]
+
+choices[,outPremPaid:=max(PremPaid*Outside),by="Person"]
+
+# "Uinsured Rate" is the gold plan market share
+choices[,unins_rate:=max(S_ij*Outside),by="Person"]
+
+# Drop Outside and 0 Share Goods
+shares = shares[Outside==FALSE,]
+# Eliminate the 0 share products from the choice set
+choices = choices[choices$Product%in%shares$Product,]
 
 #### Clean and Print ####
+
 #choices$Price = (choices$PremPaid*12-choices$Mandate)/1000
-choices$Price = (choices$PremPaid*12)/1000
+choices$Price = (choices$PremPaid-choices$outPremPaid)*12/1000
 choices$PriceDiff = (choices$PremPaidDiff*12)/1000
 choices$MedDeduct = choices$MedDeduct/1000
 choices$MedDeductDiff = choices$MedDeductDiff/1000
@@ -598,12 +594,12 @@ write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price",
                      "Family","Age","LowIncome",
                      "F0_Y0_LI0","F0_Y0_LI1","F0_Y1_LI0","F0_Y1_LI1",
                      "F1_Y0_LI0","F1_Y0_LI1","F1_Y1_LI0","F1_Y1_LI1","unins_rate")],
-          "Intermediate_Output/Estimation_Data/estimationData_discrete.csv",row.names=FALSE)
-write.csv(choices,"Intermediate_Output/Estimation_Data/descriptiveData_discrete.csv",row.names=FALSE)
+          "Intermediate_Output/Estimation_Data/estimationData_inside.csv",row.names=FALSE)
+write.csv(choices,"Intermediate_Output/Estimation_Data/descriptiveData_inside.csv",row.names=FALSE)
 write.csv(shares[,c("Product","Share")],
-          "Intermediate_Output/Estimation_Data/marketData_discrete.csv",row.names=FALSE)
+          "Intermediate_Output/Estimation_Data/marketData_inside.csv",row.names=FALSE)
 write.csv(shares,
-          "Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv",row.names=FALSE)
+          "Intermediate_Output/Estimation_Data/marketDataMap_inside.csv",row.names=FALSE)
 
 # Create mini Michigan Dataset and Renumber Products
 # MI = choices[STATE=="MI"&Market%in%c("MI_1_0","MI_1_1"),]
@@ -631,11 +627,11 @@ write.csv(MI[,c("Person","Firm","Market","Product","S_ij","N","Price",
                 "Family","Age","LowIncome","AGE","HighIncome","IncomeCts",
                 "F0_Y0_LI0","F0_Y0_LI1","F0_Y1_LI0","F0_Y1_LI1",
                 "F1_Y0_LI0","F1_Y0_LI1","F1_Y1_LI0","F1_Y1_LI1","unins_rate")],
-          "Intermediate_Output/Estimation_Data/estimationData_MI_discrete.csv",row.names=FALSE)
+          "Intermediate_Output/Estimation_Data/estimationData_MI_inside.csv",row.names=FALSE)
 write.csv(MI_mkt[,c("Product","Share")],
-          "Intermediate_Output/Estimation_Data/marketData_MI_discrete.csv",row.names=FALSE)
+          "Intermediate_Output/Estimation_Data/marketData_MI_inside.csv",row.names=FALSE)
 write.csv(MI_mkt,
-          "Intermediate_Output/Estimation_Data/marketDataMap_MI_discrete.csv",row.names=FALSE)
+          "Intermediate_Output/Estimation_Data/marketDataMap_MI_inside.csv",row.names=FALSE)
 
 
 

@@ -40,12 +40,12 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
     #β_vec = x[12:18]
     # σ = x[βlen+1:σlen]
 
-    γ = x[1:3]
-    γ = [0,0,0]
-    β_0 = x[1:3]
+    γ = x[1:4]
+    β_0 = [x[5]]
+    β_vec = x[6:8]
     #β_vec = x[7:8]
     #σ = x[6:8]
-    σ = [0,0,0]
+    σ = x[9:11]
 
     # Stack Beta into a matrix
     K = m.parLength[:β]
@@ -66,8 +66,9 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
         #     β[j,i] = 0
         # end
     end
-    # β[1,1] = β_vec[1]
-    # β[1,2] = β_vec[2]
+    β[1,1] = β_vec[1]
+    β[1,3] = β_vec[2]
+    β[1,4] = β_vec[3]
     # β[2,1] = β_vec[1]
     # β[3,1] = β_vec[2]
     # println(γ)

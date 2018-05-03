@@ -5,10 +5,10 @@ library(data.table)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
 
 ## Run 
-run = "2018-04-12"
+run = "2018-05-02"
 
 #### Read in Data ####
-estData = read.csv("Intermediate_Output/Estimation_Data/estimationData_MI_discrete.csv")
+estData = read.csv("Intermediate_Output/Estimation_Data/estimationData_MI_inside.csv")
 estData = as.data.table(estData)
 setkey(estData,Person,Product)
 
@@ -33,12 +33,11 @@ deltas = read.csv(delFile)
 # beta[3,1] = pars$pars[8]
 # sigma = pars$pars[9:11]
 
-gamma = pars$pars[1:3]
-beta0 = pars$pars[4:6]
-beta = matrix(0,nrow=3,ncol=3)
-beta[2,1] = pars$pars[7]
-beta[3,1] = pars$pars[8]
-sigma = pars$pars[9:11]
+gamma = c(0,0,0,0)
+gamma0 = 0
+beta0 = -0.633789
+beta = matrix(0,nrow=3,ncol=4)
+sigma = c(0,0,0)
 
 draws = halton(n_draws,dim=2,usetime=TRUE,normal=TRUE)
 randCoeffs = matrix(nrow=n_draws,ncol=length(sigma)+1)
@@ -48,7 +47,8 @@ for (k in 3:4){
   randCoeffs[,k] = draws[,2]*sigma[k-1]
 }
 
-estData = merge(estData,deltas,by.x="Product",by.y="prods")
+#estData = merge(estData,deltas,by.x="Product",by.y="prods")
+estData[,delta:=1]
 
 #### Convert Data Sets ####
 estData[,Person:= as.integer(Person)]
@@ -100,15 +100,16 @@ for (p in people){
   cnt = cnt+1
   perData = estData[.(p),]
   
-  demos = as.matrix(perData[1,c("Age","Family","LowIncome")])
+  demos = as.matrix(perData[1,c("AGE","Family","IncomeCts","HighIncome")])
   #chars = as.matrix(perData[,c("Price","MedDeduct","MedOOP","High")])
   chars = as.matrix(perData[,c("Price","MedDeduct","High")])
-  chars_0 = as.matrix(perData[,c("PriceDiff","MedDeductDiff","HighDiff")])
+  chars_0 = as.matrix(perData[,c("Price")])
   delta = perData$delta
   
-  intercept = (demos%*%gamma)[1,1] + randCoeffs[,1]
+  intercept = gamma0 + (demos%*%gamma)[1,1] + randCoeffs[,1]
   
   chars_int = chars_0%*%beta0
+  #chars_int = chars%*%beta0
   
   beta_z = demos%*%t(beta)
   beta_zi = matrix(beta_z,nrow=n_draws,ncol=length(beta_z),byrow=TRUE)
@@ -133,6 +134,7 @@ for (p in people){
   }
 }
 Sys.time() - start
+estData[,s_pred:=s_pred_mean]
 
 ### Predicted Product Shares ####
 shares = estData[,list(e_pred=sum(s_pred*N),e_data=sum(S_ij*N),pop_offered=sum(N)),by=c("Product","Firm","Market")]
@@ -141,7 +143,7 @@ shares[,S_data_inside:= e_data/pop_offered]
 shares[,mkt_ins:=sum(S_pred),]
 
 ## Test against moments
-share_moment = read.csv("Intermediate_Output/Estimation_Data/marketDataMap_MI_discrete.csv")
+share_moment = read.csv("Intermediate_Output/Estimation_Data/marketDataMap_MI_inside.csv")
 share_test = merge(shares,share_moment,by=c("Product","Firm","Market"),all=TRUE)
 share_test[,diff:=S_pred-Share]
 
@@ -153,3 +155,11 @@ insured[,urate:=1 - insured/lives]
 unins_st = read.csv("Data/2015_ACS/uninsured_ST_acs2015.csv")
 ins_test = merge(insured,unins_st,by.x="ST",by.y="state")
 
+### Delta Analysis ####
+prodData = as.data.table(share_moment)
+prodData = merge(prodData,deltas,by.x="Product",by.y="prods")
+prodData[,delta:=log(delta)]
+prodData[,premBase:=premBase*12/1000]
+prodData[,delta_adj:=delta - beta0*premBase]
+
+summary(lm(delta~-1 + premBase + MedDeduct+METAL,data=prodData))

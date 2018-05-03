@@ -9,7 +9,7 @@ include("InsChoiceData.jl")
 include("Halton.jl")
 
 # Random Coefficients MLE
-include("BasicLogit.jl")
+include("RandomCoefficients.jl")
 include("Contraction.jl")
 include("Estimate_MLE.jl")
 println("Code Loaded")
@@ -17,26 +17,33 @@ println("Code Loaded")
 # Load the Data
 include("load_sample.jl")
 # Structre the data
-c = ChoiceData(df,df_mkt)
+c = ChoiceData(df,df_mkt;
+prodchars_0 = [:Price],
+demoRaw = [:AGE,:Family,:IncomeCts,:HighIncome])
 
 # Fit into model
-m = InsuranceLogit(c,1)
+m = InsuranceLogit(c,500)
 
 # -2.6967 in 1727 evaluations
 # Initial Parameters
-γstart = Array{Float64}([2,2,2])/100
+γstart = Array{Float64}([0,0,0,0])/100
 #γstart = Array{Float64}([0,0,0,0,0,0,0])/100
-β0start = [-1.0,-1,1]
-βstart = -ones(2)
+β0start = [-1.0] #,-1,1]
+βstart = [0,0,0.0]
 σstart = [0,0,0]
 #p0 = vcat(γstart,β0start,βstart,σstart)
-p0 = vcat(β0start)
+p0 = vcat(γstart,β0start,βstart,σstart)
 parStart0 = parDict(m,p0)
 
 #parStart1 = parDict(m,p1)
 println("Data Loaded")
-
+#-1.238070945516972
 # Estimate the Model
+
+# Need to control better for value of insurance.
+# Put Age and Income in the utility equation
+
+
 p_est = estimate!(m, p0)
 #p_est = gradient_ascent(m,p0,max_step=1,grad_tol=1e-5)
 #
@@ -52,6 +59,6 @@ p_est = estimate!(m, p0)
 # log_likelihood(m,parStart1)
 
 
-run = Dates.today()
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_$run.jld"
+rundate = Dates.today()
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_$rundate.jld"
 save(file,"p_est",p_est)

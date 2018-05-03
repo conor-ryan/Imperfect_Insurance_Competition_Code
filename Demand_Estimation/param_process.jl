@@ -9,27 +9,28 @@ include("InsChoiceData.jl")
 include("Halton.jl")
 
 # Random Coefficients MLE
-include("MLE_RC.jl")
+include("BasicLogit.jl")
+include("Contraction.jl")
+include("Estimate_MLE.jl")
 println("Code Loaded")
 
 # Predict on Full Data
-include("load.jl")
+include("load_sample.jl")
 
 
 c = ChoiceData(df,df_mkt)
 # Fit into model
-m = InsuranceLogit(c,5000)
+m = InsuranceLogit(c,1)
 
 cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/")
-rundate = "2018-04-15"
-# file = "Estimation_Output/estimationresults_$rundate.jld"
-# #flag, fval, p_est = load(file)["p_est"]
-# flag, fval, p_est = load(file)["p_est"]
-# paramFinal = parDict(m,p_est)
-
-p_est = [2.50003, 2.42019, -8.29633, -0.4625,
- -0.557509, 1.4608, -0.0711841, -0.267433, 11.8129, 0.12461, -0.502018]
+rundate = "2018-05-01"
+file = "Estimation_Output/estimationresults_$rundate.jld"
+#flag, fval, p_est = load(file)["p_est"]
+flag, fval, p_est = load(file)["p_est"]
 paramFinal = parDict(m,p_est)
+
+
+
 # #### Debug
 # delta_df = CSV.read("Estimation_Output/deltaresults_2018-03-17.csv")
 # m.deltas
@@ -37,7 +38,7 @@ paramFinal = parDict(m,p_est)
 # individual_values!(m,parStart0)
 # individual_shares_RC(m,parStart0)
 
-contraction!(m,paramFinal)
+#contraction!(m,paramFinal)
 
 
 out1 = DataFrame(pars=p_est)

@@ -24,7 +24,7 @@ function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
 
         for i in eachindex(idxitr)
             ll+=wgt[i]*S_ij[i]*(log(s_hat[i]) -urate[i]*(log(s_insured)-log(1-s_insured)))
-            #ll+=wgt[i]*S_ij[i]*(log(s_hat[i]))
+            #ll+=wgt[i]*S_ij[i]*(log(s_hat[i]/s_insured))
             Pop+=wgt[i]*S_ij[i]
         end
     end
@@ -144,15 +144,12 @@ function estimate!(d::InsuranceLogit, p0)
     ll(x) = log_likelihood(d,x)
     gmm(x) = GMM_objective(d,x)
     #δ_cont(x) = contraction!(d,x,update=false)
-    δ_cont(x) = contraction!(d,x)
     count = 0
     function ll(x, grad)
         count +=1
         println("Iteration $count at $x")
         #Store Gradient
         # println("Step 1")
-
-        δ_cont(x)
 
         # println("Step 2")
         #ForwardDiff.gradient!(grad, gmm, x)

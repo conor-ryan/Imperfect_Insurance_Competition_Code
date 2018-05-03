@@ -2,8 +2,10 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
     # Contraction...
     rnd = 0
     eps0 = 1
-    tol = 1e-12
+    tol = 1e-10
     individual_values!(d,p)
+    eps_old = 10
+    delta_old = d.deltas
     while (eps0>tol) & (rnd<5000)
         rnd+=1
         #Step 1
@@ -11,7 +13,7 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
         individual_shares(d,p)
         eps0,δ_0,r0 = δ_update!(d,p)
         unpack_δ!(p.δ,d)
-
+        #println(eps0)
 
         #Step 2
         individual_shares(d,p)
@@ -27,10 +29,17 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
         chg = - 2*αn.*r0 + αn^2.*vn
         δ_new = δ_init.*exp.(chg)
         #δ_new = δ_init - αn.*r0
-        if eps0>10
+        if rnd % 10==0
+            println(eps1)
+        end
+
+        if (eps0>10)
+            #println("Normal")
             d.deltas = δ_1
         else
+            #println("SquareM")
             d.deltas = δ_new
+            #d.deltas = δ_1
         end
 
         unpack_δ!(p.δ,d)
@@ -41,7 +50,9 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
         #eps = maximum(abs.(chg))
         # println("Contraction Error")
         #print("Intitial Error:  ")
-        #println(eps0)
+
+        eps_old=eps1
+        delta_old = δ_1
         # print("SquareM Error:  ")
         # println(eps)
     end

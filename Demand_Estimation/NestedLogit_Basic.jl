@@ -9,6 +9,7 @@ type parDict{T}
     γ::Vector{T}
     β_0::Vector{T}
     β::Matrix{T}
+    σ::T
     # δ values for (ij) pairs
     δ::Vector{T}
     # Non-delta utility for (ij) pairs and draws
@@ -16,6 +17,7 @@ type parDict{T}
     # Shares for (ij) pairs
     s_hat::Vector{T}
 end
+
 
 function parDict{T}(m::InsuranceLogit,x::Array{T})
     # Parameter Lengths from model
@@ -32,11 +34,10 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
     # β_vec = x[(β0len+1):βlen]
     # σ = x[σlen]
 
-    γ = [0,0,0,0]
-    #γ = x[1:4]
-    #γ_0 = x[1]
-    γ_0 = 0
-    β_0 = [x[1]]
+    γ = [0,0,0]
+    γ_0 = x[1]
+    β_0 = x[2:4]
+    σ = x[5]
     #β_vec = x[7:8]
 
     # Stack Beta into a matrix
@@ -66,9 +67,8 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
     s_hat = Vector{T}(M)
     unpack_δ!(δ,m)
 
-    return parDict{T}(γ_0,γ,β_0,β,δ,μ_ij,s_hat)
+    return parDict{T}(γ_0,γ,β_0,β,σ,δ,μ_ij,s_hat)
 end
-
 ###########
 # Calculating Preferences
 ###########
@@ -87,21 +87,22 @@ function util_value!{T}(app::ChoiceData,p::parDict{T},ret=false)
     γ = p.γ
     β_0= p.β_0
     β = p.β
+    σ = p.σ
 
     ind = person(app)[1]
     X = permutedims(prodchars(app),(2,1))
     X_0 = permutedims(prodchars0(app),(2,1))
     Z = demoRaw(app)[:,1]
     β_z = β*Z
-    demos =γ_0 + vecdot(γ,Z)
+    demos = γ_0 + vecdot(γ,Z)
 
     chars = X*β_z
-    chars_0 = X_0*β_0
+    chars_0 = X*β_0
 
     K= length(chars)
     idxitr = app._personDict[ind]
     for k = 1:K
-        u = exp(chars[k] + chars_0[k] + demos)
+        u = exp((chars[k] + chars_0[k] + demos)/(1-σ))
         p.μ_ij[idxitr[k]] = u
     end
     if ret
@@ -112,7 +113,7 @@ function util_value!{T}(app::ChoiceData,p::parDict{T},ret=false)
 end
 
 
-function calc_shares{T}(μ_ij::Vector{T},δ::Vector{T})
+function calc_shares{T}(μ_ij::Vector{T},δ::Vector{T},σ::T)
     K = length(μ_ij)
     util = Vector{T}(K)
     s_hat = Vector{T}(K)
@@ -124,7 +125,7 @@ function calc_shares{T}(μ_ij::Vector{T},δ::Vector{T})
         expsum += a
     end
     for i in 1:K
-        s_hat[i] = (util[i])/(1+expsum)
+        s_hat[i] = (util[i]*expsum^(-σ))/(1+expsum^(1-σ))
     end
 
     return s_hat
@@ -133,11 +134,12 @@ end
 function individual_shares{T}(d::InsuranceLogit,p::parDict{T})
     # Store Parameters
     δ_long = p.δ
+    σ = p.σ
     μ_ij_large = p.μ_ij
     for idxitr in values(d.data._personDict)
         δ = δ_long[idxitr]
         u = μ_ij_large[idxitr]
-        s = calc_shares(u,δ)
+        s = calc_shares(u,δ,σ)
         p.s_hat[idxitr] = s
     end
     return Void
