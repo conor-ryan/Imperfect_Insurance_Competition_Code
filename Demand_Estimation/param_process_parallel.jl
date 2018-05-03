@@ -18,21 +18,34 @@ println("Code Loaded")
 include("load_ARCOLA.jl")
 
 
-c = ChoiceData(df,df_mkt)
+c = ChoiceData(df,df_mkt;
+        prodchars=[:Price,:MedDeduct,:Silver,:Gold,:Platinum,:Catas],
+        prodchars_0=[:PriceDiff,:MedDeductDiff],
+        demoRaw=[:AGE,:Family,:Income_2,:Income_3])
 # Fit into model
 m = InsuranceLogit(c,1)
 
-cd("$(homedir())/Documents/Research/ARCOLA/Detailed Demand Estimation/Estimation Output")
+cd("$(homedir())/Documents/Research/ARCOLA/Detailed Demand Estimation")
 rundate = "2018-05-02"
-file = "Estimation_Output/estimationresults_$rundate.jld"
+file = "Estimation_Output/estimationresults_p_$rundate.jld"
 
-resList = load(file)
+resList = load(file)["res"]
 
+fvalmax = -100
+flag = 0
+fval = 0
+p_est = 0
+for i in 1:length(resList)
+    flag_temp,fval_temp,p_temp = resList[i]
+    if fval_temp>fvalmax
+        flag,fval,p_est = resList[i]
+        fvalmax = fval
+        println(fval)
+    end
+end
 
-#flag, fval, p_est = load(file)["p_est"]
-flag, fval, p_est = load(file)["p_est"]
 paramFinal = parDict(m,p_est)
-
+contraction!(m,paramFinal)
 
 
 # #### Debug
@@ -63,12 +76,10 @@ end
 
 
 
-function exp_ll(x)
-    ll = evaluate_iteration!(m,x,update=false)
-    return ll/N
+function ll(x)
+    ll = log_likelihood(m,x)
+    return ll
 end
-
-ll(x) = evaluate_iteration!(m,x,update=false)
 
 # hess = Matrix{Float64}(length(p_est),length(p_est))
 # cfg1 = ForwardDiff.HessianConfig(ll, p_est, ForwardDiff.Chunk{1}());
@@ -76,20 +87,25 @@ ll(x) = evaluate_iteration!(m,x,update=false)
 # InfMat = hess./N
 # Var = inv(InfMat)
 # stderr = sqrt.(diag(Var))
+println("Calculate Gradient")
+grad_exp = Vector{Float64}(length(p_est))
+cfg1 = ForwardDiff.GradientConfig(ll, p_est, ForwardDiff.Chunk{3}());
+grad_exp = ForwardDiff.gradient!(grad_exp,ll, p_est,cfg1)
+
 
 println("Calculate Hessian")
 hess_exp = Matrix{Float64}(length(p_est),length(p_est))
-cfg2 = ForwardDiff.HessianConfig(exp_ll, p_est, ForwardDiff.Chunk{3}());
-hess_exp = ForwardDiff.hessian!(hess_exp,exp_ll, p_est,cfg2)
+cfg2 = ForwardDiff.HessianConfig(ll, p_est, ForwardDiff.Chunk{3}());
+hess_exp = ForwardDiff.hessian!(hess_exp,ll, p_est,cfg2)
 
 
 InfMat = -hess_exp
 Var = inv(InfMat)
-stderr = sqrt.(diag(-Var))
+stderr = sqrt.(diag(Var))
 
 hess_num = Matrix{Float64}(length(p_est),length(p_est))
 buff = similar(p_est)
-FiniteDiff.hessian!(hess_num,exp_ll, p_est,buff)
+FiniteDiff.hessian!(hess_num,ll, p_est,buff)
 
 # estTable = Matrix{Float64}(length(p_est),2)
 # estTable[:,1] = p_est
