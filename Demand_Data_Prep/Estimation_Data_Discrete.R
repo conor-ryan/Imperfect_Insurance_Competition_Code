@@ -329,16 +329,34 @@ choices[FPL_imp>=3.5&FPL_imp<4,FPL_bucket:="3.5 - 4"]
 choices[is.na(FPL_imp)|FPL_imp>=4,FPL_bucket:="Greater than 4"]
 
 
-choices[,AGE_bucket:= "26 or Under"]
-choices[AGE>26&AGE<=30,AGE_bucket:= "26-30"]
-choices[AGE>=31&AGE<=34,AGE_bucket:= "31-34"]
-choices[AGE>=35&AGE<=38,AGE_bucket:= "35-38"]
-choices[AGE>=39&AGE<=42,AGE_bucket:= "39-42"]
-choices[AGE>=43&AGE<=46,AGE_bucket:= "43-46"]
-choices[AGE>=47&AGE<=50,AGE_bucket:= "47-50"]
-choices[AGE>=51&AGE<=54,AGE_bucket:= "51-54"]
-choices[AGE>=55&AGE<=58,AGE_bucket:= "55-58"]
-choices[AGE>=58,AGE_bucket:= "58-64"]
+# choices[,AGE_bucket:= "26 or Under"]
+# choices[AGE>26&AGE<=30,AGE_bucket:= "26-30"]
+# choices[AGE>=31&AGE<=34,AGE_bucket:= "31-34"]
+# choices[AGE>=35&AGE<=38,AGE_bucket:= "35-38"]
+# choices[AGE>=39&AGE<=42,AGE_bucket:= "39-42"]
+# choices[AGE>=43&AGE<=46,AGE_bucket:= "43-46"]
+# choices[AGE>=47&AGE<=50,AGE_bucket:= "47-50"]
+# choices[AGE>=51&AGE<=54,AGE_bucket:= "51-54"]
+# choices[AGE>=55&AGE<=58,AGE_bucket:= "55-58"]
+# choices[AGE>=58,AGE_bucket:= "58-64"]
+
+choices[,AGE_bucket:= "Under 18"]
+choices[AGE>=18&AGE<=20,AGE_bucket:= "18-20"]
+choices[AGE>=21&AGE<=23,AGE_bucket:= "21-23"]
+choices[AGE>=24&AGE<=26,AGE_bucket:= "24-26"]
+choices[AGE>=27&AGE<=30,AGE_bucket:= "27-30"]
+choices[AGE>=31&AGE<=33,AGE_bucket:= "31-33"]
+choices[AGE>=34&AGE<=36,AGE_bucket:= "34-36"]
+choices[AGE>=37&AGE<=39,AGE_bucket:= "37-39"]
+choices[AGE>=40&AGE<=42,AGE_bucket:= "40-42"]
+choices[AGE>=43&AGE<=45,AGE_bucket:= "43-45"]
+choices[AGE>=46&AGE<=48,AGE_bucket:= "46-48"]
+choices[AGE>=49&AGE<=51,AGE_bucket:= "49-51"]
+choices[AGE>=52&AGE<=54,AGE_bucket:= "52-54"]
+choices[AGE>=55&AGE<=57,AGE_bucket:= "55-57"]
+choices[AGE>=58&AGE<=60,AGE_bucket:= "58-60"]
+choices[AGE>=61&AGE<=63,AGE_bucket:= "61-63"]
+choices[AGE>=64, AGE_bucket:= "64 and up"]
 
 # choices[,AGE_bucket:=vector(mode="integer",nrow(choices))]
 # choices[AGE>=26,AGE_bucket:=AGE]
@@ -423,9 +441,12 @@ choices$mem_cat[choices$MEMBERS==2] = 2
 choices$mem_cat[choices$MEMBERS>2] = 3
 
 unins = read.csv("Data/2015_ACS/uninsured_acs2015.csv")
+non_unins = read.csv("Data/2015_ACS/uninsured_nonexchange_acs2015.csv")
 
 choices = merge(choices,unins,by.x=c("STATE","inc_cat","AGE_cat","mem_cat"),
                     by.y=c("state","inc_cat","AGE_cat","mem_cat"),all.x=TRUE)
+choices = merge(choices,non_unins,by.x=c("STATE","inc_cat","AGE_cat","mem_cat"),
+                by.y=c("state","inc_cat","AGE_cat","mem_cat"),all.x=TRUE)
 
 
 choices = choices[,c("STATE","AREA","FPL_bucket","AGE_bucket","Mem_bucket",
@@ -434,7 +455,7 @@ choices = choices[,c("STATE","AREA","FPL_bucket","AGE_bucket","Mem_bucket",
                      #"MedDeductDiff","MedOOPDiff","HighDiff",
                      #"MedDeductStandard","MedOOPStandard","HighStandard",
                      "ageRate","FPL_imp","Benchmark","HHcont","subsidy","Quote","premBase",
-                     "PremPaid","PremPaidDiff","S_ij","N","Income","Mandate","unins_rate")]
+                     "PremPaid","PremPaidDiff","S_ij","N","Income","Mandate","unins_rate","nonexch_unins_rate")]
 
 
 # 
@@ -484,12 +505,22 @@ for (fam in 0:1){
   }
 }
 
-
+# Fixed Effects on Metal Level
+choices$Bronze = 0
+choices$Bronze[choices$METAL=="BRONZE"] = 1
+choices$Silver = 0
+choices$Silver[choices$METAL=="SILVER"] = 1
+choices$Gold = 0
+choices$Gold[choices$METAL=="GOLD"] = 1
+choices$Platinum = 0
+choices$Platinum[choices$METAL=="PLATINUM"] = 1
+choices$Catas = 0
+choices$Catas[choices$METAL=="CATASTROPHIC"] = 1
 
 
 #### Break Down to Smallest Estimatable Data
 # Product Variables
-choices$Market = with(choices,paste(STATE,gsub("Rating Area ","",AREA),CSR,Age,sep="_"))
+choices$Market = with(choices,paste(STATE,gsub("Rating Area ","",AREA),sep="_"))
 
 # Test products by different ages 
 choices$Product = with(choices,paste(Firm,METAL,Market,sep="_"))
@@ -497,8 +528,8 @@ choices$Product = with(choices,paste(Firm,METAL,Market,sep="_"))
 choices[,Person:=as.factor(paste(Market,FPL_bucket,AGE_bucket,Mem_bucket))]
 choices[,Person:=as.numeric(Person)]
 
-## Only Singles: Experiment
-choices = choices[Family==0,]
+# ## Only Singles: Experiment
+# choices = choices[Family==0,]
 
 #### Summary Stats for Tables ####
 choices[,premMin:=min(PremPaid),by=c("Person")]
@@ -595,9 +626,10 @@ setkey(shares,Product)
 write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price",
                      "PriceDiff",#"MedDeductDiff","ExcOOPDiff","HighDiff",
                      "MedDeduct","ExcOOP","High",
-                     "Family","Age","LowIncome",
+                     "Family","Age","LowIncome","AGE","HighIncome","IncomeCts",
+                     "METAL",
                      "F0_Y0_LI0","F0_Y0_LI1","F0_Y1_LI0","F0_Y1_LI1",
-                     "F1_Y0_LI0","F1_Y0_LI1","F1_Y1_LI0","F1_Y1_LI1","unins_rate")],
+                     "F1_Y0_LI0","F1_Y0_LI1","F1_Y1_LI0","F1_Y1_LI1","unins_rate","nonexch_unins_rate")],
           "Intermediate_Output/Estimation_Data/estimationData_discrete.csv",row.names=FALSE)
 write.csv(choices,"Intermediate_Output/Estimation_Data/descriptiveData_discrete.csv",row.names=FALSE)
 write.csv(shares[,c("Product","Share")],
@@ -623,7 +655,7 @@ setkey(MI_mkt,Product)
 
 vars = c("Person","Firm","Market","Product","S_ij","N","Price",
          "MedDeduct","ExcOOP","High","MedDeductDiff","ExcOOPDiff","HighDiff",
-         "Family","Age","LowIncome",names(choices)[grepl("F[0-9]_Y.*",names(choices))],"unins_rate")
+         "Family","Age","LowIncome",names(choices)[grepl("F[0-9]_Y.*",names(choices))],"unins_rate","nonexch_unins_rate")
 
 write.csv(MI[,c("Person","Firm","Market","Product","S_ij","N","Price",
                 "PriceDiff",#"MedDeductDiff","ExcOOPDiff","HighDiff",
