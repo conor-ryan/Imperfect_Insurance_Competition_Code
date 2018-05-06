@@ -16,7 +16,7 @@ df_mkt = CSV.read("$(homedir())/Documents/Research/ARCOLA/Detailed Demand Estima
 # Structre the data
 c = ChoiceData(df,df_mkt;
         prodchars=[:Price,:MedDeduct,:Silver,:Gold,:Platinum,:Catas],
-        prodchars_0=[:PriceDiff,:MedDeductDiff],
+        prodchars_0=[:PriceDiff],
         demoRaw=[:AGE,:Family,:Income_2,:Income_3])
 # Fit into model
 m = InsuranceLogit(c,1)
