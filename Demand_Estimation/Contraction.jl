@@ -31,7 +31,7 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
             println(eps0)
         end
 
-        if (eps0>10)
+        if (eps0>10) | p.σ>.85
             #println("Normal")
             d.deltas = δ_1
         else
