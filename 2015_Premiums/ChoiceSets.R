@@ -231,6 +231,8 @@ comb$MedOOPFam[is.na(comb$MedOOPFam)] = 2*comb$MedOOP[is.na(comb$MedOOPFam)]
 comb = comb[with(comb,order(ST,AREA,METAL,CARRIER,PLANID)),
             c("ST","AREA","PLANID","METAL","CARRIER","Firm","PLANNAME","PREMI27","PLANMARKET","CSR","MedDeduct","MedOOP","MedDeductFam","MedOOPFam")]
 
+#### Output Plan Level Data ####
+write.csv(comb,"Intermediate_Output/Premiums/planLevelChoices.csv",row.names=FALSE)
 
 ##### Cost Sharing Plot ####
 comb$METAL = factor(comb$METAL,levels=c("Catastrophic","Bronze","Silver","Gold","Platinum"))

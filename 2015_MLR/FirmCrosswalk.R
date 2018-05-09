@@ -225,18 +225,45 @@ planData$Firm = toupper(planData$Firm)
 planDataFirms = unique(planData[,c("ST","CARRIER","Firm")])
 planDataPlans = unique(planData[,c("ST","CARRIER","PLANID","Firm")])
 
+planData$ISSUER_ID = gsub("[A-Z]+.*","",planData$PLANID)
+filingMatch = unique(planData[,c("Firm","ISSUER_ID")])
 
+#### Rate Filing Firms ####
+filings = read.csv("Data/2016_Rate_Filings/WKSH2_PUF_2016_20161103.csv")
+
+filings = filings[filings$MARKET!="Small Group",c("STATE","COMPANY","ISSUER_ID","EXP_MM")]
+filings = summaryBy(EXP_MM~STATE+COMPANY+ISSUER_ID,data=filings,keep.names=TRUE)
+
+
+filings = merge(filings,filingMatch,by="ISSUER_ID",all.x=TRUE)
+filings$Firm=as.character(filings$Firm)
+filings$Firm[is.na(filings$Firm)] = as.character(filings$COMPANY[is.na(filings$Firm)])
+
+filings$Firm = gsub(" ","_",filings$Firm)
+filings$Firm = gsub("[,.&'-:]","",filings$Firm)
+filings$Firm = toupper(filings$Firm)
+
+filings$Firm[with(filings,STATE=="NJ"&grepl("Oxford",COMPANY))] = "OXFORD_NJ"
+filings$Firm[with(filings,grepl("Aetna Health Inc.",COMPANY))] = "AETNA"
+filings$Firm[with(filings,STATE=="GA"&grepl("Peach ",COMPANY))] = "AMBETTER_FROM_PEACH_STATE_HEALTH_PLAN"
+filings$Firm[with(filings,STATE=="IA"&grepl("UnitedHealthcare",COMPANY))] = "UNITEDHEALTHCARE_INSURANCE_COMPANY"
+filings$Firm[with(filings,STATE=="TX"&grepl("Celtic Insurance",COMPANY))] = "AMBETTER_FROM_SUPERIOR_HEALTHPLAN"
+filings$Firm[with(filings,STATE=="VA"&grepl("Piedmont",COMPANY))] = "PIEDMONT_COMMUNITY_HEALTHCARE_INC"
+
+
+#filings = unique()
 
 
 #### Create Firm Crosswalk for Relevant States ####
 crosswalk = merge(eHealth,firms,by.x=c("STATE","Firm"),by.y=c("state","Firm"),all=TRUE)
 crosswalk = merge(crosswalk,planDataFirms,by.x=c("STATE","Firm"),by.y=c("ST","Firm"),all=TRUE)
+crosswalk = merge(crosswalk,filings,by.x=c("STATE","Firm"),by.y=c("STATE","Firm"),all=TRUE)
 
 validStates = c("AK","CA","CT","DE","GA","IL","IA","MD","MI","MO","NE","NJ","NM","ND","OK","OR","TX","UT","VA","WV")
 
 crosswalk = crosswalk[crosswalk$STATE%in%validStates,
-                      c("BUSINESS_STATE","STATE","Firm","ï..MR_SUBMISSION_TEMPLATE_ID","GROUP_AFFILIATION","COMPANY_NAME","DBA_MARKETING_NAME","CARRIER_NAME","CARRIER")]
-names(crosswalk) = c("BUSINESS_STATE","STATE","Firm","ï..MR_SUBMISSION_TEMPLATE_ID","GROUP_AFFILIATION","COMPANY_NAME","DBA_MARKETING_NAME","eHealth_CARRIER_NAME","RWJF_CARRIER")
+                      c("BUSINESS_STATE","STATE","Firm","ï..MR_SUBMISSION_TEMPLATE_ID","ISSUER_ID","GROUP_AFFILIATION","COMPANY_NAME","DBA_MARKETING_NAME","CARRIER_NAME","CARRIER","COMPANY")]
+names(crosswalk) = c("BUSINESS_STATE","STATE","Firm","ï..MR_SUBMISSION_TEMPLATE_ID","ISSUER_ID","GROUP_AFFILIATION","COMPANY_NAME","DBA_MARKETING_NAME","eHealth_CARRIER_NAME","RWJF_CARRIER","RF_COMPANY")
 
 write.csv(crosswalk,"Intermediate_Output/FirmCrosswalk.csv",row.names=FALSE)
 write.csv(planDataPlans,"Intermediate_Output/RWJF_PlanCrosswalk.csv",row.names=FALSE)

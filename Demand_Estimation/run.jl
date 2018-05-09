@@ -19,18 +19,18 @@ include("load_sample.jl")
 # Structre the data
 c = ChoiceData(df,df_mkt;
 prodchars_0 = [:Price],
-demoRaw = [:AGE,:Family,:IncomeCts,:HighIncome])
+demoRaw = [:Age,:Family,:HighIncome])
 
 # Fit into model
-m = InsuranceLogit(c,500)
+m = InsuranceLogit(c,1000)
 
 # -2.6967 in 1727 evaluations
 # Initial Parameters
-γstart = Array{Float64}([0.1,0.1,0.1,0.1])/100
+γstart = Array{Float64}([0.1,0.1,0.1])/100
 #γstart = Array{Float64}([0,0,0,0,0,0,0])/100
 β0start = [-1.0] #,-1,1]
 βstart = [0,0,0.0]
-σstart = [0,0,0]
+σstart = [0,0,0.0]
 #p0 = vcat(γstart,β0start,βstart,σstart)
 p0 = vcat(γstart,β0start,βstart,σstart)
 parStart0 = parDict(m,p0)

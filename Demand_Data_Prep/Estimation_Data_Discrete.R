@@ -276,6 +276,7 @@ choices = choices[FPL_imp>1 | is.na(FPL_imp),]
 #### Set Income Specific Choice Sets ####
 choices[,CSR:= gsub("[A-Z]+ ?","",METAL)]
 choices[,SILVER:=grepl("SILVER",METAL)]
+#choices[,METAL:=gsub(" .*",METAL)]
 
 # Set Y = 1 for all Silver, if for any
 choices[SILVER==TRUE,Y:= sum(Y),by=c("APP_RECORD_NUM","Firm")]

@@ -306,8 +306,10 @@ acs[,Person:=as.factor(paste(Market,FPL_bucket,AGE_bucket,Mem_bucket))]
 acs[,Person:=as.numeric(Person)]
 
 
-acs = acs[,c("Person","Firm","Market","Product_Name","Price","PriceDiff","MedDeduct","MedOOP","High","PremBase",
+acs = acs[,c("Person","Firm","Market","Product_Name","METAL",
+             "Price","PriceDiff","MedDeduct","MedOOP","High","premBase",
              "PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age",
+             "AGE","HHincomeFPL","MEMBERS",
              "MedDeductDiff","MedOOPDiff","HighDiff","Family","Age","LowIncome","ageRate","ageRate_avg","PERWT")]
 
 
