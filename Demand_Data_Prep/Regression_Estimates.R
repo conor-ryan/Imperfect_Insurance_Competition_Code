@@ -13,15 +13,6 @@ estData = read.csv("Intermediate_Output/Estimation_Data/descriptiveData_discrete
 estData = as.data.table(estData)
 setkey(estData,Person,Product)
 
-# Set AV Values
-estData[METAL=="CATASTROPHIC",AV:=.57]
-estData[METAL=="BRONZE",AV:=.6]
-estData[METAL=="SILVER",AV:=.7]
-estData[METAL=="SILVER 73",AV:=.73]
-estData[METAL=="SILVER 87",AV:=.87]
-estData[METAL=="SILVER 94",AV:=.94]
-estData[METAL=="GOLD",AV:=.8]
-estData[METAL=="PLATINUM",AV:=.9]
 
 ##### Prepare for Regression ####
 estData[,regVar:= log(S_ij*(1-unins_rate)+1e-3) - log(unins_rate+1e-3)]
@@ -107,28 +98,31 @@ famList = c(0,1)
 #regData = estData[AGE>=ageRange[1]&AGE<=ageRange[2],]
 
 ## Regular Logit
-# reg1 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + AV + Firm,data=estData)
-# c1 = summary(reg1)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg1$coefficients)),c("Estimate","t value")]
-# 
-# reg2 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + AV + Firm +Market,data=estData)
-# c2 = summary(reg2)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg2$coefficients)),c("Estimate","t value")]
-# 
-# reg3 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + MedDeduct + Firm_Market_Cat,data=estData)
-# c3 = summary(reg3)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg3$coefficients)),c("Estimate","t value")]
+reg0 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + AV,data=estData,
+          weights=estData$N)
 
-#reg4 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + productFE,data=estData)
-#c4 = summary(reg4)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg4$coefficients)),c("Estimate","t value")]
+reg1 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + AV + Firm,data=estData)
+c1 = summary(reg1)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg1$coefficients)),c("Estimate","t value")]
+
+reg2 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + AV + Firm +Market,data=estData)
+c2 = summary(reg2)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg2$coefficients)),c("Estimate","t value")]
+
+reg3 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + MedDeduct + Firm_Market_Cat,data=estData)
+c3 = summary(reg3)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg3$coefficients)),c("Estimate","t value")]
+
+reg4 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + productFE,data=estData)
+c4 = summary(reg4)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg4$coefficients)),c("Estimate","t value")]
 
 
 ## Nested Logit
-# reg5 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + AV + nestVar_IV+ Firm,data=estData)
-# c5 = summary(reg5)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg5$coefficients)),c("Estimate","t value")]
-# 
-# reg6 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + AV + nestVar_IV+ Firm +Market,data=estData)
-# c6 = summary(reg6)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg6$coefficients)),c("Estimate","t value")]
-# 
-# reg7 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + MedDeduct+ nestVar_IV + Firm_Market_Cat,data=estData)
-# c7 = summary(reg7)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg7$coefficients)),c("Estimate","t value")]
+reg5 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + AV + nestVar_IV+ Firm,data=estData)
+c5 = summary(reg5)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg5$coefficients)),c("Estimate","t value")]
+
+reg6 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + AV + nestVar_IV+ Firm +Market,data=estData)
+c6 = summary(reg6)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg6$coefficients)),c("Estimate","t value")]
+
+reg7 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + MedDeduct+ nestVar_IV + Firm_Market_Cat,data=estData)
+c7 = summary(reg7)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg7$coefficients)),c("Estimate","t value")]
 
 reg8 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + nestVar_IV + productFE,data=estData)
 c8 = summary(reg8)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg8$coefficients)),c("Estimate","t value")]
@@ -148,3 +142,14 @@ stargazer(reg8,omit=rep("(METAL|Market|productFE|prodCat|High|Firm_Market_Cat|Fi
 
 #save(estData,reg6,file="Estimation_Output/nestReg.rData")
 
+
+#### Test Likelihood #####
+estData[,u_ij:=predict(reg2)]
+estData[,exp_sum:=sum(exp(u_ij)),by="Person"]
+
+estData[,S_pred_cond:=exp(u_ij)/exp_sum]
+estData[,S_pred:=exp(u_ij)/(1+exp_sum)]
+estData[,S_0_pred:=1/(1 + exp_sum)]
+
+estData[,S_ij_uncond:=S_ij*(1-unins_rate)]
+estData[,]

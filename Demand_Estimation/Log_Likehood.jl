@@ -39,16 +39,13 @@ function log_likelihood{T}(d::InsuranceLogit,p::Array{T})
 end
 
 # Calculate Log Likelihood
-function ll_gradient{T}(d::InsuranceLogit,p::parDict{T})
-    p_num = length(p.γ) + length(p.β_0) + length(p.β) + length(p.σ)
-    ll = fill(0.0,(p_num))
-    Pop = 0.0
-    γ = p.γ
-    β = p.β
+function ll_gradient!{T}(grad::Vector{Float64},d::InsuranceLogit,p::parDict{T})
+    p_num = d.parLength[:All]
+    Pop =sum(weight(m.data).*choice(m.data))
     #α = p.α[1]
     # Calculate μ_ij, which depends only on parameters
     for app in eachperson(d.data)
-        μ_ij = util_value!(app,p)
+        μ_ij = util_value!(app,p,true)
         dμ_ij = util_gradient(d,app,p)
         ind = person(app)[1]
         S_ij = transpose(choice(app))
@@ -64,38 +61,35 @@ function ll_gradient{T}(d::InsuranceLogit,p::parDict{T})
         s_hat = calc_shares(μ_ij,δ)
         s_insured = sum(s_hat)
         #s2 = fill(0.0,K)
-        (Q,N,K) = size(dμ_ij)
+        (Q,K) = size(dμ_ij)
 
         for k = 1:K
-            dμ_ij[:,:,k] = dμ_ij[:,:,k].*δ[k]
+            dμ_ij[:,k] = dμ_ij[:,k].*δ[k]
         end
 
-        μ_ij_sums = 1.+μ_ij*δ
-        μ_ij_sums_sq = (1.+μ_ij*δ).^2
-        dμ_ij_sums = sum(dμ_ij,3)
+        μ_ij_sums = 1+vecdot(μ_ij,δ)
+        μ_ij_sums_sq = (1+vecdot(μ_ij,δ))^2
+        dμ_ij_sums = sum(dμ_ij,2)
 
         for k = 1:K,q in 1:Q
-            # ll[q] += wgt[k]/N*S_ij[k]*( (1/s_hat[k])*(
-            #             dμ_ij[q,n,k]/μ_ij_sums[n] -
-            #             dμ_ij_sums[q,n,1]*μ_ij[n,k]*δ[k]/μ_ij_sums_sq[n] ) -
-            #     urate[k]*( dμ_ij_sums[q,n,1]/μ_ij_sums_sq[n] )*(
-            #                     1/(s_insured) + 1/(1-s_insured) ) )
-            t1 = mean(dμ_ij[q,:,k]./μ_ij_sums)
-            t2 = mean(dμ_ij_sums[q,:,1].*μ_ij[:,k].*δ[k]./μ_ij_sums_sq)
-            t3 = mean(dμ_ij_sums[q,:,1]./μ_ij_sums_sq)
-            ll[q] += wgt[k]*S_ij[k]*( (1/s_hat[k])*(t1 - t2) -
-                urate[k]*( t3 )*(1/(s_insured) + 1/(1-s_insured) ) )
+
+            t1 = dμ_ij[q,k]/μ_ij_sums
+            t2 = dμ_ij_sums[q]*μ_ij[k]*δ[k]/μ_ij_sums_sq
+            t3 = dμ_ij_sums[q]/μ_ij_sums_sq
+
+            grad[q] += wgt[k]*S_ij[k]*( (1/s_hat[k])*(t1 - t2) -
+                urate[k]*( t3 )*(1/(s_insured) + 1/(1-s_insured) ) )/Pop
         end
-        Pop+= sum(wgt.*S_ij)
     end
-    return ll./Pop
+    #grad = grad./Pop
+    return grad
     # return fval/Pop
 end
 
 
-function ll_gradient{T}(d::InsuranceLogit,p::Array{T})
+function ll_gradient!{T}(grad::Vector{Float64},d::InsuranceLogit,p::Array{T})
     params = parDict(d,p)
-    grad = ll_gradient(d,params)
+    grad = ll_gradient!(grad,d,params)
     convert_δ!(d)
     return grad
 end

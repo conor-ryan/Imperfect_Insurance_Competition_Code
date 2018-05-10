@@ -27,6 +27,7 @@ struct ChoiceData <: ModelData
     _prodchars_0::Array{Int,1}
     _choice::Array{Int,1}
     _demoRaw::Array{Int,1}
+    _fixedEffects::Array{Int,1}
     _wgt::Array{Int,1}
     _unins::Array{Int,1}
 
@@ -47,6 +48,7 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
         #          :F0_Y1_LI0,:F0_Y1_LI1,
         #          :F1_Y0_LI0,:F1_Y0_LI1,
         #          :F1_Y1_LI0,:F1_Y1_LI1],
+        fixedEffects=[],
         wgt=[:N],
         unins=[:unins_rate])
 
@@ -63,13 +65,31 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
     w = hcat(Array{Float64}(data_choice[wgt]))
     s0= hcat(Array{Float64}(data_choice[unins]))
 
+    # Create Fixed Effects
+    F = Matrix{Float64}(n,0)
+    feNames = Vector{Symbol}(0)
+    for fe in fixedEffects
+        fac_variables = data_choice[fe]
+        factor_list = sort(unique(fac_variables))
+        for fac in factor_list[2:length(factor_list)]
+            fac_data = zeros(n)
+            for ind in 1:n
+                if fac_variables[ind]==fac
+                    fac_data[ind]=1
+                end
+            end
+            F = hcat(F,fac_data)
+            feNames = vcat(feNames,Symbol(fac))
+        end
+    end
+
     index = Dict{Symbol, Int}()
     dmat = Matrix{Float64}(n,0)
 
     # Create a data matrix, only including person id
     k = 0
-    for (d, var) in zip([i,X,X_0, y, Z, w, s0], [person,prodchars,
-        prodchars_0,choice, demoRaw,wgt,unins])
+    for (d, var) in zip([i,X,X_0, y, Z, F,w, s0], [person,prodchars,
+        prodchars_0,choice, demoRaw,feNames,wgt,unins])
         for l=1:size(d,2)
             k+=1
             dmat = hcat(dmat, d[:,l])
@@ -88,6 +108,7 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
     _prodchars_0 = getindex.(index, prodchars_0)
     _choice = getindex.(index, choice)
     _demoRaw = getindex.(index, demoRaw)
+    _fixedEffects = getindex.(index, feNames)
     _wgt = getindex.(index, wgt)
     _unins = getindex.(index, unins)
 
@@ -113,7 +134,7 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
     # Make the data object
     m = ChoiceData(dmat,data_market, index, prodchars,prodchars_0,
             choice, demoRaw,wgt, unins, _person, _prodchars,_prodchars_0,
-            _choice, _demoRaw, _wgt, _unins,uniqids,_personDict,_productDict)
+            _choice, _demoRaw, _fixedEffects, _wgt, _unins,uniqids,_personDict,_productDict)
     return m
 end
 
@@ -132,6 +153,7 @@ prodchars(m::ChoiceData)   = m[m._prodchars]
 prodchars0(m::ChoiceData)   = m[m._prodchars_0]
 choice(m::ChoiceData)      = m[m._choice]
 demoRaw(m::ChoiceData)     = m[m._demoRaw]
+fixedEffects(m::ChoiceData)= m[m._fixedEffects]
 weight(m::ChoiceData)      = m[m._wgt]
 unins(m::ChoiceData)       = m[m._unins]
 
@@ -161,6 +183,7 @@ function subset{T<:ModelData}(d::T, idx)
     d._prodchars_0,
     d._choice,
     d._demoRaw,
+    d._fixedEffects,
     d._wgt,
     d._unins,
     d._personIDs,
@@ -231,9 +254,10 @@ function InsuranceLogit(data::ChoiceData,haltonDim::Int)
     γlen = size(demoRaw(data),1)
     β0len = size(prodchars0(data),1)
     βlen = size(prodchars(data),1)
-    σlen = βlen + 1
-
-    parLength = Dict(:γ=>γlen,:β0=>β0len,:β=>βlen,:σ=>σlen)
+    flen = size(fixedEffects(data),1)
+    total = 1 + γlen + βlen + γlen + flen
+    parLength = Dict(:γ=>γlen,:β0=>β0len,:β=>βlen,:FE=>flen,
+    :All=>total)
 
     # Initialize Halton Draws
     # These are the same across all individuals

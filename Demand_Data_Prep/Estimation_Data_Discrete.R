@@ -478,6 +478,17 @@ choices = choices[,c("STATE","AREA","FPL_bucket","AGE_bucket","Mem_bucket",
 #                      "MedDeduct","MedOOP","ageRate","FPL_imp","Benchmark","HHcont","subsidy","Quote",
 #                      "PremPaid","Y","Income","logIncome","CSR","Mandate","unins_rate")]
 # 
+#### Define Market and Products ####
+# Market
+choices$Market = with(choices,paste(STATE,gsub("Rating Area ","",AREA),sep="_"))
+
+# Test products by different ages 
+choices$Product = with(choices,paste(Firm,METAL,Market,sep="_"))
+
+# Person
+choices[,Person:=as.factor(paste(Market,FPL_bucket,AGE_bucket,Mem_bucket))]
+choices[,Person:=as.numeric(Person)]
+
 
 #### Create Dummy Variables ####
 choices$Family = 0 
@@ -518,19 +529,43 @@ choices$Platinum[choices$METAL=="PLATINUM"] = 1
 choices$Catas = 0
 choices$Catas[choices$METAL=="CATASTROPHIC"] = 1
 
+# Set AV Values
+choices[METAL=="CATASTROPHIC",AV:=.57]
+choices[METAL=="BRONZE",AV:=.6]
+choices[METAL=="SILVER",AV:=.7]
+choices[METAL=="SILVER 73",AV:=.73]
+choices[METAL=="SILVER 87",AV:=.87]
+choices[METAL=="SILVER 94",AV:=.94]
+choices[METAL=="GOLD",AV:=.8]
+choices[METAL=="PLATINUM",AV:=.9]
 
-#### Break Down to Smallest Estimatable Data
-# Product Variables
-choices$Market = with(choices,paste(STATE,gsub("Rating Area ","",AREA),sep="_"))
+# Age Fixed Effects
+choices[,AgeFE_18_30:=0]
+choices[AGE<=30,AgeFE_18_30:=1]
 
-# Test products by different ages 
-choices$Product = with(choices,paste(Firm,METAL,Market,sep="_"))
+choices[,AgeFE_31_40:=0]
+choices[AGE>30&AGE<=40,AgeFE_31_40:=1]
 
-choices[,Person:=as.factor(paste(Market,FPL_bucket,AGE_bucket,Mem_bucket))]
-choices[,Person:=as.numeric(Person)]
+choices[,AgeFE_41_50:=0]
+choices[AGE>40&AGE<=50,AgeFE_41_50:=1]
 
-# ## Only Singles: Experiment
-# choices = choices[Family==0,]
+choices[,AgeFE_51_64:=0]
+choices[AGE>50,AgeFE_51_64:=1]
+
+## Firm Fixed Effects
+# firm_list = unique(choices$Firm)[-1]
+# for (var in firm_list){
+#   choices[,c(var):=0]
+#   choices[Firm==var,c(var):=1]
+# }
+# 
+# Market_list = unique(choices$Market)[-1]
+# 
+# for (var in Market_list){
+#   choices[,c(var):=0]
+#   choices[Market==var,c(var):=1]
+# }
+
 
 #### Summary Stats for Tables ####
 choices[,premMin:=min(PremPaid),by=c("Person")]

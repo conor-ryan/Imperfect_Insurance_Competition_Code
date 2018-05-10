@@ -15,7 +15,7 @@ include("Estimate_MLE.jl")
 println("Code Loaded")
 
 # Load the Data
-include("load_sample.jl")
+include("load.jl")
 # Structre the data
 c = ChoiceData(df,df_mkt;
 prodchars_0 = [:Price],
