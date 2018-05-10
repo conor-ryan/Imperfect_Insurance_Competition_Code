@@ -50,55 +50,6 @@ function log_likelihood{T}(d::InsuranceLogit,p::Array{T})
     return ll
 end
 
-# Calculate Log Likelihood
-function ll_gradient!{T}(grad::Vector{Float64},d::InsuranceLogit,p::parDict{T})
-    p_num = d.parLength[:All]
-    Pop =sum(weight(m.data).*choice(m.data))
-    #α = p.α[1]
-    # Calculate μ_ij, which depends only on parameters
-    for app in eachperson(d.data)
-        μ_ij = util_value!(app,p,true)
-        dμ_ij = util_gradient(d,app,p)
-        ind = person(app)[1]
-        S_ij = transpose(choice(app))
-        wgt = transpose(weight(app))
-        urate = transpose(unins(app))
-        idxitr = d.data._personDict[ind]
-
-
-        # dμ_ij_sums = sum(dμ_ij,(1,3))
-
-
-        δ = p.δ[idxitr]
-        s_hat = calc_shares(μ_ij,δ)
-        s_insured = sum(s_hat)
-        #s2 = fill(0.0,K)
-        (Q,K) = size(dμ_ij)
-
-        for k = 1:K
-            dμ_ij[:,k] = dμ_ij[:,k].*δ[k]
-        end
-
-        μ_ij_sums = 1+vecdot(μ_ij,δ)
-        μ_ij_sums_sq = (1+vecdot(μ_ij,δ))^2
-        dμ_ij_sums = sum(dμ_ij,2)
-
-        for k = 1:K,q in 1:Q
-
-            t1 = dμ_ij[q,k]/μ_ij_sums
-            t2 = dμ_ij_sums[q]*μ_ij[k]*δ[k]/μ_ij_sums_sq
-            t3 = dμ_ij_sums[q]/μ_ij_sums_sq
-
-            grad[q] += wgt[k]*S_ij[k]*( (1/s_hat[k])*(t1 - t2) -
-                urate[k]*( t3 )*(1/(s_insured) + 1/(1-s_insured) ) )/Pop
-        end
-    end
-    #grad = grad./Pop
-    return grad
-    # return fval/Pop
-end
-
-
 function ll_gradient!{T}(grad::Vector{Float64},d::InsuranceLogit,p::Array{T})
     params = parDict(d,p)
     grad = ll_gradient!(grad,d,params)
