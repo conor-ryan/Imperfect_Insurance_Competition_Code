@@ -35,8 +35,11 @@ function estimate!(d::InsuranceLogit, p0;method=:LN_NELDERMEAD)
         println("Iteration $count at $x_displ")
 
         obj = ll(x)
-        ll_grad!(grad,x)
-        #ForwardDiff.gradient!(grad, ll, x)
+        #ll_grad!(grad,x)
+
+        #grad_size = sqrt(vecdot(grad,grad))
+        #println("Gradient size equals $grad_size")
+        ForwardDiff.gradient!(grad, ll, x)
         #println("Gradient equals $grad")
         #likelihood = ll(x)
         println("Objective equals $obj on iteration $count")
