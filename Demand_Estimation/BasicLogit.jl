@@ -198,9 +198,7 @@ function ll_gradient!{T}(grad::Vector{Float64},d::InsuranceLogit,p::parDict{T})
     Pop =sum(weight(m.data).*choice(m.data))
     #Pop =0.0
     # Initialize Gradient
-    for q in 1:length(grad)
-        grad[q]*= 0
-    end
+    grad[:] = 0
 
     # Calculate μ_ij, which depends only on parameters
     for app in eachperson(d.data)

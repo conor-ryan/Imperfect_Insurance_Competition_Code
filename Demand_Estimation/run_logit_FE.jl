@@ -26,7 +26,7 @@ c = ChoiceData(df,df_mkt;
             :LowIncome],
     prodchars=[:Price,:AV],
     prodchars_0=[],
-    fixedEffects=[:Firm,:Market])
+    fixedEffects=[:Firm])
 
 # Fit into model
 m = InsuranceLogit(c,1)
