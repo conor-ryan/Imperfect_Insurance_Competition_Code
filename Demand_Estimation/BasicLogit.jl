@@ -199,7 +199,7 @@ function ll_gradient!{T}(grad::Vector{Float64},d::InsuranceLogit,p::parDict{T})
     #Pop =0.0
     # Initialize Gradient
     for q in 1:length(grad)
-        grad[q] = 0
+        grad[q]*= 0
     end
 
     # Calculate μ_ij, which depends only on parameters
@@ -219,6 +219,12 @@ function ll_gradient!{T}(grad::Vector{Float64},d::InsuranceLogit,p::parDict{T})
         δ = p.δ[idxitr]
         s_hat = calc_shares(μ_ij,δ)
         s_insured = sum(s_hat)
+
+        # Fix possible computational error
+        if s_insured>=1
+            s_insured= 1 - 1e-5
+        end
+
         #s2 = fill(0.0,K)
         (Q,K) = size(dμ_ij)
 

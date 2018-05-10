@@ -27,7 +27,7 @@ function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
 
         # Fix possible computational error
         if s_insured>=1
-            s_insured= 1 - 1e-16
+            s_insured= 1 - 1e-5
         end
 
         for i in eachindex(idxitr)

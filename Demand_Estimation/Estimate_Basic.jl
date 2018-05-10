@@ -30,7 +30,9 @@ function estimate!(d::InsuranceLogit, p0;method=:LN_NELDERMEAD)
     count = 0
     function ll(x, grad)
         count +=1
-        println("Iteration $count at $x")
+
+        x_displ = x[1:20]
+        println("Iteration $count at $x_displ")
 
         obj = ll(x)
         ll_grad!(grad,x)

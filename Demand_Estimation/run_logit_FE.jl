@@ -49,14 +49,14 @@ println("Data Loaded")
 
 println("Gradient Test")
 f_ll(x) = log_likelihood(m,x)
-# grad_1 = Vector{Float64}(length(p0))
-# grad_2 = Vector{Float64}(length(p0))
-#
-# fval = log_likelihood(m,p0)
-# ForwardDiff.gradient!(grad_1,ll, p0)
-# ll_gradient!(grad_2,m,p0)
-#
-# maximum(abs.(grad_1-grad_2))
+grad_1 = Vector{Float64}(length(p0))
+grad_2 = Vector{Float64}(length(p0))
+
+fval = log_likelihood(m,p0)
+ForwardDiff.gradient!(grad_1,f_ll, p0)
+ll_gradient!(grad_2,m,p0)
+
+println(maximum(abs.(grad_1-grad_2)))
 
 ## Estimate
 est_res = estimate!(m, p0)
@@ -68,9 +68,17 @@ save(file,"est_res",est_res)
 
 flag, fval, p_est = est_res
 
+#p_est = rand(length(p0))-.5
+println("Gradient Test")
+f_ll(x) = log_likelihood(m,x)
+grad_1 = Vector{Float64}(length(p0))
+grad_2 = Vector{Float64}(length(p0))
 
- #,cfg2)
+fval = log_likelihood(m,p_est)
+ForwardDiff.gradient!(grad_1,f_ll, p_est)
+ll_gradient!(grad_2,m,p_est)
 
+maximum(abs.(grad_1-grad_2))
 
 
 println("Calculate Hessian")
