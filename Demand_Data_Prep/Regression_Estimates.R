@@ -152,5 +152,6 @@ estData[,S_pred_cond:=exp(u_ij)/exp_sum]
 estData[,S_pred:=exp(u_ij)/(1+exp_sum)]
 estData[,S_0_pred:=1/(1 + exp_sum)]
 
-estData[,S_ij_uncond:=S_ij*(1-unins_rate)]
-estData[,]
+
+## Log Likelihood
+estData[,sum(N*S_ij*(log(S_pred)-unins_rate*(log(1-S_0_pred)-log(S_0_pred))))/sum(N*S_ij)]

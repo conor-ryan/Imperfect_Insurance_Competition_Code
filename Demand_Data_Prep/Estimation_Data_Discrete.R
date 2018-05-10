@@ -662,7 +662,7 @@ choices = choices[with(choices,order(Person,Product)),]
 setkey(choices,Person,Product)
 setkey(shares,Product)
 
-write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price",
+write.csv(choices[,c("Person","Firm","Market","Firm_Market_Cat","Product","S_ij","N","Price",
                      "PriceDiff",#"MedDeductDiff","ExcOOPDiff","HighDiff",
                      "MedDeduct","ExcOOP","High","AV",
                      "Family","Age","LowIncome","AGE","HighIncome","IncomeCts",

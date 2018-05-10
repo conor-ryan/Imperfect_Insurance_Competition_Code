@@ -26,7 +26,7 @@ c = ChoiceData(df,df_mkt;
             :LowIncome],
     prodchars=[:Price,:AV],
     prodchars_0=[],
-    fixedEffects=[:Firm])
+    fixedEffects=[:Firm,:Market])
 
 # Fit into model
 m = InsuranceLogit(c,1)
@@ -47,22 +47,29 @@ parStart0 = parDict(m,p0)
 #parStart1 = parDict(m,p1)
 println("Data Loaded")
 
+println("Gradient Test")
+f_ll(x) = log_likelihood(m,x)
+# grad_1 = Vector{Float64}(length(p0))
+# grad_2 = Vector{Float64}(length(p0))
+#
+# fval = log_likelihood(m,p0)
+# ForwardDiff.gradient!(grad_1,ll, p0)
+# ll_gradient!(grad_2,m,p0)
+#
+# maximum(abs.(grad_1-grad_2))
 
+## Estimate
 est_res = estimate!(m, p0)
 
 
 rundate = Dates.today()
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_$rundate.jld"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_fe_$rundate.jld"
 save(file,"est_res",est_res)
 
 flag, fval, p_est = est_res
 
 
-println("Calculate Gradient")
-ll(x) = log_likelihood(m,x)
-grad_exp = Vector{Float64}(length(p_est))
-#cfg2 = ForwardDiff.HessianConfig(ll, p_est, ForwardDiff.Chunk{3}());
-grad_exp = ForwardDiff.gradient!(grad_exp,ll, p_est) #,cfg2)
+ #,cfg2)
 
 
 
