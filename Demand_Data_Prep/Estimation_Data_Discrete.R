@@ -489,6 +489,9 @@ choices$Product = with(choices,paste(Firm,METAL,Market,sep="_"))
 choices[,Person:=as.factor(paste(Market,FPL_bucket,AGE_bucket,Mem_bucket))]
 choices[,Person:=as.numeric(Person)]
 
+choices[,prodCat:=":Low"]
+choices[METAL%in%c("SILVER 87","SILVER 94","GOLD","PLATINUM"),prodCat:="High"]
+choices[,Firm_Market_Cat:=paste(Firm,Market,prodCat,sep="_")]
 
 #### Create Dummy Variables ####
 choices$Family = 0 
@@ -661,11 +664,13 @@ setkey(shares,Product)
 
 write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price",
                      "PriceDiff",#"MedDeductDiff","ExcOOPDiff","HighDiff",
-                     "MedDeduct","ExcOOP","High",
+                     "MedDeduct","ExcOOP","High","AV",
                      "Family","Age","LowIncome","AGE","HighIncome","IncomeCts",
                      "METAL",
                      "F0_Y0_LI0","F0_Y0_LI1","F0_Y1_LI0","F0_Y1_LI1",
-                     "F1_Y0_LI0","F1_Y0_LI1","F1_Y1_LI0","F1_Y1_LI1","unins_rate","nonexch_unins_rate")],
+                     "F1_Y0_LI0","F1_Y0_LI1","F1_Y1_LI0","F1_Y1_LI1",
+                     "AgeFE_18_30","AgeFE_31_40","AgeFE_41_50","AgeFE_51_64",
+                     "unins_rate","nonexch_unins_rate")],
           "Intermediate_Output/Estimation_Data/estimationData_discrete.csv",row.names=FALSE)
 write.csv(choices,"Intermediate_Output/Estimation_Data/descriptiveData_discrete.csv",row.names=FALSE)
 write.csv(shares[,c("Product","Share")],

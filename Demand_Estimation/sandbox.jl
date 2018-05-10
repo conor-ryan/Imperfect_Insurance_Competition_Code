@@ -212,9 +212,9 @@ pmap(slow,linspace(1,1000,10))
 
 
 Profile.clear()
-Profile.init(n=10^7,delay=.001)
+Profile.init()
 #@profile estimate!(m,parStart)
-@profile pmap(itrCalc,idxList)
+@profile ll_gradient(m,p0)
 #@profile individual_shares_RC(μ_ij,δ;inside=true)
 Juno.profiletree()
 Juno.profiler()

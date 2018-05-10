@@ -22,6 +22,7 @@ estData[,nestVar:= log(S_ij+1e-3)]
 estData[,productFE:=as.factor(Product)]
 
 #estData[,prodCat:=paste(Market,High,sep="_H")]
+estData[,prodCat:=":Low"]
 estData[METAL%in%c("SILVER 87","SILVER 94","GOLD","PLATINUM"),prodCat:="High"]
 estData[,Firm_Market_Cat:=paste(Firm,Market,prodCat,sep="_")]
 
