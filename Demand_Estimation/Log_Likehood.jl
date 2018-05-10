@@ -35,10 +35,10 @@ function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
             #ll+=wgt[i]*S_ij[i]*(log(s_hat[i]))
             Pop+=wgt[i]*S_ij[i]
         end
-        if isnan(ll)
-            println(ind)
-            break
-        end
+        # if isnan(ll)
+        #     println(ind)
+        #     break
+        # end
     end
     return ll/Pop
 end
