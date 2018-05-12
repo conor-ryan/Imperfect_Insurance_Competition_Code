@@ -24,7 +24,7 @@ function estimate!(d::InsuranceLogit, p0;method=:LN_NELDERMEAD)
     # ll(x) = evaluate_iteration!(d, x,update=false)
     # cfg = ForwardDiff.GradientConfig(ll, p0, ForwardDiff.Chunk{6}());
     ll(x) = log_likelihood(d,x)
-    ll_grad!(grad,x) = ll_gradient!(grad,d,x)
+    ll_grad!(grad,x) = log_likelihood!(grad,d,x)
     #gmm(x) = GMM_objective(d,x)
 
     count = 0
@@ -34,8 +34,8 @@ function estimate!(d::InsuranceLogit, p0;method=:LN_NELDERMEAD)
         x_displ = x[1:20]
         println("Iteration $count at $x_displ")
 
-        obj = ll(x)
-        ll_grad!(grad,x)
+        #obj = ll(x)
+        obj = ll_grad!(grad,x)
 
         grad_size = sqrt(vecdot(grad,grad))
         println("Gradient size equals $grad_size")

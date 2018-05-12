@@ -147,7 +147,7 @@ function util_gradient{T}(d::InsuranceLogit,app::ChoiceData,p::parDict{T})
     βlen = β0len + d.parLength[:γ]
     FElen = βlen + d.parLength[:FE]
 
-    p_num = FElen
+    p_num = d.parLength[:All]
 
     ind = person(app)[1]
     X_t = prodchars(app)
@@ -177,7 +177,7 @@ function util_gradient{T}(d::InsuranceLogit,app::ChoiceData,p::parDict{T})
         char_deriv[1+b,k] = Z[b]
         char_deriv[β0len + b,k] = X[k,1]*Z[b]
     end
-    char_deriv[(βlen+1):FElen,:] = permutedims(F,(2,1))
+    char_deriv[(βlen+1):FElen,:] = F_t
 
 
     for k = 1:K
@@ -195,7 +195,7 @@ end
 # Calculate Log Likelihood
 function ll_gradient!{T}(grad::Vector{Float64},d::InsuranceLogit,p::parDict{T})
     p_num = d.parLength[:All]
-    Pop =sum(weight(m.data).*choice(m.data))
+    Pop =sum(weight(d.data).*choice(d.data))
     #Pop =0.0
     # Initialize Gradient
     grad[:] = 0
@@ -218,10 +218,7 @@ function ll_gradient!{T}(grad::Vector{Float64},d::InsuranceLogit,p::parDict{T})
         s_hat = calc_shares(μ_ij,δ)
         s_insured = sum(s_hat)
 
-        # Fix possible computational error
-        if s_insured>=1
-            s_insured= 1 - 1e-5
-        end
+
 
         #s2 = fill(0.0,K)
         (Q,K) = size(dμ_ij)

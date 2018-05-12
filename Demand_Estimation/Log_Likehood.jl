@@ -18,10 +18,7 @@ function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
         idxitr = d.data._personDict[ind]
 
 
-
-
-        δ = p.δ[idxitr]
-        #μ_ij = p.μ_ij[idxitr]
+        # Get Market Shares
         s_hat = p.s_hat[idxitr]
         s_insured = sum(s_hat)
 
@@ -43,6 +40,38 @@ function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
     return ll/Pop
 end
 
+function log_likelihood!{T}(grad::Vector{Float64},d::InsuranceLogit,p::parDict{T})
+    Q = d.parLength[:All]
+    N = size(d.draws,1)
+    grad[:] = 0.0
+    ll = 0.0
+    Pop =sum(weight(d.data).*choice(d.data))
+
+    # Calculate μ_ij, which depends only on parameters
+    individual_values!(d,p)
+    individual_shares(d,p)
+
+    shell_full = zeros(Q,N,38)
+    for app in eachperson(d.data)
+        K = length(person(app))
+        # if K>k_max
+        #     k_max = K
+        # end
+        shell = shell_full[:,:,1:K]
+        ll_obs,grad_obs = ll_obs_gradient(app,d,p,shell)
+
+        ll+=ll_obs
+        for q in 1:Q
+            grad[q]+=grad_obs[q]/Pop
+        end
+    end
+    #println(k_max)
+    return ll/Pop
+end
+
+
+
+
 function log_likelihood{T}(d::InsuranceLogit,p::Array{T})
     params = parDict(d,p)
     ll = log_likelihood(d,params)
@@ -50,12 +79,20 @@ function log_likelihood{T}(d::InsuranceLogit,p::Array{T})
     return ll
 end
 
-function ll_gradient!{T}(grad::Vector{Float64},d::InsuranceLogit,p::Array{T})
+function log_likelihood!{T}(grad::Vector{Float64},d::InsuranceLogit,p::Array{T})
     params = parDict(d,p)
-    grad = ll_gradient!(grad,d,params)
+    ll = log_likelihood!(grad,d,params)
     convert_δ!(d)
-    return grad
+    return ll
 end
+
+#
+# function ll_gradient!{T}(grad::Vector{Float64},d::InsuranceLogit,p::Array{T})
+#     params = parDict(d,p)
+#     grad = ll_gradient!(grad,d,params)
+#     convert_δ!(d)
+#     return grad
+# end
 
 function GMM_objective{T}(d::InsuranceLogit,p::Array{T})
     grad = ll_gradient(d,p)

@@ -11,7 +11,9 @@ struct ChoiceData <: ModelData
     # Matrix of the data (transposed, pre-sorted)
     data::Matrix{Float64}
     # Matrix of the product level data (pre-sorted)
-    pdata
+    pdata::DataFrame
+    # Matrix of Fixed Effects
+    fixedEffects::Matrix{Float64}
     # Index of the data column names
     index
     # Names of rows (columns of input data)
@@ -27,7 +29,6 @@ struct ChoiceData <: ModelData
     _prodchars_0::Array{Int,1}
     _choice::Array{Int,1}
     _demoRaw::Array{Int,1}
-    _fixedEffects::Array{Int,1}
     _wgt::Array{Int,1}
     _unins::Array{Int,1}
 
@@ -65,37 +66,25 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
     w = hcat(Array{Float64}(data_choice[wgt]))
     s0= hcat(Array{Float64}(data_choice[unins]))
 
-    # Create Fixed Effects
-    F = Matrix{Float64}(n,0)
-    feNames = Vector{Symbol}(0)
-    for fe in fixedEffects
-        fac_variables = data_choice[fe]
-        factor_list = sort(unique(fac_variables))
-        for fac in factor_list[2:length(factor_list)]
-            fac_data = zeros(n)
-            for ind in 1:n
-                if fac_variables[ind]==fac
-                    fac_data[ind]=1
-                end
-            end
-            F = hcat(F,fac_data)
-            feNames = vcat(feNames,Symbol(fac))
-        end
-    end
+    println("Create Fixed Effects")
+    F, feNames = build_FE(data_choice,fixedEffects)
+    F = permutedims(F,(2,1))
 
     index = Dict{Symbol, Int}()
     dmat = Matrix{Float64}(n,0)
 
     # Create a data matrix, only including person id
+    println("Put Together Data non FE data together")
     k = 0
-    for (d, var) in zip([i,X,X_0, y, Z, F,w, s0], [person,prodchars,
-        prodchars_0,choice, demoRaw,feNames,wgt,unins])
+    for (d, var) in zip([i,X,X_0, y, Z,w, s0], [person,prodchars,
+        prodchars_0,choice, demoRaw,wgt,unins])
         for l=1:size(d,2)
             k+=1
             dmat = hcat(dmat, d[:,l])
             index[var[l]] = k
         end
     end
+
 
     #Transpose data to store as rows
     dmat = permutedims(dmat,(2,1))
@@ -108,11 +97,11 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
     _prodchars_0 = getindex.(index, prodchars_0)
     _choice = getindex.(index, choice)
     _demoRaw = getindex.(index, demoRaw)
-    _fixedEffects = getindex.(index, feNames)
     _wgt = getindex.(index, wgt)
     _unins = getindex.(index, unins)
 
     # Get Person ID Dictionary Mapping for Easy Subsets
+    println("Person ID Mapping")
     _personDict = Dict{Real, UnitRange{Int}}()
     allids = dmat[_person,:][1,:]
     uniqids = sort(unique(allids))
@@ -125,6 +114,7 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
 
 
     #Create Product Dictionary
+    println("Product Dictionary")
     allprods = sort(unique(j))
     _productDict = Dict{Real, Array{Int}}()
     for id in allprods
@@ -132,11 +122,41 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
     end
 
     # Make the data object
-    m = ChoiceData(dmat,data_market, index, prodchars,prodchars_0,
+    m = ChoiceData(dmat,data_market,F, index, prodchars,prodchars_0,
             choice, demoRaw,wgt, unins, _person, _prodchars,_prodchars_0,
-            _choice, _demoRaw, _fixedEffects, _wgt, _unins,uniqids,_personDict,_productDict)
+            _choice, _demoRaw, _wgt, _unins,uniqids,_personDict,_productDict)
     return m
 end
+
+function build_FE(data_choice::DataFrame,fe_list::Vector{Symbol})
+    # Create Fixed Effects
+    n, k = size(data_choice)
+    L = 0
+    for fe in fe_list
+        fac_variables = data_choice[fe]
+        factor_list = sort(unique(fac_variables))
+        L+=length(factor_list)-1
+    end
+
+    F = zeros(n,L)
+    feNames = Vector{Symbol}(0)
+    ind = 1
+    for fe in fe_list
+        fac_variables = data_choice[fe]
+        factor_list = sort(unique(fac_variables))
+        for fac in factor_list[2:length(factor_list)]
+            # fac_data = zeros(n)
+            # fac_data[fac_variables.==fac] = 1.0
+
+            F[fac_variables.==fac,ind] = 1
+            ind+= 1
+
+            feNames = vcat(feNames,Symbol(fac))
+        end
+    end
+    return F, feNames
+end
+
 
 # Defining Indexing Methods on ChoiceData
 Symbols = Union{Symbol, Vector{Symbol}}
@@ -153,9 +173,11 @@ prodchars(m::ChoiceData)   = m[m._prodchars]
 prodchars0(m::ChoiceData)   = m[m._prodchars_0]
 choice(m::ChoiceData)      = m[m._choice]
 demoRaw(m::ChoiceData)     = m[m._demoRaw]
-fixedEffects(m::ChoiceData)= m[m._fixedEffects]
 weight(m::ChoiceData)      = m[m._wgt]
 unins(m::ChoiceData)       = m[m._unins]
+
+
+fixedEffects(m::ChoiceData)= m.fixedEffects
 
 ########################################################################
 #################### Iterating over People ############################
@@ -164,10 +186,11 @@ unins(m::ChoiceData)       = m[m._unins]
 # Quickly Generate Subsets on People
 function subset{T<:ModelData}(d::T, idx)
     data = d.data[:,idx]
+    fixedEf = d.fixedEffects[:,idx]
 #    people = data[d._person,:]
 
     # Don't subset any other fields for now...
-    return T(data,d.pdata,
+    return T(data,d.pdata,fixedEf,
     # Index of the column names
     d.index,
     # Names of rows (columns of input data)
@@ -183,7 +206,6 @@ function subset{T<:ModelData}(d::T, idx)
     d._prodchars_0,
     d._choice,
     d._demoRaw,
-    d._fixedEffects,
     d._wgt,
     d._unins,
     d._personIDs,
@@ -255,13 +277,21 @@ function InsuranceLogit(data::ChoiceData,haltonDim::Int)
     β0len = size(prodchars0(data),1)
     βlen = size(prodchars(data),1)
     flen = size(fixedEffects(data),1)
-    total = 1 + γlen + βlen + γlen + flen
+
+    if haltonDim==1
+        σlen = 0
+    else
+        σlen = 1 + (size(prodchars(data),1)-1)
+    end
+
+    total = 1 + γlen + βlen + γlen + flen + σlen
     parLength = Dict(:γ=>γlen,:β0=>β0len,:β=>βlen,:FE=>flen,
-    :All=>total)
+    :σ => σlen, :All=>total)
 
     # Initialize Halton Draws
     # These are the same across all individuals
-    draws = permutedims(MVHaltonNormal(haltonDim,2),(2,1))
+    #draws = permutedims(MVHaltonNormal(haltonDim,2),(2,1))
+    draws = MVHaltonNormal(haltonDim,2)
 
     # Initialize Empty value prediction objects
     n, k = size(c.data)
