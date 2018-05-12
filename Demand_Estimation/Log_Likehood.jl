@@ -51,14 +51,14 @@ function log_likelihood!{T}(grad::Vector{Float64},d::InsuranceLogit,p::parDict{T
     individual_values!(d,p)
     individual_shares(d,p)
 
-    shell_full = zeros(Q,N,38)
+    #shell_full = zeros(Q,N,38)
     for app in eachperson(d.data)
         K = length(person(app))
         # if K>k_max
         #     k_max = K
         # end
-        shell = shell_full[:,:,1:K]
-        ll_obs,grad_obs = ll_obs_gradient(app,d,p,shell)
+        #shell = shell_full[:,:,1:K]
+        ll_obs,grad_obs = ll_obs_gradient(app,d,p)
 
         ll+=ll_obs
         for q in 1:Q

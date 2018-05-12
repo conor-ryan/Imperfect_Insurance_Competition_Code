@@ -9,7 +9,7 @@ include("InsChoiceData.jl")
 include("Halton.jl")
 
 # Random Coefficients MLE
-include("RandomCoefficients.jl")
+include("RandomCoefficients_test.jl")
 include("Contraction.jl")
 include("Log_Likehood.jl")
 include("Estimate_Basic.jl")
@@ -26,10 +26,10 @@ c = ChoiceData(df,df_mkt;
             :LowIncome],
     prodchars=[:Price,:AV],
     prodchars_0=[],
-    fixedEffects=[:Firm])
+    fixedEffects=[:Firm_Market_Cat])
 
 # Fit into model
-m = InsuranceLogit(c,500)
+m = InsuranceLogit(c,200)
 println("Data Loaded")
 
 γ0start = 0.0
@@ -43,6 +43,18 @@ FEstart = zeros(size(c.fixedEffects,1))
 p0 = vcat(γ0start,γstart,β0start,βstart,σstart,FEstart)
 parStart0 = parDict(m,p0)
 
+println("Gradient Test")
+f_ll(x) = log_likelihood(m,x)
+grad_1 = Vector{Float64}(length(p0))
+grad_2 = Vector{Float64}(length(p0))
+fval = log_likelihood!(grad_2,m,parStart0)
+
+
+fval_old = log_likelihood(m,p0)
+ForwardDiff.gradient!(grad_1,f_ll, p0)
+
+println(fval-fval_old)
+println(maximum(abs.(grad_1-grad_2)))
 
 ## Estimate
 est_res = estimate!(m, p0)
@@ -59,30 +71,24 @@ flag, fval, p_est = est_res
 # #parStart1 = parDict(m,p1)
 
 #
-# println("Gradient Test")
-# f_ll(x) = log_likelihood(m,x)
-# grad_1 = Vector{Float64}(length(p0))
-# grad_2 = Vector{Float64}(length(p0))
-# fval = log_likelihood!(grad_2,m,parStart0)
-#
-#
-# fval_old = log_likelihood(m,p0)
-# ForwardDiff.gradient!(grad_1,f_ll, p0)
+
 
 #ll_gradient!(grad_2,m,p0)
 #
-# println(maximum(abs.(grad_1-grad_2)))
+
 #
 #
-# app = next(eachperson(m.data),200)[1]
+ individual_values!(m,parStart0)
+individual_shares(m,parStart0)
+app = next(eachperson(m.data),200)[1]
 # @benchmark util_gradient(m,app,parStart0)
 #
 # grad = util_gradient(m,app,parStart0)
 #
-# println("Profiler")
-# Profile.init()
-# Profile.clear()
-# Juno.@profile log_likelihood_new(grad_2,m,parStart0)
-# Juno.profiletree()
-# Juno.profiler()
+println("Profiler")
+Profile.init()
+Profile.clear()
+Juno.@profile log_likelihood!(grad_2,m,parStart0)
+Juno.profiletree()
+Juno.profiler()
 #

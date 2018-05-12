@@ -179,7 +179,7 @@ function individual_shares{T}(d::InsuranceLogit,p::parDict{T})
 end
 
 
-function gradient_char(app::ChoiceData,d::InsuranceLogit)
+function gradient_char(app::ChoiceData,d::InsuranceLogit,char_deriv::Array{Float64,3})
     ## Model Information on Parameters Location in Parameter Vector
     γlen = 1 + d.parLength[:γ]
     β0len = γlen + d.parLength[:β]
@@ -192,40 +192,50 @@ function gradient_char(app::ChoiceData,d::InsuranceLogit)
     Z = demoRaw(app)[:,1]
     F_t = fixedEffects(app)
 
+    fe_pars = σlen + find(maximum(F_t,2).>0)
+
     # Dimensions of Derivative Matrix - check
     K = size(X_t,2)
     N = size(d.draws,1)
     Q = d.parLength[:All]
 
     # Fill in Matrix
-    char_deriv = Array{Float64,3}(Q,N,K)
+    #char_deriv = Array{Float64,3}(Q,N,K)
+    # char_deriv = zeros(Q,N,K)
 
-    for k in 1:K,n in 1:N,q in 1:Q
-        if q==1
-            # Constant
-            char_deriv[q,n,k] = 1
-        elseif q<=γlen
-            # Base Demographics
-            char_deriv[q,n,k] = Z[q-1]
-        elseif q<=β0len
-            char_deriv[q,n,k] = X_t[q-γlen,k]
-        elseif q<=βlen
-            char_deriv[q,n,k] = X_t[1,k]*Z[q-β0len]
-        elseif q<=(βlen+1)
-            #Insurance Random Effect
-            char_deriv[q,n,k] = d.draws[n,1]
-        elseif q<=σlen
-            #Quality Random Effect
-            char_deriv[q,n,k] = d.draws[n,2]*X_t[1+q-(βlen+1),k]
-        elseif q<=FElen
+    for k in 1:K,n in 1:N
+        for q in 1:σlen
+            if q==1
+                # Constant
+                char_deriv[q,n,k] = 1
+            elseif q<=γlen
+                # Base Demographics
+                char_deriv[q,n,k] = Z[q-1]
+            elseif q<=β0len
+                char_deriv[q,n,k] = X_t[q-γlen,k]
+            elseif q<=βlen
+                char_deriv[q,n,k] = X_t[1,k]*Z[q-β0len]
+            elseif q<=(βlen+1)
+                #Insurance Random Effect
+                char_deriv[q,n,k] = d.draws[n,1]
+            elseif q<=σlen
+                #Quality Random Effect
+                char_deriv[q,n,k] = d.draws[n,2]*X_t[1+q-(βlen+1),k]
+            # else
+            #     char_deriv[q,n,k] = 0.0
+            end
+        end
+        for q in fe_pars
             char_deriv[q,n,k] = F_t[q-σlen,k]
         end
+        #char_deriv[(σlen+1):FElen,n,k] = F_t[q-σlen,k]
     end
 
     return char_deriv
 end
 
-function util_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
+function util_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T},
+                                shell::Array{Float64,3})
 
     # Person Data
     ind = person(app)[1]
@@ -234,7 +244,7 @@ function util_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
     μ_ij = p.μ_ij[:,idxitr]
     δ    = p.δ[idxitr]
     #CharDerivs
-    char_deriv = gradient_char(app,d)
+    char_deriv = gradient_char(app,d,shell)
 
     #Fill the Gradient
     #grad = similar(char_deriv)
@@ -245,23 +255,15 @@ end
 
 function calc_gradient!{T}(char_deriv::Array{Float64},
                             μ_ij::Array{T,2},δ::Vector{T})
-    (Q,N,K) = size(char_deriv)
+    Q = size(char_deriv,1)
+    (N,K) = size(μ_ij)
     #grad[:] = char_deriv
-    for k = 1:K,n=1:N
-        char_deriv[:,n,k].*=μ_ij[n,k]*δ[k]
+    for k in 1:K, n in 1:N, q in 1:Q
+        char_deriv[q,n,k]*=μ_ij[n,k]*δ[k]
     end
     # for k = 1:K,n = 1:N,q in 1:Q
     #         grad[q,n,k] = char_deriv[q,n,k]*μ_ij[n,k]*δ[k]
     # end
-    return Void
-end
-
-function fill_char_deriv!{T}(grad::Array{T,3},char_deriv::Array{Float64},
-                            μ_ij::Array{T,2},δ::Vector{T})
-    (Q,N,K) = size(grad)
-    for k = 1:K,n = 1:N,q in 1:Q
-            grad[q,n,k] = char_deriv[q,n,k]*μ_ij[n,k]*δ[k]
-    end
     return Void
 end
 
@@ -273,8 +275,14 @@ function ll_obs_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
         urate = transpose(unins(app))
         idxitr = d.data._personDict[ind]
 
+        X_t = prodchars(app)
+        Z = demoRaw(app)[:,1]
+        F_t = fixedEffects(app)
+        draws = d.draws
+
         # Get Utility and derivative of Utility
-        μ_ij, δ, dμ_ij = util_gradient(app,d,p)
+        μ_ij = p.μ_ij[:,idxitr]
+        δ    = p.δ[idxitr]
 
         #Get Market Shares
         s_hat = p.s_hat[idxitr]
@@ -285,106 +293,194 @@ function ll_obs_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
         end
 
         # Initialize Gradient
-        (Q,N,K) = size(dμ_ij)
+        #(Q,N,K) = size(dμ_ij)
+        Q = d.parLength[:All]
+        Q_0 = Q - size(F_t,1)
+        (N,K) = size(μ_ij)
         grad_obs = zeros(Q)
         ll_obs = 0.0
+
+        ## Relevant Parameters for this observation
+        pars_relevant = vcat(1:Q_0,Q_0+find(maximum(F_t,2)))
+
+        γlen = 1 + d.parLength[:γ]
+        β0len = γlen + d.parLength[:β]
+        βlen = β0len + d.parLength[:γ]
+        σlen = βlen + d.parLength[:σ]
+        FElen = σlen + d.parLength[:FE]
+
 
         # Pre-Calculate Squares
         μ_ij_sums = 1.+μ_ij*δ
         μ_ij_sums_sq = (μ_ij_sums).^2
-        dμ_ij_sums = sum(dμ_ij,3)
 
-        # Parameters that this observatoin affects
-        anyPar = find(maximum(abs.(dμ_ij_sums),2).>0)
+        # Pre-Calculate Log-Likelihood Terms for Gradient
+        # Also Calculate Log-Likelihood itself
+        gll_t1 = Vector{Float64}(K)
+        gll_t2 = Vector{Float64}(K)
+        for k in 1:K
+            #Gradient Terms
+            gll_t1[k] = wgt[k]*S_ij[k]*(1/s_hat[k])
+            gll_t2[k] = wgt[k]*S_ij[k]*urate[k]*(1/(s_insured) + 1/(1-s_insured))
 
-        # Calculate Likelihood and Gradient of this observation
-        for k = 1:K
-            # log likelihood
-            ll_obs+=wgt[k]*S_ij[k]*(log(s_hat[k]) -urate[k]*(log(s_insured)-log(1-s_insured)))
+            # Log Likelihood
+            ll_obs+=wgt[k]*S_ij[k]*(log(s_hat[k]) -
+                            urate[k]*(log(s_insured)-log(1-s_insured)))
+        end
 
-            for q in anyPar
-                #Gradient of Likelihood
-                t1 = 0.0
-                t2 = 0.0
-                t3 = 0.0
-                for n in 1:N
-                    t1= t1 + dμ_ij[q,n,k]/μ_ij_sums[n]
-                    t2= t2 + dμ_ij_sums[q,n,1]*μ_ij[n,k]*δ[k]/μ_ij_sums_sq[n]
-                    t3= t3 + dμ_ij_sums[q,n,1]/μ_ij_sums_sq[n]
-                end
-                t1= t1/N
-                t2= t2/N
-                t3= t3/N
 
-                grad_obs[q] += wgt[k]*S_ij[k]*( (1/s_hat[k])*(t1 - t2) -
-                    urate[k]*( t3 )*(1/(s_insured) + 1/(1-s_insured) ) )
+        for q in pars_relevant
+            if q==1
+                #Constant
+                grad_obs[q] += par_gradient(1.0,μ_ij,δ,
+                                        μ_ij_sums,μ_ij_sums_sq,
+                                        gll_t1,gll_t2)
+            elseif q<=γlen
+                # Base Demographics
+                grad_obs[q] += par_gradient(Z[q-1],μ_ij,δ,
+                                        μ_ij_sums,μ_ij_sums_sq,
+                                        gll_t1,gll_t2)
+            elseif q<=β0len
+                # Base Characteristics
+                grad_obs[q] += par_gradient(X_t[q-γlen,:],μ_ij,δ,
+                                        μ_ij_sums,μ_ij_sums_sq,
+                                        gll_t1,gll_t2)
+            elseif q<=βlen
+                # Characteristic Interactions
+                grad_obs[q] += par_gradient(X_t[1,:]*Z[q-β0len],
+                                        μ_ij,δ,
+                                        μ_ij_sums,μ_ij_sums_sq,
+                                        gll_t1,gll_t2)
+            elseif q<=(βlen+1)
+                #Insurance Random Effect
+                grad_obs[q] += par_gradient_σ(draws[:,1],
+                                        μ_ij,δ,
+                                        μ_ij_sums,μ_ij_sums_sq,
+                                        gll_t1,gll_t2)
+            elseif q<=σlen
+                #Quality Random Effect
+                grad_obs[q] += par_gradient_σ(draws[:,2],X_t[1+q-(βlen+1),:],
+                                        μ_ij,δ,
+                                        μ_ij_sums,μ_ij_sums_sq,
+                                        gll_t1,gll_t2)
+            else
+                #Fixed Effect
+                fe_vec = F_t[q-σlen,:]
+                grad_obs[q] += par_gradient(fe_vec,
+                                        μ_ij,δ,
+                                        μ_ij_sums,μ_ij_sums_sq,
+                                        gll_t1,gll_t2)
             end
         end
+
     return ll_obs, grad_obs
 end
 
 
-# Calculate Log Likelihood Gradient
-function ll_gradient!{T}(grad::Vector{Float64},d::InsuranceLogit,p::parDict{T})
-    p_num = d.parLength[:All]
-    Pop =sum(weight(d.data).*choice(d.data))
-
-    # Initialize Gradient
-    grad[:] = 0
-    # Calculate μ_ij, which depends only on parameters
-    for app in eachperson(d.data)
-        μ_ij = util_value!(app,p,true)
-        dμ_ij = util_gradient(d,app,p)
-        ind = person(app)[1]
-        S_ij = transpose(choice(app))
-        wgt = transpose(weight(app))
-        urate = transpose(unins(app))
-        idxitr = d.data._personDict[ind]
+##### Gradient Mini Functions #####
 
 
-        # dμ_ij_sums = sum(dμ_ij,(1,3))
-
-
-        δ = p.δ[idxitr]
-        s_hat = calc_shares(μ_ij,δ)
-        s_insured = sum(s_hat)
-
-        # Fix possible computational error
-        if s_insured>=1
-            s_insured= 1 - 1e-5
+function par_gradient{T}(x::Float64,
+                            μ_ij::Array{T,2},δ::Vector{T},
+                            μ_ij_sums::Vector{T},μ_ij_sums_sq::Vector{T},
+                            gll_t1::Vector{Float64},gll_t2::Vector{Float64})
+    grad_obs = 0.0
+    (N,K) = size(μ_ij)
+    dμ_ij = Vector{Float64}(K)
+    dμ_ij_sums = 0.0
+    for n in 1:N
+        for k in 1:K
+            dμ_ij[k] = μ_ij[n,k]*δ[k]*x
+            dμ_ij_sums+= dμ_ij[k]
         end
-
-        (Q,N,K) = size(dμ_ij)
-
-        for k = 1:K
-            dμ_ij[:,:,k] = dμ_ij[:,:,k].*δ[k]
-        end
-
-        μ_ij_sums = 1.+μ_ij*δ
-        μ_ij_sums_sq = (μ_ij_sums).^2
-        dμ_ij_sums = sum(dμ_ij,3)
-
-        for k = 1:K,q in 1:Q
-            # ll[q] += wgt[k]/N*S_ij[k]*( (1/s_hat[k])*(
-            #             dμ_ij[q,n,k]/μ_ij_sums[n] -
-            #             dμ_ij_sums[q,n,1]*μ_ij[n,k]*δ[k]/μ_ij_sums_sq[n] ) -
-            #     urate[k]*( dμ_ij_sums[q,n,1]/μ_ij_sums_sq[n] )*(
-            #                     1/(s_insured) + 1/(1-s_insured) ) )
-            t1 = mean(dμ_ij[q,:,k]./μ_ij_sums)
-            t2 = mean(dμ_ij_sums[q,:,1].*μ_ij[:,k].*δ[k]./μ_ij_sums_sq)
-            t3 = mean(dμ_ij_sums[q,:,1]./μ_ij_sums_sq)
-            grad[q] += wgt[k]*S_ij[k]*( (1/s_hat[k])*(t1 - t2) -
-                urate[k]*( t3 )*(1/(s_insured) + 1/(1-s_insured) ) )/Pop
-        end
-
+        grad_obs+= par_gradient_inner_loop(dμ_ij,dμ_ij_sums,
+                                n,μ_ij,δ,
+                                μ_ij_sums,μ_ij_sums_sq,
+                                gll_t1,gll_t2)
     end
-    return grad
-    # return fval/Pop
+    return grad_obs/N
 end
 
-function ll_gradient{T}(d::InsuranceLogit,p::parDict{T})
-    p_num = d.parLength[:All]
-    grad = Vector{Float64}(p_num)
-    ll_gradient!(grad,d,p)
-    return grad
+function par_gradient{T}(x::Vector{Float64},
+                            μ_ij::Array{T,2},δ::Vector{T},
+                            μ_ij_sums::Vector{T},μ_ij_sums_sq::Vector{T},
+                            gll_t1::Vector{Float64},gll_t2::Vector{Float64})
+    grad_obs = 0.0
+    (N,K) = size(μ_ij)
+    dμ_ij = Vector{Float64}(K)
+    dμ_ij_sums = 0.0
+    for n in 1:N
+        for k in 1:K
+            dμ_ij[k] = μ_ij[n,k]*δ[k]*x[k]
+            dμ_ij_sums+= dμ_ij[k]
+        end
+        grad_obs+= par_gradient_inner_loop(dμ_ij,dμ_ij_sums,
+                                n,μ_ij,δ,
+                                μ_ij_sums,μ_ij_sums_sq,
+                                gll_t1,gll_t2)
+    end
+    return grad_obs/N
+end
+
+function par_gradient_σ{T}(x::Vector{Float64},
+                            μ_ij::Array{T,2},δ::Vector{T},
+                            μ_ij_sums::Vector{T},μ_ij_sums_sq::Vector{T},
+                            gll_t1::Vector{Float64},gll_t2::Vector{Float64})
+    grad_obs = 0.0
+    (N,K) = size(μ_ij)
+    dμ_ij = Vector{Float64}(K)
+    dμ_ij_sums = 0.0
+    for n in 1:N
+        for k in 1:K
+            dμ_ij[k] = μ_ij[n,k]*δ[k]*x[n]
+            dμ_ij_sums+= dμ_ij[k]
+        end
+        grad_obs+= par_gradient_inner_loop(dμ_ij,dμ_ij_sums,
+                                n,μ_ij,δ,
+                                μ_ij_sums,μ_ij_sums_sq,
+                                gll_t1,gll_t2)
+    end
+    return grad_obs/N
+end
+function par_gradient_σ{T}(x::Vector{Float64},Y::Vector{Float64},
+                            μ_ij::Array{T,2},δ::Vector{T},
+                            μ_ij_sums::Vector{T},μ_ij_sums_sq::Vector{T},
+                            gll_t1::Vector{Float64},gll_t2::Vector{Float64})
+    grad_obs = 0.0
+    (N,K) = size(μ_ij)
+    dμ_ij = Vector{Float64}(K)
+    dμ_ij_sums = 0.0
+    for n in 1:N
+        for k in 1:K
+            dμ_ij[k] = μ_ij[n,k]*δ[k]*Y[k]*x[n]
+            dμ_ij_sums+= dμ_ij[k]
+        end
+        grad_obs+= par_gradient_inner_loop(dμ_ij,dμ_ij_sums,
+                                n,μ_ij,δ,
+                                μ_ij_sums,μ_ij_sums_sq,
+                                gll_t1,gll_t2)
+    end
+    return grad_obs/N
+end
+
+function par_gradient_inner_loop{T}(dμ_ij::Vector{Float64},dμ_ij_sums::Float64,
+                            n::Int64,
+                            μ_ij::Array{T,2},δ::Vector{T},
+                            μ_ij_sums::Vector{T},μ_ij_sums_sq::Vector{T},
+                            gll_t1::Vector{Float64},gll_t2::Vector{Float64})
+
+    N,K = size(μ_ij)
+    grad_obs = 0.0
+    #dμ_ij_sums = sum(dμ_ij)
+    t2_0 = dμ_ij_sums/μ_ij_sums_sq[n]
+    t3 = (dμ_ij_sums/μ_ij_sums_sq[n])
+
+    for k in 1:K
+        t1= dμ_ij[k]/μ_ij_sums[n]
+        t2= t2_0*μ_ij[n,k]*δ[k]
+        #t3= dμ_ij_sums/μ_ij_sums_sq[n]
+
+        grad_obs += gll_t1[k]*(t1 - t2) - gll_t2[k]*t3
+    end
+    return grad_obs
 end
