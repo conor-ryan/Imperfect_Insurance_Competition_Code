@@ -19,11 +19,11 @@ function run_specification(df::DataFrame,
 
     ## Initialize Starting Parameters
     γ0start = rand(1)-.5
-    γstart = rand(m.parLength[:γ])-.5
-    β0start = rand(m.parLength[:β]) - .5
+    γstart = rand(m.parLength[:γ])/10 -.05
+    β0start = rand(m.parLength[:β])/10-.05
     βstart = rand(m.parLength[:γ])/10 - .05
     σstart = rand(m.parLength[:σ])/10 - .05
-    FEstart = rand(m.parLength[:FE])/10-.05
+    FEstart = rand(m.parLength[:FE])/100-.005
 
     p0 = vcat(γ0start,γstart,β0start,βstart,σstart,FEstart)
 

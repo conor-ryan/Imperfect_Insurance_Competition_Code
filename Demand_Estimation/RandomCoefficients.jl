@@ -298,8 +298,8 @@ function par_gradient{T}(x::Float64,
     grad_obs = 0.0
     (N,K) = size(μ_ij)
     dμ_ij = Vector{Float64}(K)
-    dμ_ij_sums = 0.0
     for n in 1:N
+        dμ_ij_sums = 0.0
         for k in 1:K
             dμ_ij[k] = μ_ij[n,k]*δ[k]*x
             dμ_ij_sums+= dμ_ij[k]
@@ -319,8 +319,8 @@ function par_gradient{T}(x::Vector{Float64},
     grad_obs = 0.0
     (N,K) = size(μ_ij)
     dμ_ij = Vector{Float64}(K)
-    dμ_ij_sums = 0.0
     for n in 1:N
+        dμ_ij_sums = 0.0
         for k in 1:K
             dμ_ij[k] = μ_ij[n,k]*δ[k]*x[k]
             dμ_ij_sums+= dμ_ij[k]
@@ -340,8 +340,8 @@ function par_gradient_σ{T}(x::Vector{Float64},
     grad_obs = 0.0
     (N,K) = size(μ_ij)
     dμ_ij = Vector{Float64}(K)
-    dμ_ij_sums = 0.0
     for n in 1:N
+        dμ_ij_sums = 0.0
         for k in 1:K
             dμ_ij[k] = μ_ij[n,k]*δ[k]*x[n]
             dμ_ij_sums+= dμ_ij[k]
@@ -360,8 +360,8 @@ function par_gradient_σ{T}(x::Vector{Float64},Y::Vector{Float64},
     grad_obs = 0.0
     (N,K) = size(μ_ij)
     dμ_ij = Vector{Float64}(K)
-    dμ_ij_sums = 0.0
     for n in 1:N
+        dμ_ij_sums = 0.0
         for k in 1:K
             dμ_ij[k] = μ_ij[n,k]*δ[k]*Y[k]*x[n]
             dμ_ij_sums+= dμ_ij[k]

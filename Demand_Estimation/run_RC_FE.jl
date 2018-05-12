@@ -26,10 +26,10 @@ c = ChoiceData(df,df_mkt;
             :LowIncome],
     prodchars=[:Price,:AV],
     prodchars_0=[],
-    fixedEffects=[:Firm_Market_Cat])
+    fixedEffects=[:Firm])
 
 # Fit into model
-m = InsuranceLogit(c,500)
+m = InsuranceLogit(c,10)
 println("Data Loaded")
 
 γ0start = 0.0
@@ -43,15 +43,17 @@ FEstart = zeros(size(c.fixedEffects,1))
 p0 = vcat(γ0start,γstart,β0start,βstart,σstart,FEstart)
 parStart0 = parDict(m,p0)
 
+## Estimate
+est_res = estimate!(m, p0)
+
 println("Gradient Test")
 f_ll(x) = log_likelihood(m,x)
 grad_1 = Vector{Float64}(length(p0))
 grad_2 = Vector{Float64}(length(p0))
 fval = log_likelihood!(grad_2,m,parStart0)
-
-@benchmark log_likelihood!(grad_2,m,parStart0)
-@time log_likelihood!(grad_2,m,parStart0)
-
+#
+# @benchmark log_likelihood!(grad_2,m,parStart0)
+# @time log_likelihood!(grad_2,m,parStart0)
 
 fval_old = log_likelihood(m,p0)
 ForwardDiff.gradient!(grad_1,f_ll, p0)
@@ -59,8 +61,7 @@ ForwardDiff.gradient!(grad_1,f_ll, p0)
 println(fval-fval_old)
 println(maximum(abs.(grad_1-grad_2)))
 
-## Estimate
-est_res = estimate!(m, p0)
+
 
 
 rundate = Dates.today()
