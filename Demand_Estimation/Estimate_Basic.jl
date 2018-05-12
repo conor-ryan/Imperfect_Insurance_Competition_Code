@@ -2,10 +2,10 @@ using NLopt
 using ForwardDiff
 
 
-function estimate!(d::InsuranceLogit, p0;method=:LN_NELDERMEAD)
+function estimate!(d::InsuranceLogit, p0;method=:LD_MMA)
     # Set up the optimization
-    #opt = Opt(method, length(p0))
-    opt = Opt(:LD_MMA, length(p0))
+    opt = Opt(method, length(p0))
+    #opt = Opt(:LD_MMA, length(p0))
 
     #opt = Opt(:LD_TNEWTON_PRECOND_RESTART,length(p0))
     #opt = Opt(:LD_TNEWTON,length(p0))
@@ -15,7 +15,7 @@ function estimate!(d::InsuranceLogit, p0;method=:LN_NELDERMEAD)
     xtol_rel!(opt, 1e-6)
     xtol_abs!(opt, 1e-6)
     ftol_rel!(opt, 1e-10)
-    #maxeval!(opt,2100)
+    #maxeval!(opt,5)
     maxtime!(opt, 600000)
     #upper_bounds!(opt, ones(length(p0))/10)
     initial_step!(opt,1e-1)

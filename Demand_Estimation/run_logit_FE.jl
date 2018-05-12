@@ -37,7 +37,7 @@ m = InsuranceLogit(c,1)
 #γstart = Array{Float64}([0,0,0,0,0,0,0])/100
 β0start = [-1.0,1.0]
 βstart = [0.01,0,0,0,0.01]
-FEstart = zeros(length(c._fixedEffects))
+FEstart = zeros(size(c.fixedEffects,1))
 
 
 #p0 = vcat(γstart,β0start,βstart,σstart)
@@ -54,7 +54,7 @@ grad_2 = Vector{Float64}(length(p0))
 
 fval = log_likelihood(m,p0)
 ForwardDiff.gradient!(grad_1,f_ll, p0)
-ll_gradient!(grad_2,m,p0)
+fval = log_likelihood!(grad_2,m,p0)
 
 println(maximum(abs.(grad_1-grad_2)))
 

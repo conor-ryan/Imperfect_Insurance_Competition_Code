@@ -29,7 +29,7 @@ c = ChoiceData(df,df_mkt;
     fixedEffects=[:Firm_Market_Cat])
 
 # Fit into model
-m = InsuranceLogit(c,200)
+m = InsuranceLogit(c,500)
 println("Data Loaded")
 
 γ0start = 0.0
@@ -48,6 +48,9 @@ f_ll(x) = log_likelihood(m,x)
 grad_1 = Vector{Float64}(length(p0))
 grad_2 = Vector{Float64}(length(p0))
 fval = log_likelihood!(grad_2,m,parStart0)
+
+@benchmark log_likelihood!(grad_2,m,parStart0)
+@time log_likelihood!(grad_2,m,parStart0)
 
 
 fval_old = log_likelihood(m,p0)

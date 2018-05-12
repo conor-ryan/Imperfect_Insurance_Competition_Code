@@ -49,7 +49,7 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
         #          :F0_Y1_LI0,:F0_Y1_LI1,
         #          :F1_Y0_LI0,:F1_Y0_LI1,
         #          :F1_Y1_LI0,:F1_Y1_LI1],
-        fixedEffects=[],
+        fixedEffects=Vector{Symbol}(0),
         wgt=[:N],
         unins=[:unins_rate])
 
@@ -269,19 +269,19 @@ type InsuranceLogit <: LogitModel
 end
 
 
-function InsuranceLogit(data::ChoiceData,haltonDim::Int)
+function InsuranceLogit(c_data::ChoiceData,haltonDim::Int)
     # Construct the model instance
 
     # Get Parameter Lengths
-    γlen = size(demoRaw(data),1)
-    β0len = size(prodchars0(data),1)
-    βlen = size(prodchars(data),1)
-    flen = size(fixedEffects(data),1)
+    γlen = size(demoRaw(c_data),1)
+    β0len = size(prodchars0(c_data),1)
+    βlen = size(prodchars(c_data),1)
+    flen = size(fixedEffects(c_data),1)
 
     if haltonDim==1
         σlen = 0
     else
-        σlen = 1 + (size(prodchars(data),1)-1)
+        σlen = 1 + (size(prodchars(c_data),1)-1)
     end
 
     total = 1 + γlen + βlen + γlen + flen + σlen
@@ -294,13 +294,13 @@ function InsuranceLogit(data::ChoiceData,haltonDim::Int)
     draws = MVHaltonNormal(haltonDim,2)
 
     # Initialize Empty value prediction objects
-    n, k = size(c.data)
+    n, k = size(c_data.data)
     # Copy Firm Level Data for Changing in Estimation
-    pmat = c.pdata
+    pmat = c_data.pdata
     pmat[:delta] = 1.0
     sort!(pmat)
 
-    d = InsuranceLogit(parLength,data,
+    d = InsuranceLogit(parLength,c_data,
                         draws,
                         pmat[:Product],pmat[:Share],pmat[:delta])
     return d
