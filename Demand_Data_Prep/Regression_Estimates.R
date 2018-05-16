@@ -99,8 +99,7 @@ famList = c(0,1)
 #regData = estData[AGE>=ageRange[1]&AGE<=ageRange[2],]
 
 ## Regular Logit
-reg0 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + AV,data=estData,
-          weights=estData$N)
+reg0 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + AV,data=estData)
 
 reg1 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + AV + Firm,data=estData)
 c1 = summary(reg1)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg1$coefficients)),c("Estimate","t value")]

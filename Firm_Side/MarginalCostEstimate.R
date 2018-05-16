@@ -5,56 +5,11 @@ library(nleqslv)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 ## Run
-run = "2018-04-12"
+run = "2018-05-12"
 
 #### Load Simulation Data and Merge in GCF/AV data ####
 simFile = paste("Simulation_Risk_Output/simData_",run,".rData",sep="")
 load(simFile)
-
-setkey(acs,Product,Person)
-setkey(predict_data,Product,Person)
-
-
-#### Preference Parameters ####
-parFile = paste("Estimation_Output/estimationresults_",run,".csv",sep="")
-pars = read.csv(parFile)
-
-# 
-# alpha = pars$pars[1]
-# gamma = pars$pars[2:4]
-# beta = matrix(pars$pars[5:16],nrow=4,ncol=3,byrow=FALSE)
-# sigma = pars$pars[17:21]
-
-gamma = pars$pars[1:3]
-beta0 = pars$pars[4:6]
-beta = matrix(0,nrow=3,ncol=3)
-beta[2,1] = pars$pars[7]
-beta[3,1] = pars$pars[8]
-sigma = pars$pars[9:11]
-
-alpha = beta0[1]
-
-## Calculate alpha for each demographic ##
-acs[,alpha:=alpha+beta[1,1]*Age+beta[1,2]*Family+beta[1,3]*LowIncome]
-
-
-## Integrate Draws and Prediction Data
-draws = as.data.table(draws)
-n_draws = nrow(draws)
-draws[,d_ind:=as.integer(1:n_draws)]
-setkey(draws,d_ind)
-setkey(predict_data,d_ind,Person)
-nu_h_large = draws[predict_data$d_ind,2]*sign(sigma[3])
-nu_i_large = draws[predict_data$d_ind,1]*sign(sigma[1])
-
-predict_data[,alpha_draw:=0]
-predict_data[,nu_h:=nu_h_large]
-predict_data[,nu_i:=nu_i_large]
-rm(nu_h_large,nu_i_large)
-
-## indication
-predict_data[,nu_h_ind:=as.numeric(nu_h>.6)]
-predict_data[,nu_i_ind:=as.numeric(nu_i>.6)]
 
 #### Read in Total Claims Data ####
 MLR_Data = read.csv("Data/2015_MLR/Part1_2_Summary_Data_Premium_Claims.csv")
@@ -85,25 +40,29 @@ claims$AvgCost = with(claims,Claims/MLR_lives)
 metalClaims = read.csv("Intermediate_Output/Average_Claims/firmClaims.csv")
 
 #### Firm Data ####
-acs[,STATE:=gsub("_.*","",Market)]
-full_predict = merge(acs,predict_data,by=c("Product","Person"))
+n_draws = nrow(draws)
 full_predict[,wgt:=PERWT*s_pred/n_draws]
-#full_predict[,METAL:=gsub(" .*","",METAL)]
 
 firms = full_predict[,list(sim_lives=sum(wgt),
-                           age = sum(AGE*wgt)/sum(wgt),
+                           Age_j = sum(AGE*wgt)/sum(wgt),
                            mem = sum(MEMBERS*wgt)/sum(wgt),
                            inc = sum(LowIncome*wgt)/sum(wgt),
                            fpl = sum(HHincomeFPL*wgt)/sum(wgt),
                            high = sum(High*wgt)/sum(wgt),
-                           nu_i_ind = sum(nu_i_ind*wgt)/sum(wgt),
-                           nu_h_ind = sum(nu_h_ind*wgt)/sum(wgt),
                            nu_h = sum(nu_h*wgt)/sum(wgt),
-                           nu_i = sum(nu_i*wgt)/sum(wgt)), by=c("Firm","STATE")]
+                           nu_i = sum(nu_i*wgt)/sum(wgt),
+                           WTP_j = sum(WTP*wgt)/sum(wgt),
+                           AV = sum(AV*wgt)/sum(wgt)), by=c("ST","Firm","Metal_std","AV_std")]
 
-firms = merge(firms,metalClaims,by=c("Firm","STATE","METAL"),all.x=TRUE)
-#firms[,regVar:=log(AvgCost)]
+firms = merge(firms,metalClaims,by.x=c("Firm","ST","Metal_std"),
+              by.y=c("Firm","STATE","METAL"),all.x=TRUE)
+firms[,regVar:=log(EXP_INC_CLM_PMPM)]
+firms[regVar==-Inf,regVar:=NA]
 
-reg = lm(regVar~age+mem+fpl+high+nu_i_ind+nu_h_ind,data=firms)
 
+CostRes = lm(regVar~ST+AV_std+Age_j+WTP_j,data=firms)
 
+firms[,pred_cost:=exp(predict(CostRes,newdata=firms))]
+
+costFile = paste("Simulation_Risk_Output/costParameters_",run,".rData",sep="")
+save(CostRes,file=costFile)

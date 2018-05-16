@@ -489,7 +489,7 @@ choices$Product = with(choices,paste(Firm,METAL,Market,sep="_"))
 choices[,Person:=as.factor(paste(Market,FPL_bucket,AGE_bucket,Mem_bucket))]
 choices[,Person:=as.numeric(Person)]
 
-choices[,prodCat:=":Low"]
+choices[,prodCat:="Low"]
 choices[METAL%in%c("SILVER 87","SILVER 94","GOLD","PLATINUM"),prodCat:="High"]
 choices[,Firm_Market_Cat:=paste(Firm,Market,prodCat,sep="_")]
 
@@ -593,7 +593,7 @@ insured = unique(choices[,c("Person","STATE","unins_rate","N")])
 insured = insured[,list(unins_rate=sum(unins_rate*N)/sum(N)),by="STATE"]
 
 shares = choices[,list(enroll=sum(S_ij*N),pop_offered=sum(N)),by=c("Product","Firm","Market","STATE","METAL",
-                                                                   "MedDeduct","MedOOP","High","premBase")]
+                                                                   "Firm_Market_Cat","MedDeduct","MedOOP","High","premBase")]
 shares = merge(shares,insured,by="STATE")
 shares[,lives:=sum(enroll),by="Market"]
 shares[,s_inside:= enroll/pop_offered]

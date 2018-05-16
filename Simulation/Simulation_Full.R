@@ -5,7 +5,7 @@ library(data.table)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
 
 ## Run
-run = "2018-04-12"
+run = "2018-05-12"
 
 #### 2015 Subsidy Percentage Function ####
 
@@ -174,32 +174,33 @@ acs[,subsidy:=pmax(Benchmark-HHcont*HH_income/12,0)]
 #### Choice Sets - Cost Sharing ####
 acs[,METAL:=toupper(METAL)]
 acs[,CSR:=gsub("[A-Z]+ ?","",METAL,perl=TRUE)]
-acs[,METAL:=gsub(" [0-9]+","",METAL)]
+acs[,SILVER:=grepl("SILVER",METAL)]
+#acs[,METAL:=gsub(" [0-9]+","",METAL)]
 
 ## Create Character Difference Variables 
 acs$High = 0 
 acs$High[with(acs,METAL%in%c("GOLD","PLATINUM")|CSR%in%c("94","87"))] = 1
 
-acs[CSR=="",MedDeductStandard:=MedDeduct,by=c("ST","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
-acs[,MedDeductStandard:=max(MedDeductStandard,na.rm=TRUE),by=c("ST","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
-acs[CSR=="",MedOOPStandard:=MedOOP,by=c("ST","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
-acs[,MedOOPStandard:=max(MedOOPStandard,na.rm=TRUE),by=c("ST","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
-acs[CSR=="",HighStandard:=High,by=c("ST","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
-acs[,HighStandard:=max(HighStandard,na.rm=TRUE),by=c("ST","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
-
-acs[,MedDeductDiff:=MedDeduct - MedDeductStandard]
-acs[,MedOOPDiff:=MedOOP - MedOOPStandard]
-acs[,HighDiff:=High - HighStandard]
+# acs[CSR=="",MedDeductStandard:=MedDeduct,by=c("ST","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+# acs[,MedDeductStandard:=max(MedDeductStandard,na.rm=TRUE),by=c("ST","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+# acs[CSR=="",MedOOPStandard:=MedOOP,by=c("ST","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+# acs[,MedOOPStandard:=max(MedOOPStandard,na.rm=TRUE),by=c("ST","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+# acs[CSR=="",HighStandard:=High,by=c("ST","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+# acs[,HighStandard:=max(HighStandard,na.rm=TRUE),by=c("ST","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
+# 
+# acs[,MedDeductDiff:=MedDeduct - MedDeductStandard]
+# acs[,MedOOPDiff:=MedOOP - MedOOPStandard]
+# acs[,HighDiff:=High - HighStandard]
 
 
 
 # Set hix to be TRUE for all Silver, if for any
-acs[,hix:=any(hix),by=c("household","Firm","METAL")]
+acs[SILVER==TRUE,hix:= any(hix),by=c("household","Firm")]
 
 acs[,CSR_subs:= ""]
-acs[METAL=="SILVER"&hix&HHincomeFPL>=2 & HHincomeFPL<2.5,CSR_subs:= "73"]
-acs[METAL=="SILVER"&hix&HHincomeFPL>=1.5 & HHincomeFPL<2,CSR_subs:= "87"]
-acs[METAL=="SILVER"&hix&HHincomeFPL>=1 & HHincomeFPL<1.5,CSR_subs:= "94"]
+acs[SILVER==TRUE&hix&HHincomeFPL>=2 & HHincomeFPL<2.5,CSR_subs:= "73"]
+acs[SILVER==TRUE&hix&HHincomeFPL>=1.5 & HHincomeFPL<2,CSR_subs:= "87"]
+acs[SILVER==TRUE&hix&HHincomeFPL>=1 & HHincomeFPL<1.5,CSR_subs:= "94"]
 
 # Keep only Silver plans for the appropriate income
 acs = acs[with(acs,CSR==CSR_subs),]
@@ -241,7 +242,9 @@ acs = acs[,list(AGE = mean(AGE),
                 PERWT = sum(PERWT),
                 subsidy_mean= sum(subsidy*PERWT)/sum(PERWT)),
           by=c("ST","AREA","FPL_bucket","AGE_bucket","Mem_bucket","FAMILY_OR_INDIVIDUAL","Firm","METAL","hix","CSR",
-               "MedDeduct","MedOOP","High","MedDeductDiff","MedOOPDiff","HighDiff", "benchBase","premBase")]
+               "MedDeduct","MedOOP","High",
+               #"MedDeductDiff","MedOOPDiff","HighDiff", 
+               "benchBase","premBase")]
 
 
 ## Re-Calculate Premiums for Choice Set
@@ -305,13 +308,17 @@ acs[,Product_Name:= paste(Firm,METAL,Market,sep="_")]
 acs[,Person:=as.factor(paste(Market,FPL_bucket,AGE_bucket,Mem_bucket))]
 acs[,Person:=as.numeric(Person)]
 
+acs[,prodCat:=":Low"]
+acs[METAL%in%c("SILVER 87","SILVER 94","GOLD","PLATINUM"),prodCat:="High"]
+acs[,Firm_Market_Cat:=paste(Firm,Market,prodCat,sep="_")]
 
-acs = acs[,c("Person","Firm","Market","Product_Name","METAL",
+
+acs = acs[,c("Person","Firm","ST","Market","Product_Name","METAL","Firm_Market_Cat",
              "Price","PriceDiff","MedDeduct","MedOOP","High","premBase",
              "PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age",
              "AGE","HHincomeFPL","MEMBERS",
-             "MedDeductDiff","MedOOPDiff","HighDiff","Family","Age","LowIncome","ageRate","ageRate_avg","PERWT")]
-
+             #"MedDeductDiff","MedOOPDiff","HighDiff",
+             "Family","Age","LowIncome","ageRate","ageRate_avg","PERWT")]
 
 #### Merge in Product Map #### 
 prod_map = read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv")
@@ -324,7 +331,64 @@ acs = merge(acs,prod_map[,c("Product_Name","Product")],by="Product_Name",all.x=T
 acs = acs[!is.na(acs$Product),]
 
 
+#### Fixed Effects ####
+# Market Product Category Fixed Effects
+firm_list = sort(unique(prod_map$Firm_Market_Cat))[-1]
+for (fe in firm_list){
+  var = paste("FE",fe,sep="_")
+  acs[,c(var):=0]
+  acs[Firm_Market_Cat==fe,c(var):=1]
+}
 
+acs[,AgeFE_18_30:=0]
+acs[AGE<=30,AgeFE_18_30:=1]
+
+acs[,AgeFE_31_40:=0]
+acs[AGE>30&AGE<=40,AgeFE_31_40:=1]
+
+acs[,AgeFE_41_50:=0]
+acs[AGE>40&AGE<=50,AgeFE_41_50:=1]
+
+acs[,AgeFE_51_64:=0]
+acs[AGE>50,AgeFE_51_64:=1]
+
+#### Regulation Parameters ####
+## Actuarial Value
+acs[METAL=="CATASTROPHIC",AV:=.57]
+acs[METAL=="BRONZE",AV:=.6]
+acs[METAL=="SILVER",AV:=.7]
+acs[METAL=="SILVER 73",AV:=.73]
+acs[METAL=="SILVER 87",AV:=.87]
+acs[METAL=="SILVER 94",AV:=.94]
+acs[METAL=="GOLD",AV:=.8]
+acs[METAL=="PLATINUM",AV:=.9]
+
+## Merge in GCF
+gcf = read.csv("Data/2015_MLR/2015_GCF.csv")
+gcf$Market = with(gcf,paste(State,Rating.Area,sep="_"))
+gcf=as.data.table(gcf)
+setkey(gcf,Market)
+
+acs = merge(acs,gcf[,c("Market","GCF")],by="Market")
+
+## Induced Demand Factor
+acs[METAL=="BRONZE",IDF:=1.0]
+acs[METAL%in%c("SILVER","SILVER 73"),IDF:=1.03]
+acs[METAL%in%c("SILVER 87","SILVER 94"),IDF:=1.08]
+acs[METAL=="GOLD",IDF:=1.08]
+acs[METAL=="PLATINUM",IDF:=1.15]
+
+acs[,Gamma_j:=IDF*GCF]
+
+rm(gcf)
+
+#### Density Weights ####
+density = unique(acs[,c("Market","Person","PERWT")])
+density[,mkt_size:=sum(PERWT),by="Market"]
+
+density[,mkt_density:=PERWT/mkt_size]
+
+acs = merge(acs,density[,c("Market","Person","mkt_density")],by=c("Market","Person"))
 
 #### Read in Parameters ####
 n_draws = 100
@@ -335,22 +399,21 @@ pars = read.csv(parFile)
 delFile = paste("Estimation_Output/deltaresults_",run,".csv",sep="")
 deltas = read.csv(delFile)
 
-# alpha = pars$pars[1]
-# gamma = pars$pars[2:4]
-# beta = matrix(pars$pars[5:16],nrow=4,ncol=3,byrow=FALSE)
-# sigma = pars$pars[17:21]
-gamma = pars$pars[1:3]
-beta0 = pars$pars[4:6]
-beta = matrix(0,nrow=3,ncol=3)
-beta[2,1] = pars$pars[7]
-beta[3,1] = pars$pars[8]
-sigma = pars$pars[9:11]
+beta_vec = pars$pars
+
+gamma0 = beta_vec[1]
+gamma = beta_vec[2:6]
+beta0 = beta_vec[7:8]
+beta = matrix(0,nrow=2,ncol=5)
+beta[1,1:ncol(beta)] = beta_vec[9:13]
+sigma = beta_vec[14:15]
+FE_pars = beta_vec[16:length(beta_vec)]
 
 draws = halton(n_draws,dim=2,usetime=TRUE,normal=TRUE)
 randCoeffs = matrix(nrow=n_draws,ncol=length(sigma)+1)
 randCoeffs[,1] = draws[,1]*sigma[1]
 randCoeffs[,2] = 0
-for (k in 3:4){
+for (k in 3:3){
   randCoeffs[,k] = draws[,2]*sigma[k-1]
 }
 
@@ -363,8 +426,8 @@ setkey(acs,Person,Product)
 people = sort(unique(acs$Person))
 
 predict_data = acs[,c("Person","Product")]
-predict_data$s_pred = vector("double",nrow(predict_data))
-
+predict_data[,s_pred:= vector("double",nrow(predict_data))]
+predict_data[,non_price_util:= vector("double",nrow(predict_data))]
 
 ## Replicate People in Order
 sortedFirst = function(x,y){
@@ -402,46 +465,94 @@ setkey(predict_data,Person)
 cnt = 0
 start = Sys.time()
 acs[,s_pred_mean:=vector("double",nrow(acs))]
+acs[,alpha:=vector("double",nrow(acs))]
 for (p in people){
   cnt = cnt+1
   perData = acs[.(p),]
   
-  demos = as.matrix(perData[1,c("Age","Family","LowIncome")])
-  #chars = as.matrix(perData[,c("Price","MedDeduct","MedOOP","High")])
-  chars = as.matrix(perData[,c("Price","MedDeduct","High")])
-  chars_0 = as.matrix(perData[,c("PriceDiff","MedDeductDiff","HighDiff")])
+  demos = as.matrix(perData[1,c("AgeFE_31_40",
+                                "AgeFE_41_50",
+                                "AgeFE_51_64",
+                                "Family",
+                                "LowIncome")])
+  chars = as.matrix(perData[,c("Price","AV")])
+  chars_0 = as.matrix(perData[,c("Price","AV")])
+  FE = as.matrix(perData[,.SD,.SDcols=names(perData)[grep("^FE_",names(perData))]])
   delta = perData$delta
   
   intercept = (demos%*%gamma)[1,1] + randCoeffs[,1]
   
-  chars_int = chars_0%*%beta0
+  chars_int = chars_0%*%beta0 + FE%*%FE_pars
   
   beta_z = demos%*%t(beta)
   beta_zi = matrix(beta_z,nrow=n_draws,ncol=length(beta_z),byrow=TRUE)
-  for (k in 1:n_draws){
-    beta_zi[k,] = beta_zi[k,] + randCoeffs[k,2:4]
+  for (n in 1:n_draws){
+    beta_zi[n,] = beta_zi[n,] + randCoeffs[n,2:3]
   }
   
+  price_val = chars_0[,1]*(beta0[1] + beta_z[,1])
   
   util = matrix(NA,nrow=nrow(chars),ncol=n_draws)
+  util_non_price = matrix(NA,nrow=nrow(chars),ncol=n_draws)
   shares = matrix(NA,nrow=nrow(chars),ncol=n_draws)
-  for(k in 1:n_draws){
-    util[,k] = exp(intercept[k] + chars_int + chars%*%beta_zi[k,])*delta
+  for(n in 1:n_draws){
+    util[,n] = exp(intercept[n] + chars_int + chars%*%beta_zi[n,])*delta
+    
+    util_non_price[,n] = exp(intercept[n] + chars_int + chars%*%beta_zi[n,]-price_val)*delta
   }
   expsum = apply(util,MARGIN=2,sum)
-  for(k in 1:n_draws){
-    shares[,k] = util[,k]/(1+expsum[k])
+  for(n in 1:n_draws){
+    shares[,n] = util[,n]/(1+expsum[n])
   }
   acs[.(p),s_pred_mean:=apply(shares,MARGIN=1,FUN=mean)]
+  acs[.(p),alpha:=(beta0[1] + beta_z[,1])]
   predict_data[.(p),s_pred:=as.vector(shares)]
+  predict_data[.(p),non_price_util:=as.vector(util_non_price)]
   if (cnt%%500==0){
     print(cnt)
   }
 }
 Sys.time() - start
 
+#### Clean and Save Data ####
+acs_old = as.data.frame(acs)
+acs = acs[,c("Person","Firm","ST","Market","Product_Name","Product",
+             "METAL",
+             "Price","PriceDiff","MedDeduct","MedOOP","High","premBase",
+             "AV","Gamma_j","mkt_density",
+             "alpha","s_pred_mean",
+             "PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age",
+             "AGE","HHincomeFPL","MEMBERS",
+             "Family","Age","LowIncome","ageRate","ageRate_avg","PERWT")]
+
+## Standardize for Silver Plans
+acs[,Metal_std:=gsub(" .*","",METAL)]
+acs[,AV_std:=AV]
+acs[Metal_std=="SILVER",AV_std:=.7]
+
+
+## Integrate Draws and Prediction Data
+draws = as.data.table(draws)
+n_draws = nrow(draws)
+draws[,d_ind:=as.integer(1:n_draws)]
+setkey(draws,d_ind)
+setkey(predict_data,d_ind,Person)
+nu_h_large = draws[predict_data$d_ind,2]*sign(sigma[2])
+nu_i_large = draws[predict_data$d_ind,1]*sign(sigma[1])
+
+predict_data[,alpha_draw:=0]
+predict_data[,nu_h:=nu_h_large]
+predict_data[,nu_i:=nu_i_large]
+rm(nu_h_large,nu_i_large)
+
+## Merge Data
+full_predict = merge(acs,predict_data,by=c("Product","Person"))
+full_predict[,WTP:=-0.10*(beta0[2]+sigma[2]*nu_h)/alpha]
+
+
+## Save Data
 simFile = paste("Simulation_Risk_Output/simData_",run,".rData",sep="")
-save(acs,predict_data,draws,file=simFile)
+save(acs,full_predict,draws,file=simFile)
 
 
 ### Predicted Product Shares ####

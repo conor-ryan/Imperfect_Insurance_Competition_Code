@@ -5,76 +5,30 @@ library(nleqslv)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 ## Run
-run = "2018-04-12"
+run = "2018-05-12"
 
-#### Read in GCF ####
-gcf = read.csv("Data/2015_MLR/2015_GCF.csv")
-gcf$Market = with(gcf,paste(State,Rating.Area,sep="_"))
-gcf=as.data.table(gcf)
-setkey(gcf,Market) 
-#### Load Simulation Data and Merge in GCF/AV data ####
+#### Load Simulation Data ####
 simFile = paste("Simulation_Risk_Output/simData_",run,".rData",sep="")
 load(simFile)
-
-# Merge in GCF
-acs[,Metal:=gsub("([A-Z_]*)(CATASTROPHIC|BRONZE|SILVER|GOLD|PLATINUM)([A-Z_0-9]*)","\\2",acs$Product_Name,perl=TRUE)]
-acs[,ST:=gsub("_.*","",Market)]
-setkey(acs,Market)
-acs = merge(acs,gcf[,c("Market","GCF")],by="Market")
-
-# Set AV Values
-acs[Metal=="BRONZE",AV:=.6]
-acs[Metal=="SILVER",AV:=.7]
-acs[Metal=="GOLD",AV:=.8]
-acs[Metal=="PLATINUM",AV:=.9]
-
-# Set IDF Values
-acs[Metal=="BRONZE",IDF:=1.0]
-acs[Metal=="SILVER",IDF:=1.03]
-acs[Metal=="GOLD",IDF:=1.08]
-acs[Metal=="PLATINUM",IDF:=1.15]
-
-
-
-#### Predict Plan Average Allowable Rating Factors
-setkey(acs,Product,Person)
-setkey(predict_data,Product,Person)
-
 
 
 # Get Mean Firm Shares
 #per_predict = predict_data[,list(s_pred_mean=mean(s_pred)),by=c("Product","Person")]
 # Remove Catastrophic Plans for now. 
-predict_full = acs[Metal!="CATASTROPHIC",]
+predict_full = acs[METAL!="CATASTROPHIC",]
 
 # Calculate Rating Factors
 predict_full[,lives:=s_pred_mean*PERWT]
 predict_full[,ageR_wt:=s_pred_mean*PERWT*ageRate_avg]
 
-pred_prods = predict_full[,lapply(.SD,sum),by=c("Product","Product_Name","Firm","ST","AV","GCF","IDF"),.SDcols=c("lives","ageR_wt")]
+pred_prods = predict_full[,lapply(.SD,sum),
+                          by=c("Product","Product_Name","premBase","Firm","ST","AV","Gamma_j"),
+                          .SDcols=c("lives","ageR_wt")]
 pred_prods[,ARF:=ageR_wt/lives]
 pred_prods[,mkt_lives:=sum(lives),by="ST"]
 pred_prods[,share:=lives/mkt_lives]
 
 ##### Merge in Base Premium Information #####
-choiceSet = read.csv("Intermediate_Output/Premiums/choiceSets2015.csv")
-# Get Product Name
-choiceSet$Market = with(choiceSet,paste(ST,gsub("Rating Area ","",AREA),sep="_"))
-choiceSet$Product_Name = with(choiceSet,paste(Firm,toupper(METAL),Market,sep="_"))
-# Normalize Base Premium
-choiceSet$premBase = choiceSet$PREMI27/1.048
-choiceSet$premBase[choiceSet$ST=="DC"] = choiceSet$PREMI27[choiceSet$ST=="DC"]/.727
-choiceSet$premBase[choiceSet$ST=="MA"] = choiceSet$PREMI27[choiceSet$ST=="MA"]/1.22
-choiceSet$premBase[choiceSet$ST=="MN"] = choiceSet$PREMI27[choiceSet$ST=="MN"]/1.048
-choiceSet$premBase[choiceSet$ST=="UT"] = choiceSet$PREMI27[choiceSet$ST=="UT"]/1.39
-
-# Create Data Table
-choiceSet = as.data.table(choiceSet[,c("Product_Name","premBase")])
-
-# Merge with prediction data 
-setkey(choiceSet,Product_Name)
-setkey(pred_prods,Product_Name)
-pred_prods = merge(pred_prods,choiceSet,by="Product_Name",all.x=TRUE)
 
 # Calculate State Premiums
 pred_prods[,charged_prem_avg:=ARF*premBase*12]
@@ -82,7 +36,7 @@ pred_prods[,avg_prem:=sum(charged_prem_avg*share),by="ST"]
 
 
 #### Calculate Firm Level ARF ####
-pred_prods[,A:=AV*ARF*IDF*GCF]
+pred_prods[,A:=AV*ARF*Gamma_j]
 pred_prods[,A_wtd:=A*share]
 
 firm_RA = pred_prods[,lapply(.SD,sum),by=c("Firm","ST","avg_prem","mkt_lives"),.SDcols=c("A_wtd","share")]
@@ -208,6 +162,8 @@ for (state in unique(firm_RA$ST)){
 
 # ## Check
 firm_RA[,R_f:=R_pred_wgt/RA_share]
+firm_RA[,ST_A:=sum(A_wtd),by="ST"]
+
 # firm_RA[,R_avg:=sum(R_pred_wgt),by="ST"]
 # firm_RA[,R_f:=R_f/R_avg]
 
@@ -241,7 +197,6 @@ save(other_RA,file=otherRiskFile)
 
 
 #### Check ####
-# firm_RA[,A_sum:=sum(A_wtd),by="ST"]
 # firm_RA[,R_sum:=sum(R_pred_wgt),by="ST"]
 # firm_RA[,transfer_pred:=-ST_MLR_lives*avg_prem*(R_pred_wgt/R_sum - A_wtd/A_sum)]
 # firm_RA[,transfer_pp:=-avg_prem*(R_f/R_sum - A_f/A_sum)]
