@@ -115,11 +115,12 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
 
     #Create Product Dictionary
     println("Product Dictionary")
-    allprods = sort(unique(j))
-    _productDict = Dict{Real, Array{Int}}()
-    for id in allprods
-        _productDict[id] = findin(j,id)
-    end
+    _productDict = build_ProdDict(j)
+    # allprods = sort(unique(j))
+    # _productDict = Dict{Real, Array{Int}}()
+    # for id in allprods
+    #     _productDict[id] = findin(j,id)
+    # end
 
     # Make the data object
     m = ChoiceData(dmat,data_market,F, index, prodchars,prodchars_0,
@@ -128,10 +129,30 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
     return m
 end
 
-function build_FE(data_choice::DataFrame,fe_list::Vector{Symbol})
+function build_ProdDict{T,N}(j::Array{T,N})
+    allprods = unique(j)
+    sort!(allprods)
+    _productDict = Dict{Real, Array{Int64,1}}()
+
+    for id in allprods
+        _productDict[id] = find(j.==id)
+    end
+    return _productDict
+end
+
+function build_FE{T}(data_choice::DataFrame,fe_list::Vector{T})
     # Create Fixed Effects
     n, k = size(data_choice)
     L = 0
+
+    # No Fixed effects for empty lists
+    if typeof(fe_list)!=Vector{Symbol}
+        println("No Fixed Effects")
+        F = Matrix{Float64}(n,L)
+        feNames = Vector{Symbol}(0)
+        return F,feNames
+    end
+
     for fe in fe_list
         fac_variables = data_choice[fe]
         factor_list = sort(unique(fac_variables))
@@ -284,7 +305,7 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int)
         σlen = 1 + (size(prodchars(c_data),1)-1)
     end
 
-    total = 1 + γlen + βlen + γlen + flen + σlen
+    total = 1 + γlen + β0len + γlen + flen + σlen
     parLength = Dict(:γ=>γlen,:β0=>β0len,:β=>βlen,:FE=>flen,
     :σ => σlen, :All=>total)
 

@@ -30,8 +30,36 @@ function run_specification(df::DataFrame,
     println("Begin Estimation")
 
     ## Estimate
-    est_res = estimate!(m, p0)
+    flag, fval, p_est = estimate!(m, p0)
 
-    return est_res
+    return p_est , m, (flag,fval)
 
+end
+
+
+
+
+function res_process(model::InsuranceLogit,p_est::Vector{Float64})
+    ## Create Param Dictionary
+
+    paramFinal = parDict(model,p_est)
+
+    AsVar = calc_Avar(model,paramFinal)
+    stdErr = sqrt.(diag(AsVar))
+    t_stat = p_est./stdErr
+
+    stars = Vector{String}(length(t_stat))
+    for i in 1:length(stars)
+        if abs(t_stat[i])>2.326
+            stars[i] = "***"
+        elseif abs(t_stat[i])>1.654
+            stars[i] = "**"
+        elseif abs(t_stat[i])>1.282
+            stars[i] = "*"
+        else
+            stars[i] = ""
+        end
+    end
+
+    return AsVar, stdErr, t_stat, stars
 end

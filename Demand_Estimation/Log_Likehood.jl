@@ -86,31 +86,25 @@ function log_likelihood!{T}(grad::Vector{Float64},d::InsuranceLogit,p::Array{T})
     return ll
 end
 
-#
-# function ll_gradient!{T}(grad::Vector{Float64},d::InsuranceLogit,p::Array{T})
-#     params = parDict(d,p)
-#     grad = ll_gradient!(grad,d,params)
-#     convert_δ!(d)
-#     return grad
-# end
 
-function GMM_objective{T}(d::InsuranceLogit,p::Array{T})
-    grad = ll_gradient(d,p)
-    println("gradient equals $grad")
-    obj = vecdot(grad,grad)
-    return obj
-end
+# Calculate Standard Errors
+# Hiyashi, p. 491
+function calc_Avar{T}(d::InsuranceLogit,p::parDict{T})
+    # Calculate μ_ij, which depends only on parameters
+    individual_values!(d,p)
+    individual_shares(d,p)
 
+    Σ = zeros(d.parLength[:All],d.parLength[:All])
+    Pop =sum(weight(d.data).*choice(d.data))
 
-function evaluate_iteration{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
-    contraction!(d,p,update=update)
-    ll = log_likelihood(d,p)
-    convert_δ!(d)
-    return ll
-end
+    for app in eachperson(d.data)
+        ll_obs,grad_obs = ll_obs_gradient(app,d,p)
+        S_n = grad_obs*grad_obs'
+        Σ+= S_n
+    end
 
-function evaluate_iteration!{T}(d::InsuranceLogit, x::Array{T,1};update::Bool=true)
-    # Create Parameter Types
-    parameters = parDict(d,x)
-    return evaluate_iteration(d,parameters,update=update)
+    Σ = Σ./Pop
+    # This last line is ??
+    AsVar = inv(Σ)./Pop
+    return AsVar
 end

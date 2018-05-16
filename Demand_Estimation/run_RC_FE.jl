@@ -9,7 +9,7 @@ include("InsChoiceData.jl")
 include("Halton.jl")
 
 # Random Coefficients MLE
-include("RandomCoefficients_test.jl")
+include("RandomCoefficients.jl")
 include("Contraction.jl")
 include("Log_Likehood.jl")
 include("Estimate_Basic.jl")
@@ -25,8 +25,8 @@ c = ChoiceData(df,df_mkt;
             :Family,
             :LowIncome],
     prodchars=[:Price,:AV],
-    prodchars_0=[],
-    fixedEffects=[:Firm])
+    prodchars_0=[:Price],
+    fixedEffects=[])
 
 # Fit into model
 m = InsuranceLogit(c,10)

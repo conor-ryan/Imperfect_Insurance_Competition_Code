@@ -29,7 +29,7 @@ end
 function parDict{T}(m::InsuranceLogit,x::Array{T})
     # Parameter Lengths from model
     γlen = 1 + m.parLength[:γ]
-    β0len = γlen + m.parLength[:β]
+    β0len = γlen + m.parLength[:β0]
     βlen = β0len + m.parLength[:γ]
     σlen = βlen + (m.parLength[:σ])
     FElen = σlen + m.parLength[:FE]
@@ -123,6 +123,7 @@ function util_value!{T}(app::ChoiceData,p::parDict{T})
 
     ind = person(app)[1]
     X = permutedims(prodchars(app),(2,1))
+    X_0 = permutedims(prodchars0(app),(2,1))
     Z = demoRaw(app)[:,1]
     F = fixedEffects(app)
 
@@ -131,7 +132,7 @@ function util_value!{T}(app::ChoiceData,p::parDict{T})
     β_i, γ_i = calc_indCoeffs(p,β_z,demos)
 
     chars = X*β_i
-    chars_0 = X*β_0
+    chars_0 = X_0*β_0
 
     # This is a row Vector
     controls = fe*F
@@ -187,6 +188,7 @@ function ll_obs_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
         idxitr = d.data._personDict[ind]
 
         X_t = prodchars(app)
+        X_0_t = prodchars0(app)
         Z = demoRaw(app)[:,1]
         F_t = fixedEffects(app)
         draws = d.draws
@@ -215,7 +217,7 @@ function ll_obs_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
         pars_relevant = vcat(1:Q_0,Q_0+find(maximum(F_t,2)))
 
         γlen = 1 + d.parLength[:γ]
-        β0len = γlen + d.parLength[:β]
+        β0len = γlen + d.parLength[:β0]
         βlen = β0len + d.parLength[:γ]
         σlen = βlen + d.parLength[:σ]
         FElen = σlen + d.parLength[:FE]
@@ -253,7 +255,7 @@ function ll_obs_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
                                         gll_t1,gll_t2)
             elseif q<=β0len
                 # Base Characteristics
-                grad_obs[q] += par_gradient(X_t[q-γlen,:],μ_ij,δ,
+                grad_obs[q] += par_gradient(X_0_t[q-γlen,:],μ_ij,δ,
                                         μ_ij_sums,μ_ij_sums_sq,
                                         gll_t1,gll_t2)
             elseif q<=βlen

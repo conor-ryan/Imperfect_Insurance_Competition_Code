@@ -1,4 +1,3 @@
-using BenchmarkTools
 using JLD
 using CSV
 
@@ -22,25 +21,28 @@ println("Code Loaded")
 
 #### General Specification ####
 
-halton_draws = 1000
+halton_draws = 250
 spec_demoRaw = [:AgeFE_31_40,
         :AgeFE_41_50,
         :AgeFE_51_64,
         :Family,
         :LowIncome]
 spec_prodchars=[:Price,:AV]
-spec_prodchars_0=[]
+spec_prodchars_0=[:Price,:AV]
 
 rundate = Dates.today()
 
 #### Run Specification 1 ####
 println("Run Specification 1")
-spec1 = run_specification(df,df_mkt,
+p_est1, model1, flags1 = run_specification(df,df_mkt,
                     haltonDim = halton_draws,
                     spec_demoRaw=spec_demoRaw,
                     spec_prodchars=spec_prodchars,
                     spec_prodchars_0=spec_prodchars_0,
                     spec_fixedEffects=[:Firm])
+
+
+
 
 
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_spec1_$rundate.jld"
@@ -58,7 +60,7 @@ spec2 = run_specification(df,df_mkt,
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_spec2_$rundate.jld"
 save(file,"spec2",spec2)
 
-#### Run Specification 2 ####
+#### Run Specification 3 ####
 println("Run Specification 3")
 spec3 = run_specification(df,df_mkt,
                     haltonDim = halton_draws,
@@ -67,5 +69,44 @@ spec3 = run_specification(df,df_mkt,
                     spec_prodchars_0=spec_prodchars_0,
                     spec_fixedEffects=[:Firm_Market_Cat])
 
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_spec3_$rundate.jld"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_spec3_small_$rundate.jld"
 save(file,"spec3",spec3)
+
+
+#### Run Specification 3 ####
+println("Run Specification 4")
+spec4 = run_specification(df,df_mkt,
+                    haltonDim = halton_draws,
+                    spec_demoRaw=spec_demoRaw,
+                    spec_prodchars=[:Price],
+                    spec_prodchars_0=spec_prodchars_0,
+                    spec_fixedEffects=[:Product])
+
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_spec4_small_$rundate.jld"
+save(file,"spec4",spec4)
+
+
+#### Load Results ####
+rundate = "2018-05-12"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_spec3_small_$rundate.jld"
+flag, fval, p_est = load(file)["spec3"]
+
+# Structre the data
+c = ChoiceData(df,df_mkt,
+                    demoRaw=spec_demoRaw,
+                    prodchars=spec_prodchars,
+                    prodchars_0=spec_prodchars_0,
+                    fixedEffects=[:Firm_Market_Cat])
+
+# Fit into model
+m = InsuranceLogit(c,250)
+
+AsVar, stdErr,t_stat, stars = res_process(m,p_est)
+
+out1 = DataFrame(pars=p_est)
+file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_$rundate.csv"
+CSV.write(file1,out1)
+
+out2 = DataFrame(delta=m.deltas,prods=m.prods)
+file2 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/deltaresults_$rundate.csv"
+CSV.write(file2,out2)
