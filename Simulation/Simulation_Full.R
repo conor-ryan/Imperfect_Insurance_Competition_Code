@@ -267,7 +267,6 @@ acs[,PremPaid:=PremPaid/MEMBERS]
 acs[,PremPaidDiff:=PremPaid-premBase]
 
 
-
 #### Calculate Mandate Penalty ####
 acs[,filingThresh:= 10150]
 acs$filingThresh[acs$FAMILY_OR_INDIVIDUAL=="FAMILY"] = 20300
@@ -312,13 +311,6 @@ acs[,prodCat:=":Low"]
 acs[METAL%in%c("SILVER 87","SILVER 94","GOLD","PLATINUM"),prodCat:="High"]
 acs[,Firm_Market_Cat:=paste(Firm,Market,prodCat,sep="_")]
 
-
-acs = acs[,c("Person","Firm","ST","Market","Product_Name","METAL","Firm_Market_Cat",
-             "Price","PriceDiff","MedDeduct","MedOOP","High","premBase",
-             "PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age",
-             "AGE","HHincomeFPL","MEMBERS",
-             #"MedDeductDiff","MedOOPDiff","HighDiff",
-             "Family","Age","LowIncome","ageRate","ageRate_avg","PERWT")]
 
 #### Merge in Product Map #### 
 prod_map = read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv")
@@ -379,6 +371,15 @@ acs[METAL=="GOLD",IDF:=1.08]
 acs[METAL=="PLATINUM",IDF:=1.15]
 
 acs[,Gamma_j:=IDF*GCF]
+
+## Consolidate Age-based Risk Scores
+acs[METAL=="PLATINUM",HCC_age:=PlatHCC_Age]
+acs[METAL=="GOLD",HCC_age:=GoldHCC_Age]
+acs[METAL%in%c("SILVER","SILVER 73"),HCC_age:=SilvHCC_Age]
+acs[METAL%in%c("SILVER 87","SILVER 94"),HCC_age:=GoldHCC_Age]
+acs[METAL=="BRONZE",HCC_age:=BronHCC_Age]
+acs[METAL=="CATASTROPHIC",HCC_age:=CataHCC_Age]
+
 
 rm(gcf)
 
@@ -517,11 +518,11 @@ Sys.time() - start
 #### Clean and Save Data ####
 acs_old = as.data.frame(acs)
 acs = acs[,c("Person","Firm","ST","Market","Product_Name","Product",
-             "METAL",
+             "METAL","Mandate","subsidy",
              "Price","PriceDiff","MedDeduct","MedOOP","High","premBase",
              "AV","Gamma_j","mkt_density",
              "alpha","s_pred_mean",
-             "PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age",
+             "HCC_age",
              "AGE","HHincomeFPL","MEMBERS",
              "Family","Age","LowIncome","ageRate","ageRate_avg","PERWT")]
 
@@ -547,8 +548,16 @@ rm(nu_h_large,nu_i_large)
 
 ## Merge Data
 full_predict = merge(acs,predict_data,by=c("Product","Person"))
-full_predict[,WTP:=-0.10*(beta0[2]+sigma[2]*nu_h)/alpha]
 
+## Adjust statistics
+full_predict[,WTP:=-0.10*(beta0[2]+sigma[2]*nu_h)/alpha]
+full_predict[,mkt_density:=mkt_density/n_draws]
+full_predict[,PERWT:=PERWT/n_draws]
+
+
+## Save Data
+simFile = paste("Simulation_Risk_Output/simData_old_",run,".rData",sep="")
+save(acs,predict_data,draws,file=simFile)
 
 ## Save Data
 simFile = paste("Simulation_Risk_Output/simData_",run,".rData",sep="")

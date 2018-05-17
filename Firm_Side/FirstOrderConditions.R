@@ -16,15 +16,15 @@ gcf=as.data.table(gcf)
 setkey(gcf,Market) 
 
 ## Simulation Data
-simFile = paste("Simulation_Risk_Output/simData_",run,".rData",sep="")
+simFile = paste("Simulation_Risk_Output/simData_old_",run,".rData",sep="")
 load(simFile)
 
 # Drop FE
-fe_names = names(acs)[grep("^FE_",names(acs))]
-acs[,c(fe_names):=NULL]
+# fe_names = names(acs)[grep("^FE_",names(acs))]
+# acs[,c(fe_names):=NULL]
 
 ## Risk Function
-riskFile = paste("Simulation_Risk_Output/riskParameters_exp_",run,".rData",sep="")
+riskFile = paste("Simulation_Risk_Output/riskParameters_",run,".rData",sep="")
 load(riskFile)
 f_list = list()
 for (i in 1:length(res_list)){
@@ -70,7 +70,7 @@ acs[METAL!="CATASTROPHIC",S_m:=mkt_insured/st_insured,by=c("ST")]
 density = unique(acs[,c("Market","Person","PERWT")])
 density[,mkt_size:=sum(PERWT),by="Market"]
 
-density[,mkt_density:=PERWT/mkt_size]
+#density[,mkt_density:=PERWT/mkt_size]
 density[,PERWT:=NULL]
 
 acs = merge(acs,density,by=c("Market","Person"))
@@ -120,12 +120,7 @@ rm(nu_h_large,nu_i_large)
 # full_predict[,nu_h_ind:=as.numeric(nu_h>.6)]
 # full_predict[,nu_i_ind:=as.numeric(nu_i>.6)]
 
-full_predict[,alpha:=(beta0[1]+
-                        beta[1,1]*AgeFE_31_40+
-                        beta[1,2]*AgeFE_41_50+
-                        beta[1,3]*AgeFE_51_64+
-                        beta[1,4]*Family+
-                        beta[1,5]*LowIncome)*12/1000]
+full_predict[,alpha:=(alpha)*12/1000]
 
 full_predict[,WTP:=-0.10*(beta0[2]+sigma[2]*nu_h)/(alpha*1000/12)]
 # Test Larger Elasticty
@@ -139,14 +134,6 @@ full_predict[,WTP:=-0.10*(beta0[2]+sigma[2]*nu_h)/(alpha*1000/12)]
 
 
 ## Predict Risk Scores
-#### Define HCC Age ####
-full_predict[METAL=="PLATINUM",HCC_age:=PlatHCC_Age]
-full_predict[METAL=="GOLD",HCC_age:=GoldHCC_Age]
-full_predict[METAL=="SILVER",HCC_age:=SilvHCC_Age]
-full_predict[METAL=="BRONZE",HCC_age:=BronHCC_Age]
-full_predict[METAL=="CATASTROPHIC",HCC_age:=CataHCC_Age]
-
-
 full_predict[,R:= HCC_age + AV*(psi_final[1]*nu_h +
                                   psi_final[2]*nu_i + 
                                   psi_final[3]*nu_i*nu_h+
@@ -211,7 +198,7 @@ RA_transfers = full_predict[,list(lives = sum(s_pred*PERWT/n_draws),
                                   A_j = sum(s_pred*ageRate_avg*mkt_density)/sum(s_pred*mkt_density),
                                   Age_j = sum(s_pred*AGE*mkt_density)/sum(s_pred*mkt_density),
                                   WTP_j = sum(s_pred*WTP*mkt_density)/sum(s_pred*mkt_density)),
-                            by=c("Product","METAL","Market","ST","Firm","premBase","Gamma_j",
+                            by=c("Product","METAL","Market","ST","Firm","premBase","Gamma_j","AV_std",
                                  "GCF","S_m","mkt_size","st_insured","RA_share")]
 RA_transfers[METAL!="CATASTROPHIC",RA_lives:=sum(lives),by="ST"]
 
@@ -286,6 +273,9 @@ RA_transfers = RA_transfers[,c("ST","Product","METAL","Market","Firm","premBase"
 # firmData[R_f>0,plot(R_f,R_f_pred)]
 #### Clear up Memory ####
 rm(list=ls()[!grepl("acs|RA_transfers|full_predict|catas_prods|cost_par",ls())])
+acs = acs[ST=="AK",]
+RA_transfers = RA_transfers[ST=="AK",]
+full_predict = full_predict[ST=="AK",]
 
 #### Calculate Person Level Demand Derivatives ####
 markets = sort(unique(acs$Market))
@@ -639,6 +629,5 @@ for (m in markets){
   foc_data[Product%in%prods,premBase_sim0:=P_pred_0]
 }
 setkey(foc_data,Product)
-
-
+save(foc_data,RA_transfers,file="foc_test.rData")
 #### Simulate ####
