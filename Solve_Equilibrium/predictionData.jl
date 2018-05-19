@@ -671,7 +671,7 @@ function solve_model!(e::EqData,tol::Float64=.5)
     err = 10
     cnt = 0
     P_low = similar(e.premBase_j)
-    while (err>tol) | (cnt<1000)
+    while (err>tol) & (cnt<1000)
         cnt+=1
         evaluate_model!(e)
         foc_err, P_new = eval_FOC(e)
