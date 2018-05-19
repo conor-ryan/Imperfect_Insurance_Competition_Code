@@ -23,6 +23,8 @@ struct ChoiceData <: EstData
 
     _prod_2_per_map::Vector{Int64}
     _per_2_prod_map::Vector{Int64}
+
+    _crossprod_Dict::Array{Int,2}
 end
 
 
@@ -93,13 +95,46 @@ function ChoiceData(data_est::DataFrame,df_mkt::DataFrame)
     # println("Product Dictionary")
     # _productDict = build_ProdDict(data_est[:Product])
 
+    #Build Cross Product Dict
+    _crossprod_Dict = Array{Int64,2}(n,length(prodids))
+    for (q,j) in enumerate(sort(prodids))
+        idx = Vector{Int64}(n)
+        _crossprod_Dict[:,q] = crossprod_index!(idx,j,
+                                uniqids,
+                                _personDict,
+                                _person_prod_Dict)
+    end
+
+
     # Make the data object
     m = ChoiceData(dmat,dmat_per,index,
     uniqids,_personDict,_productDict,
     _person_prod_Dict,_prod_person_Dict,
-    _prod_2_per_map,_per_2_prod_map)
+    _prod_2_per_map,_per_2_prod_map,
+    _crossprod_Dict)
     return m
 end
+
+
+function crossprod_index!(cross_idx::Vector{Int64},
+                prod::Int64,
+                _personIDs::Array{Float64,1},
+                _personDict::Dict{Real, UnitRange{Int}},
+                _person_prod_Dict::Dict{Int,Dict{Real,Int}})
+
+    for i in _personIDs
+        idxitr = _personDict[i]
+        k = get(_person_prod_Dict[i],prod,-1)
+        if k>0
+            cross_idx[idxitr] = idxitr[k]
+        else
+            cross_idx[idxitr] = -1
+        end
+    end
+    return cross_idx
+end
+
+
 
 function build_IdxDict{T,N}(j::Array{T,N})
     ids = unique(j)
@@ -323,85 +358,6 @@ function calcProd_Avg!(e::EqData)
     return Void
 end
 
-
-function calc_deriv!(deriv::Vector{Float64},prod::Int64,e::EqData)
-    vidx = e.data.index
-    idx_prod = e.data._per_2_prod_map
-
-    perIdx = e.data[:Person][e.data._productDict[prod]]
-    perMax = maximum(perIdx)
-    sort!(perIdx)
-
-    alpha = e.data.data_byperson[:,vidx[:alpha]]
-    ageRate =  e.data.data_byperson[:,vidx[:ageRate_avg]]
-    shares = e.s_pred_byperson
-
-    i_step = 1
-    for (n,i) in enumerate(e.data._personIDs)
-        idxitr = e.data._personDict[i]
-        if i!=perIdx[i_step]
-            deriv[idx_prod[idxitr]] = 0.0
-        else
-            i_step+=1
-            k = idxitr[e.data._person_prod_Dict[i][prod][1]]
-            s_prod = shares[k]
-            for j in idxitr
-                if j==k
-                    deriv[idx_prod[j]] = alpha[j]*ageRate[j]*shares[j]*(1-shares[j])
-                else
-                    deriv[idx_prod[j]] = -alpha[j]*ageRate[j]*shares[j]*s_prod
-                end
-            end
-        end
-        if i_step>length(perIdx)
-            deriv[idx_prod[(maximum(idxitr)+1):length(deriv)]]=0.0
-            break
-        end
-    end
-    return deriv
-end
-
-function reorder(x::Vector{Float64},ind::Vector{Int64})
-    y = similar(x)
-    for n in 1:length(x)
-        y[ind[n]] = x[n]
-    end
-    return y
-end
-
-# function calc_deriv!(deriv::Vector{Float64},prod::Int64,e::EqData)
-#     alpha = e.data[:alpha]
-#     ageRate = e.data[:ageRate_avg]
-#     personIdx = e.data[:Person]
-#     products_byperson = e.data.data_byperson[:,e.data.index[:Product]]
-#     shares = e.s_pred
-#     idx_j = e.data._productDict[prod]
-#     min_j = minimum(idx_j)
-#     max_j = maximum(idx_j)
-#     shares_prod = shares[e.data._productDict[prod]]
-#     N = length(shares)
-#
-#     for j in 1:N
-#         id = personIdx[j]
-#         if (j>=min_j) & (j<=max_j)
-#             deriv[j] = alpha[j]*ageRate[j]*shares[j]*(1-shares[j])
-#         else
-#             #k_ind = e.data._person_prod_Dict[id][prod]
-#             k_ind = e.data._personDict[id]
-#             prod_list = products_byperson[k_ind]
-#             if prod in prod_list
-#                 k = e.data._prod_person_Dict[prod][id][1]
-#                 s_prod = shares_prod[k]
-#             else
-#                 k = -1
-#                 s_prod = 0.0
-#             end
-#             deriv[j] = -alpha[j]*ageRate[j]*shares[j]*s_prod
-#         end
-#     end
-#     return deriv
-# end
-
 function calc_deriv!(deriv::Vector{Float64},prod::Int64,e::EqData)
     vidx = e.data.index
     #idx_prod = e.data._per_2_prod_map
@@ -427,6 +383,31 @@ function calc_deriv!(deriv::Vector{Float64},prod::Int64,e::EqData)
             else
                 deriv[idx_prod[j]] = -alpha[j]*ageRate[j]*shares[j]*s_prod
             end
+        end
+    end
+    return deriv
+end
+
+function calc_deriv!(deriv::Vector{Float64},prod::Int64,
+                        crossprod_idx::Array{Int,1},
+                        alpha::Vector{Float64},ageRate::Vector{Float64},
+                        e::EqData)
+    idx_prod = e.data._prod_2_per_map
+
+    shares = e.s_pred_byperson
+
+    N  = length(shares)
+    for n in 1:N
+        k = crossprod_idx[n]
+        if k>0
+            s_prod = shares[k]
+        else
+            s_prod = 0.0
+        end
+        if n==k
+            deriv[idx_prod[n]] = alpha[n]*ageRate[n]*shares[n]*(1-shares[n])
+        else
+            deriv[idx_prod[n]] = -alpha[n]*ageRate[n]*shares[n]*s_prod
         end
     end
     return deriv
@@ -514,6 +495,10 @@ function eval_FOC(e::EqData)
     WTP_long = e.data[:WTP]
     weights = e.data[:mkt_density]
 
+    vidx = e.data.index
+    alpha_long = e.data.data_byperson[:,vidx[:alpha]]
+    ageRate_long =  e.data.data_byperson[:,vidx[:ageRate_avg]]
+
 
     st_lives = sum(lives)
     S_0 = similar(lives)
@@ -557,11 +542,15 @@ function eval_FOC(e::EqData)
 
     (N,M) = size(e.data.data)
     deriv_long = Vector{Float64}(N)
+    test = Vector{Float64}(N)
 
     for (n,j) in enumerate(e.prods)
         #println(j)
         m_idx = e.mkt_map[n]
-        deriv_long = calc_deriv!(deriv_long,j,e)
+        cross_idx = e.data._crossprod_Dict[:,n]
+        #deriv_long = calc_deriv!(deriv_long,j,e)
+        deriv_long  = calc_deriv!(deriv_long,j,cross_idx,
+                                    alpha_long,ageRate_long,e)
         dsdp[:,n] = sum_by_prod(deriv_long,e,weights)
         dsdp_rev[:,n] = sum_by_prod(deriv_long,e.data[:ageRate_avg],e,weights)
 
@@ -655,7 +644,7 @@ function update_Prices!(foc_err::Vector{Float64},P_new::Vector{Float64},
 
     ### MLR Constraint
     MLR_const = e.Cost_j./0.7
-    constained_bool = (P_new.>=MLR_const).& (e[:S_j].>=(1e-5))
+    constrained_bool = (P_new.>=MLR_const).& (e[:S_j].>=(1e-5))
     if any( constrained_bool )
         constrained = find( constrained_bool )
         println("Hit MLR Constraint at products $constrained")
@@ -670,6 +659,9 @@ function update_Prices!(foc_err::Vector{Float64},P_new::Vector{Float64},
     step = 0.05
     P_update = e.premBase_j.*(1-step) + step.*P_new
     P_update[P_new.>=MLR_const] = MLR_const[P_new.>MLR_const]
+    # Contrain Prices at 0
+    P_update = max.(P_update,0)
+
     e.premBase_j = P_update
 
     return foc_err
@@ -678,16 +670,26 @@ end
 function solve_model!(e::EqData,tol::Float64=.5)
     err = 10
     cnt = 0
-    while err>tol
+    P_low = similar(e.premBase_j)
+    while (err>tol) & cnt<1000
         cnt+=1
         evaluate_model!(e)
         foc_err, P_new = eval_FOC(e)
         foc_err = update_Prices!(foc_err,P_new,e)
-        err = sum(foc_err.^2)/sum(foc_err.!=0.0)
+        err_new = sum(foc_err.^2)/sum(foc_err.!=0.0)
         println("Error is $err at iteration $cnt")
         P = e.premBase_j
         println("Prices are $P")
+
+        if err_new<err
+            P_low[:] = P[:]
+        end
+        err = err_new
     end
+    if cnt==1000
+        e.premBase_j = P_low
+    end
+
     println("Model solved with error $err after $cnt iterations")
     return Void
 end
@@ -709,7 +711,7 @@ function run_st_equil(st::String)
     model = EqData(c,df_mkt,cost_pars)
 
     println("Estimate Model")
-    solve_model!(model,0.025)
+    solve_model!(model,0.02)
     println("Solved: $st")
 
     output =  DataFrame(Products=model.prods,Prices=model.premBase_j)
