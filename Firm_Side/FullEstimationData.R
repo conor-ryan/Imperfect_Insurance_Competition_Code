@@ -28,6 +28,11 @@ parFile = paste("Estimation_Output/estimationresults_",run,".csv",sep="")
 pars = read.csv(parFile)
 beta_vec = pars$pars
 
+## Cost Function 
+costFile = paste("Simulation_Risk_Output/costParameters_",run,".rData",sep="")
+load(costFile)
+
+cost_par = CostRes$coefficients[grep("(Age|WTP)",names(CostRes$coefficients))]
 
 ## Consolidate Silver Plans ##
 full_predict[,Product:=min(Product),by=c("Firm","Metal_std","Market")]
@@ -36,11 +41,14 @@ full_predict[,premBase:=median(premBase),by=c("Firm","Metal_std","Market")]
 
 
 ## Predict Risk Scores
-full_predict[,R:= HCC_age + AV*(psi_final[1]*nu_h +
-                                  psi_final[2]*nu_i + 
-                                  psi_final[3]*nu_i*nu_h+
-                                  psi_final[4]*Age+
-                                  psi_final[5]*Age*nu_h)]
+full_predict[,R:= HCC_age + AV*(psi_final[1]*WTP+
+                                  psi_final[2]*Age+
+                                  psi_final[3]*Age*WTP)]
+# full_predict[,R:= HCC_age + AV*(psi_final[1]*nu_h +
+#                                   psi_final[2]*nu_i + 
+#                                   psi_final[3]*nu_i*nu_h+
+#                                   psi_final[4]*Age+
+#                                   psi_final[5]*Age*nu_h)]
 
 
 
@@ -52,9 +60,16 @@ load(otherRiskFile)
 full_predict = merge(full_predict,other_RA[Firm_Ag=="Inside",c("ST","RA_share")],by="ST",all.x=TRUE)
 
 
-#### Risk Adjustment Transfers ####
-prod_data = unique(full_predict[,c("Product","Metal_std","ST","Market","Firm",
-                          "premBase","AV_std","RA_share")])
+#### Product Level Data ####
+prod_data = full_predict[,list(Age_j = sum(s_pred*AGE*mkt_density)/sum(s_pred*mkt_density),
+                               WTP_j = sum(s_pred*WTP*mkt_density)/sum(s_pred*mkt_density)),
+                         by=c("Product","Metal_std","ST","Market","Firm",
+                              "premBase","AV_std","RA_share")]
+prod_data[,Cost_prod:=exp(predict(CostRes,newdata=prod_data)-cost_par[1]*Age_j - cost_par[2]*WTP_j)]
+
+prod_data[,c("Age_j","WTP_j"):=NULL]
+# prod_data = unique(full_predict[,c("Product","Metal_std","ST","Market","Firm",
+#                           "premBase","AV_std","RA_share")])
 
 
 ## Normalize at the Firm Level
@@ -83,8 +98,33 @@ prod_data[,RA_share:=max(RA_share,na.rm=TRUE),by="ST"]
 
 
 #### Save Data ####
+write.csv(t(cost_par),file="Intermediate_Output/Equilibrium_Data/cost_pars.csv",row.names=FALSE)
+
+
+
 predFile = paste("Simulation_Risk_Output/predData_",run,".rData",sep="")
 save(full_predict,prod_data,file=predFile)
 
-write.csv(full_predict,file="Intermediate_Output/Equilibrium_Data/estimated_Data.csv",row.names=FALSE)
-write.csv(prod_data,file="Intermediate_Output/Equilibrium_Data/estimated_prodData.csv",row.names=FALSE)
+## Eliminate Strings
+full_predict[,Catastrophic:=0]
+full_predict[METAL=="CATASTROPHIC",Catastrophic:=1]
+
+## Unique Person Variables
+full_predict[,Person:=Person*1000+d_ind]
+
+setkey(full_predict,Product,Person)
+setkey(prod_data,Product)
+for (st in unique(full_predict$ST)){
+
+write.csv(full_predict[ST==st,c("Person","Product","Catastrophic","AV","Gamma_j",
+                          "R","alpha","WTP","AGE","mkt_density","ageRate","ageRate_avg",
+                          "Mandate","subsidy","MEMBERS","non_price_util","PERWT")],
+          file=paste("Intermediate_Output/Equilibrium_Data/estimated_Data_",st,".csv",sep=""),
+                     row.names=FALSE)
+
+write.csv(prod_data[ST==st,],
+          file=paste("Intermediate_Output/Equilibrium_Data/estimated_prodData_",st,".csv",sep=""),
+          row.names=FALSE)
+
+}
+

@@ -18,8 +18,8 @@ load(costFile)
 cost_par = CostRes$coefficients[grep("(Age|WTP)",names(CostRes$coefficients))]
 
 ## Alaska only...
-full_predict = full_predict[ST=="GA",]
-prod_data = prod_data[ST=="GA",]
+full_predict = full_predict[ST=="AK",]
+prod_data = prod_data[ST=="AK",]
 
 
 prod_data[,premBase_pred:=premBase]
@@ -33,17 +33,18 @@ full_predict[,semi_elas:=alpha*(1-s_pred)*100*100/12]
 #### Calculate Market Shares / Equilibrium Distribution ####
 ## Set Prices and Recalculate Shares
 err = 10
-while (err>.5){
+#while (err>.5){
+st = Sys.time()
 
 full_predict = merge(full_predict,prod_data[,c("Product","premBase_pred")],by="Product")
 setkey(full_predict,Person,d_ind,Product)
 
 full_predict[,Price_new:= pmax(premBase_pred*ageRate - subsidy,0)/MEMBERS]
 full_predict[METAL=="CATASTROPHIC",Price_new:= (premBase_pred*ageRate)/MEMBERS]
-full_predict[,Price_new:= (Price_new*12-Mandate)/1000]
+full_predict[,Price_new:= (Price_new-Mandate/12)]
 
 
-full_predict[,util:=non_price_util*exp(alpha*1000/12*Price_new)]
+full_predict[,util:=non_price_util*exp(alpha*Price_new)]
 
 full_predict[,exp_sum:=sum(util),by=c("Person","d_ind")]
 full_predict[,s_pred:=util/(1+exp_sum)]
@@ -68,7 +69,8 @@ prod_pred = merge(prod_pred,prod_data,by="Product",all=TRUE)
 ## State Market Share
 prod_pred[Metal_std!="CATASTROPHIC",RA_lives:=sum(lives),by="ST"]
 prod_pred[,share_tilde:=RA_share*lives/RA_lives]
-prod_pred[,S_m:=sum(lives)/RA_lives,by="Market"]
+prod_pred[Metal_std!="CATASTROPHIC",S_m:=sum(lives)/RA_lives,by="Market"]
+prod_pred[,S_m:=max(S_m,na.rm=TRUE),by="Market"]
 
 ## Normalize Risk Scores
 prod_pred[,R_j:=R_j/R_bench]
@@ -89,7 +91,7 @@ firmData = prod_pred[Metal_std!="CATASTROPHIC",list(S_f=sum(share_tilde),
 
 
 ## Average State Premium
-prod_pred[,avg_prem:=sum(share_tilde*premBase*A_j,na.rm=TRUE)/sum(share_tilde,na.rm=TRUE),by="ST"]
+prod_pred[Firm!="OTHER",avg_prem:=sum(share_tilde*premBase_pred*A_j,na.rm=TRUE)/sum(share_tilde,na.rm=TRUE),by="ST"]
 prod_pred[,T_norm_j:=(R_Gamma_j/ST_R - A_Gamma_j/ST_A)]
 prod_pred[Firm=="OTHER",T_norm_j:=(R_Gamma_j/ST_R - 1)]
 prod_pred[,R_norm_j:=(R_Gamma_j/ST_R)]
@@ -232,7 +234,7 @@ for (p in prods){
   # Aggregate to Product Level Data
   prod_T_deriv = st_data[,list(dR_Gamma_j=sum(dR_Gamma_ij*mkt_density),
                                dA_Gamma_j=sum(dA_Gamma_ij*mkt_density),
-                               dA_j=sum(dA_Gamma_ij*mkt_density),
+                               dA_j=sum(dA_ij*mkt_density),
                                dsdp = sum(.SD*mkt_density),
                                ds_tilde_dp = sum(ds_tilde_dp*mkt_density)),
                          by=c("Product"),.SDcol=dpvar]
@@ -371,7 +373,7 @@ for (m in markets){
   P_pred_0 =  - solve(L_m*dsdp_rev)%*%(
     L_m*(S_mkt*A_j - dsdp%*%C_j - dC_j%*%S_mkt) +L_m*dsdp%*%T_j + t(dTdp)%*%(L_s*S_st)
   )
-  foc_err = rev+tran-cost
+  foc_err = (rev+tran-cost)/100
   
   #MLR Constraint
   P_pred_0 = pmin(P_pred_0,C_j/.7)
@@ -387,7 +389,7 @@ for (m in markets){
   # P_0 = as.matrix(prod_data[Market==m,"premBase_pred"])
   # diff = abs(P_pred_0 - P_0)
   #step = 1-sum((foc_err/100)^2)*5
-  step = .1
+  step = .05
   # step = min(max(step,0.1),.9)
   # 
   # print(step)
@@ -397,11 +399,12 @@ for (m in markets){
   foc_data[Product%in%prods,margCost:=cost]
   foc_data[Product%in%prods,margCost_FOC:=cost_FOC]
   foc_data[Product%in%prods,premBase_pred:=P_pred_0]
-  err = err + sum((foc_err)^2/100^2)
+  err = err + sum((foc_err)^2)
   
   prod_data[Product%in%prods,premBase_pred:=P_pred_0*step + premBase_pred*(1-step)]
 }
 print(err)
+print(Sys.time()-st)
 full_predict[,premBase_pred:=NULL]
 # setkey(foc_data,Product)
-}
+#}

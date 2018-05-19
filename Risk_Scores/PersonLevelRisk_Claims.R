@@ -114,7 +114,7 @@ psi = c(psi_age,psi_Family,psi_LowIncome,psi_pref1,psi_pref2)
 #### Risk Function 
 risk_function_est<- function(psi){
   ## Demographic Risk
-  full_predict[,R:= HCC_age + AV*(psi[1]*nu_h + psi[2]*nu_i + psi[3]*nu_i*nu_h+psi[4]*Age+psi[5]*Age*nu_h)]
+  full_predict[,R:= HCC_age + AV*(psi[1]*WTP+psi[2]*Age+psi[3]*Age*WTP)]
 
   ## Firm Level Risk
   R_wgt_temp = full_predict[,list(R_wgt=sum(R*Gamma_j*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws)),by=c("ST","Firm")]
@@ -216,9 +216,9 @@ p_list = list()
 
 for (i in 1:10){
   if (i==1){
-    psi = c(0,0,0,0,0)
+    psi = c(0,0,0)
   }else{
-    psi = c(runif(5)*4-2)
+    psi = c(runif(3)*4-2)
   }
   res = optim(par=psi,fn=risk_function_est,control=list(maxit=2000))
   res_list[[i]]=res
