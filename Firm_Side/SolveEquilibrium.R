@@ -249,7 +249,7 @@ for (p in prods){
   prod_T_deriv[,dA_Gamma_j:=dA_Gamma_j/S_j - dsdp*A_Gamma_j/(S_j)]
   
   # Average Price Derivative
-  prod_T_deriv[,dP_s:=(ds_tilde_dp*A_j*premBase + share_tilde*dA_j*premBase)]
+  prod_T_deriv[,dP_s:=(ds_tilde_dp*A_j*premBase_pred + share_tilde*dA_j*premBase_pred)]
   prod_T_deriv[Product==p,dP_s:=dP_s + share_tilde*A_j]
   prod_T_deriv[,dP_s:=sum(dP_s,na.rm=TRUE)]
   
@@ -283,16 +283,16 @@ for (p in prods){
 
 
 #### Apply Ownership Matrix to Demand Derivatives ####
-for (m in names(per_derivs)){
-  deriv = per_derivs[[m]]
-  prods = sort(unique(deriv$Product))
-  for (p in prods){
-    f = unique(deriv$Firm[deriv$Product==p])
-    dpvar = paste("dsdp",p,sep="_")
-    deriv[Firm!=f,c(dpvar):=NA]
-  }
-  per_derivs[[m]] = deriv
-}
+# for (m in names(per_derivs)){
+#   deriv = per_derivs[[m]]
+#   prods = sort(unique(deriv$Product))
+#   for (p in prods){
+#     f = unique(deriv$Firm[deriv$Product==p])
+#     dpvar = paste("dsdp",p,sep="_")
+#     deriv[Firm!=f,c(dpvar):=NA]
+#   }
+#   per_derivs[[m]] = deriv
+# }
 
 #### FOC ####
 print("Calculate First Order Conditions")

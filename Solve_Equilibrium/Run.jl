@@ -31,7 +31,14 @@ end
 #
 # model = EqData(c,df_mkt,cost_pars)
 #
-# solve_model!(model,0.02)
+# evaluate_model!(model)
+# foc_Std, foc_RA, foc_RA_fix, S_m, dsdp_rev = eval_FOC(model)
+#
+# P_new = predict_price(foc_Std,foc_RA,foc_RA_fix,S_m,dsdp_rev,model)
+#
+# solve_model!(model,0.02,sim="Fixed Transfer")
+# solve_model!(model,0.02,sim="No Transfer")
+# solve_model!(model,0.02,sim="Half Transfer")
 # #
 # #
 # #

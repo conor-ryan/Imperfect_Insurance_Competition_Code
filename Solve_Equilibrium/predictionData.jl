@@ -188,6 +188,11 @@ type EqData
     R_bench::Float64
     RA_share::Float64
     Other_R::Float64
+
+    # Fixed RA Properties
+    ST_R_fix::Float64
+    ST_A_fix::Float64
+    avgPrem_fix::Float64
 end
 
 function EqData(cdata::ChoiceData,mkt::DataFrame,cpars::DataFrame)
@@ -252,16 +257,22 @@ function EqData(cdata::ChoiceData,mkt::DataFrame,cpars::DataFrame)
         end
     end
 
+    # Initialize Fixed RA Properties
+    ST_R_fix  = 0.0
+    ST_A_fix = 0.0
+    avgPrem_fix = 0.0
 
     return EqData(cdata,pmat,index,prods,cpars,
     premBase,costBase,cost,ownMat,
     mkt_index,mkt_map,
-    s_pred,s_pred_byperson,price_ij,R_bench,RA_share,Other_R)
+    s_pred,s_pred_byperson,price_ij,
+    R_bench,RA_share,Other_R,
+    ST_R_fix,ST_A_fix,avgPrem_fix)
 end
 
 getindex(e::EqData, idx::Symbol) = e.p_avg[:,e.p_index[idx]]
 
-function evaluate_model!(e::EqData)
+function evaluate_model!(e::EqData;init=false)
     ## Unpack Prices from Product sorted Data
     unpack_P!(e)
     ## Adjust Prices to Premium Paid
@@ -281,6 +292,12 @@ function evaluate_model!(e::EqData)
 
     ## Set Cost
     e.Cost_j[:] = e.Cost_base_j.*exp.(e[:AGE].*e.cost_pars[:Age_j] + e[:WTP].*e.cost_pars[:WTP_j])
+
+    ## Set Fixed RA Parameters
+    if init
+        calc_RA_fix!(e)
+    end
+
     return Void
 end
 
@@ -358,35 +375,69 @@ function calcProd_Avg!(e::EqData)
     return Void
 end
 
-function calc_deriv!(deriv::Vector{Float64},prod::Int64,e::EqData)
-    vidx = e.data.index
-    #idx_prod = e.data._per_2_prod_map
-    idx_prod = e.data._prod_2_per_map
+function calc_RA_fix!(e::EqData)
+    Catas_j = e[:Catastrophic]
+    lives = e[:lives].*(1-Catas_j)
+    A_Gamma_j = e[:A_Gamma_j]
+    R_Gamma_j = e[:R_Gamma_j]
+    A_j = e[:ageRate_avg]
+    S_j = e[:S_j]
 
-    alpha = e.data.data_byperson[:,vidx[:alpha]]
-    ageRate =  e.data.data_byperson[:,vidx[:ageRate_avg]]
-    shares = e.s_pred_byperson
-
-    for i in e.data._personIDs
-        idxitr = e.data._personDict[i]
-        k = get(e.data._person_prod_Dict[i],prod,-1)
-        if k>0
-            s_prod = shares[idxitr[k]]
-        else
-            s_prod = 0.0
+    st_lives = sum(lives)
+    S_0 = similar(lives)
+    S_m = similar(lives)
+    for (m,prods) in e.mkt_index
+        S_0_temp = 0.0
+        mkt_lives = 0.0
+        for j in prods
+            S_0_temp+=S_j[j]*(1-Catas_j[j])
+            mkt_lives+=lives[j]
         end
-        for (n,j) in enumerate(idxitr)
-            #println(j)
-            #println(idx_prod[j])
-            if n==k
-                deriv[idx_prod[j]] = alpha[j]*ageRate[j]*shares[j]*(1-shares[j])
-            else
-                deriv[idx_prod[j]] = -alpha[j]*ageRate[j]*shares[j]*s_prod
-            end
-        end
+        S_0[prods] =  S_0_temp
+        S_m[prods] = mkt_lives/st_lives
     end
-    return deriv
+
+    share_tilde = zeros(length(S_j))
+    for i in 1:length(share_tilde)
+        share_tilde[i] = S_m[i]*S_j[i]/S_0[i]*e.RA_share*(1-Catas_j[i])
+    end
+
+    ## ST_R and ST_A
+    e.ST_R_fix = sum(share_tilde.*R_Gamma_j) + (1-e.RA_share)*e.Other_R
+    e.ST_A_fix = sum(share_tilde.*A_Gamma_j)/sum(share_tilde)
+
+    e.avgPrem_fix = sum(A_j.*e.premBase_j.*share_tilde)/sum(share_tilde)
 end
+#
+# function calc_deriv!(deriv::Vector{Float64},prod::Int64,e::EqData)
+#     vidx = e.data.index
+#     #idx_prod = e.data._per_2_prod_map
+#     idx_prod = e.data._prod_2_per_map
+#
+#     alpha = e.data.data_byperson[:,vidx[:alpha]]
+#     ageRate =  e.data.data_byperson[:,vidx[:ageRate_avg]]
+#     shares = e.s_pred_byperson
+#
+#     for i in e.data._personIDs
+#         idxitr = e.data._personDict[i]
+#         k = get(e.data._person_prod_Dict[i],prod,-1)
+#         if k>0
+#             s_prod = shares[idxitr[k]]
+#         else
+#             s_prod = 0.0
+#         end
+#         for (n,j) in enumerate(idxitr)
+#             #println(j)
+#             #println(idx_prod[j])
+#             if n==k
+#                 deriv[idx_prod[j]] = alpha[j]*ageRate[j]*shares[j]*(1-shares[j])
+#             else
+#                 deriv[idx_prod[j]] = -alpha[j]*ageRate[j]*shares[j]*s_prod
+#             end
+#         end
+#     end
+#     return deriv
+# end
 
 function calc_deriv!(deriv::Vector{Float64},prod::Int64,
                         crossprod_idx::Array{Int,1},
@@ -479,6 +530,7 @@ end
 
 
 
+
 function eval_FOC(e::EqData)
     Catas_j = e[:Catastrophic]
     lives = e[:lives].*(1-Catas_j)
@@ -530,6 +582,10 @@ function eval_FOC(e::EqData)
     avgPrem = sum(A_j.*e.premBase_j.*share_tilde)/sum(share_tilde)
 
     T_j = T_norm_j.*avgPrem.*(1-Catas_j)
+
+    T_j_fix = (R_Gamma_j./e.ST_R_fix -
+                    A_Gamma_j./e.ST_A_fix).*e.avgPrem_fix.*(1-Catas_j)
+
 
     #### Derivatives By Product ####
     dsdp = Matrix{Float64}(J,J)
@@ -594,7 +650,8 @@ function eval_FOC(e::EqData)
         dP_s+= share_tilde[n]*A_j[n]
 
         dTdp[:,n] = (dTnorm_dp.*avgPrem + T_norm_j*dP_s).*(1-Catas_j)
-        dTdp_fix[:,n] = (dR_Gamma_j./ST_R - dA_Gamma_j./ST_A).*avgPrem.*(1-Catas_j)
+        dTdp_fix[:,n] = (dR_Gamma_j./e.ST_R_fix -
+                            dA_Gamma_j./e.ST_A_fix).*e.avgPrem_fix.*(1-Catas_j)
     end
 
 
@@ -603,43 +660,95 @@ function eval_FOC(e::EqData)
     ## dAge, dWTP
 
     ## Calculate First Order Conditions
-    foc_err = Vector{Float64}(J)
-    P_new = Vector{Float64}(J)
+    # foc_err = Vector{Float64}(J)
+    # P_new = Vector{Float64}(J)
+    # P_test = Vector{Float64}(J)
+    foc_Std = Vector{Float64}(J)
+    foc_RA = Vector{Float64}(J)
+    foc_RA_fix = Vector{Float64}(J)
     for (m,m_idx) in e.mkt_index
         L_m = S_m[m_idx][1]
-        P = e.premBase_j[m_idx]
+        # P = e.premBase_j[m_idx]
+
         S = S_j[m_idx]
         A = A_j[m_idx]
         T = T_j[m_idx]
+        T_fix = T_j_fix[m_idx]
         C = e.Cost_j[m_idx]
+
         m_dsdp = dsdp[m_idx,m_idx].*e.ownMat[m_idx,m_idx]
         m_dsdp_rev = dsdp_rev[m_idx,m_idx].*e.ownMat[m_idx,m_idx]
         m_dTdp = dTdp[:,m_idx].*e.ownMat[:,m_idx]
+        m_dTdp_fix = dTdp_fix[:,m_idx].*e.ownMat[:,m_idx]
         m_dCost = dCost[m_idx,m_idx].*e.ownMat[m_idx,m_idx]
-        rev = inv(m_dsdp)*(m_dsdp_rev*P + S.*A)
-        tran = inv(L_m*m_dsdp)*(L_m*m_dsdp*T + m_dTdp'*(S_m.*S_j))
-        cost = inv(m_dsdp)*(m_dsdp*C + m_dCost*S)
+
+        # rev = inv(m_dsdp)*(m_dsdp_rev*P + S.*A)
+        # tran = inv(L_m*m_dsdp)*(L_m*m_dsdp*T + m_dTdp'*(S_m.*S_j))
+        # cost = inv(m_dsdp)*(m_dsdp*C + m_dCost*S)
+
         # The cost matrix should maybe be transposed...
+        foc_Std[m_idx] = L_m*( S.*A - (m_dsdp*C + m_dCost*S) )
+        foc_RA[m_idx] = L_m*m_dsdp*T + m_dTdp'*(S_m.*S_j)
+        foc_RA_fix[m_idx] = L_m*m_dsdp*T_fix + m_dTdp_fix'*(S_m.*S_j)
+
         # P_new[m_idx] = -inv(L_m*m_dsdp_rev)*(L_m*( S.*A - (m_dsdp*C + m_dCost*S) ) +
         #                         L_m*m_dsdp*T + m_dTdp'*(S_m.*S_j) )
         # foc_err[m_idx] = (rev+tran-cost)./100
 
-        P_new[m_idx] = -inv(L_m*m_dsdp_rev)*(L_m*( S.*A - (m_dsdp*C + m_dCost*S) ) )
-        foc_err[m_idx] = (rev-cost)./100
+        # P_new[m_idx] = -inv(L_m*m_dsdp_rev)*(L_m*( S.*A - (m_dsdp*C + m_dCost*S) ) )
+        # foc_err[m_idx] = (rev-cost)./100
 
     end
 
+    # for (m,m_idx) in e.mkt_index
+    #     L_m = S_m[m_idx][1]
+    #     P_test[m_idx] = -inv(L_m*dsdp_rev[m_idx,m_idx])*(foc_Std[m_idx] + foc_RA[m_idx])
+    # end
+
     # Average Error, for consistency across product numebers
-    return foc_err,P_new
+    return foc_Std, foc_RA, foc_RA_fix, S_m, dsdp_rev
 end
 
-function update_Prices!(foc_err::Vector{Float64},P_new::Vector{Float64},
+function predict_price(foc_Std::Vector{Float64},
+                        foc_RA::Vector{Float64},
+                        foc_RA_fix::Vector{Float64},
+                        S_m::Vector{Float64},
+                        dsdp_rev::Matrix{Float64},
+                        e::EqData;sim="Base")
+    J = length(foc_Std)
+    P_new = Vector{Float64}(J)
+
+    if sim=="Base"
+        foc = foc_Std + foc_RA
+    elseif sim=="No Transfer"
+        foc = foc_Std
+    elseif sim=="Half Transfer"
+        foc = foc_Std + 0.5.*foc_RA
+    elseif sim=="Fixed Transfer"
+        foc = foc_Std + foc_RA_fix
+    else
+        error("Missspecified First Order Condition")
+    end
+
+
+    for (m,m_idx) in e.mkt_index
+        L_m = S_m[m_idx][1]
+        m_dsdp_rev = dsdp_rev[m_idx,m_idx].*e.ownMat[m_idx,m_idx]
+
+        P_new[m_idx] = -inv(L_m*m_dsdp_rev)*(foc[m_idx])
+    end
+
+    return P_new
+end
+
+
+function update_Prices!(P_new::Vector{Float64},
                                 e::EqData)
 
     ### 0 Market Share
     ProdExit = (e[:S_j].<(1e-5) )
     P_new[ProdExit] = min.(e.premBase_j[ProdExit],P_new[ProdExit])
-    foc_err[ProdExit] = 0.0
+
 
     if any(ProdExit)
         exited = find(ProdExit)
@@ -647,7 +756,10 @@ function update_Prices!(foc_err::Vector{Float64},P_new::Vector{Float64},
     end
 
     ### Negative Prices
-    P_new[P_new.<0] = 0.9.*e.premBase_j[P_new.<0]
+    P_new[P_new.<0] = 0.5.*e.premBase_j[P_new.<0]
+
+    ## Error in Prices
+    foc_err = (P_new - e.premBase_j)./100
 
     ### MLR Constraint
     MLR_const = e.Cost_j./0.7
@@ -674,15 +786,22 @@ function update_Prices!(foc_err::Vector{Float64},P_new::Vector{Float64},
     return foc_err
 end
 
-function solve_model!(e::EqData,tol::Float64=.5)
+function solve_model!(e::EqData,tol::Float64=.5;sim="Base")
     err = 10
     cnt = 0
     P_low = similar(e.premBase_j)
+    # Initialize Model
+    evaluate_model!(e,init=true)
     while (err>tol) & (cnt<1000)
         cnt+=1
         evaluate_model!(e)
-        foc_err, P_new = eval_FOC(e)
-        foc_err = update_Prices!(foc_err,P_new,e)
+        #foc_err, P_new = eval_FOC(e)
+        #foc_err = update_Prices!(foc_err,P_new,e)
+        foc_Std, foc_RA, foc_RA_fix, S_m, dsdp_rev = eval_FOC(e)
+        P_new = predict_price(foc_Std,foc_RA,foc_RA_fix,S_m,dsdp_rev,
+                                e,sim=sim)
+        foc_err = update_Prices!(P_new,e)
+
         err_new = sum(foc_err.^2)/sum(foc_err.!=0.0)
         println("Error is $err at iteration $cnt")
         P = e.premBase_j
@@ -717,12 +836,40 @@ function run_st_equil(st::String)
 
     model = EqData(c,df_mkt,cost_pars)
 
-    println("Estimate Model")
+    # Initialize Price Vectors
+    P_base = Vector{Float64}(length(model.prods))
+    P_fix = Vector{Float64}(length(model.prods))
+    P_non = Vector{Float64}(length(model.prods))
+    P_half = Vector{Float64}(length(model.prods))
+
+
+    println("Estimate Base Model")
     solve_model!(model,0.02)
+    P_base[:] = model.premBase_j[:]
+
+    println("Estimate Fixed Transfers")
+    solve_model!(model,0.02,sim="Fixed Transfer")
+    P_fix[:] = model.premBase_j[:]
+
+    println("Estimate No Transfers")
+    solve_model!(model,0.02,sim="No Transfer")
+    P_non[:] = model.premBase_j[:]
+
+    println("Estimate Half Transfers")
+    solve_model!(model,0.02,sim="Half Transfer")
+    P_half[:] = model.premBase_j[:]
+
+
     println("Solved: $st")
 
-    output =  DataFrame(Products=model.prods,Prices=model.premBase_j)
-    file3 = "Estimation_Output/solvedEquilibrium_no_t_$st.csv"
+    output =  DataFrame(Products=model.prods,
+                        Price_base=P_base,
+                        Price_fix =P_fix,
+                        Price_non =P_non,
+                        Price_half=P_half)
+
+
+    file3 = "Estimation_Output/solvedEquilibrium_$st.csv"
     CSV.write(file3,output)
     return Void
 end
