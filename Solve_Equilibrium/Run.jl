@@ -17,7 +17,7 @@ for st in states
 end
 
 
-# Load the data
+# # Load the data
 # df = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Equilibrium_Data/estimated_Data_AK.csv",
 # types=Dict("AGE"=>Float64,"Mandate"=>Float64,"MEMBERS"=>Float64,"Gamma_j"=>Union{Missing,Float64}),null="NA")
 # df_mkt = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Equilibrium_Data/estimated_prodData_AK.csv",
@@ -31,7 +31,7 @@ end
 #
 # model = EqData(c,df_mkt,cost_pars)
 #
-# solve_model!(model,0.5)
+# solve_model!(model,0.02)
 # #
 # #
 # #

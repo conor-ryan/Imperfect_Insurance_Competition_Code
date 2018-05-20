@@ -634,13 +634,16 @@ function update_Prices!(foc_err::Vector{Float64},P_new::Vector{Float64},
 
     ### 0 Market Share
     ProdExit = (e[:S_j].<(1e-5) )
-    P_new[ProdExit] = e.premBase_j[ProdExit]
+    P_new[ProdExit] = min.(e.premBase_j[ProdExit],P_new[ProdExit])
     foc_err[ProdExit] = 0.0
 
     if any(ProdExit)
         exited = find(ProdExit)
         println("Product Exits for $exited")
     end
+
+    ### Negative Prices
+    P_new[P_new.<0] = 0.95.*e.premBase_j[P_new.<0]
 
     ### MLR Constraint
     MLR_const = e.Cost_j./0.7
@@ -660,7 +663,7 @@ function update_Prices!(foc_err::Vector{Float64},P_new::Vector{Float64},
     P_update = e.premBase_j.*(1-step) + step.*P_new
     P_update[P_new.>=MLR_const] = MLR_const[P_new.>MLR_const]
     # Contrain Prices at 0
-    P_update = max.(P_update,0)
+    #P_update = max.(P_update,0)
 
     e.premBase_j = P_update
 
