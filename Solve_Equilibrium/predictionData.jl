@@ -617,7 +617,7 @@ function eval_FOC(e::EqData)
         m_dTdp = dTdp[:,m_idx].*e.ownMat[:,m_idx]
         m_dCost = dCost[m_idx,m_idx].*e.ownMat[m_idx,m_idx]
         rev = inv(m_dsdp)*(m_dsdp_rev*P + S.*A)
-        tran = inv(L_m*m_dsdp)*(L_m*m_dsdp*T + m_dTdp'*(S_m.*S_j))
+        #tran = inv(L_m*m_dsdp)*(L_m*m_dsdp*T + m_dTdp'*(S_m.*S_j))
         cost = inv(m_dsdp)*(m_dsdp*C + m_dCost*S)
         # The cost matrix should maybe be transposed...
         P_new[m_idx] = -inv(L_m*m_dsdp_rev)*(L_m*( S.*A - (m_dsdp*C + m_dCost*S) ) +
@@ -718,7 +718,7 @@ function run_st_equil(st::String)
     println("Solved: $st")
 
     output =  DataFrame(Products=model.prods,Prices=model.premBase_j)
-    file3 = "Estimation_Output/solvedEquilibrium_$st.csv"
+    file3 = "Estimation_Output/solvedEquilibrium_no_t_$st.csv"
     CSV.write(file3,output)
     return Void
 end
