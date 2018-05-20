@@ -617,12 +617,16 @@ function eval_FOC(e::EqData)
         m_dTdp = dTdp[:,m_idx].*e.ownMat[:,m_idx]
         m_dCost = dCost[m_idx,m_idx].*e.ownMat[m_idx,m_idx]
         rev = inv(m_dsdp)*(m_dsdp_rev*P + S.*A)
-        #tran = inv(L_m*m_dsdp)*(L_m*m_dsdp*T + m_dTdp'*(S_m.*S_j))
+        tran = inv(L_m*m_dsdp)*(L_m*m_dsdp*T + m_dTdp'*(S_m.*S_j))
         cost = inv(m_dsdp)*(m_dsdp*C + m_dCost*S)
         # The cost matrix should maybe be transposed...
-        P_new[m_idx] = -inv(L_m*m_dsdp_rev)*(L_m*( S.*A - (m_dsdp*C + m_dCost*S) ) +
-                                L_m*m_dsdp*T + m_dTdp'*(S_m.*S_j) )
-        foc_err[m_idx] = (rev+tran-cost)./100
+        # P_new[m_idx] = -inv(L_m*m_dsdp_rev)*(L_m*( S.*A - (m_dsdp*C + m_dCost*S) ) +
+        #                         L_m*m_dsdp*T + m_dTdp'*(S_m.*S_j) )
+        # foc_err[m_idx] = (rev+tran-cost)./100
+
+        P_new[m_idx] = -inv(L_m*m_dsdp_rev)*(L_m*( S.*A - (m_dsdp*C + m_dCost*S) ) )
+        foc_err[m_idx] = (rev-cost)./100
+
     end
 
     # Average Error, for consistency across product numebers
