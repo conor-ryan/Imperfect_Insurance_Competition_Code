@@ -634,7 +634,7 @@ function update_Prices!(foc_err::Vector{Float64},P_new::Vector{Float64},
 
     ### 0 Market Share
     ProdExit = (e[:S_j].<(1e-5) )
-    P_new[ProdExit] = 0.0
+    P_new[ProdExit] = e.premBase_j[ProdExit]
     foc_err[ProdExit] = 0.0
 
     if any(ProdExit)
