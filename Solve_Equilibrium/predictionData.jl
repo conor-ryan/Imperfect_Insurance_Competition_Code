@@ -643,7 +643,7 @@ function update_Prices!(foc_err::Vector{Float64},P_new::Vector{Float64},
     end
 
     ### Negative Prices
-    P_new[P_new.<0] = 0.95.*e.premBase_j[P_new.<0]
+    P_new[P_new.<0] = 0.9.*e.premBase_j[P_new.<0]
 
     ### MLR Constraint
     MLR_const = e.Cost_j./0.7
