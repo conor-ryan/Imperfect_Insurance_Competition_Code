@@ -46,11 +46,11 @@ p_est1, model1, flags1 = run_specification(df,df_mkt,
 
 
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_spec1_$rundate.jld"
-save(file,"spec1",spec1)
+save(file,"spec1",p_est1)
 
 #### Run Specification 2 ####
 println("Run Specification 2")
-spec2 = run_specification(df,df_mkt,
+p_est2, model2, flags2 = run_specification(df,df_mkt,
                     haltonDim = halton_draws,
                     spec_demoRaw=spec_demoRaw,
                     spec_prodchars=spec_prodchars,
@@ -58,11 +58,11 @@ spec2 = run_specification(df,df_mkt,
                     spec_fixedEffects=[:Firm,:Market])
 
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_spec2_$rundate.jld"
-save(file,"spec2",spec2)
+save(file,"spec2",p_est2)
 
 #### Run Specification 3 ####
 println("Run Specification 3")
-spec3 = run_specification(df,df_mkt,
+p_est3, model3, flags3 = run_specification(df,df_mkt,
                     haltonDim = halton_draws,
                     spec_demoRaw=spec_demoRaw,
                     spec_prodchars=spec_prodchars,
@@ -70,12 +70,12 @@ spec3 = run_specification(df,df_mkt,
                     spec_fixedEffects=[:Firm_Market_Cat])
 
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_spec3_small_$rundate.jld"
-save(file,"spec3",spec3)
+save(file,"spec3",p_est3)
 
 
 #### Run Specification 3 ####
 println("Run Specification 4")
-spec4 = run_specification(df,df_mkt,
+p_est4, model4, flags4 = run_specification(df,df_mkt,
                     haltonDim = halton_draws,
                     spec_demoRaw=spec_demoRaw,
                     spec_prodchars=[:Price],
@@ -83,25 +83,25 @@ spec4 = run_specification(df,df_mkt,
                     spec_fixedEffects=[:Product])
 
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_spec4_small_$rundate.jld"
-save(file,"spec4",spec4)
+save(file,"spec4",p_est4)
 
 
 #### Load Results ####
-rundate = "2018-05-12"
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_spec3_small_$rundate.jld"
-flag, fval, p_est = load(file)["spec3"]
+# rundate = "2018-05-12"
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_spec3_small_$rundate.jld"
+# flag, fval, p_est = load(file)["spec3"]
 
-# Structre the data
-c = ChoiceData(df,df_mkt,
-                    demoRaw=spec_demoRaw,
-                    prodchars=spec_prodchars,
-                    prodchars_0=spec_prodchars_0,
-                    fixedEffects=[:Firm_Market_Cat])
+# # Structre the data
+# c = ChoiceData(df,df_mkt,
+#                     demoRaw=spec_demoRaw,
+#                     prodchars=spec_prodchars,
+#                     prodchars_0=spec_prodchars_0,
+#                     fixedEffects=[:Firm_Market_Cat])
+#
+# # Fit into model
+# m = InsuranceLogit(c,250)
 
-# Fit into model
-m = InsuranceLogit(c,250)
-
-AsVar, stdErr,t_stat, stars = res_process(m,p_est)
+AsVar, stdErr,t_stat, stars = res_process(model3,p_est3)
 
 out1 = DataFrame(pars=p_est)
 file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_$rundate.csv"
