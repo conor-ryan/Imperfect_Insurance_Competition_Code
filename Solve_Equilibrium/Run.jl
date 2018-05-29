@@ -13,7 +13,8 @@ states = ["AK","NE","ND","OK","MD","IA","NM","UT",
 "OR","MO","IL","MI","GA","TX"]
 
 for st in states
-    run_st_equil(st)
+    #run_st_equil(st)
+    Check_Margin(st)
 end
 
 

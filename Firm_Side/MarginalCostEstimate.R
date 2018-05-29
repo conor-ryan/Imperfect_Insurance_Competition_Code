@@ -59,6 +59,10 @@ firms = merge(firms,metalClaims,by.x=c("Firm","ST","Metal_std"),
 firms[,regVar:=log(EXP_INC_CLM_PMPM)]
 firms[regVar==-Inf,regVar:=NA]
 
+spec1 = lm(regVar~AV_std+Age_j+WTP_j,data=firms)
+spec2 = lm(regVar~ST+AV_std+Age_j+WTP_j,data=firms)
+spec3 = lm(regVar~ST+Firm+AV_std+Age_j+WTP_j,data=firms)
+
 
 CostRes = lm(regVar~ST+AV_std+Age_j+WTP_j,data=firms)
 

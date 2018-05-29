@@ -406,5 +406,8 @@ for (m in markets){
 print(err)
 print(Sys.time()-st)
 full_predict[,premBase_pred:=NULL]
+
+
+
 # setkey(foc_data,Product)
 #}

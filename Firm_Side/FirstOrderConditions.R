@@ -134,11 +134,14 @@ full_predict[,WTP:=-0.10*(beta0[2]+sigma[2]*nu_h)/(alpha*1000/12)]
 
 
 ## Predict Risk Scores
-full_predict[,R:= HCC_age + AV*(psi_final[1]*nu_h +
-                                  psi_final[2]*nu_i + 
-                                  psi_final[3]*nu_i*nu_h+
-                                  psi_final[4]*Age+
-                                  psi_final[5]*Age*nu_h)]
+# full_predict[,R:= HCC_age + AV*(psi_final[1]*nu_h +
+#                                   psi_final[2]*nu_i + 
+#                                   psi_final[3]*nu_i*nu_h+
+#                                   psi_final[4]*Age+
+#                                   psi_final[5]*Age*nu_h)]
+full_predict[,R:= HCC_age + AV*(psi_final[1]*WTP+
+                                  psi_final[2]*Age+
+                                  psi_final[3]*Age*WTP)]
 
 ## Standard Cost-Sharing Levels
 # full_predict[,MedDeduct_std:= MedDeduct - MedDeductDiff]
@@ -273,9 +276,9 @@ RA_transfers = RA_transfers[,c("ST","Product","METAL","Market","Firm","premBase"
 # firmData[R_f>0,plot(R_f,R_f_pred)]
 #### Clear up Memory ####
 rm(list=ls()[!grepl("acs|RA_transfers|full_predict|catas_prods|cost_par",ls())])
-acs = acs[ST=="AK",]
-RA_transfers = RA_transfers[ST=="AK",]
-full_predict = full_predict[ST=="AK",]
+# acs = acs[ST=="AK",]
+# RA_transfers = RA_transfers[ST=="AK",]
+# full_predict = full_predict[ST=="AK",]
 
 #### Calculate Person Level Demand Derivatives ####
 markets = sort(unique(acs$Market))
@@ -507,16 +510,16 @@ for (st in states){
 
 
 #### Apply Ownership Matrix to Demand Derivatives ####
-for (m in names(per_derivs)){
-  deriv = per_derivs[[m]]
-  prods = sort(unique(deriv$Product))
-  for (p in prods){
-    f = unique(deriv$Firm[deriv$Product==p])
-    dpvar = paste("dsdp",p,sep="_")
-    deriv[Firm!=f,c(dpvar):=NA]
-  }
-  per_derivs[[m]] = deriv
-}
+# for (m in names(per_derivs)){
+#   deriv = per_derivs[[m]]
+#   prods = sort(unique(deriv$Product))
+#   for (p in prods){
+#     f = unique(deriv$Firm[deriv$Product==p])
+#     dpvar = paste("dsdp",p,sep="_")
+#     deriv[Firm!=f,c(dpvar):=NA]
+#   }
+#   per_derivs[[m]] = deriv
+# }
 
 #### FOC ####
 MktConc = RA_transfers[,list(S_f = sum(S_j),
@@ -630,4 +633,29 @@ for (m in markets){
 }
 setkey(foc_data,Product)
 save(foc_data,RA_transfers,file="foc_test.rData")
-#### Simulate ####
+
+
+
+#### Plot ####
+load("foc_test.rData")
+
+png("Writing/Images/marginCheck_old.png",width=2000,height=1500,res=275)
+ggplot(foc_data) + aes(x=premBase,y=premBase_sim0) +
+  geom_point() + 
+  geom_abline(intercept=0,slope=1) + 
+  scale_x_continuous(limits=c(0,600)) + 
+  scale_y_continuous(limits=c(0,600)) + 
+  xlab("Observed Base Premium") + 
+  ylab("Predicted Base Premium") + 
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    #panel.grid.major = element_line(color=grey(.8)),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title=element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "bottom",
+    axis.title=element_text(size=12),
+    axis.text = element_text(size=12))
+dev.off()

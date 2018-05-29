@@ -873,3 +873,42 @@ function run_st_equil(st::String)
     CSV.write(file3,output)
     return Void
 end
+
+
+
+function Check_Margin(st::String)
+    cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/")
+    println("Read in Data for $st")
+    file1 = "Intermediate_Output/Equilibrium_Data/estimated_Data_$st.csv"
+    df = CSV.read(file1,types=Dict("AGE"=>Float64,"Mandate"=>Float64,"MEMBERS"=>Float64,"Gamma_j"=>Union{Missing,Float64}),null="NA")
+    file2 = "Intermediate_Output/Equilibrium_Data/estimated_prodData_$st.csv"
+    df_mkt = CSV.read(file2,null="NA")
+    cost_pars = CSV.read("Intermediate_Output/Equilibrium_Data/cost_pars.csv",null="NA")
+
+    # Solve Model
+    println("Build Model")
+    c = ChoiceData(df,df_mkt)
+
+    model = EqData(c,df_mkt,cost_pars)
+
+    evaluate_model!(model,init=true)
+    foc_Std, foc_RA, foc_RA_fix, S_m, dsdp_rev = eval_FOC(model)
+    P_new = predict_price(foc_Std,foc_RA,foc_RA_fix,S_m,dsdp_rev,
+                            model,sim="Base")
+
+
+
+
+
+
+    println("Solved: $st")
+
+    output =  DataFrame(Products=model.prods,
+                        Price_orig=model.premBase_j,
+                        Price_FOC =P_new)
+
+
+    file3 = "Estimation_Output/focMargin_$st.csv"
+    CSV.write(file3,output)
+    return Void
+end
