@@ -103,7 +103,7 @@ save(file,"spec4",p_est4)
 
 AsVar, stdErr,t_stat, stars = res_process(model3,p_est3)
 
-out1 = DataFrame(pars=p_est)
+out1 = DataFrame(pars=p_est3,se=stdErr,ts=t_stat,sig=stars)
 file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_$rundate.csv"
 CSV.write(file1,out1)
 
