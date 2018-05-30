@@ -26,6 +26,7 @@ function run_specification(df::DataFrame,
     FEstart = rand(m.parLength[:FE])/100-.005
 
     p0 = vcat(γ0start,γstart,β0start,βstart,σstart,FEstart)
+    p0 = zeros(length(p0))
 
     println("Begin Estimation")
 
