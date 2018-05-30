@@ -44,7 +44,7 @@ function estimate!(d::InsuranceLogit, p0;method=:LD_MMA)
         println("Gradient mean equals $grad_mean")
         println("Gradient median equals $grad_median")
         grad_displ = grad[1:20]
-        println("Iteration $count at $grad_displ")
+        println("Graident is $grad_displ")
         #ForwardDiff.gradient!(grad, ll, x)
         #println("Gradient equals $grad")
         #likelihood = ll(x)
