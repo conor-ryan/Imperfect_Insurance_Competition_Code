@@ -312,7 +312,7 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int)
     # Initialize Halton Draws
     # These are the same across all individuals
     #draws = permutedims(MVHaltonNormal(haltonDim,2),(2,1))
-    draws = MVHaltonNormal(haltonDim,2)
+    draws = MVHaltonNormal(haltonDim,2;scrambled=false)
 
     # Initialize Empty value prediction objects
     n, k = size(c_data.data)

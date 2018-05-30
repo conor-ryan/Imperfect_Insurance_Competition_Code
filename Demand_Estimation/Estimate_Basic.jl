@@ -26,6 +26,7 @@ function estimate!(d::InsuranceLogit, p0;method=:LD_MMA)
     ll(x) = log_likelihood(d,x)
     ll_grad!(grad,x) = log_likelihood!(grad,d,x)
     #gmm(x) = GMM_objective(d,x)
+    println(d.draws[1:30,:])
 
     count = 0
     function ll(x, grad)
