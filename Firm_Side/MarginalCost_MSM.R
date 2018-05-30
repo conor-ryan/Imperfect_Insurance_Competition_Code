@@ -39,27 +39,47 @@ claims$AvgCost = with(claims,Claims/MLR_lives)
 metalClaims = read.csv("Intermediate_Output/Average_Claims/firmClaims.csv")
 
 #### Define Cost Function ####
-psi_0 = 0
-psi_age = .5
-psi_Family = .1
-psi_LowIncome = .8
-psi_pref1 = 2
-psi_pref2 = .2
-psi = c(psi_age,psi_Family,psi_LowIncome,psi_pref1,psi_pref2)
+ST_list = sort(unique(full_predict$ST))[-1]
+for (fe in ST_list){
+  var = paste("FE",fe,sep="_")
+  full_predict[,c(var):=0]
+  full_predict[ST==fe,c(var):=1]
+}
 
 
-## Truncate Pref_H at tails
-# max_pref_h = quantile(risk_predict$pref_h,probs=.98)
-# min_pref_h = quantile(risk_predict$pref_h,probs=.02)
-# risk_predict[pref_h>max_pref_h,pref_h:=max_pref_h]
-# risk_predict[pref_h<min_pref_h,pref_h:=min_pref_h]
-# hist(risk_predict$pref_h)
+phi_age = 0
+phi_age2 = 0
+phi_WTP = 0
+phi_AV = 0 
+phi_ST = rep(0,length(ST_list))
+phi = c(phi_age,phi_WTP,phi_AV,phi_ST)
+
 
 #### Risk Function 
-risk_function_est<- function(psi){
-  ## Demographic Risk
-  full_predict[,R:= HCC_age + AV*(psi[1]*WTP+psi[2]*Age+psi[3]*Age*WTP)]
+cost_function_est<- function(phi){
+  ## Demographic Cost
+  full_predict[,C:= exp()]
+  
+  estMat = as.matrix(full_predict[,.SD,.SDcols=c("AGE","WTP","AV_std",names(full_predict)[grep("^FE_",names(full_predict))])])
+  full_predict[,C:=exp(estMat%*%phi)]
 
+  # full_predict[,C:=exp(phi[1]*AGE + 
+  #                        phi[2]*WTP + 
+  #                        phi[3]*AV_std + 
+  #                        phi[4]*FE_GA + 
+  #                        phi[5]*FE_IA + 
+  #                        phi[6]*FE_IL + 
+  #                        phi[7]*FE_MD + 
+  #                        phi[8]*FE_MI + 
+  #                        phi[9]*FE_MO + 
+  #                        phi[10]*FE_ND + 
+  #                        phi[11]*FE_NE + 
+  #                        phi[12]*FE_NM + 
+  #                        phi[13]*FE_OK + 
+  #                        phi[14]*FE_OR + 
+  #                        phi[15]*FE_TX + 
+  #                        phi[16]*FE_UT)]
+  
   ## Firm Level Risk
   R_wgt_temp = full_predict[,list(R_wgt=sum(R*Gamma_j*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws)),by=c("ST","Firm")]
   setkey(R_wgt_temp,ST,Firm)

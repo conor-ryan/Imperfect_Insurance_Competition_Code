@@ -26,7 +26,7 @@ function estimate!(d::InsuranceLogit, p0;method=:LD_MMA)
     ll(x) = log_likelihood(d,x)
     ll_grad!(grad,x) = log_likelihood!(grad,d,x)
     #gmm(x) = GMM_objective(d,x)
-    println(d.draws[1:30,:])
+    # println(d.draws[1:30,:])
 
     count = 0
     function ll(x, grad)
@@ -39,13 +39,13 @@ function estimate!(d::InsuranceLogit, p0;method=:LD_MMA)
         obj = ll_grad!(grad,x)
 
         grad_size = sqrt(vecdot(grad,grad))
-        grad_mean = mean(grad)
-        grad_median = std(grad)
         println("Gradient size equals $grad_size")
-        println("Gradient mean equals $grad_mean")
-        println("Gradient median equals $grad_median")
-        grad_displ = grad[1:20]
-        println("Graident is $grad_displ")
+        # grad_mean = mean(grad)
+        # grad_median = std(grad)
+        # println("Gradient mean equals $grad_mean")
+        # println("Gradient median equals $grad_median")
+        # grad_displ = grad[1:20]
+        # println("Graident is $grad_displ")
         #ForwardDiff.gradient!(grad, ll, x)
         #println("Gradient equals $grad")
         #likelihood = ll(x)
