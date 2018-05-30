@@ -65,7 +65,9 @@ function log_likelihood!{T}(grad::Vector{Float64},d::InsuranceLogit,p::parDict{T
             grad[q]+=grad_obs[q]/Pop
         end
     end
-    #println(k_max)
+    if isnan(ll)
+        ll = -1e20
+    end
     return ll/Pop
 end
 

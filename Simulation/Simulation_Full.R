@@ -77,6 +77,9 @@ setkey(acs,household)
 acs$MEMBERS=1
 #Age of HoH
 acs[,MaxAge:=max(AGE),by="household"]
+# Drop heads of household that are under 18 - 2,041
+acs = acs[MaxAge>=18,]
+
 #Count Children
 acs[,childRank:=rank(AGE,ties.method="first"),by="household"]
 acs$childRank[acs$AGE>18] = NA

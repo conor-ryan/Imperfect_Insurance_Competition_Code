@@ -2,7 +2,7 @@ using NLopt
 using ForwardDiff
 
 
-function estimate!(d::InsuranceLogit, p0;method=:LD_MMA)
+function estimate!(d::InsuranceLogit, p0;method=:LD_TNEWTON_PRECOND_RESTART)
     # Set up the optimization
     opt = Opt(method, length(p0))
     #opt = Opt(:LD_MMA, length(p0))
