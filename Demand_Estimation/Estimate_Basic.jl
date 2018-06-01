@@ -65,12 +65,13 @@ function estimate!(d::InsuranceLogit, p0;method=:LD_TNEWTON_PRECOND_RESTART)
         return obj
     end
     # Set Objective
-    max_objective!(opt, ll)
+    max_objective!(opt_stage1, ll)
+    max_objective!(opt_stage2, ll)
 
     # Run Optimization
     init_minf, init_minx, init_ret = optimize(opt_stage1, p0)
-    println("In Stage 1, got $minf at $minx after $count iterations (returned $ret)")
-
+    println("In Stage 1, got $init_minf at $init_minx after $count iterations (returned $init_ret)")
+    count = 0
     minf, minx, ret = optimize(opt_stage2, init_minx)
     println("In Stage 1, got $minf at $minx after $count iterations (returned $ret)")
 
