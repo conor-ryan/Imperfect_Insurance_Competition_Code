@@ -156,7 +156,11 @@ function build_FE{T}(data_choice::DataFrame,fe_list::Vector{T})
     for fe in fe_list
         fac_variables = data_choice[fe]
         factor_list = sort(unique(fac_variables))
-        L+=length(factor_list)-1
+        num_effects = length(factor_list)-1
+        if fe==:Market
+            num_effects = length(factor_list) - 4
+        end
+        L+=num_effects
     end
 
     F = zeros(n,L)
@@ -168,6 +172,9 @@ function build_FE{T}(data_choice::DataFrame,fe_list::Vector{T})
         for fac in factor_list[2:length(factor_list)]
             # fac_data = zeros(n)
             # fac_data[fac_variables.==fac] = 1.0
+            if fac in ["ND_4","MD_4","IA_7"]
+                continue
+            end
 
             F[fac_variables.==fac,ind] = 1
             ind+= 1

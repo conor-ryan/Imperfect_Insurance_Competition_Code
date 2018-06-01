@@ -21,7 +21,7 @@ println("Code Loaded")
 
 #### General Specification ####
 
-halton_draws = 250
+halton_draws = 50
 spec_demoRaw = [:AgeFE_31_40,
         :AgeFE_41_50,
         :AgeFE_51_64,
@@ -92,11 +92,11 @@ save(file,"spec4",p_est4)
 # flag, fval, p_est = load(file)["spec3"]
 
 # # Structre the data
-# c = ChoiceData(df,df_mkt,
-#                     demoRaw=spec_demoRaw,
-#                     prodchars=spec_prodchars,
-#                     prodchars_0=spec_prodchars_0,
-#                     fixedEffects=[:Firm_Market_Cat])
+c = ChoiceData(df,df_mkt,
+                    demoRaw=spec_demoRaw,
+                    prodchars=spec_prodchars,
+                    prodchars_0=spec_prodchars_0,
+                    fixedEffects=[:Firm,:Market])
 #
 # # Fit into model
 # m = InsuranceLogit(c,250)

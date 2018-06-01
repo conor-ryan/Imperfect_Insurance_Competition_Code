@@ -38,14 +38,20 @@ claims$AvgCost = with(claims,Claims/MLR_lives)
 firmData = unique(full_predict[,c("ST","Firm")])
 
 firmClaims = merge(firmData,claims,by.x=c("ST","Firm"),by.y=c("STATE","Firm"),all.x=TRUE)
+firmClaims[,logAvgCost:=log(AvgCost)]
 setkey(firmClaims,ST,Firm)
 
 #### Filings Claims Data ####
 metalClaims = as.data.table(read.csv("Intermediate_Output/Average_Claims/firmClaims.csv"))
-metalData = unique(full_predict[,c("ST","Firm","Metal_std","AV_std")])
+metalData = unique(full_predict[,c("ST","Firm","Metal_std")])
 metalClaims = merge(metalData,metalClaims[,c("STATE","Firm","METAL","EXP_INC_CLM_PMPM")],by.x=c("ST","Firm","Metal_std"),
                     by.y=c("STATE","Firm","METAL"),all.x=TRUE)
+
+metalClaims[EXP_INC_CLM_PMPM==0,EXP_INC_CLM_PMPM:=NA]
+metalClaims[,logAvgCost:=log(EXP_INC_CLM_PMPM)]
 setkey(metalClaims,ST,Firm,Metal_std)
+
+
 
 #### MEPS Moments ####
 ageMoments = as.data.table(read.csv("Data/2015_MEPS/ageMoments.csv"))
@@ -65,10 +71,10 @@ for (fe in ST_list){
 }
 
 
-phi_age = 0
+phi_age = .01
 phi_age2 = 0
-phi_WTP = 0
-phi_AV = 0
+phi_WTP = .7
+phi_AV = 4
 phi_ST = rep(0,length(ST_list))
 phi = c(phi_age,phi_age2,phi_WTP,phi_AV,phi_ST)
 
@@ -76,10 +82,28 @@ phi = c(phi_age,phi_age2,phi_WTP,phi_AV,phi_ST)
 #### Risk Function 
 estMat = as.matrix(full_predict[,.SD,.SDcols=c("Age_1","Age_2","WTP","AV_std",names(full_predict)[grep("^FE_",names(full_predict))])])
 
+full_predict[,wgt:=PERWT*s_pred/n_draws]
+prodData = full_predict[,list(sim_lives=sum(wgt),
+                              Age_j = sum(AGE*wgt)/sum(wgt),
+                              mem = sum(MEMBERS*wgt)/sum(wgt),
+                              inc = sum(LowIncome*wgt)/sum(wgt),
+                              fpl = sum(HHincomeFPL*wgt)/sum(wgt),
+                              high = sum(High*wgt)/sum(wgt),
+                              nu_h = sum(nu_h*wgt)/sum(wgt),
+                              nu_i = sum(nu_i*wgt)/sum(wgt),
+                              WTP_j = sum(WTP*wgt)/sum(wgt),
+                              AV = sum(AV*wgt)/sum(wgt)), 
+                        by=c("ST","Firm","Metal_std","AV_std",names(full_predict)[grep("^FE_",names(full_predict))])]
+setkey(prodData,ST,Firm,Metal_std)
+
+## regression test
+regData = merge(prodData,metalClaims,by=c("ST","Firm","Metal_std"))
+reg = lm(logAvgCost~ST+AV_std+Age_j+WTP_j,data=regData)
+
 cost_function_est<- function(phi){
   ## Demographic Cost
   full_predict[,C:=exp(estMat%*%phi)]
-
+  
   # full_predict[,C:=exp(phi[1]*AGE + 
   #                        phi[2]*WTP + 
   #                        phi[3]*AV_std + 
@@ -97,18 +121,18 @@ cost_function_est<- function(phi){
   #                        phi[15]*FE_TX + 
   #                        phi[16]*FE_UT)]
   
-  ## Firm Level Risk
+  # ## Firm Level Risk
   Cost_prod = full_predict[,list(C_avg=sum(C*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws)),by=c("ST","Firm","Metal_std")]
   setkey(Cost_prod,ST,Firm,Metal_std)
-  
 
-  Moments_Prod = Cost_prod$C_avg - metalClaims$EXP_INC_CLM_PMPM
+
+  Moments_Prod = log(Cost_prod$C_avg) - metalClaims$logAvgCost
   Moments_Prod = Moments_Prod[!is.na(Moments_Prod)]
-  
+
   Cost_firm = full_predict[,list(C_avg=sum(C*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws)),by=c("ST","Firm")]
   setkey(Cost_firm,ST,Firm)
 
-  Moments_Firm = Cost_firm$C_avg - firmClaims$AvgCost
+  Moments_Firm = log(Cost_firm$C_avg) - firmClaims$logAvgCost
 
   Cost_age = full_predict[,list(C_avg=sum(C*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws)),by=c("Age_Bin")]
   setkey(Cost_age,Age_Bin)
@@ -116,15 +140,40 @@ cost_function_est<- function(phi){
 
   Moments_Age = Cost_age$C_idx - ageMoments$costIndex
 
-  moments = c(Moments_Prod/100,Moments_Firm/100,Moments_Age)
-  #moments = c(Moments_Prod/100)
-    
+  moments = c(Moments_Prod,Moments_Firm,Moments_Age)
+
+  
+  
+  # prodData[,logC:=phi[1]*Age_j + 
+  #            phi[2]*WTP_j +
+  #            phi[3]*AV_std +
+  #            phi[4]*FE_AK + 
+  #            phi[5]*FE_GA +
+  #            phi[6]*FE_IA +
+  #            phi[7]*FE_IL +
+  #            phi[8]*FE_MD +
+  #            phi[9]*FE_MI +
+  #            phi[10]*FE_MO +
+  #            phi[11]*FE_ND +
+  #            phi[12]*FE_NE +
+  #            phi[13]*FE_NM +
+  #            phi[14]*FE_OK +
+  #            phi[15]*FE_OR +
+  #            phi[16]*FE_TX +
+  #            phi[17]*FE_UT]
+  # moments = prodData$logC - metalClaims$logAvgCost
+  # moments = moments[!is.na(moments)]
+  
   error = sum((moments)^2)
   rm(Cost_prod,Cost_firm)
-  #rm(Cost_prod)
+  
+  
+  
+  
   print(error)
   print(phi)
   full_predict[,c("C"):=NULL]
+  #prodData[,c("logC"):=NULL]
   return(error)
 }
 

@@ -36,6 +36,21 @@ estData[AGE>50,AgeFE:="51 - 64"]
 # estData[Income_2==1,IncomeFE:="MiddleIncome"]
 # estData[Income_3==1,IncomeFE:="HighIncome"]
 
+#### Create Fixed Effects for Testing ####
+firm_list = unique(estData$Firm)[-1]
+for (var in firm_list){
+  estData[,c(var):=0]
+  estData[Firm==var,c(var):=1]
+}
+
+Market_list = unique(estData$Market)[-1]
+
+for (var in Market_list){
+  estData[,c(var):=0]
+  estData[Market==var,c(var):=1]
+}
+
+
 #### Create Instrument - Product Market Share in Other States ####
 instrument_Data = unique(estData[,c("STATE","AGE_bucket","FPL_bucket","Family","METAL")])
 setkey(estData,Person,METAL)
@@ -104,9 +119,9 @@ famList = c(0,1)
 # reg1 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + AV + Firm,data=estData)
 # c1 = summary(reg1)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg1$coefficients)),c("Estimate","t value")]
 # 
-# reg2 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + AV + Firm +Market,data=estData)
-# c2 = summary(reg2)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg2$coefficients)),c("Estimate","t value")]
-# 
+reg2 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + AV + Firm +Market,data=estData)
+c2 = summary(reg2)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg2$coefficients)),c("Estimate","t value")]
+
 # reg3 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + AV + Firm_Market_Cat,data=estData)
 # c3 = summary(reg3)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg3$coefficients)),c("Estimate","t value")]
 
