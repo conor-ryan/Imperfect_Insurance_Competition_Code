@@ -13,7 +13,7 @@ function estimate!(d::InsuranceLogit, p0;method=:LD_TNEWTON_PRECOND_RESTART)
     #opt = Opt(:LN_SBPLX, length(p0))
     #opt = Opt(:LN_COBYLA, length(p0))
 
-    maxeval!(opt_stage1,1000)
+    maxeval!(opt_stage1,700)
     ftol_rel!(opt_stage1,1e-8)
 
     xtol_rel!(opt_stage2, 1e-6)
@@ -21,7 +21,7 @@ function estimate!(d::InsuranceLogit, p0;method=:LD_TNEWTON_PRECOND_RESTART)
     ftol_rel!(opt_stage2, 1e-10)
     maxtime!(opt_stage2, 500000)
     #upper_bounds!(opt, ones(length(p0))/10)
-    initial_step!(opt_stage_2,1e-1)
+    initial_step!(opt_stage2,1e-1)
     #stopval!(opt,.00040)
     # Objective Function
     # ll(x) = evaluate_iteration!(d, x,update=false)
@@ -68,10 +68,10 @@ function estimate!(d::InsuranceLogit, p0;method=:LD_TNEWTON_PRECOND_RESTART)
     max_objective!(opt, ll)
 
     # Run Optimization
-    init_minf, init_minx, init_ret = optimize(opt, p0)
+    init_minf, init_minx, init_ret = optimize(opt_stage1, p0)
     println("In Stage 1, got $minf at $minx after $count iterations (returned $ret)")
 
-    minf, minx, ret = optimize(opt, init_minx)
+    minf, minx, ret = optimize(opt_stage2, init_minx)
     println("In Stage 1, got $minf at $minx after $count iterations (returned $ret)")
 
     # Return the object
