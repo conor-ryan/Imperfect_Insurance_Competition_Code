@@ -13,7 +13,7 @@ function estimate!(d::InsuranceLogit, p0;method=:LD_TNEWTON_PRECOND_RESTART)
     #opt = Opt(:LN_SBPLX, length(p0))
     #opt = Opt(:LN_COBYLA, length(p0))
 
-    maxeval!(opt_stage1,700)
+    maxeval!(opt_stage1,600)
     ftol_rel!(opt_stage1,1e-8)
 
     xtol_rel!(opt_stage2, 1e-6)
