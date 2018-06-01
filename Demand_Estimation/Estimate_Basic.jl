@@ -4,7 +4,8 @@ using ForwardDiff
 
 function estimate!(d::InsuranceLogit, p0;method=:LD_TNEWTON_PRECOND_RESTART)
     # Set up the optimization
-    opt = Opt(method, length(p0))
+    opt_stage1 = Opt(:LD_TNEWTON_PRECOND_RESTART, length(p0))
+    opt_stage2 = Opt(:LD_MMA,length(p0))
     #opt = Opt(:LD_MMA, length(p0))
 
     #opt = Opt(:LD_TNEWTON_PRECOND_RESTART,length(p0))
@@ -12,13 +13,15 @@ function estimate!(d::InsuranceLogit, p0;method=:LD_TNEWTON_PRECOND_RESTART)
     #opt = Opt(:LN_SBPLX, length(p0))
     #opt = Opt(:LN_COBYLA, length(p0))
 
-    xtol_rel!(opt, 1e-6)
-    xtol_abs!(opt, 1e-6)
-    ftol_rel!(opt, 1e-10)
-    #maxeval!(opt,20)
-    maxtime!(opt, 600000)
+    maxeval!(opt_stage1,1000)
+    ftol_rel!(opt_stage1,1e-8)
+
+    xtol_rel!(opt_stage2, 1e-6)
+    xtol_abs!(opt_stage2, 1e-6)
+    ftol_rel!(opt_stage2, 1e-10)
+    maxtime!(opt_stage2, 500000)
     #upper_bounds!(opt, ones(length(p0))/10)
-    initial_step!(opt,1e-1)
+    initial_step!(opt_stage_2,1e-1)
     #stopval!(opt,.00040)
     # Objective Function
     # ll(x) = evaluate_iteration!(d, x,update=false)
@@ -33,13 +36,21 @@ function estimate!(d::InsuranceLogit, p0;method=:LD_TNEWTON_PRECOND_RESTART)
         count +=1
 
         x_displ = x[1:20]
+        if count % 50 ==0
+            x_displ = round.(x,1)
+            println(find(abs.(x).>10))
+        end
         println("Iteration $count at $x_displ")
-
         #obj = ll(x)
         obj = ll_grad!(grad,x)
 
         grad_size = sqrt(vecdot(grad,grad))
         println("Gradient size equals $grad_size")
+        if count % 50 ==0
+            grad_displ = round.(grad,4)
+            println(grad_displ)
+            println(find(abs.(grad).>1))
+        end
         # grad_mean = mean(grad)
         # grad_median = std(grad)
         # println("Gradient mean equals $grad_mean")
@@ -50,15 +61,18 @@ function estimate!(d::InsuranceLogit, p0;method=:LD_TNEWTON_PRECOND_RESTART)
         #println("Gradient equals $grad")
         #likelihood = ll(x)
         println("Objective equals $obj on iteration $count")
+
         return obj
     end
-
     # Set Objective
     max_objective!(opt, ll)
 
     # Run Optimization
-    minf, minx, ret = optimize(opt, p0)
-    println("got $minf at $minx after $count iterations (returned $ret)")
+    init_minf, init_minx, init_ret = optimize(opt, p0)
+    println("In Stage 1, got $minf at $minx after $count iterations (returned $ret)")
+
+    minf, minx, ret = optimize(opt, init_minx)
+    println("In Stage 1, got $minf at $minx after $count iterations (returned $ret)")
 
     # Return the object
     return ret, minf, minx

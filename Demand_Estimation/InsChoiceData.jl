@@ -36,6 +36,8 @@ struct ChoiceData <: ModelData
     _personIDs::Array{Float64,1}
     _personDict::Dict{Int, UnitRange{Int}}
     _productDict::Dict{Int, Array{Int,1}}
+
+    _rel_fe_Dict::Dict{Real,Array{Int64,1}}
 end
 
 function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
@@ -122,10 +124,20 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
     #     _productDict[id] = findin(j,id)
     # end
 
+    # Relevant Parameters Per Person
+    rel_fe_Dict = Dict{Real,Array{Int64,1}}()
+    for (id,idxitr) in _personDict
+        F_t = view(F,:,idxitr)
+        pars_relevant = find(maximum(F_t,2))
+        rel_fe_Dict[id] = pars_relevant
+    end
+
+
     # Make the data object
     m = ChoiceData(dmat,data_market,F, index, prodchars,prodchars_0,
             choice, demoRaw,wgt, unins, _person, _prodchars,_prodchars_0,
-            _choice, _demoRaw, _wgt, _unins,uniqids,_personDict,_productDict)
+            _choice, _demoRaw, _wgt, _unins,uniqids,_personDict,_productDict,
+            rel_fe_Dict)
     return m
 end
 
@@ -206,6 +218,7 @@ unins(m::ChoiceData)       = m[m._unins]
 
 
 fixedEffects(m::ChoiceData)= m.fixedEffects
+fixedEffects(m::ChoiceData,idx)= view(m.fixedEffects,:,idx)
 
 ########################################################################
 #################### Iterating over People ############################
@@ -213,8 +226,10 @@ fixedEffects(m::ChoiceData)= m.fixedEffects
 
 # Quickly Generate Subsets on People
 function subset{T<:ModelData}(d::T, idx)
+
     data = d.data[:,idx]
-    fixedEf = d.fixedEffects[:,idx]
+    fixedEf = d.fixedEffects
+    #fixedEf = view(d.fixedEffects,:,idx)
 #    people = data[d._person,:]
 
     # Don't subset any other fields for now...
@@ -238,7 +253,8 @@ function subset{T<:ModelData}(d::T, idx)
     d._unins,
     d._personIDs,
     d._personDict,
-    d._productDict)
+    d._productDict,
+    d._rel_fe_Dict)
 end
 
 ########## People Iterator ###############
@@ -328,7 +344,8 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int)
     pmat[:delta] = 1.0
     sort!(pmat)
 
-    d = InsuranceLogit(parLength,c_data,
+    d = InsuranceLogit(parLength,
+                        c_data,
                         draws,
                         pmat[:Product],pmat[:Share],pmat[:delta])
     return d

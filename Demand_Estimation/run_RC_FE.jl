@@ -25,23 +25,42 @@ c = ChoiceData(df,df_mkt;
             :Family,
             :LowIncome],
     prodchars=[:Price,:AV],
-    prodchars_0=[:Price],
-    fixedEffects=[])
+    prodchars_0=[:Price,:AV],
+    fixedEffects=[:Firm_Market_Cat])
 
 # Fit into model
-m = InsuranceLogit(c,10)
+m = InsuranceLogit(c,100)
 println("Data Loaded")
 
-γ0start = 0.0
-γstart = Array{Float64}([0.1,0.1,0.1,0.1,0.1])/100
-β0start = [-1.0,1.0]
-βstart = [0.02,0,0,0,0.02]
-σstart = [.01,.01]
-FEstart = zeros(size(c.fixedEffects,1))
-
+γ0start = rand(1)-.5
+γstart = rand(m.parLength[:γ])/10 -.05
+β0start = rand(m.parLength[:β])/10-.05
+βstart = rand(m.parLength[:γ])/10 - .05
+σstart = rand(m.parLength[:σ])/10 - .05
+FEstart = rand(m.parLength[:FE])/100-.005
 
 p0 = vcat(γ0start,γstart,β0start,βstart,σstart,FEstart)
-parStart0 = parDict(m,p0)
+p0 = zeros(length(p0))
+
+
+grad_2 = Vector{Float64}(length(p0))
+@benchmark log_likelihood!(grad_2,m,p0)
+
+
+Profile.init(n=10^7,delay=.001)
+Profile.clear()
+Juno.@profile log_likelihood!(grad_2,m,p0)
+Juno.profiletree()
+Juno.profiler()
+
+
+
+
+
+
+
+
+
 
 ## Estimate
 est_res = estimate!(m, p0)
@@ -49,7 +68,6 @@ est_res = estimate!(m, p0)
 println("Gradient Test")
 f_ll(x) = log_likelihood(m,x)
 grad_1 = Vector{Float64}(length(p0))
-grad_2 = Vector{Float64}(length(p0))
 fval = log_likelihood!(grad_2,m,parStart0)
 #
 # @benchmark log_likelihood!(grad_2,m,parStart0)
@@ -90,9 +108,5 @@ app = next(eachperson(m.data),200)[1]
 # grad = util_gradient(m,app,parStart0)
 #
 println("Profiler")
-Profile.init()
-Profile.clear()
-Juno.@profile log_likelihood!(grad_2,m,parStart0)
-Juno.profiletree()
-Juno.profiler()
+
 #

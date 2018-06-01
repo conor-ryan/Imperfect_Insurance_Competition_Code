@@ -122,10 +122,12 @@ function util_value!{T}(app::ChoiceData,p::parDict{T})
     fe = p.FE
 
     ind = person(app)[1]
+    idxitr = app._personDict[ind]
     X = permutedims(prodchars(app),(2,1))
     X_0 = permutedims(prodchars0(app),(2,1))
     Z = demoRaw(app)[:,1]
-    F = fixedEffects(app)
+    #F = fixedEffects(app)
+    F = fixedEffects(app,idxitr)
 
     β_z = β*Z
     demos = γ_0 + vecdot(γ,Z)
@@ -134,11 +136,15 @@ function util_value!{T}(app::ChoiceData,p::parDict{T})
     chars = X*β_i
     chars_0 = X_0*β_0
 
-    # This is a row Vector
-    controls = fe*F
+    # FE is a row Vector
+    controls = zeros(size(F,2))
+    for k in 1:length(controls)
+        for j in app._rel_fe_Dict[ind]
+            controls[k]+= fe[j]*F[j,k]
+        end
+    end
 
     (K,N) = size(chars)
-    idxitr = app._personDict[ind]
     for k = 1:K,n = 1:N
         u = exp(chars[k,n] + chars_0[k] + controls[k] + γ_i[n])
         p.μ_ij[n,idxitr[k]] = u
@@ -190,7 +196,8 @@ function ll_obs_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
         X_t = prodchars(app)
         X_0_t = prodchars0(app)
         Z = demoRaw(app)[:,1]
-        F_t = fixedEffects(app)
+        #F_t = fixedEffects(app)
+        F_t = fixedEffects(app,idxitr)
         draws = d.draws
 
         # Get Utility and derivative of Utility
@@ -214,7 +221,8 @@ function ll_obs_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
         ll_obs = 0.0
 
         ## Relevant Parameters for this observation
-        pars_relevant = vcat(1:Q_0,Q_0+find(maximum(F_t,2)))
+        #pars_relevant_2 = vcat(1:Q_0,Q_0+find(maximum(F_t,2)))
+        pars_relevant = vcat(1:Q_0,Q_0+app._rel_fe_Dict[ind])
 
         γlen = 1 + d.parLength[:γ]
         β0len = γlen + d.parLength[:β0]
@@ -300,17 +308,19 @@ function par_gradient{T}(x::Float64,
     grad_obs = 0.0
     (N,K) = size(μ_ij)
     dμ_ij = Vector{Float64}(K)
+    @inbounds(
     for n in 1:N
         dμ_ij_sums = 0.0
         for k in 1:K
-            dμ_ij[k] = μ_ij[n,k]*δ[k]*x
-            dμ_ij_sums+= dμ_ij[k]
+            @fastmath dμ_ij[k] = μ_ij[n,k]*δ[k]*x
+            @fastmath dμ_ij_sums+= dμ_ij[k]
         end
         grad_obs+= par_gradient_inner_loop(dμ_ij,dμ_ij_sums,
                                 n,μ_ij,δ,
                                 μ_ij_sums,μ_ij_sums_sq,
                                 gll_t1,gll_t2)
     end
+    )
     return grad_obs/N
 end
 
@@ -321,17 +331,19 @@ function par_gradient{T}(x::Vector{Float64},
     grad_obs = 0.0
     (N,K) = size(μ_ij)
     dμ_ij = Vector{Float64}(K)
+    @inbounds(
     for n in 1:N
         dμ_ij_sums = 0.0
         for k in 1:K
-            dμ_ij[k] = μ_ij[n,k]*δ[k]*x[k]
-            dμ_ij_sums+= dμ_ij[k]
+            @fastmath dμ_ij[k] = μ_ij[n,k]*δ[k]*x[k]
+            @fastmath dμ_ij_sums+= dμ_ij[k]
         end
         grad_obs+= par_gradient_inner_loop(dμ_ij,dμ_ij_sums,
                                 n,μ_ij,δ,
                                 μ_ij_sums,μ_ij_sums_sq,
                                 gll_t1,gll_t2)
     end
+    )
     return grad_obs/N
 end
 
@@ -342,6 +354,7 @@ function par_gradient_σ{T}(x::Vector{Float64},
     grad_obs = 0.0
     (N,K) = size(μ_ij)
     dμ_ij = Vector{Float64}(K)
+    @inbounds(
     for n in 1:N
         dμ_ij_sums = 0.0
         for k in 1:K
@@ -353,6 +366,7 @@ function par_gradient_σ{T}(x::Vector{Float64},
                                 μ_ij_sums,μ_ij_sums_sq,
                                 gll_t1,gll_t2)
     end
+    )
     return grad_obs/N
 end
 function par_gradient_σ{T}(x::Vector{Float64},Y::Vector{Float64},
@@ -362,6 +376,7 @@ function par_gradient_σ{T}(x::Vector{Float64},Y::Vector{Float64},
     grad_obs = 0.0
     (N,K) = size(μ_ij)
     dμ_ij = Vector{Float64}(K)
+    @inbounds(
     for n in 1:N
         dμ_ij_sums = 0.0
         for k in 1:K
@@ -373,6 +388,7 @@ function par_gradient_σ{T}(x::Vector{Float64},Y::Vector{Float64},
                                 μ_ij_sums,μ_ij_sums_sq,
                                 gll_t1,gll_t2)
     end
+    )
     return grad_obs/N
 end
 
@@ -385,15 +401,22 @@ function par_gradient_inner_loop{T}(dμ_ij::Vector{Float64},dμ_ij_sums::Float64
     N,K = size(μ_ij)
     grad_obs = 0.0
     #dμ_ij_sums = sum(dμ_ij)
-    t2_0 = dμ_ij_sums/μ_ij_sums_sq[n]
+    @fastmath t2_0 = dμ_ij_sums/μ_ij_sums_sq[n]
     t3 = (dμ_ij_sums/μ_ij_sums_sq[n])
-
+    @inbounds(
     for k in 1:K
-        t1= dμ_ij[k]/μ_ij_sums[n]
-        t2= t2_0*μ_ij[n,k]*δ[k]
+        @fastmath t1= dμ_ij[k]/μ_ij_sums[n]
+        @fastmath t2= t2_0*μ_ij[n,k]*δ[k]
         #t3= dμ_ij_sums/μ_ij_sums_sq[n]
 
-        grad_obs += gll_t1[k]*(t1 - t2) - gll_t2[k]*t3
+        @fastmath grad_obs += gll_t1[k]*(t1 - t2) - gll_t2[k]*t3
     end
+    )
+    # t1 = @. dμ_ij/μ_ij_sums[n]
+    # t2 = @. t2_0*μ_ij[n,:]*δ
+    #
+    # @inbounds @fastmath @simd for k in 1:K
+    #     grad_obs += gll_t1[k]*(t1[k] - t2[k]) - gll_t2[k]*t3
+    # end
     return grad_obs
 end
