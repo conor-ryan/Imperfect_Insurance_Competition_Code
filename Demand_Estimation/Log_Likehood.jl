@@ -20,8 +20,6 @@ function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
 
         # Get Market Shares
         s_hat = p.s_hat[idxitr]
-        s_insured = sum(s_hat)
-
         # Fix possible computational error
         for k in eachindex(s_hat)
             if abs(s_hat[k])<=1e-300

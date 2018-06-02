@@ -210,14 +210,19 @@ function ll_obs_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
         μ_ij = p.μ_ij[:,idxitr]
         δ    = p.δ[idxitr]
 
-        #Get Market Shares
+        # Get Market Shares
         s_hat = p.s_hat[idxitr]
-        s_insured = sum(s_hat)
         # Fix possible computational error
-        if s_insured>=1
-            s_insured= 1 - 1e-10
-        elseif s_insured<=0
-            s_insured=1e-10
+        for k in eachindex(s_hat)
+            if abs(s_hat[k])<=1e-300
+                s_hat[k]=1e-15
+                println("Hit Share Constraint for person $ind, product $k")
+            end
+        end
+        s_insured = sum(s_hat)
+        if s_insured>=(1-1e-300)
+            s_insured= 1 - 1e-15
+            println("Hit insured constraint for person $ind")
         end
 
         # Initialize Gradient
