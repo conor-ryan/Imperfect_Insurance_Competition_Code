@@ -79,7 +79,7 @@ end
 function calcRC!{T,S}(randCoeffs::Array{S},σ::Array{T},draws::Array{Float64,2})
     (N,K) = size(randCoeffs)
     #randCoeffs[:,1] = draws[:,1].*σ[1]
-    randCoeffs[:,1] = 0.0
+    #randCoeffs[:,1] = 0.0
     #Skip Price Coefficient
     # for k in 2:K,n in 1:N
     #     randCoeffs[n,k] = draws[n,2]*σ[k]
@@ -99,11 +99,12 @@ function calc_indCoeffs{T}(p::parDict{T},β::Array{T,1},d::T)
     Q = length(β)
     (N,K) = size(p.randCoeffs)
     β_i = Array{T,2}(N,Q)
-    γ_i = d + p.randCoeffs[:,1]
+    #γ_i = d + p.randCoeffs[:,1]
+    γ_i = d
     β_i[:,1] = β[1]
 
     for k in 2:Q, n in 1:N
-        β_i[n,k] = β[k] + p.randCoeffs[n,k]
+        β_i[n,k] = β[k] + p.randCoeffs[n,k-1]
     end
 
     β_i = permutedims(β_i,(2,1))
