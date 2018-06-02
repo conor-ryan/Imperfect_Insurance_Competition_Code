@@ -325,7 +325,8 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int)
     if haltonDim==1
         σlen = 0
     else
-        σlen = 1 + (size(prodchars(c_data),1)-1)
+        #σlen = 1 + (size(prodchars(c_data),1)-1)
+        σlen = (size(prodchars(c_data),1)-1)
     end
 
     total = 1 + γlen + β0len + γlen + flen + σlen
@@ -334,9 +335,8 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int)
 
     # Initialize Halton Draws
     # These are the same across all individuals
-    #draws = permutedims(MVHaltonNormal(haltonDim,2),(2,1))
-    draws = MVHaltonNormal(haltonDim,2;scrambled=false)
-
+    #draws = MVHaltonNormal(haltonDim,2;scrambled=false)
+    draws = MVHaltonNormal(haltonDim,1;scrambled=false)
     # Initialize Empty value prediction objects
     n, k = size(c_data.data)
     # Copy Firm Level Data for Changing in Estimation
