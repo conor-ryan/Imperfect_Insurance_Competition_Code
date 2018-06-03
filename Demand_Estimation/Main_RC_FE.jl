@@ -100,6 +100,9 @@ c = ChoiceData(df,df_mkt,
 
 AsVar, stdErr,t_stat, stars = res_process(model3,p_est3)
 
+grad = Vector{Float64}(length(p_est3))
+log_likelihood!(grad,model3,p_est3)
+
 out1 = DataFrame(pars=p_est3,se=stdErr,ts=t_stat,sig=stars)
 file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_$rundate.csv"
 CSV.write(file1,out1)
