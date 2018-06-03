@@ -26,25 +26,24 @@ c = ChoiceData(df,df_mkt;
             :LowIncome],
     prodchars=[:Price,:AV],
     prodchars_0=[:Price,:AV],
-    fixedEffects=[:Firm_Market_Cat])
+    fixedEffects=[:constant,:Firm_Market_Cat])
 
 # Fit into model
 m = InsuranceLogit(c,100)
 println("Data Loaded")
 
-γ0start = rand(1)-.5
-γstart = rand(m.parLength[:γ])/10 -.05
-β0start = rand(m.parLength[:β])/10-.05
-βstart = rand(m.parLength[:γ])/10 - .05
-σstart = rand(m.parLength[:σ])/10 - .05
-FEstart = rand(m.parLength[:FE])/100-.005
+# γ0start = rand(1)-.5
+# γstart = rand(m.parLength[:γ])/10 -.05
+# β0start = rand(m.parLength[:β])/10-.05
+# βstart = rand(m.parLength[:γ])/10 - .05
+# σstart = rand(m.parLength[:σ])/10 - .05
+# FEstart = rand(m.parLength[:FE])/100-.005
 
-p0 = vcat(γ0start,γstart,β0start,βstart,σstart,FEstart)
-p0 = zeros(length(p0))
+p0 = vcat(γstart,β0start,βstart,σstart,γ0start,FEstart)
 
 
 grad_2 = Vector{Float64}(length(p0))
-@benchmark log_likelihood!(grad_2,m,p0)
+ll =  log_likelihood!(grad_2,m,p0)
 
 
 Profile.init(n=10^7,delay=.001)

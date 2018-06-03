@@ -168,9 +168,13 @@ function build_FE{T}(data_choice::DataFrame,fe_list::Vector{T})
     for fe in fe_list
         fac_variables = data_choice[fe]
         factor_list = sort(unique(fac_variables))
-        num_effects = length(factor_list)-1
-        if fe==:Market
-            num_effects = length(factor_list) - 4
+        if fe==:constant
+            num_effects=1
+        else
+            num_effects = length(factor_list)-1
+            if fe==:Market
+                num_effects = length(factor_list) - 4
+            end
         end
         L+=num_effects
     end
@@ -179,6 +183,11 @@ function build_FE{T}(data_choice::DataFrame,fe_list::Vector{T})
     feNames = Vector{Symbol}(0)
     ind = 1
     for fe in fe_list
+        if fe==:constant
+            F[:,ind] = 1
+            ind+=1
+            continue
+        end
         fac_variables = data_choice[fe]
         factor_list = sort(unique(fac_variables))
         for fac in factor_list[2:length(factor_list)]
@@ -328,7 +337,8 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int)
         σlen = 1 + (size(prodchars(c_data),1)-1)
     end
 
-    total = 1 + γlen + β0len + γlen + flen + σlen
+    #total = 1 + γlen + β0len + γlen + flen + σlen
+    total = γlen + β0len + γlen + flen + σlen
     parLength = Dict(:γ=>γlen,:β0=>β0len,:β=>βlen,:FE=>flen,
     :σ => σlen, :All=>total)
 

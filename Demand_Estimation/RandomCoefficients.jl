@@ -28,15 +28,18 @@ end
 
 function parDict{T}(m::InsuranceLogit,x::Array{T})
     # Parameter Lengths from model
-    γlen = 1 + m.parLength[:γ]
+    #γlen = 1 + m.parLength[:γ]
+    γlen = m.parLength[:γ]
     β0len = γlen + m.parLength[:β0]
     βlen = β0len + m.parLength[:γ]
     σlen = βlen + (m.parLength[:σ])
     FElen = σlen + m.parLength[:FE]
 
     # Distribute Parameters
-    γ_0 = x[1]
-    γ = x[2:γlen]
+    # γ_0 = x[1]
+    # γ = x[2:γlen]
+    γ_0 = 0.0
+    γ = x[1:γlen]
     β_0 = x[(γlen+1):β0len]
     β_vec = x[(β0len+1):βlen]
     σ = x[(βlen+1):σlen]
@@ -137,11 +140,15 @@ function util_value!{T}(app::ChoiceData,p::parDict{T})
     chars_0 = X_0*β_0
 
     # FE is a row Vector
-    controls = zeros(size(F,2))
-    for k in 1:length(controls)
-        for j in app._rel_fe_Dict[ind]
-            controls[k]+= fe[j]*F[j,k]
+    if T== Float64
+        controls = zeros(size(F,2))
+        for k in 1:length(controls)
+            for j in app._rel_fe_Dict[ind]
+                controls[k]+= fe[j]*F[j,k]
+            end
         end
+    else
+        controls = fe*F
     end
 
     (K,N) = size(chars)
@@ -224,7 +231,8 @@ function ll_obs_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
         #pars_relevant_2 = vcat(1:Q_0,Q_0+find(maximum(F_t,2)))
         pars_relevant = vcat(1:Q_0,Q_0+app._rel_fe_Dict[ind])
 
-        γlen = 1 + d.parLength[:γ]
+        #γlen = 1 + d.parLength[:γ]
+        γlen = d.parLength[:γ]
         β0len = γlen + d.parLength[:β0]
         βlen = β0len + d.parLength[:γ]
         σlen = βlen + d.parLength[:σ]
@@ -251,14 +259,18 @@ function ll_obs_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
 
 
         for q in pars_relevant
-            if q==1
+            #if q==1
+            if q<0
                 #Constant
                 grad_obs[q] += par_gradient(1.0,μ_ij,δ,
                                         μ_ij_sums,μ_ij_sums_sq,
                                         gll_t1,gll_t2)
             elseif q<=γlen
                 # Base Demographics
-                grad_obs[q] += par_gradient(Z[q-1],μ_ij,δ,
+                # grad_obs[q] += par_gradient(Z[q-1],μ_ij,δ,
+                #                         μ_ij_sums,μ_ij_sums_sq,
+                #                         gll_t1,gll_t2)
+                grad_obs[q] += par_gradient(Z[q],μ_ij,δ,
                                         μ_ij_sums,μ_ij_sums_sq,
                                         gll_t1,gll_t2)
             elseif q<=β0len
