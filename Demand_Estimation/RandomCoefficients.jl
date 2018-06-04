@@ -301,7 +301,7 @@ function ll_obs_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
             #                             gll_t1,gll_t2)
             elseif q<=σlen
                 #Quality Random Effect
-                grad_obs[q] += par_gradient_σ(draws[:,1],X_t[1+q-(βlen+1),:],
+                grad_obs[q] += par_gradient_σ(draws[:,1],X_t[1+q-(βlen),:],
                                         μ_ij,δ,
                                         μ_ij_sums,μ_ij_sums_sq,
                                         gll_t1,gll_t2)
