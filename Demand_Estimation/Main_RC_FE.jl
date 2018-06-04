@@ -41,7 +41,7 @@ rundate = Dates.today()
 #                     spec_prodchars=spec_prodchars,
 #                     spec_prodchars_0=spec_prodchars_0,
 #                     spec_fixedEffects=[:Firm])
-#
+
 #
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_spec1_$rundate.jld"
 # save(file,"spec1",p_est1)

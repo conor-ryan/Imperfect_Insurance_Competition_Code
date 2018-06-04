@@ -98,7 +98,7 @@ function calc_indCoeffs{T}(p::parDict{T},β::Array{T,1},d::T)
     Q = length(β)
     (N,K) = size(p.randCoeffs)
     β_i = Array{T,2}(N,Q)
-    γ_i = d 
+    γ_i = d
     β_i[:,1] = β[1]
 
     for k in 2:Q, n in 1:N
@@ -293,12 +293,12 @@ function ll_obs_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
                                         μ_ij,δ,
                                         μ_ij_sums,μ_ij_sums_sq,
                                         gll_t1,gll_t2)
-            elseif q<=(βlen+1)
-                #Insurance Random Effect
-                grad_obs[q] += par_gradient_σ(draws[:,1],
-                                        μ_ij,δ,
-                                        μ_ij_sums,μ_ij_sums_sq,
-                                        gll_t1,gll_t2)
+            # elseif q<=(βlen+1)
+            #     #Insurance Random Effect
+            #     grad_obs[q] += par_gradient_σ(draws[:,1],
+            #                             μ_ij,δ,
+            #                             μ_ij_sums,μ_ij_sums_sq,
+            #                             gll_t1,gll_t2)
             elseif q<=σlen
                 #Quality Random Effect
                 grad_obs[q] += par_gradient_σ(draws[:,2],X_t[1+q-(βlen+1),:],
