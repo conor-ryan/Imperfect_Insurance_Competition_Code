@@ -27,7 +27,6 @@ spec_demoRaw = [:AgeFE_31_40,
         :AgeFE_51_64,
         :Family,
         :LowIncome]
-spec_demoRaw = []
 spec_prodchars=[:Price,:AV]
 spec_prodchars_0=[:Price,:AV]
 
@@ -72,16 +71,16 @@ save(file,"spec3",p_est3)
 
 
 #### Run Specification 3 ####
-println("Run Specification 4")
-p_est4, model4, flags4 = run_specification(df,df_mkt,
-                    haltonDim = halton_draws,
-                    spec_demoRaw=spec_demoRaw,
-                    spec_prodchars=[:Price],
-                    spec_prodchars_0=spec_prodchars_0,
-                    spec_fixedEffects=[:Product])
-
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_spec4_small_$rundate.jld"
-save(file,"spec4",p_est4)
+# println("Run Specification 4")
+# p_est4, model4, flags4 = run_specification(df,df_mkt,
+#                     haltonDim = halton_draws,
+#                     spec_demoRaw=spec_demoRaw,
+#                     spec_prodchars=[:Price],
+#                     spec_prodchars_0=spec_prodchars_0,
+#                     spec_fixedEffects=[:Product])
+#
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_spec4_small_$rundate.jld"
+# save(file,"spec4",p_est4)
 
 
 #### Load Results ####
