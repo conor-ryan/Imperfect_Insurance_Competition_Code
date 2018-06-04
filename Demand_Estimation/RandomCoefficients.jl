@@ -84,7 +84,7 @@ function calcRC!{T,S}(randCoeffs::Array{S},σ::Array{T},draws::Array{Float64,2})
     #randCoeffs[:,1] = draws[:,1].*σ[1]
     #Skip Price Coefficient
     for k in 1:K,n in 1:N
-        randCoeffs[n,k] = draws[n,2]*σ[k]
+        randCoeffs[n,k] = draws[n,1]*σ[k]
     end
     return Void
 end
