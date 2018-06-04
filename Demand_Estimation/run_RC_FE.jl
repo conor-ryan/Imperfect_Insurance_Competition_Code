@@ -26,24 +26,46 @@ c = ChoiceData(df,df_mkt;
             :LowIncome],
     prodchars=[:Price,:AV],
     prodchars_0=[:Price,:AV],
-    fixedEffects=[:constant,:Firm_Market_Cat])
+    fixedEffects=[:constant,:Firm])
 
 # Fit into model
-m = InsuranceLogit(c,100)
+m = InsuranceLogit(c,25)
 println("Data Loaded")
 
-# γ0start = rand(1)-.5
-# γstart = rand(m.parLength[:γ])/10 -.05
-# β0start = rand(m.parLength[:β])/10-.05
-# βstart = rand(m.parLength[:γ])/10 - .05
-# σstart = rand(m.parLength[:σ])/10 - .05
-# FEstart = rand(m.parLength[:FE])/100-.005
+#γ0start = rand(1)-.5
+γstart = rand(m.parLength[:γ])/10 -.05
+β0start = rand(m.parLength[:β])/10-.05
+βstart = rand(m.parLength[:γ])/10 - .05
+σstart = rand(m.parLength[:σ])/10 - .05
+FEstart = rand(m.parLength[:FE])/100-.005
 
-p0 = vcat(γstart,β0start,βstart,σstart,γ0start,FEstart)
-
+p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
+par0 = parDict(m,p0)
 
 grad_2 = Vector{Float64}(length(p0))
-ll =  log_likelihood!(grad_2,m,p0)
+ll =  log_likelihood!(grad_2,m,par0)
+
+
+c2 = ChoiceData(df,df_mkt;
+    demoRaw=[:AgeFE_31_40,
+            :AgeFE_41_50,
+            :AgeFE_51_64,
+            :Family,
+            :LowIncome],
+    prodchars=[:Price,:AV],
+    prodchars_0=[:Price,:AV],
+    fixedEffects=[:Firm])
+
+# Fit into model
+m2 = InsuranceLogit(c2,25)
+
+FE_2 = vcat(0,FEstart[2:length(FEstart)]).+FEstart[1]
+p2 = vcat(γstart,β0start,βstart,σstart,FE_2)
+par2 = parDict(m2,)
+test= Vector{Float64}(length(p2))
+ll_2 =  log_likelihood!(test,m2,p2)
+
+
 
 
 Profile.init(n=10^7,delay=.001)
