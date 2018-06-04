@@ -22,11 +22,11 @@ println("Code Loaded")
 #### General Specification ####
 
 halton_draws = 100
-# spec_demoRaw = [:AgeFE_31_40,
-#         :AgeFE_41_50,
-#         :AgeFE_51_64,
-#         :Family,
-#         :LowIncome]
+spec_demoRaw = [:AgeFE_31_40,
+        :AgeFE_41_50,
+        :AgeFE_51_64,
+        :Family,
+        :LowIncome]
 spec_demoRaw = []
 spec_prodchars=[:Price,:AV]
 spec_prodchars_0=[:Price,:AV]

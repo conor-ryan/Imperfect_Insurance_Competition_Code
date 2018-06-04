@@ -18,14 +18,15 @@ function run_specification(df::DataFrame,
     println("Data Loaded")
 
     ## Initialize Starting Parameters
-    γ0start = rand(1)-.5
+    #γ0start = rand(1)-.5
     γstart = rand(m.parLength[:γ])/10 -.05
     β0start = rand(m.parLength[:β])/10-.05
     βstart = rand(m.parLength[:γ])/10 - .05
     σstart = rand(m.parLength[:σ])/10 - .05
     FEstart = rand(m.parLength[:FE])/100-.005
 
-    p0 = vcat(γ0start,γstart,β0start,βstart,σstart,FEstart)
+    #p0 = vcat(γ0start,γstart,β0start,βstart,σstart,FEstart)
+    p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
     p0 = zeros(length(p0))
 
     println("Begin Estimation")

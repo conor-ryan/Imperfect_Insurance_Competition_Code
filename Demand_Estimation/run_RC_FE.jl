@@ -19,7 +19,11 @@ println("Code Loaded")
 include("load.jl")
 # Structre the data
 c = ChoiceData(df,df_mkt;
-    demoRaw=[],
+    demoRaw=[:AgeFE_31_40,
+            :AgeFE_41_50,
+            :AgeFE_51_64,
+            :Family,
+            :LowIncome],
     prodchars=[:Price,:AV],
     prodchars_0=[:Price,:AV],
     fixedEffects=[:Firm])
