@@ -98,7 +98,7 @@ function calc_indCoeffs{T}(p::parDict{T},β::Array{T,1},d::T)
     Q = length(β)
     (N,K) = size(p.randCoeffs)
     β_i = Array{T,2}(N,Q)
-    γ_i = d + p.randCoeffs[:,1]
+    γ_i = d 
     β_i[:,1] = β[1]
 
     for k in 2:Q, n in 1:N
