@@ -15,9 +15,9 @@ setkey(estData,Person,Product)
 
 
 ##### Prepare for Regression ####
-estData[,regVar:= log(S_ij*(1-unins_rate)+1e-3) - log(unins_rate+1e-3)]
+estData[,regVar:= log(S_ij*(1-unins_rate)+1e-10) - log(unins_rate+1e-10)]
 
-estData[,nestVar:= log(S_ij+1e-3)]
+estData[,nestVar:= log(S_ij+1e-10)]
 
 estData[,productFE:=as.factor(Product)]
 
@@ -96,7 +96,7 @@ summary(instrument_Data[METAL=="PLATINUM",])
 estData = merge(estData,instrument_Data,by=c("STATE","AGE_bucket","FPL_bucket","Family","METAL"))
 
 #### First Stage Instrument ####
-stage1 = lm(nestVar~log(share_instru + 1e-3),data=estData)
+stage1 = lm(nestVar~log(share_instru + 1e-10),data=estData)
 summary(stage1)
 estData[,nestVar_IV:=predict(stage1)]
 estData[,cor(nestVar_IV,nestVar)]
@@ -122,8 +122,8 @@ famList = c(0,1)
 reg2 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + AV + Firm +Market,data=estData)
 c2 = summary(reg2)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg2$coefficients)),c("Estimate","t value")]
 
-# reg3 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + AV + Firm_Market_Cat,data=estData)
-# c3 = summary(reg3)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg3$coefficients)),c("Estimate","t value")]
+reg3 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + AV + Firm_Market_Cat,data=estData)
+c3 = summary(reg3)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg3$coefficients)),c("Estimate","t value")]
 
 # reg4 = lm(regVar~AgeFE + Family + LowIncome + Price*AgeFE + Price*Family +Price*LowIncome + productFE,data=estData)
 # c4 = summary(reg4)$coefficients[grep("(Price|MedDeduct|nestVar)",names(reg4$coefficients)),c("Estimate","t value")]

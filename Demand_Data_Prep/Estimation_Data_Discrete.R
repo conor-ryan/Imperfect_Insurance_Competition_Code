@@ -542,18 +542,22 @@ choices[METAL=="SILVER 94",AV:=.94]
 choices[METAL=="GOLD",AV:=.8]
 choices[METAL=="PLATINUM",AV:=.9]
 
+# Age_AV Fixed Effect
+choices[,AV_old:=AV]
+choices[AGE<52,AV_old:=0]
+
 # Age Fixed Effects
 choices[,AgeFE_18_30:=0]
 choices[AGE<=30,AgeFE_18_30:=1]
 
-choices[,AgeFE_31_40:=0]
-choices[AGE>30&AGE<=40,AgeFE_31_40:=1]
+choices[,AgeFE_31_39:=0]
+choices[AGE>30&AGE<40,AgeFE_31_39:=1]
 
-choices[,AgeFE_41_50:=0]
-choices[AGE>40&AGE<=50,AgeFE_41_50:=1]
+choices[,AgeFE_40_51:=0]
+choices[AGE>=40&AGE<52,AgeFE_40_51:=1]
 
-choices[,AgeFE_51_64:=0]
-choices[AGE>50,AgeFE_51_64:=1]
+choices[,AgeFE_52_64:=0]
+choices[AGE>=52,AgeFE_52_64:=1]
 
 ## Firm Fixed Effects
 # firm_list = unique(choices$Firm)[-1]
@@ -664,12 +668,12 @@ setkey(shares,Product)
 
 write.csv(choices[,c("Person","Firm","Market","Firm_Market_Cat","Product","S_ij","N","Price",
                      "PriceDiff",#"MedDeductDiff","ExcOOPDiff","HighDiff",
-                     "MedDeduct","ExcOOP","High","AV",
+                     "MedDeduct","ExcOOP","High","AV","AV_old",
                      "Family","Age","LowIncome","AGE","HighIncome","IncomeCts",
                      "METAL",
                      "F0_Y0_LI0","F0_Y0_LI1","F0_Y1_LI0","F0_Y1_LI1",
                      "F1_Y0_LI0","F1_Y0_LI1","F1_Y1_LI0","F1_Y1_LI1",
-                     "AgeFE_18_30","AgeFE_31_40","AgeFE_41_50","AgeFE_51_64",
+                     "AgeFE_18_30","AgeFE_31_39","AgeFE_40_51","AgeFE_52_64",
                      "unins_rate","nonexch_unins_rate")],
           "Intermediate_Output/Estimation_Data/estimationData_discrete.csv",row.names=FALSE)
 write.csv(choices,"Intermediate_Output/Estimation_Data/descriptiveData_discrete.csv",row.names=FALSE)

@@ -153,7 +153,7 @@ function util_value!{T}(app::ChoiceData,p::parDict{T})
 
     (K,N) = size(chars)
     for k = 1:K,n = 1:N
-        u = exp(chars[k,n] + chars_0[k] + controls[k] + γ_i)
+        @fastmath u = exp(chars[k,n] + chars_0[k] + controls[k] + γ_i)
         p.μ_ij[n,idxitr[k]] = u
     end
 
