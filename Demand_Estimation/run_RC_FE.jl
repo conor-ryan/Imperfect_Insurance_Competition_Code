@@ -29,7 +29,7 @@ c = ChoiceData(df,df_mkt;
     fixedEffects=[:Firm])
 
 # Fit into model
-m = InsuranceLogit(c,1000)
+m = InsuranceLogit(c,500)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
@@ -43,8 +43,8 @@ p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 par0 = parDict(m,p0)
 
 grad_2 = Vector{Float64}(length(p0))
-ll =  log_likelihood!(grad_2,m,par0)
-@benchmark log_likelihood!(grad_2,m,par0)
+ll =  log_likelihood!(grad_2,m,p0)
+@benchmark log_likelihood!(grad_2,m,p0)
 
 println("Gradient Test")
 f_ll(x) = log_likelihood(m,x)

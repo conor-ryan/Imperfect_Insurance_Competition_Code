@@ -489,10 +489,6 @@ choices$Product = with(choices,paste(Firm,METAL,Market,sep="_"))
 choices[,Person:=as.factor(paste(Market,FPL_bucket,AGE_bucket,Mem_bucket))]
 choices[,Person:=as.numeric(Person)]
 
-choices[,prodCat:="Low"]
-choices[METAL%in%c("SILVER 87","SILVER 94","GOLD","PLATINUM"),prodCat:="High"]
-choices[,Firm_Market_Cat:=paste(Firm,Market,prodCat,sep="_")]
-
 #### Create Dummy Variables ####
 choices$Family = 0 
 choices$Family[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"] = 1
@@ -558,6 +554,16 @@ choices[AGE>=40&AGE<52,AgeFE_40_51:=1]
 
 choices[,AgeFE_52_64:=0]
 choices[AGE>=52,AgeFE_52_64:=1]
+
+
+#### Categorical Variables for Later Dummy Creation
+choices[,prodCat:="Low"]
+choices[METAL%in%c("SILVER 87","SILVER 94","GOLD","PLATINUM"),prodCat:="High"]
+choices[,Firm_Market_Cat:=paste(Firm,Market,prodCat,sep="_")]
+choices[,Firm_Market:=paste(Firm,Market,sep="_")]
+choices[,Firm_Market_Age:=paste(Firm,Market,Age,sep="_")]
+choices[,Firm_Market_Cat_Age:=paste(Firm,Market,prodCat,Age,sep="_")]
+
 
 ## Firm Fixed Effects
 # firm_list = unique(choices$Firm)[-1]
@@ -666,7 +672,8 @@ choices = choices[with(choices,order(Person,Product)),]
 setkey(choices,Person,Product)
 setkey(shares,Product)
 
-write.csv(choices[,c("Person","Firm","Market","Firm_Market_Cat","Product","S_ij","N","Price",
+write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price",
+                     "Firm_Market","Firm_Market_Cat","Firm_Market_Age","Firm_Market_Cat_Age",
                      "PriceDiff",#"MedDeductDiff","ExcOOPDiff","HighDiff",
                      "MedDeduct","ExcOOP","High","AV","AV_old",
                      "Family","Age","LowIncome","AGE","HighIncome","IncomeCts",
