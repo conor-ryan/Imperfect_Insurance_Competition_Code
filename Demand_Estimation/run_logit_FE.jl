@@ -16,47 +16,56 @@ include("Estimate_Basic.jl")
 println("Code Loaded")
 
 # Load the Data
-include("load.jl")
+include("load_ARCOLA.jl")
 # Structre the data
 c = ChoiceData(df,df_mkt;
-    demoRaw=[:AgeFE_31_40,
-            :AgeFE_41_50,
-            :AgeFE_51_64,
+    demoRaw=[:AgeFE_31_39,
+            :AgeFE_40_51,
+            :AgeFE_52_64,
             :Family,
             :LowIncome],
-    prodchars=[:Price,:AV],
-    prodchars_0=[],
-    fixedEffects=[:Firm])
+    prodchars=[:Price,:MedDeduct,:MedOOP],
+    prodchars_0=[:Price,:MedDeduct,:MedOOP],
+    fixedEffects=[:prodCat])
 
 # Fit into model
 m = InsuranceLogit(c,1)
 
 
-γ0start = 0.0
-γstart = Array{Float64}([0.1,0.1,0.1,0.1,0.1])/100
-#γstart = Array{Float64}([0,0,0,0,0,0,0])/100
-β0start = [-1.0,1.0]
-βstart = [0.01,0,0,0,0.01]
-FEstart = zeros(size(c.fixedEffects,1))
+γstart = rand(m.parLength[:γ])/10 -.05
+β0start = rand(m.parLength[:β])/10-.05
+βstart = rand(m.parLength[:γ])/10 - .05
+σstart = rand(m.parLength[:σ])/10 - .05
+FEstart = rand(m.parLength[:FE])/100-.005
 
+p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 
-#p0 = vcat(γstart,β0start,βstart,σstart)
-p0 = vcat(γ0start,γstart,β0start,βstart,FEstart)
-parStart0 = parDict(m,p0)
+# γ0start = 0.0
+# γstart = Array{Float64}([0.1,0.1,0.1,0.1,0.1])/100
+# #γstart = Array{Float64}([0,0,0,0,0,0,0])/100
+# β0start = [-1.0,1.0]
+# βstart = [0.01,0,0,0,0.01]
+# FEstart = zeros(size(c.fixedEffects,1))
+#
+#
+# #p0 = vcat(γstart,β0start,βstart,σstart)
+# p0 = vcat(γ0start,γstart,β0start,βstart,FEstart)
+# parStart0 = parDict(m,p0)
 
 #parStart1 = parDict(m,p1)
 println("Data Loaded")
 
-println("Gradient Test")
-f_ll(x) = log_likelihood(m,x)
-grad_1 = Vector{Float64}(length(p0))
-grad_2 = Vector{Float64}(length(p0))
-
-fval = log_likelihood(m,p0)
-ForwardDiff.gradient!(grad_1,f_ll, p0)
-fval = log_likelihood!(grad_2,m,p0)
-
-println(maximum(abs.(grad_1-grad_2)))
+# println("Gradient Test")
+# f_ll(x) = log_likelihood(m,x)
+# grad_1 = Vector{Float64}(length(p0))
+# grad_2 = Vector{Float64}(length(p0))
+#
+# fval = log_likelihood(m,p0)
+# ll = log_likelihood!(grad_2,m,p0)
+# println(fval-ll)
+#
+# ForwardDiff.gradient!(grad_1,f_ll, p0)
+# println(maximum(abs.(grad_1-grad_2)))
 
 ## Estimate
 est_res = estimate!(m, p0)

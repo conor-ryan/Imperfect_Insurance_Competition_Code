@@ -172,14 +172,14 @@ function build_FE{T}(data_choice::DataFrame,fe_list::Vector{T})
             num_effects=1
         elseif (!(:constant in fe_list)) & (fe==fe_list[1])
             num_effects = length(factor_list)
-            if fe==:Market
-                num_effects = length(factor_list) - 3
-            end
+            # if fe==:Market
+            #     num_effects = length(factor_list) - 3
+            # end
         else
             num_effects = length(factor_list)-1
-            if fe==:Market
-                num_effects = length(factor_list) - 4
-            end
+            # if fe==:Market
+            #     num_effects = length(factor_list) - 4
+            # end
         end
         L+=num_effects
     end
@@ -204,9 +204,9 @@ function build_FE{T}(data_choice::DataFrame,fe_list::Vector{T})
         for fac in factor_list[st_ind:length(factor_list)]
             # fac_data = zeros(n)
             # fac_data[fac_variables.==fac] = 1.0
-            if fac in ["ND_4","MD_4","IA_7"]
-                continue
-            end
+            # if fac in ["ND_4","MD_4","IA_7"]
+            #     continue
+            # end
 
             F[fac_variables.==fac,ind] = 1
             ind+= 1
@@ -333,7 +333,7 @@ type InsuranceLogit <: LogitModel
 end
 
 
-function InsuranceLogit(c_data::ChoiceData,haltonDim::Int)
+function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;nested=false)
     # Construct the model instance
 
     # Get Parameter Lengths
@@ -342,10 +342,15 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int)
     βlen = size(prodchars(c_data),1)
     flen = size(fixedEffects(c_data),1)
 
-    if haltonDim==1
+    if haltonDim==1 & !nested
         σlen = 0
-    else
+    elseif haltonDim>1 & !nested
         σlen = (size(prodchars(c_data),1)-1)
+    elseif haltonDim==1 & nested
+        σlen =1
+    else
+        error("Nesting Parameter not right")
+        return
     end
 
     #total = 1 + γlen + β0len + γlen + flen + σlen

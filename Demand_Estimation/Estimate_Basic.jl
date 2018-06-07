@@ -30,12 +30,11 @@ function estimate!(d::InsuranceLogit, p0;method=:LD_TNEWTON_PRECOND_RESTART)
     ll_grad!(grad,x) = log_likelihood!(grad,d,x)
     #gmm(x) = GMM_objective(d,x)
     # println(d.draws[1:30,:])
-
+    disp_length = min(20,length(p0))
     count = 0
     function ll(x, grad)
         count +=1
-
-        x_displ = x[1:20]
+        x_displ = x[1:disp_length]
         if count % 50 ==0
             x_displ = round.(x,1)
             println(find(abs.(x).>10))
