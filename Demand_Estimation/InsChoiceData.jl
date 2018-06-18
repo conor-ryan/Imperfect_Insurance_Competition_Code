@@ -344,9 +344,9 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;nested=false)
 
     if haltonDim==1 & !nested
         σlen = 0
-    elseif haltonDim>1 & !nested
+    elseif (haltonDim>1) & (!nested)
         σlen = (size(prodchars(c_data),1)-1)
-    elseif haltonDim==1 & nested
+    elseif (haltonDim==1) & nested
         σlen =1
     else
         error("Nesting Parameter not right")
