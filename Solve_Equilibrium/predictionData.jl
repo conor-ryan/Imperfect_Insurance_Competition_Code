@@ -844,11 +844,11 @@ function run_st_equil(st::String)
 
 
     println("Estimate Base Model")
-    solve_model!(model,0.02)
+    solve_model!(model,0.001)
     P_base[:] = model.premBase_j[:]
 
     println("Estimate Fixed Transfers")
-    solve_model!(model,0.02,sim="Fixed Transfer")
+    solve_model!(model,0.001,sim="Fixed Transfer")
     P_fix[:] = model.premBase_j[:]
 
     println("Estimate No Transfers")
