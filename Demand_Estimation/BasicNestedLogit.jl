@@ -59,8 +59,8 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
     δ = Vector{T}(M)
     μ_ij = Vector{T}(M)
     s_hat = Vector{T}(M)
-    unpack_δ!(δ,m)
-
+    #unpack_δ!(δ,m)
+    δ = ones(M)
     return parDict{T}(γ_0,γ,β_0,β,σ,FE,δ,μ_ij,s_hat)
 end
 ###########
@@ -202,10 +202,11 @@ function ll_obs_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
 
         # Pre-Calculate Squares
         σ = p.σ
-        μ_ij_sums = 1 + (vecdot(μ_ij,δ))^(1-σ)
-        μ_ig_σ = vecdot(μ_ij,δ)^(-σ)
+        μ_ig = vecdot(μ_ij,δ)
+        μ_ig_σ = μ_ig^(-σ)
+        μ_ij_sums = 1 + (μ_ig)^(1-σ)
         μ_ij_sums_sq = (μ_ij_sums)^2
-        μ_ij_logsum = log(vecdot(μ_ij,δ))
+        μ_ij_logsum = log(μ_ig)
 
         # Pre-Calculate Log-Likelihood Terms for Gradient
         # Also Calculate Log-Likelihood itself
@@ -226,26 +227,26 @@ function ll_obs_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
             if q<0
                 #Remove Initial Constant
                 grad_obs[q] += par_gradient(1.0,μ_ij,δ,
-                                        μ_ig_σ,σ,
+                                        μ_ig_σ,μ_ig,σ,
                                         μ_ij_sums,μ_ij_sums_sq,
                                         gll_t1,gll_t2)
             elseif q<=γlen
                 # Base Demographics
                 grad_obs[q] += par_gradient(Z[q],μ_ij,δ,
-                                        μ_ig_σ,σ,
+                                        μ_ig_σ,μ_ig,σ,
                                         μ_ij_sums,μ_ij_sums_sq,
                                         gll_t1,gll_t2)
             elseif q<=β0len
                 # Base Characteristics
                 grad_obs[q] += par_gradient(X_t[q-γlen,:],μ_ij,δ,
-                                        μ_ig_σ,σ,
+                                        μ_ig_σ,μ_ig,σ,
                                         μ_ij_sums,μ_ij_sums_sq,
                                         gll_t1,gll_t2)
             elseif q<=βlen
                 # Characteristic Interactions
                 grad_obs[q] += par_gradient(X_t[1,:]*Z[q-β0len],
                                         μ_ij,δ,
-                                        μ_ig_σ,σ,
+                                        μ_ig_σ,μ_ig,σ,
                                         μ_ij_sums,μ_ij_sums_sq,
                                         gll_t1,gll_t2)
             elseif q<=σlen
@@ -259,7 +260,7 @@ function ll_obs_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
                 fe_vec = F_t[q-σlen,:]
                 grad_obs[q] += par_gradient(fe_vec,
                                         μ_ij,δ,
-                                        μ_ig_σ,σ,
+                                        μ_ig_σ,μ_ig,σ,
                                         μ_ij_sums,μ_ij_sums_sq,
                                         gll_t1,gll_t2)
             end
@@ -273,7 +274,7 @@ end
 ##### Gradient Mini Functions #####
 function par_gradient{T}(x::Float64,
                             μ_ij::Array{T,1},δ::Vector{T},
-                            μ_ig_σ::T,σ::T,
+                            μ_ig_σ::T,μ_ig::T,σ::T,
                             μ_ij_sums::T,μ_ij_sums_sq::T,
                             gll_t1::Vector{Float64},gll_t2::Vector{Float64})
 
@@ -286,7 +287,7 @@ function par_gradient{T}(x::Float64,
     end
     grad_obs = par_gradient_inner_loop(dμ_ij,dμ_ij_sums,
                             μ_ij,δ,
-                            μ_ig_σ,σ,
+                            μ_ig_σ,μ_ig,σ,
                             μ_ij_sums,μ_ij_sums_sq,
                             gll_t1,gll_t2)
     return grad_obs
@@ -294,7 +295,7 @@ end
 
 function par_gradient{T}(x::Vector{Float64},
                             μ_ij::Array{T,1},δ::Vector{T},
-                            μ_ig_σ::T,σ::T,
+                            μ_ig_σ::T,μ_ig::T,σ::T,
                             μ_ij_sums::T,μ_ij_sums_sq::T,
                             gll_t1::Vector{Float64},gll_t2::Vector{Float64})
     grad_obs = 0.0
@@ -307,7 +308,7 @@ function par_gradient{T}(x::Vector{Float64},
     end
     grad_obs= par_gradient_inner_loop(dμ_ij,dμ_ij_sums,
                             μ_ij,δ,
-                            μ_ig_σ,σ,
+                            μ_ig_σ,μ_ig,σ,
                             μ_ij_sums,μ_ij_sums_sq,
                             gll_t1,gll_t2)
     return grad_obs
@@ -339,17 +340,18 @@ end
 
 function par_gradient_inner_loop{T}(dμ_ij::Vector{Float64},dμ_ij_sums::Float64,
                             μ_ij::Array{T,1},δ::Vector{T},
-                            μ_ig_σ::T,σ::T,
+                            μ_ig_σ::T,μ_ig::T,σ::T,
                             μ_ij_sums::T,μ_ij_sums_sq::T,
                             gll_t1::Vector{Float64},gll_t2::Vector{Float64})
 
     K = length(μ_ij)
     grad_obs = 0.0
+    @fastmath t2_0 = σ*dμ_ij_sums*(μ_ig_σ/μ_ig)/μ_ij_sums
     @fastmath t3 = (1-σ)*dμ_ij_sums*μ_ig_σ/μ_ij_sums_sq
     @inbounds(
     for k in 1:K
         @fastmath t1= dμ_ij[k]*μ_ig_σ/μ_ij_sums
-        @fastmath t2a = σ*dμ_ij_sums*μ_ij[k]*δ[k]*(μ_ig_σ/vecdot(μ_ij,δ))/μ_ij_sums
+        @fastmath t2a = t2_0*μ_ij[k]*δ[k]
         @fastmath t2b = (1-σ)*dμ_ij_sums*μ_ij[k]*δ[k]*μ_ig_σ^2/μ_ij_sums_sq
 
         @fastmath grad_obs += gll_t1[k]*(t1 - t2a - t2b) - gll_t2[k]*t3

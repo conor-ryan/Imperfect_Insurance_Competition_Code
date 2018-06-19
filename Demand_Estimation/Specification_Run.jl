@@ -4,7 +4,8 @@ function run_specification(df::DataFrame,
                             spec_prodchars=[:Price,:MedDeduct,:High],
                             spec_prodchars_0=[:PriceDiff],
                             spec_demoRaw=[:Age,:Family,:LowIncome],
-                            spec_fixedEffects=[])
+                            spec_fixedEffects=[],
+                            nested = false)
 
     ## Build Model
     c_data = ChoiceData(df,df_mkt;
@@ -13,7 +14,7 @@ function run_specification(df::DataFrame,
         prodchars_0=spec_prodchars_0,
         fixedEffects=spec_fixedEffects)
 
-    m = InsuranceLogit(c_data,haltonDim)
+    m = InsuranceLogit(c_data,haltonDim,nested=nested)
 
     println("Data Loaded")
 

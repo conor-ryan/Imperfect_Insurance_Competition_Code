@@ -16,7 +16,7 @@ include("Estimate_Basic.jl")
 println("Code Loaded")
 
 # Load the Data
-include("load.jl")
+include("load_ARCOLA.jl")
 # Structre the data
 c = ChoiceData(df,df_mkt;
     demoRaw=[:AgeFE_31_39,
@@ -24,19 +24,20 @@ c = ChoiceData(df,df_mkt;
             :AgeFE_52_64,
             :Family,
             :LowIncome],
-    prodchars=[:Price,:AV,:AV_old],
-    prodchars_0=[:Price,:AV,:AV_old],
-    fixedEffects=[:Firm])
+    prodchars=[:Price,:MedDeduct,:MedOOP],
+    prodchars_0=[:Price,:MedDeduct,:MedOOP],
+    fixedEffects=[:prodCat])
 
 # Fit into model
 m = InsuranceLogit(c,1,nested=true)
+#m = InsuranceLogit(c,1)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
 γstart = rand(m.parLength[:γ])/10 -.05
 β0start = rand(m.parLength[:β])/10-.05
 βstart = rand(m.parLength[:γ])/10 - .05
-σstart = rand(m.parLength[:σ])/10
+σstart = rand(m.parLength[:σ])/2 + .5
 FEstart = rand(m.parLength[:FE])/100-.005
 
 p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
@@ -55,38 +56,20 @@ ForwardDiff.gradient!(grad_1,f_ll, p0)
 println(fval_old-ll)
 println(maximum(abs.(grad_1-grad_2)))
 
-
-
-
-function test(p_est)
-    p = parDict(m,p_est)
-    individual_values!(m,p)
-    individual_shares(m,p)
-    share = 1-sum(p.s_hat[1:6])
-    return share
-end
-
-grad_test = Vector{Float64}(length(p0))
-ForwardDiff.gradient!(grad_test,test,p0)
-
-
+#
+#
 Profile.init(n=10^7,delay=.001)
 Profile.clear()
 Juno.@profile log_likelihood!(grad_2,m,p0)
 Juno.profiletree()
 Juno.profiler()
-
-
-
-
-
-
-
-
-
+#
+#
 
 ## Estimate
 est_res = estimate!(m, p0)
+
+
 
 
 
