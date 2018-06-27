@@ -17,7 +17,7 @@ type parDict{T}
     σ::Vector{T}
     FE::Matrix{T}
     #Random Coefficients stored (function of σ and draws)
-    randCoeffs::Array{T,2}
+    randCoeffs::Array{T,3}
     # δ values for (ij) pairs
     δ::Vector{T}
     # Non-delta utility for (ij) pairs and draws
@@ -66,7 +66,7 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
 
     #Calculate Random Coefficients matrix
     (S,R) = size(m.draws)
-    randCoeffs = Array{T,2}(S,m.parLength[:σ])
+    randCoeffs = Array{T,3}(S,m.parLength[:σ],size(m.data.rMoments,1))
     calcRC!(randCoeffs,σ,m.draws)
 
     #Initialize (ij) pairs of deltas
@@ -80,11 +80,11 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
 end
 
 function calcRC!{T,S}(randCoeffs::Array{S},σ::Array{T},draws::Array{Float64,2})
-    (N,K) = size(randCoeffs)
+    (N,K,R) = size(randCoeffs)
     #randCoeffs[:,1] = draws[:,1].*σ[1]
     #Skip Price Coefficient
-    for k in 1:K,n in 1:N
-        randCoeffs[n,k] = draws[n,1]*σ[k]
+    for k in 1:K,n in 1:N,r in 1:R
+        randCoeffs[n,k,r] = draws[n,r]*σ[k]
     end
     return Void
 end
@@ -94,7 +94,22 @@ end
 # Calculating Preferences
 ###########
 
-function calc_indCoeffs{T}(p::parDict{T},β::Array{T,1},d::T)
+# function calc_indCoeffs{T}(p::parDict{T},β::Array{T,1},d::T)
+#     Q = length(β)
+#     (N,K) = size(p.randCoeffs)
+#     β_i = Array{T,2}(N,Q)
+#     γ_i = d
+#     β_i[:,1] = β[1]
+#
+#     for k in 2:Q, n in 1:N
+#         β_i[n,k] = β[k] + p.randCoeffs[n,k-1]
+#     end
+#
+#     β_i = permutedims(β_i,(2,1))
+#     return β_i, γ_i
+# end
+
+function calc_indCoeffs{T}(p::parDict{T},β::Array{T,1},d::T,r_ind::Int)
     Q = length(β)
     (N,K) = size(p.randCoeffs)
     β_i = Array{T,2}(N,Q)
@@ -102,7 +117,7 @@ function calc_indCoeffs{T}(p::parDict{T},β::Array{T,1},d::T)
     β_i[:,1] = β[1]
 
     for k in 2:Q, n in 1:N
-        β_i[n,k] = β[k] + p.randCoeffs[n,k-1]
+        β_i[n,k] = β[k] + p.randCoeffs[n,k-1,r_ind]
     end
 
     β_i = permutedims(β_i,(2,1))
@@ -125,6 +140,7 @@ function util_value!{T}(app::ChoiceData,p::parDict{T})
     fe = p.FE
 
     ind = person(app)[1]
+    r_ind = Int(app[:riskIndex][1])
     idxitr = app._personDict[ind]
     X = permutedims(prodchars(app),(2,1))
     X_0 = permutedims(prodchars0(app),(2,1))
@@ -134,7 +150,7 @@ function util_value!{T}(app::ChoiceData,p::parDict{T})
 
     β_z = β*Z
     demos = γ_0 + vecdot(γ,Z)
-    β_i, γ_i = calc_indCoeffs(p,β_z,demos)
+    β_i, γ_i = calc_indCoeffs(p,β_z,demos,r_ind)
 
     chars = X*β_i
     chars_0 = X_0*β_0
@@ -195,6 +211,7 @@ end
 
 function ll_obs_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
         ind = person(app)[1]
+        r_ind = Int(app[:riskIndex][1])
         S_ij = transpose(choice(app))
         wgt = transpose(weight(app))
         urate = transpose(unins(app))
@@ -301,7 +318,7 @@ function ll_obs_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
             #                             gll_t1,gll_t2)
             elseif q<=σlen
                 #Quality Random Effect
-                grad_obs[q] += par_gradient_σ(draws[:,1],X_t[1+q-(βlen),:],
+                grad_obs[q] += par_gradient_σ(draws[:,r_ind],X_t[1+q-(βlen),:],
                                         μ_ij,δ,
                                         μ_ij_sums,μ_ij_sums_sq,
                                         gll_t1,gll_t2)

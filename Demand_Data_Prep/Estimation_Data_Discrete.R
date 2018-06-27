@@ -458,7 +458,17 @@ choices = choices[,c("STATE","AREA","FPL_bucket","AGE_bucket","Mem_bucket",
                      "ageRate","FPL_imp","Benchmark","HHcont","subsidy","Quote","premBase",
                      "PremPaid","PremPaidDiff","S_ij","N","Income","Mandate","unins_rate","nonexch_unins_rate")]
 
+#### Merge in Risk Score Moments ####
+r_mom = read.csv("Intermediate_Output/MEPS_Moments/R_Score_Moments.csv")
+choices$Age_Cat = 0
+choices$Age_Cat[choices$AGE>45] = 1
 
+choices$Inc_Cat = 0
+choices$Inc_Cat[with(choices,is.na(FPL_imp)|FPL_imp>4)] = 1
+
+choices = merge(choices,r_mom,by=c("Age_Cat","Inc_Cat"),all.x=TRUE)
+
+choices[,c("Age_Cat","Inc_Cat"):=NULL]
 # 
 # 
 # #### Type-Specific Choice Set ####
@@ -494,7 +504,7 @@ choices$Family = 0
 choices$Family[choices$FAMILY_OR_INDIVIDUAL=="FAMILY"] = 1
 
 choices$Age = 0
-choices$Age[choices$AGE>=31] = 1
+choices$Age[choices$AGE>=46] = 1
 
 choices$LowIncome = 1
 choices$LowIncome[with(choices,is.na(FPL_imp)|FPL_imp>4)] = 0
@@ -678,6 +688,9 @@ write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price",
                      "MedDeduct","ExcOOP","High","AV","AV_old",
                      "Family","Age","LowIncome","AGE","HighIncome","IncomeCts",
                      "METAL",
+                     "mean_HCC_Platinum","mean_HCC_Gold","mean_HCC_Silver","mean_HCC_Bronze","mean_HCC_Catastrophic",
+                     "Any_HCC",
+                     "var_HCC_Platinum","var_HCC_Gold","var_HCC_Silver","var_HCC_Bronze","var_HCC_Catastrophic",
                      "F0_Y0_LI0","F0_Y0_LI1","F0_Y1_LI0","F0_Y1_LI1",
                      "F1_Y0_LI0","F1_Y0_LI1","F1_Y1_LI0","F1_Y1_LI1",
                      "AgeFE_18_30","AgeFE_31_39","AgeFE_40_51","AgeFE_52_64",

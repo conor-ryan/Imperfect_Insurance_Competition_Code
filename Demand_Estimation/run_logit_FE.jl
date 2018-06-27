@@ -12,11 +12,11 @@ include("Halton.jl")
 include("BasicLogit.jl")
 include("Contraction.jl")
 include("Log_Likehood.jl")
-include("Estimate_Basic.jl")
+include("Estimate_GMM.jl")
 println("Code Loaded")
 
 # Load the Data
-include("load_ARCOLA.jl")
+include("load.jl")
 # Structre the data
 c = ChoiceData(df,df_mkt;
     demoRaw=[:AgeFE_31_39,
@@ -24,9 +24,9 @@ c = ChoiceData(df,df_mkt;
             :AgeFE_52_64,
             :Family,
             :LowIncome],
-    prodchars=[:Price,:MedDeduct,:MedOOP],
-    prodchars_0=[:Price,:MedDeduct,:MedOOP],
-    fixedEffects=[:prodCat])
+    prodchars=[:Price,:AV],
+    prodchars_0=[:Price,:AV],
+    fixedEffects=[:Firm])
 
 # Fit into model
 m = InsuranceLogit(c,1)
@@ -55,17 +55,17 @@ p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 #parStart1 = parDict(m,p1)
 println("Data Loaded")
 
-# println("Gradient Test")
-# f_ll(x) = log_likelihood(m,x)
-# grad_1 = Vector{Float64}(length(p0))
-# grad_2 = Vector{Float64}(length(p0))
-#
-# fval = log_likelihood(m,p0)
-# ll = log_likelihood!(grad_2,m,p0)
-# println(fval-ll)
-#
-# ForwardDiff.gradient!(grad_1,f_ll, p0)
-# println(maximum(abs.(grad_1-grad_2)))
+println("Gradient Test")
+f_ll(x) = log_likelihood(m,x)
+grad_1 = Vector{Float64}(length(p0))
+grad_2 = Vector{Float64}(length(p0))
+
+fval = log_likelihood(m,p0)
+ll = log_likelihood!(grad_2,m,p0)ï
+println(fval-ll)
+
+ForwardDiff.gradient!(grad_1,f_ll, p0)
+println(maximum(abs.(grad_1-grad_2)))
 
 ## Estimate
 est_res = estimate!(m, p0)

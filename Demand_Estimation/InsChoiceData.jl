@@ -12,6 +12,8 @@ struct ChoiceData <: ModelData
     data::Matrix{Float64}
     # Matrix of the product level data (pre-sorted)
     pdata::DataFrame
+    # Risk Score Moments
+    rMoments::Matrix{Float64}
     # Matrix of Fixed Effects
     fixedEffects::Matrix{Float64}
     # Index of the data column names
@@ -75,11 +77,25 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
     index = Dict{Symbol, Int}()
     dmat = Matrix{Float64}(n,0)
 
+    #### Risk Score Moments ####
+    r_df = unique(df[[:Any_HCC,:mean_HCC_Silver,:var_HCC_Silver]])
+    rmat = Matrix{Float64}(size(r_df))
+    for ind in 1:ncol(r_df)
+        rmat[:,ind] = r_df[ind]
+    end
+
+    R_index = Vector{Float64}(n)
+    for ind in eachindex(R_index)
+        R_index[ind] = findin(rmat[:,1],df[ind,:Any_HCC])[1]
+    end
+    r_var = [:riskIndex]
+    df[r_var] = R_index
+
     # Create a data matrix, only including person id
     println("Put Together Data non FE data together")
     k = 0
-    for (d, var) in zip([i,X,X_0, y, Z,w, s0], [person,prodchars,
-        prodchars_0,choice, demoRaw,wgt,unins])
+    for (d, var) in zip([i,X,X_0, y, Z,w, s0,R_index], [person,prodchars,
+        prodchars_0,choice, demoRaw,wgt,unins,r_var])
         for l=1:size(d,2)
             k+=1
             dmat = hcat(dmat, d[:,l])
@@ -132,9 +148,8 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
         rel_fe_Dict[id] = pars_relevant
     end
 
-
     # Make the data object
-    m = ChoiceData(dmat,data_market,F, index, prodchars,prodchars_0,
+    m = ChoiceData(dmat,data_market,rmat,F, index, prodchars,prodchars_0,
             choice, demoRaw,wgt, unins, _person, _prodchars,_prodchars_0,
             _choice, _demoRaw, _wgt, _unins,uniqids,_personDict,_productDict,
             rel_fe_Dict)
@@ -235,6 +250,7 @@ choice(m::ChoiceData)      = m[m._choice]
 demoRaw(m::ChoiceData)     = m[m._demoRaw]
 weight(m::ChoiceData)      = m[m._wgt]
 unins(m::ChoiceData)       = m[m._unins]
+rMoments(m::ChoiceData)       = m[m._rMoments]
 
 
 fixedEffects(m::ChoiceData)= m.fixedEffects
@@ -253,7 +269,7 @@ function subset{T<:ModelData}(d::T, idx)
 #    people = data[d._person,:]
 
     # Don't subset any other fields for now...
-    return T(data,d.pdata,fixedEf,
+    return T(data,d.pdata,d.rMoments,fixedEf,
     # Index of the column names
     d.index,
     # Names of rows (columns of input data)
@@ -361,7 +377,25 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;nested=false)
     # Initialize Halton Draws
     # These are the same across all individuals
     #draws = permutedims(MVHaltonNormal(haltonDim,2),(2,1))
-    draws = MVHaltonNormal(haltonDim,1;scrambled=false)
+    #draws = MVHaltonNormal(haltonDim,4;scrambled=false)
+
+    draws = MVHalton(haltonDim,1;scrambled=false)
+    risk_draws = Matrix{Float64}(haltonDim,size(c_data.rMoments,1))
+    for mom in 1:size(c_data.rMoments,1)
+        any = 1 - c_data.rMoments[mom,1]
+        μ_risk = c_data.rMoments[mom,2]
+        std_risk = sqrt(c_data.rMoments[mom,3])
+        for ind in 1:haltonDim
+            if draws[ind]<any
+                risk_draws[ind,mom] = 0
+            else
+                d = (draws[ind] - any)/(1-any)
+                log_r = norminvcdf(d)*std_risk + μ_risk
+                risk_draws[ind,mom] = exp(log_r)
+            end
+        end
+    end
+
 
     # Initialize Empty value prediction objects
     n, k = size(c_data.data)
@@ -372,7 +406,7 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;nested=false)
 
     d = InsuranceLogit(parLength,
                         c_data,
-                        draws,
+                        risk_draws,
                         pmat[:Product],pmat[:Share],pmat[:delta])
     return d
 end
