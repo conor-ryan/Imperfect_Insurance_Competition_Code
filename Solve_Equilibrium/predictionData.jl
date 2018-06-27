@@ -580,6 +580,7 @@ function eval_FOC(e::EqData)
 
     T_norm_j = R_norm_j - A_norm_j
     avgPrem = sum(A_j.*e.premBase_j.*share_tilde)/sum(share_tilde)
+    avgPrem_base = sum(e.premBase_j.*share_tilde)/sum(share_tilde)
 
     T_j = T_norm_j.*avgPrem.*(1-Catas_j)
 
@@ -594,11 +595,24 @@ function eval_FOC(e::EqData)
     dCost = Matrix{Float64}(J,J)
 
     dTdp = Matrix{Float64}(J,J)
+    dTdp_avgPrice = Matrix{Float64}(J,J)
+    dTdp_norm = Matrix{Float64}(J,J)
+    davgCost = Matrix{Float64}(J,J)
+    dPool_dA = Matrix{Float64}(J,J)
+    dPool_dNorm = Matrix{Float64}(J,J)
     dTdp_fix = Matrix{Float64}(J,J)
 
     (N,M) = size(e.data.data)
     deriv_long = Vector{Float64}(N)
-    test = Vector{Float64}(N)
+
+    margCost = Vector{Float64}(J)
+    markup = Vector{Float64}(J)
+    margCost_est = Vector{Float64}(J)
+    avgCost_est = Vector{Float64}(J)
+    pooledCost = Vector{Float64}(J)
+
+    dsdp_0 = Vector{Float64}(J)
+    dsdp_rev_0 = Vector{Float64}(J)
 
     for (n,j) in enumerate(e.prods)
         #println(j)
@@ -609,6 +623,9 @@ function eval_FOC(e::EqData)
                                     alpha_long,ageRate_long,e)
         dsdp[:,n] = sum_by_prod(deriv_long,e,weights)
         dsdp_rev[:,n] = sum_by_prod(deriv_long,e.data[:ageRate_avg],e,weights)
+
+        dsdp_0[n] = sum(dsdp[:,n])
+        dsdp_rev_0[n] = sum(dsdp_rev[:,n])
 
         dAge_j = chg_in_avg(deriv_long,:AGE,Age_long,S_j,dsdp[:,n],e,weights)
         dWTP_j = chg_in_avg(deriv_long,:WTP,WTP_long,S_j,dsdp[:,n],e,weights)
@@ -650,8 +667,20 @@ function eval_FOC(e::EqData)
         dP_s+= share_tilde[n]*A_j[n]
 
         dTdp[:,n] = (dTnorm_dp.*avgPrem + T_norm_j*dP_s).*(1-Catas_j)
+        dTdp_avgPrice[:,n] = (T_norm_j*dP_s).*(1-Catas_j)
+        dTdp_norm[:,n] = (dTnorm_dp.*avgPrem).*(1-Catas_j)
         dTdp_fix[:,n] = (dR_Gamma_j./e.ST_R_fix -
                             dA_Gamma_j./e.ST_A_fix).*e.avgPrem_fix.*(1-Catas_j)
+
+
+        davgCost[:,n] = ((dR_Gamma_j./ST_R).*avgPrem).*(1-Catas_j)
+        dPool_dA[:,n] = ((dA_Gamma_j./ST_A).*avgPrem).*(1-Catas_j)
+        dPool_dNorm[:,n] = (A_norm_j.*sum(ds_tilde_dp.*A_Gamma_j + share_tilde.*dA_Gamma_j)/ST_A -
+                    R_norm_j.*sum(ds_tilde_dp.*R_Gamma_j + share_tilde.*dR_Gamma_j)/ST_R).*avgPrem.*(1-Catas_j)
+
+        avgCost_est[n] = R_norm_j[n]*avgPrem.*(1-Catas_j[n])
+        pooledCost[n] = A_norm_j[n]*avgPrem.*(1-Catas_j[n])
+
     end
 
 
@@ -666,6 +695,14 @@ function eval_FOC(e::EqData)
     foc_Std = Vector{Float64}(J)
     foc_RA = Vector{Float64}(J)
     foc_RA_fix = Vector{Float64}(J)
+
+
+    RA_term1 = Vector{Float64}(J)
+    RA_term2 = Vector{Float64}(J)
+    RA_term3 = Vector{Float64}(J)
+    RA_term4 = Vector{Float64}(J)
+    RA_term5 = Vector{Float64}(J)
+
     for (m,m_idx) in e.mkt_index
         L_m = S_m[m_idx][1]
         # P = e.premBase_j[m_idx]
@@ -679,15 +716,24 @@ function eval_FOC(e::EqData)
         m_dsdp = dsdp[m_idx,m_idx].*e.ownMat[m_idx,m_idx]
         m_dsdp_rev = dsdp_rev[m_idx,m_idx].*e.ownMat[m_idx,m_idx]
         m_dTdp = dTdp[:,m_idx].*e.ownMat[:,m_idx]
+        m_dTdp_Price = dTdp_avgPrice[:,m_idx].*e.ownMat[:,m_idx]
+        m_dTdp_Norm  = dTdp_norm[:,m_idx].*e.ownMat[:,m_idx]
+
+        m_dAC = davgCost[m_idx,m_idx].*e.ownMat[m_idx,m_idx]
+        m_dP_A = dPool_dA[m_idx,m_idx].*e.ownMat[m_idx,m_idx]
+        m_dP_Norm = dPool_dNorm[:,m_idx].*e.ownMat[:,m_idx]
+
         m_dTdp_fix = dTdp_fix[:,m_idx].*e.ownMat[:,m_idx]
         m_dCost = dCost[m_idx,m_idx].*e.ownMat[m_idx,m_idx]
 
-        # rev = inv(m_dsdp)*(m_dsdp_rev*P + S.*A)
-        # tran = inv(L_m*m_dsdp)*(L_m*m_dsdp*T + m_dTdp'*(S_m.*S_j))
-        # cost = inv(m_dsdp)*(m_dsdp*C + m_dCost*S)
+        #rev = inv(m_dsdp_rev)*(m_dsdp_rev*P + S.*A)
+        # markup = inv(m_dsdp_rev)*S.*A
+        # tran = inv(L_m*m_dsdp_rev)*(L_m*m_dsdp*T + m_dTdp'*(S_m.*S_j))
+        # tran_fix = inv(L_m*m_dsdp_rev)*(L_m*m_dsdp*T_fix + m_dTdp_fix'*(S_m.*S_j))
+        # cost = inv(m_dsdp_rev)*(m_dsdp*C + m_dCost*S)
 
         # The cost matrix should maybe be transposed...
-        foc_Std[m_idx] = L_m*( S.*A - (m_dsdp*C + m_dCost*S) )
+        foc_Std[m_idx] = L_m*( S.*A - (m_dsdp*C + m_dCost'*S) )
         foc_RA[m_idx] = L_m*m_dsdp*T + m_dTdp'*(S_m.*S_j)
         foc_RA_fix[m_idx] = L_m*m_dsdp*T_fix + m_dTdp_fix'*(S_m.*S_j)
 
@@ -698,12 +744,37 @@ function eval_FOC(e::EqData)
         # P_new[m_idx] = -inv(L_m*m_dsdp_rev)*(L_m*( S.*A - (m_dsdp*C + m_dCost*S) ) )
         # foc_err[m_idx] = (rev-cost)./100
 
+        markup[m_idx] = -inv(m_dsdp_rev)*(S.*A)
+        margCost[m_idx] = inv(m_dsdp_rev)*(m_dsdp*C + m_dCost'*S)
+        RA_term1[m_idx] = -inv(m_dsdp_rev)*(m_dsdp*T)
+        RA_term2[m_idx] = -inv(m_dsdp_rev)*(m_dAC'*S)
+        RA_term3[m_idx] =  inv(m_dsdp_rev)*(m_dP_A'*S)
+        RA_term4[m_idx] = -inv(L_m*m_dsdp_rev)*(m_dP_Norm'*(S_m.*S_j))
+        RA_term5[m_idx] = -inv(L_m*m_dsdp_rev)*(m_dTdp_Price'*(S_m.*S_j))
+
+        #margCost_est[m_idx] = inv(m_dsdp_rev)*(m_dAC'*S) + avgCost_est[m_idx]
     end
 
-    # for (m,m_idx) in e.mkt_index
-    #     L_m = S_m[m_idx][1]
-    #     P_test[m_idx] = -inv(L_m*dsdp_rev[m_idx,m_idx])*(foc_Std[m_idx] + foc_RA[m_idx])
-    # end
+    P_foc = -inv(S_m.*dsdp_rev.*e.ownMat)*(foc_Std + foc_RA)
+    #P_decomp = markup + margCost + RA_term1 + RA_term2 + RA_term3 + RA_term4 + RA_term5
+    ## Decomposition
+    # Estimated Marginal Cost - Pooled Cost + Pooled Cost
+    margCost_est = -(RA_term1 + RA_term2 + RA_term3) + avgPrem
+
+    Pooled_Cost = inv(dsdp_rev.*e.ownMat)*(dsdp_rev_0.*avgPrem).*(A_Gamma_j/ST_A)
+    share_weights = e.ownMat*(S_j.*S_m)/sum(S_j.*S_m)
+    PC_wtd = avgPrem.*share_weights
+
+    mkt_MargCost = (RA_term4 + PC_wtd)./share_weights
+
+    efficiency = margCost - margCost_est
+
+    P_decomp = markup +
+                efficiency +
+                share_weights.*mkt_MargCost +
+                avgPrem  - share_weights.*Pooled_Cost +
+                RA_term5
+
 
     # Average Error, for consistency across product numebers
     return foc_Std, foc_RA, foc_RA_fix, S_m, dsdp_rev
@@ -844,11 +915,11 @@ function run_st_equil(st::String)
 
 
     println("Estimate Base Model")
-    solve_model!(model,0.001)
+    solve_model!(model,1e-10)
     P_base[:] = model.premBase_j[:]
 
     println("Estimate Fixed Transfers")
-    solve_model!(model,0.001,sim="Fixed Transfer")
+    solve_model!(model,1e-5,sim="Fixed Transfer")
     P_fix[:] = model.premBase_j[:]
 
     println("Estimate No Transfers")
