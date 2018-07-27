@@ -24,8 +24,8 @@ c = ChoiceData(df,df_mkt;
             :AgeFE_52_64,
             :Family,
             :LowIncome],
-    prodchars=[:Price,:AV,:AV_old],
-    prodchars_0=[:Price,:AV,:AV_old],
+    prodchars=[:Price,:AV,],
+    prodchars_0=[:Price,:AV,],
     fixedEffects=[:Firm])
 
 # Fit into model
@@ -41,6 +41,10 @@ FEstart = rand(m.parLength[:FE])/100-.005
 
 p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 par0 = parDict(m,p0)
+## Estimate
+est_res = estimate!(m, p0)
+
+
 
 grad_2 = Vector{Float64}(length(p0))
 ll =  log_likelihood!(grad_2,m,p0)
@@ -71,8 +75,6 @@ Juno.profiler()
 
 
 
-## Estimate
-est_res = estimate!(m, p0)
 
 
 

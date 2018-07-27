@@ -15,9 +15,10 @@ setkey(estData,Person,Product)
 
 
 ##### Prepare for Regression ####
-estData[,regVar:= log(S_ij*(1-unins_rate)+1e-10) - log(unins_rate+1e-10)]
+log_correct = 1e-10
+estData[,regVar:= log(S_ij*(1-unins_rate)+log_correct) - log(unins_rate+log_correct)]
 
-estData[,nestVar:= log(S_ij+1e-10)]
+estData[,nestVar:= log(S_ij+log_correct)]
 
 estData[,productFE:=as.factor(Product)]
 
@@ -96,7 +97,7 @@ summary(instrument_Data[METAL=="PLATINUM",])
 estData = merge(estData,instrument_Data,by=c("STATE","AGE_bucket","FPL_bucket","Family","METAL"))
 
 #### First Stage Instrument ####
-stage1 = lm(nestVar~log(share_instru + 1e-10),data=estData)
+stage1 = lm(nestVar~log(share_instru + log_correct),data=estData)
 summary(stage1)
 estData[,nestVar_IV:=predict(stage1)]
 estData[,cor(nestVar_IV,nestVar)]

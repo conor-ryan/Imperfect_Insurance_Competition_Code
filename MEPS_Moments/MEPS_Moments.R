@@ -68,11 +68,15 @@ meps$Inc_Cat = 0
 meps$Inc_Cat[meps$POVLEV15>=400] = 1
 
 
+ggplot(meps) + 
+  aes(x=HCC_Score_Silver,weights=PERWT15F,y=..density..) + 
+  geom_histogram()
+
 
 ggplot(meps) + 
   aes(x=log(HCC_Score_Silver+.001),weights=PERWT15F,y=..density..) + 
   geom_histogram() + 
-  facet_grid(~Age_Cat)
+  facet_grid(Inc_Cat~Age_Cat) 
 
 score_vars = names(meps)[grep("R_Score|HCC_Score",names(meps))]
 for (var in score_vars){

@@ -22,9 +22,9 @@ function estimate!(d::InsuranceLogit, p0;method=:LD_TNEWTON_PRECOND_RESTART)
     maxtime!(opt_stage2, 500000)
 
     lb = repeat([-Inf],inner=length(p0))
-    # lb[14] = 0.0
+    lb[14] = 0.0
     ub = repeat([Inf],inner=length(p0))
-    # ub[14] = .99
+    ub[14] = .99
 
     lower_bounds!(opt_stage1, lb)
     upper_bounds!(opt_stage1, ub)

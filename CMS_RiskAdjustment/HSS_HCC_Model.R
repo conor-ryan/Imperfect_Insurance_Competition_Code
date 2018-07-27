@@ -3,9 +3,18 @@ library(data.table)
 library(doBy)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
 
+
+#### ICD09 to 3-Digit Mapping ####
+mapdig = as.data.table(read.csv("Code/CMS_RiskAdjustment/HHS-HCC/ICD09_Codes.csv",stringsAsFactors=FALSE,colClasses = "character"))
+mapdig[,trunc_ICD9:=substr(ICD9,0,3)]
+mapdig[,ICD9_num:=as.numeric(gsub("V|E","",ICD9))]
+mapdig[,ICD9_min:=min(ICD9_num),by="trunc_ICD9"]
+mapdig = mapdig[ICD9_num==ICD9_min,]
+
+
 #### Classify ICD-9 Codes into HCCs ####
 
-crosswalk <- as.data.table(read.csv("Code/CMS_RiskAdjustment/HHS-HCC/ICD09_HCC.csv",stringsAsFactors=FALSE))
+crosswalk <- as.data.table(read.csv("Code/CMS_RiskAdjustment/HHS-HCC/ICD09_HCC.csv",stringsAsFactors=FALSE,colClasses = "character"))
 
 ## Truncate to first three digits
 crosswalk[,trunc_ICD9:=substr(ICD9,0,3)]
@@ -34,8 +43,15 @@ crosswalk[grepl(" < 2",CC_AGE_SPLIT),Age_Max:=1]
 crosswalk[grepl(" < 18",CC_AGE_SPLIT),Age_Max:=17]
 crosswalk[grepl(" < 50",CC_AGE_SPLIT),Age_Max:=49]
 
-#crosswalk = crosswalk[,list(HCC=min(HCC)),by="trunc_ICD9"]
-crosswalk = unique(crosswalk[,c("trunc_ICD9","CC","Additional_CC","CC_SEX_SPLIT","Age_Min","Age_Max","Age_Diag_Min","Age_Diag_Max")])
+# #crosswalk = crosswalk[,list(HCC=min(HCC)),by="trunc_ICD9"]
+# crosswalk = unique(crosswalk[,c("trunc_ICD9","CC","Additional_CC","CC_SEX_SPLIT","Age_Min","Age_Max","Age_Diag_Min","Age_Diag_Max")])
+# CC_cats = as.numeric(unique(crosswalk$CC))
+# ## Minimum CC per truncated code. Imperfect adjustment... 
+# crosswalk = crosswalk[,list(CC=min(CC)),
+#                       by=c("trunc_ICD9","CC_SEX_SPLIT","Age_Min","Age_Max","Age_Diag_Min","Age_Diag_Max")]
+
+
+
 
 
 #### Classify MEPS into HCCs ####
@@ -49,18 +65,23 @@ meps_med = merge(meps_med,meps_full,by=c("DUID","PID","DUPERSID","PANEL"),all.x=
 
 
 ## Merge into crosswalk
-meps_med = merge(meps_med,crosswalk,by.x="ICD9CODX",by.y="trunc_ICD9",all.x=TRUE,allow.cartesian=TRUE)
+meps_med = merge(meps_med,mapdig[,c("trunc_ICD9","ICD9")],by.x="ICD9CODX",by.y="trunc_ICD9",all.x=TRUE)
+
+meps_med = merge(meps_med,crosswalk,by.x="ICD9",by.y="ICD9",all.x=TRUE)
+
 meps_med[,keep_sex:=TRUE]
 meps_med[,keep_age:=(is.na(Age_Min)) | (AGE15X>=Age_Min & AGE15X<=Age_Max)]
 
 ## In this sample, no sex distinctions or Additional CCs to worry about.
 meps_med = meps_med[keep_sex==TRUE & keep_age==TRUE,]
-meps_med = unique(meps_med[,c("DUID","PID","DUPERSID","PANEL","AGE15X","CC")])
 
+
+
+meps_med = unique(meps_med[,c("DUID","PID","DUPERSID","PANEL","AGE15X","CC")])
+meps_med$CC = as.numeric(meps_med$CC)
 
 
 # Create Wide Dataset
-CC_cats = sort(unique(crosswalk$CC))
 for (cat in CC_cats){
   cc = as.character(cat)
   if (cat<100) {cc = paste("0",cat,sep="")}
@@ -106,7 +127,7 @@ for (hcc_var in cc_vars){
 
 #### Create Demogrophic Base for Risk Adjustment ####
 meps_full = read.csv("Data/2015_MEPS/MEPS_Full_2015.csv")
-meps_full = as.data.table(meps_full[,c("DUID","PID","DUPERSID","PANEL","AGE15X","SEX")])
+meps_full = as.data.table(meps_full[,c("DUID","PID","DUPERSID","PANEL","AGE15X","SEX","PERWT15F")])
 meps_full = meps_full[AGE15X>(-1),]
 ## Age Categories
 meps_full[,Age_Cat_Min:= floor(AGE15X/5)*5]
@@ -289,7 +310,7 @@ model_full$model[model_full$AGE15X<=20]="Child"
 model_full$model[model_full$AGE15X<=1]="Infant"
 
 
-#### Calculate Risk Scores ####
+#### Calculate Unadjusted Risk Scores ####
 coeffs = read.csv("Code/CMS_RiskAdjustment/HHS-HCC/HHS_HCC_Coefficients.csv",stringsAsFactors = FALSE)
 
 ## Full Risk Scores
@@ -299,7 +320,7 @@ model_full$R_Score_Silver = 0
 model_full$R_Score_Bronze = 0
 model_full$R_Score_Catastrophic = 0
 
-
+old_mean = 0
 for (n in 1:nrow(coeffs)){
   for (m in c("Platinum","Gold","Silver","Bronze","Catastrophic")){
     var = coeffs$Variable[n]
@@ -310,6 +331,15 @@ for (n in 1:nrow(coeffs)){
       model_full[[score_var]][model_full$model==mod] + 
       model_full[[var]][model_full$model==mod]*beta
   }
+
+  # new_mean = mean(model_full$R_Score_Bronze)
+  # mean_diff = new_mean - old_mean
+  # old_mean = new_mean
+  # if (mean_diff>.1){
+  #   print(var)
+  #   print(new_mean)
+  #   print(mean_diff)
+  # }
 }
 
 ## Non-Age Risk Scores
@@ -323,7 +353,6 @@ model_full$HCC_Score_Catastrophic = 0
 
 for (n in 1:nrow(nonAge_coeffs)){
   var = nonAge_coeffs$Variable[n]
-  print(var)
   for (m in c("Platinum","Gold","Silver","Bronze","Catastrophic")){
     beta = nonAge_coeffs[[m]][n]
     mod = nonAge_coeffs$Model[n]
@@ -333,6 +362,87 @@ for (n in 1:nrow(nonAge_coeffs)){
       model_full[[var]][model_full$model==mod]*beta
   }
 }
+
+##### Match Mean of Actual Risk Score ####
+## Non Group Coverage
+mepsPers = read.csv("Data/2015_MEPS/MEPS_Person_2015.csv")
+
+mepsPers = mepsPers[mepsPers$PRIVCAT%in%c(2,3,5,6,99),]
+mepsPers = mepsPers[mepsPers$CMJINS!=1,]
+mepsPers = mepsPers[mepsPers$TYPEFLAG%in%c(5,6,7,11,12,13,21),]
+
+mepsPers = mepsPers[mepsPers$STEXCH!=-1,]
+
+mepsPers = summaryBy(STEXCH~DUPERSID+PANEL,data=mepsPers,FUN=min,keep.names=TRUE)
+
+model_full = merge(model_full,mepsPers,all.x=TRUE,by=c("DUPERSID","PANEL"))
+
+mean_R_Silver = wtd.mean(model_full$R_Score_Silver[!is.na(model_full$STEXCH)],weights=model_full$PERWT15F[!is.na(model_full$STEXCH)])
+mean_HCC_Silver = wtd.mean(model_full$HCC_Score_Silver[!is.na(model_full$STEXCH)],weights=model_full$PERWT15F[!is.na(model_full$STEXCH)])
+mean_Age = mean_R_Silver - mean_HCC_Silver
+## Adjust to match actual mean
+HCC_Adj = (1.615 - mean_Age)/mean_HCC_Silver
+# Close enoough... 
+
+
+##### Re- Calculate Risk Scores ####
+# 
+# ## Full Risk Scores
+# model_full$R_Score_Platinum = 0
+# model_full$R_Score_Gold = 0
+# model_full$R_Score_Silver = 0
+# model_full$R_Score_Bronze = 0
+# model_full$R_Score_Catastrophic = 0
+# 
+# old_mean = 0
+# for (n in 1:nrow(coeffs)){
+#   for (m in c("Platinum","Gold","Silver","Bronze","Catastrophic")){
+#     var = coeffs$Variable[n]
+#     beta = coeffs[[m]][n]
+#     mod = coeffs$Model[n]
+#     score_var = paste("R_Score",m,sep="_")
+#     if(!grepl("AGE",var)){
+#       beta = HCC_Adj*beta
+#     }
+#     
+#     model_full[[score_var]][model_full$model==mod] = 
+#       model_full[[score_var]][model_full$model==mod] + 
+#       model_full[[var]][model_full$model==mod]*beta
+#   }
+#   
+#   # new_mean = mean(model_full$R_Score_Bronze)
+#   # mean_diff = new_mean - old_mean
+#   # old_mean = new_mean
+#   # if (mean_diff>.1){
+#   #   print(var)
+#   #   print(new_mean)
+#   #   print(mean_diff)
+#   # }
+# }
+# 
+# mean_R_Silver = wtd.mean(model_full$R_Score_Silver[!is.na(model_full$STEXCH)],weights=model_full$PERWT15F[!is.na(model_full$STEXCH)])
+# print(mean_R_Silver)
+# 
+# ## Non-Age Risk Scores
+# nonAge_coeffs = coeffs[!grepl("AGE",coeffs$Variable),]
+# 
+# model_full$HCC_Score_Platinum = 0
+# model_full$HCC_Score_Gold = 0
+# model_full$HCC_Score_Silver = 0
+# model_full$HCC_Score_Bronze = 0
+# model_full$HCC_Score_Catastrophic = 0
+# 
+# for (n in 1:nrow(nonAge_coeffs)){
+#   var = nonAge_coeffs$Variable[n]
+#   for (m in c("Platinum","Gold","Silver","Bronze","Catastrophic")){
+#     beta = HCC_Adj*nonAge_coeffs[[m]][n]
+#     mod = nonAge_coeffs$Model[n]
+#     score_var = paste("HCC_Score",m,sep="_")
+#     model_full[[score_var]][model_full$model==mod] = 
+#       model_full[[score_var]][model_full$model==mod] + 
+#       model_full[[var]][model_full$model==mod]*beta
+#   }
+# }
 
 #### Output Data ####
 model_full = model_full[,c("DUPERSID","PANEL",names(model_full)[grep("(R_Score|HCC_Score)",names(model_full))])]

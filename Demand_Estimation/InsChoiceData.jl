@@ -55,7 +55,8 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
         #          :F1_Y1_LI0,:F1_Y1_LI1],
         fixedEffects=Vector{Symbol}(0),
         wgt=[:N],
-        unins=[:unins_rate])
+        unins=[:unins_rate],
+        riskscores=true)
 
     # Get the size of the data
     n, k = size(data_choice)
@@ -78,18 +79,24 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
     dmat = Matrix{Float64}(n,0)
 
     #### Risk Score Moments ####
-    r_df = unique(df[[:Any_HCC,:mean_HCC_Silver,:var_HCC_Silver]])
-    rmat = Matrix{Float64}(size(r_df))
-    for ind in 1:ncol(r_df)
-        rmat[:,ind] = r_df[ind]
-    end
+    if riskscores
+        r_df = unique(df[[:Any_HCC,:mean_HCC_Silver,:var_HCC_Silver]])
+        rmat = Matrix{Float64}(size(r_df))
+        for ind in 1:ncol(r_df)
+            rmat[:,ind] = r_df[ind]
+        end
 
-    R_index = Vector{Float64}(n)
-    for ind in eachindex(R_index)
-        R_index[ind] = findin(rmat[:,1],df[ind,:Any_HCC])[1]
+        R_index = Vector{Float64}(n)
+        for ind in eachindex(R_index)
+            R_index[ind] = findin(rmat[:,1],df[ind,:Any_HCC])[1]
+        end
+        r_var = [:riskIndex]
+        df[r_var] = R_index
+    else
+        r_var = [:riskIndex]
+        R_index = Vector{Float64}(n)
+        rmat =  Matrix{Float64}(0,0)
     end
-    r_var = [:riskIndex]
-    df[r_var] = R_index
 
     # Create a data matrix, only including person id
     println("Put Together Data non FE data together")
@@ -349,7 +356,8 @@ type InsuranceLogit <: LogitModel
 end
 
 
-function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;nested=false)
+function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
+    nested=false,riskscores=true)
     # Construct the model instance
 
     # Get Parameter Lengths
@@ -380,20 +388,24 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;nested=false)
     #draws = MVHaltonNormal(haltonDim,4;scrambled=false)
 
     draws = MVHalton(haltonDim,1;scrambled=false)
-    risk_draws = Matrix{Float64}(haltonDim,size(c_data.rMoments,1))
-    for mom in 1:size(c_data.rMoments,1)
-        any = 1 - c_data.rMoments[mom,1]
-        μ_risk = c_data.rMoments[mom,2]
-        std_risk = sqrt(c_data.rMoments[mom,3])
-        for ind in 1:haltonDim
-            if draws[ind]<any
-                risk_draws[ind,mom] = 0
-            else
-                d = (draws[ind] - any)/(1-any)
-                log_r = norminvcdf(d)*std_risk + μ_risk
-                risk_draws[ind,mom] = exp(log_r)
+    if riskscores
+        risk_draws = Matrix{Float64}(haltonDim,size(c_data.rMoments,1))
+        for mom in 1:size(c_data.rMoments,1)
+            any = 1 - c_data.rMoments[mom,1]
+            μ_risk = c_data.rMoments[mom,2]
+            std_risk = sqrt(c_data.rMoments[mom,3])
+            for ind in 1:haltonDim
+                if draws[ind]<any
+                    risk_draws[ind,mom] = 0
+                else
+                    d = (draws[ind] - any)/(1-any)
+                    log_r = norminvcdf(d)*std_risk + μ_risk
+                    risk_draws[ind,mom] = exp(log_r)
+                end
             end
         end
+    else
+        risk_draws = draws
     end
 
 

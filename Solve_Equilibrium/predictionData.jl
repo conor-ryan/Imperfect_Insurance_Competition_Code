@@ -756,25 +756,29 @@ function eval_FOC(e::EqData)
     end
 
     P_foc = -inv(S_m.*dsdp_rev.*e.ownMat)*(foc_Std + foc_RA)
-    #P_decomp = markup + margCost + RA_term1 + RA_term2 + RA_term3 + RA_term4 + RA_term5
+    P_test = markup + margCost + RA_term1 + RA_term2 + RA_term3 + RA_term4 + RA_term5
     ## Decomposition
     # Estimated Marginal Cost - Pooled Cost + Pooled Cost
-    margCost_est = -(RA_term1 + RA_term2 + RA_term3) + avgPrem
+    PC = (avgPrem/ST_A)./A_Gamma_j
+    margCost_est = -(RA_term1 + RA_term2 + RA_term3) + PC
+    margCost_est_2 = -(RA_term1 + RA_term2) + avgPrem.*A_Gamma_j/ST_A
 
-    Pooled_Cost = inv(dsdp_rev.*e.ownMat)*(dsdp_rev_0.*avgPrem).*(A_Gamma_j/ST_A)
+    Pooled_Cost = inv(dsdp_rev.*e.ownMat)*(dsdp_rev_0.*PC).*(A_Gamma_j/ST_A)
     share_weights = e.ownMat*(S_j.*S_m)/sum(S_j.*S_m)
-    PC_wtd = avgPrem.*share_weights
+    PC_wtd = PC.*share_weights
 
     mkt_MargCost = (RA_term4 + PC_wtd)./share_weights
 
     efficiency = margCost - margCost_est
 
     P_decomp = markup +
-                efficiency +
+                efficiency + PC +
                 share_weights.*mkt_MargCost +
-                avgPrem  - share_weights.*Pooled_Cost +
+                - share_weights.*PC +
                 RA_term5
 
+    P_marg = markup + efficiency + mkt_MargCost + RA_term5
+    P_pool = markup + efficiency + PC + RA_term5
 
     # Average Error, for consistency across product numebers
     return foc_Std, foc_RA, foc_RA_fix, S_m, dsdp_rev

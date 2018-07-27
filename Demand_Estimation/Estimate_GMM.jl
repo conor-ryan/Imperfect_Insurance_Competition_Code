@@ -2,6 +2,12 @@ using NLopt
 using ForwardDiff
 
 
+
+#function risk_moment()
+
+
+
+
 function GMM_objective{T}(d::InsuranceLogit,p0::Array{T})
     grad = Vector{Float64}(length(p0))
     ll = log_likelihood!(grad,d,p0)
