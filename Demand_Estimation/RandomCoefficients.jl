@@ -24,6 +24,7 @@ type parDict{T}
     μ_ij::Matrix{T}
     # Shares for (ij) pairs
     s_hat::Vector{T}
+    r_hat::Vector{T}
 end
 
 function parDict{T}(m::InsuranceLogit,x::Array{T})
@@ -74,9 +75,10 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
     δ = Vector{T}(M)
     μ_ij = Matrix{T}(S,M)
     s_hat = Vector{T}(M)
+    r_hat = Vector{T}(M)
     unpack_δ!(δ,m)
 
-    return parDict{T}(γ_0,γ,β_0,β,σ,FE,randCoeffs,δ,μ_ij,s_hat)
+    return parDict{T}(γ_0,γ,β_0,β,σ,FE,randCoeffs,δ,μ_ij,s_hat,r_hat)
 end
 
 function calcRC!{T,S}(randCoeffs::Array{S},σ::Array{T},draws::Array{Float64,2})
@@ -202,8 +204,8 @@ function individual_shares{T}(d::InsuranceLogit,p::parDict{T})
     for idxitr in values(d.data._personDict)
         δ = δ_long[idxitr]
         u = μ_ij_large[:,idxitr]
-        s = calc_shares(u,δ)
-        p.s_hat[idxitr] = s
+        s,r = calc_shares(u,δ)
+        p.s_hat[idxitr] = s;
     end
     return Void
 end
