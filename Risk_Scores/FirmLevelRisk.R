@@ -53,18 +53,28 @@ names(payments) = c("ï..MR_SUBMISSION_TEMPLATE_ID","Payments")
 enroll =claims[claims$ROW_LOOKUP_CODE=="NUMBER_OF_LIFE_YEARS",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1")]
 names(enroll) = c("ï..MR_SUBMISSION_TEMPLATE_ID","MLR_lives")
 
+months =claims[claims$ROW_LOOKUP_CODE=="MEMBER_MONTHS",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1")]
+names(months) = c("ï..MR_SUBMISSION_TEMPLATE_ID","memberMonths")
+
+revenue =claims[claims$ROW_LOOKUP_CODE=="TOTAL_DIRECT_PREMIUM_EARNED",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1")]
+names(revenue) = c("ï..MR_SUBMISSION_TEMPLATE_ID","Revenue")
+
+
 RA_claims = merge(payments,enroll,by="ï..MR_SUBMISSION_TEMPLATE_ID")
+RA_claims = merge(RA_claims,months,by="ï..MR_SUBMISSION_TEMPLATE_ID")
+RA_claims = merge(RA_claims,revenue,by="ï..MR_SUBMISSION_TEMPLATE_ID")
+
 
 # Remove non-Individual Market Insurers
 RA_claims$absent1 = is.na(RA_claims$MLR_lives) | RA_claims$MLR_lives==0
-RA_claims = RA_claims[!RA_claims$absent1,c("ï..MR_SUBMISSION_TEMPLATE_ID","Payments","MLR_lives")]
+RA_claims = RA_claims[!RA_claims$absent1,]
 
 # Merge in and summarize by Firm Name
 crosswalk = read.csv("Intermediate_Output/FirmCrosswalk.csv")
 crosswalk = unique(crosswalk[,c("ï..MR_SUBMISSION_TEMPLATE_ID","Firm","STATE")])
 
 RA_claims = merge(RA_claims,crosswalk[,c("ï..MR_SUBMISSION_TEMPLATE_ID","Firm","STATE")],by="ï..MR_SUBMISSION_TEMPLATE_ID")
-RA_claims = summaryBy(MLR_lives+Payments~Firm+STATE,data=RA_claims,FUN=sum,na.rm=TRUE,keep.names=TRUE)
+RA_claims = summaryBy(MLR_lives+Payments+Revenue+memberMonths~Firm+STATE,data=RA_claims,FUN=sum,na.rm=TRUE,keep.names=TRUE)
 
 RA_claims = RA_claims[RA_claims$STATE%in%firm_RA$ST,]
 RA_claims = as.data.table(RA_claims)
@@ -72,12 +82,15 @@ setkey(RA_claims,STATE,Firm)
 ## Merge with Risk Adjustment Data ##
 firm_RA = merge(firm_RA,RA_claims,by.x=c("ST","Firm"),by.y=c("STATE","Firm"),all=TRUE)
 
+## MLR Average Premium
+firm_RA[,MLR_avg_prem:=sum(Revenue)/sum(memberMonths),by="ST"]
+
 #### Compile un-matched firms into Other ####
 firm_RA[is.na(share),Firm:="OTHER"]
-firm_RA = firm_RA[,lapply(.SD,sum),by=c("Firm","ST","avg_prem","mkt_lives","A_wtd","A_f","share"),.SDcols=c("MLR_lives","Payments")]
+firm_RA = firm_RA[,lapply(.SD,sum),by=c("Firm","ST","MLR_avg_prem","mkt_lives","A_wtd","A_f","share"),.SDcols=c("memberMonths","Payments")]
 
-firm_RA[,ST_MLR_lives:=sum(MLR_lives),by="ST"]
-firm_RA[,MLR_share:=MLR_lives/ST_MLR_lives]
+firm_RA[,ST_MLR_months:=sum(memberMonths),by="ST"]
+firm_RA[,MLR_share:=memberMonths/ST_MLR_months]
 setkey(firm_RA,ST,Firm)
 
 # Adjust Payments to sum to 0
@@ -98,11 +111,15 @@ firm_RA[Firm=="OTHER",A_f:=A_avg]
 # Normalize ARF to RA share 
 firm_RA[Firm!="OTHER",A_wtd:=A_wtd*RA_share/share]
 # Set avg_prem everywhere
-firm_RA[,avg_prem:=max(avg_prem,na.rm=TRUE),by="ST"]
+firm_RA[,MLR_avg_prem:=max(MLR_avg_prem,na.rm=TRUE),by="ST"]
 
 
-firm_RA[,names(firm_RA)[!names(firm_RA)%in%c("Firm","ST","avg_prem","A_wtd","A_f","payments_adj","ST_MLR_lives","RA_share")]:=NULL]
-firm_RA[,lives_f:=ST_MLR_lives*RA_share]
+firm_RA[,names(firm_RA)[!names(firm_RA)%in%c("Firm","ST","MLR_avg_prem","A_wtd","A_f","payments_adj","ST_MLR_months","RA_share","memberMonths")]:=NULL]
+firm_RA[,months_f:=ST_MLR_months*RA_share]
+
+
+### Average Transfer 
+firm_RA[,T_norm:=-payments_adj/(memberMonths*MLR_avg_prem)]
 #firm_RA[,c("A_wtd","ST_MLR_lives"):=NULL]
 
 #### Predict Firm Level Risk Scores ####
@@ -113,9 +130,9 @@ firm_level_risk_orig = function(R,df){
 
   df$A_sum = ave(df$A_wtd,FUN=sum)
   df$R_sum = ave(df$R_wtd,FUN=sum)
-  df$transfer_pred=with(df,-ST_MLR_lives*avg_prem*(R_wtd/R_sum - A_wtd/A_sum))
+  df$transfer_pred=with(df,-ST_MLR_months*MLR_avg_prem*(R_wtd/R_sum - A_wtd/A_sum))
 
-  error = with(df[df$Firm!="OTHER",],(payments_adj-transfer_pred)/(ST_MLR_lives*avg_prem))
+  error = with(df[df$Firm!="OTHER",],(payments_adj-transfer_pred)/(ST_MLR_months*MLR_avg_prem))
   return(error)
 }
 
@@ -123,11 +140,11 @@ firm_level_risk = function(R,df){
   df$R_f[df$Firm!="OTHER"] = R
   df$R_f[df$Firm=="OTHER"] = 1
 
-  df$A_avg = sum(df$A_f*df$RA_share)
-  df$R_avg = sum(df$R_f*df$RA_share)
-  df$transfer_pred=with(df,-avg_prem*(R_f/R_avg - A_f/A_avg))
+  df$A_avg = with(df,sum(A_f*memberMonths/ST_MLR_months))
+  df$R_avg = with(df,sum(R_f*memberMonths/ST_MLR_months))
+  df$transfer_pred=with(df,(R_f/R_avg - A_f/A_avg))
 
-  error = with(df[df$Firm!="OTHER",],(pp_payments_adj-transfer_pred))
+  error = with(df[df$Firm!="OTHER",],(T_norm-transfer_pred))
   return(error)
 }
 
@@ -136,7 +153,7 @@ firm_RA[,R_pred:=vector("double",nrow(firm_RA))]
 firm_RA[,R_pred_wgt:=vector("double",nrow(firm_RA))]
 firm_RA[Firm=="OTHER",R_pred:=1]
 firm_RA[Firm=="OTHER",R_pred_wgt:=A_wtd]
-firm_RA[,pp_payments_adj:=payments_adj/lives_f]
+#firm_RA[,pp_payments_adj:=payments_adj/lives_f]
 
 for (state in unique(firm_RA$ST)){
   st_RA = as.data.frame(firm_RA[ST==state,])
@@ -161,8 +178,12 @@ for (state in unique(firm_RA$ST)){
 
 
 # ## Check
-firm_RA[,R_f:=R_pred_wgt/RA_share]
-firm_RA[,ST_A:=sum(A_wtd),by="ST"]
+# R_pred_wgt is found under the wrong assumptions
+firm_RA[,R_f:=R_pred]
+
+firm_RA[,ST_A:=sum(A_f*RA_share),by="ST"]
+firm_RA[,ST_R:=sum(R_pred*RA_share),by="ST"]
+firm_RA[,T_norm_est:=(R_pred/ST_R - A_f/ST_A)]
 
 # firm_RA[,R_avg:=sum(R_pred_wgt),by="ST"]
 # firm_RA[,R_f:=R_f/R_avg]
@@ -178,6 +199,13 @@ firm_RA[,R_pred_wgt:=R_f*RA_share]
 firm_RA[,Firm_Ag:="Inside"]
 firm_RA[Firm=="OTHER",Firm_Ag:="Other"]
 firm_RA[,ST_R:=sum(R_pred_wgt),by="ST"]
+
+#firm_RA[,T_norm_est2:=R_f/ST_R - A_f/ST_A]
+
+firm_RA[,avg_prem:=MLR_avg_prem*12]
+firm_RA[,ST_MLR_lives:=ST_MLR_months/12]
+
+
 other_RA = firm_RA[,list(payments_adj=sum(payments_adj),
                          RA_share = sum(RA_share),
                          R_tot = sum(RA_share*R_f)/sum(RA_share),

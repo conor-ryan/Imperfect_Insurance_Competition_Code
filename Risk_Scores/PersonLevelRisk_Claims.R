@@ -63,10 +63,10 @@ beta_vec = pars$pars
 firmRiskFile = paste("Simulation_Risk_Output/FirmRiskScores_Full_",run,".rData",sep="")
 load(firmRiskFile)
 
-firm_RA_est = firm_RA[,c("Firm","ST","avg_prem","A_wtd","RA_share","pp_payments_adj","R_f")]
+firm_RA_est = firm_RA[,c("Firm","ST","avg_prem","A_wtd","RA_share","T_norm","T_norm_est","R_f")]
 firm_RA_est[,A_sum:=sum(A_wtd),by="ST"]
 firm_RA_est[,A_f:=A_wtd/RA_share]
-firm_RA_est[,T_norm_data:=pp_payments_adj/avg_prem]
+
 setkey(firm_RA,ST,Firm)
 setkey(firm_RA_est,ST,Firm)
 
@@ -87,12 +87,68 @@ setkey(metalEst,ST,Firm,Metal_std)
 
 metalClaims = merge(metalEst,metalClaims,by.x=c("ST","Firm","Metal_std"),by.y=c("STATE","Firm","METAL"),all.x=TRUE)
 
-metalClaims[,R_j:=(T_avg*12/avg_prem + Age_j/ST_A)*ST_R]
+#metalClaims[,R_j:=(T_avg*12/avg_prem + Age_j/ST_A)*ST_R]
 metalClaims[,T_norm_data:=T_avg*12/avg_prem]
+
+test = metalClaims[,list(T_norm = sum(T_norm_data*lives)/sum(lives),
+                         EXP_RSK_ADJ=sum(EXP_RSK_ADJ)),by=c("ST","Firm")]
+
+### Adjust to match firm average risk 
+test = merge(test,firm_RA[,c("ST","Firm","R_f","payments_adj","T_norm_est")],by=c("ST","Firm"),all=TRUE)
+test[,T_adj:= T_norm_est-T_norm]
+
+metalClaims = merge(metalClaims,test[,c("ST","Firm","T_adj")],by=c("ST","Firm"))
+
+metalClaims[,T_norm_data:=T_norm_data+T_adj]
+metalClaims[,R_j:=(T_norm_data + Age_j/ST_A)*ST_R]
+
+test = metalClaims[,list(R_f_test=sum(R_j*lives)/sum(lives),
+                         T_norm = sum((T_norm_data)*lives)/sum(lives),
+                         EXP_RSK_ADJ=sum(EXP_RSK_ADJ)),by=c("ST","Firm")]
+
+test = merge(test,firm_RA[,c("ST","Firm","R_f","payments_adj","T_norm_est")],by=c("ST","Firm"),all=TRUE)
+
+
 
 metalClaims_Est = metalClaims[,c("ST","Firm","Metal_std","Age_j","ST_A","T_norm_data","R_j")]
 setkey(metalClaims_Est,ST,Firm,Metal_std)
 
+
+##### Output Moments ####
+mkt_data = read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv")
+mkt_data = mkt_data[mkt_data$METAL!="CATASTROPHIC",]
+mkt_data$METAL = gsub(" [0-9]+","",mkt_data$METAL)
+
+## State Shares
+population = unique(acs[,c("Person","ST","Market","PERWT")])
+population = population[,list(pop = sum(PERWT)),by=c("ST","Market")]
+population[,st_share:=pop/sum(pop),by="ST"]
+
+mkt_data = merge(mkt_data,population[,c("ST","Market","st_share")],
+                 by.x=c("STATE","Market"),by.y=c("ST","Market"))
+## Risk Moments
+metal_moments = metalClaims_Est[!is.na(T_norm_data),c("ST","Firm","Metal_std","T_norm_data")]
+metal_moments[,momentID:=1:nrow(metal_moments)]
+
+firm_moments = firm_RA[Firm!="OTHER",c("ST","Firm","T_norm_est")]
+firm_moments[,momentID:=nrow(metal_moments)+1:nrow(firm_moments)]
+
+
+metal_moments = merge(mkt_data[,c("STATE","Firm","METAL","Product","st_share")],metal_moments,
+                      by.x=c("STATE","Firm","METAL"),by.y=c("ST","Firm","Metal_std"))
+firm_moments = merge(mkt_data[,c("STATE","Firm","Product","st_share")],firm_moments,
+                      by.x=c("STATE","Firm"),by.y=c("ST","Firm"))
+
+metal_moments = metal_moments[,c("Product","momentID","T_norm_data","st_share","STATE")]
+names(metal_moments) = c("Product","momentID","T_moment","st_share","ST")
+firm_moments = firm_moments[,c("Product","momentID","T_norm_est","st_share","STATE")]
+names(firm_moments) = c("Product","momentID","T_moment","st_share","ST")
+
+risk_moments = rbind(metal_moments,firm_moments)
+risk_moments$ST = as.numeric(risk_moments$ST)
+
+
+write.csv(risk_moments,"Intermediate_Output/Estimation_Data/riskMoments.csv",row.names=FALSE)
 
 #### Define Risk Function ####
 psi_0 = 0

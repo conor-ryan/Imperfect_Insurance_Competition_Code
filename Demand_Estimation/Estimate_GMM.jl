@@ -2,26 +2,25 @@ using NLopt
 using ForwardDiff
 
 
-
-#function risk_moment()
-
-
-
-
 function GMM_objective{T}(d::InsuranceLogit,p0::Array{T})
     grad = Vector{Float64}(length(p0))
-    ll = log_likelihood!(grad,d,p0)
+    par0 = parDict(d,p0)
+    ll = log_likelihood!(grad,d,par0)
+    mom = calc_risk_moments(d,par0)
     obj = 0.0
     for n in eachindex(grad)
         obj+= grad[n]^2
+    end
+    for n in eachindex(mom)
+        obj+=mom[n]^2
     end
     return obj
 end
 
 
-function estimate!(d::InsuranceLogit, p0;method=:LN_NELDERMEAD)
+function estimate_GMM!(d::InsuranceLogit, p0;method=:LN_NELDERMEAD)
     # Set up the optimization
-    opt_stage1 = Opt(:LD_TNEWTON_PRECOND_RESTART, length(p0))
+    opt_stage1 = Opt(method, length(p0))
     #opt = Opt(:LD_MMA, length(p0))
 
     #opt = Opt(:LD_TNEWTON_PRECOND_RESTART,length(p0))
@@ -55,7 +54,7 @@ function estimate!(d::InsuranceLogit, p0;method=:LN_NELDERMEAD)
         println("Iteration $count at $x_displ")
         #obj = ll(x)
         obj = gmm(x)
-        ForwardDiff.gradient!(grad, gmm, x)
+        #ForwardDiff.gradient!(grad, gmm, x)
 
         println("Objective equals $obj on iteration $count")
 

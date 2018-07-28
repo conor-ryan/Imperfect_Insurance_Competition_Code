@@ -1,53 +1,39 @@
-d = m
-p = par0
-
-individual_values!(d,p)
-individual_shares(d,p)
-
-
-function calc_shares{T}(μ_ij::Array{T},δ::Vector{T},r::Vector{Float64})
-    (N,K) = size(μ_ij)
-    util = Matrix{T}(K,N)
-    s_hat = Matrix{T}(K,N)
-    r_hat = Matrix{T}(K,N)
-
-    for n in 1:N
-        expsum = 1.0
-        r_score = r[n]
-        for i in 1:K
-            a = μ_ij[n,i]*δ[i]
-            util[i,n] = a
-            expsum += a
-        end
-        for i in 1:K
-            s = util[i,n]/expsum
-            s_hat[i,n] = s
-            r_hat[i,n] = s*r_score
-        end
-    end
-    s_mean = mean(s_hat,2)
-    r_mean = sum(r_hat,2)./sum(s_hat,2)
-    return s_mean, r_mean
+@views function sliceSum_wgt{T}(x::Vector{T},w::Vector{Float64},idx::Array{Int64,1})
+    wgts = w[idx]
+    return sum(x[idx].*wgts)
 end
 
-function individual_shares{T}(d::InsuranceLogit,p::parDict{T})
-    # Store Parameters
-    δ_long = p.δ
-    μ_ij_large = p.μ_ij
-    risk_long = d.data[:riskIndex]
-    for idxitr in values(d.data._personDict)
-        δ = δ_long[idxitr]
-        u = μ_ij_large[:,idxitr]
-        r_ind = Int(risk_long[idxitr][1])
-        r_scores = d.draws[:,r_ind]
-        s,r = calc_shares(u,δ,r_scores)
-        p.s_hat[idxitr] = s
+function calc_risk_moments{T}(d::InsuranceLogit,p::parDict{T})
+    wgts = weight(d.data)[1,:]
+    wgts_share = wgts.*p.s_hat
+    num_prods = length(d.prods)
+    s_hat_j = Vector{Float64}(num_prods)
+    r_hat_j = Vector{Float64}(num_prods)
+    a_hat_j = Vector{Float64}(num_prods)
+    ageRate_long = ageRate(d.data)[1,:]
+    for j in d.prods
+        j_index_all = d.data._productDict[j]
+        s_hat_j[j]= sliceSum_wgt(p.s_hat,wgts,j_index_all)/d.lives[j]*d.data.st_share[j]
+        r_hat_j[j] = sliceMean_wgt(p.r_hat,wgts_share,j_index_all)*m.Γ_j[j]
+        a_hat_j[j] = sliceMean_wgt(ageRate_long,wgts_share,j_index_all)*m.AV_j[j]*m.Γ_j[j]
     end
-    return Void
-end
 
-Profile.init(n=10^7,delay=.001)
-Profile.clear()
-Juno.@profile individual_shares(d,p)
-Juno.profiletree()
-Juno.profiler()
+    t_norm_j = zeros(num_prods)
+    for (s,idx_prod) in d.data._stDict
+        ST_R = sliceMean_wgt(r_hat_j,s_hat_j,idx_prod)
+        ST_A = sliceMean_wgt(a_hat_j,s_hat_j,idx_prod)
+
+        for j in idx_prod
+            t_norm_j[j] = r_hat_j[j]/ST_R - a_hat_j[j]/ST_A
+        end
+    end
+
+    mom_value = Vector{Float64}(length(d.data.tMoments))
+
+    for (m,idx_mom) in d.data._tMomentDict
+        t_est = sliceMean_wgt(t_norm_j,s_hat_j,idx_mom)
+        mom_value[m] = d.data.tMoments[m] - t_est
+    end
+
+    return mom_value
+end

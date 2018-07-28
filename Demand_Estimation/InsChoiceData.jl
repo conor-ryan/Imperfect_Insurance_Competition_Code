@@ -14,6 +14,8 @@ struct ChoiceData <: ModelData
     pdata::DataFrame
     # Risk Score Moments
     rMoments::Matrix{Float64}
+    tMoments::Vector{Float64}
+    st_share::Vector{Float64}
     # Matrix of Fixed Effects
     fixedEffects::Matrix{Float64}
     # Index of the data column names
@@ -32,6 +34,8 @@ struct ChoiceData <: ModelData
     _choice::Array{Int,1}
     _demoRaw::Array{Int,1}
     _wgt::Array{Int,1}
+    _ageRate::Array{Int,1}
+    _ageHCC::Array{Int,1}
     _unins::Array{Int,1}
 
     # ID Lookup Mappings
@@ -40,9 +44,13 @@ struct ChoiceData <: ModelData
     _productDict::Dict{Int, Array{Int,1}}
 
     _rel_fe_Dict::Dict{Real,Array{Int64,1}}
+    _tMomentDict::Dict{Int,Array{Int,1}}
+    _stDict::Dict{Int,Array{Int,1}}
 end
 
-function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
+function ChoiceData(data_choice::DataFrame,
+                    data_market::DataFrame,
+                    data_risk::DataFrame;
         person=[:Person],
         product=[:Product],
         prodchars=[:Price,:MedDeduct,:High],
@@ -70,6 +78,9 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
     Z = hcat(Array{Float64}(data_choice[demoRaw]))
     w = hcat(Array{Float64}(data_choice[wgt]))
     s0= hcat(Array{Float64}(data_choice[unins]))
+
+    riskChars=[:ageRate_avg,:HCC_age]
+    rm = hcat(Array{Float64}(data_choice[riskChars]))
 
     println("Create Fixed Effects")
     F, feNames = build_FE(data_choice,fixedEffects)
@@ -101,8 +112,8 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
     # Create a data matrix, only including person id
     println("Put Together Data non FE data together")
     k = 0
-    for (d, var) in zip([i,X,X_0, y, Z,w, s0,R_index], [person,prodchars,
-        prodchars_0,choice, demoRaw,wgt,unins,r_var])
+    for (d, var) in zip([i,X,X_0, y, Z,w,rm, s0,R_index], [person,prodchars,
+        prodchars_0,choice, demoRaw,wgt,riskChars,unins,r_var])
         for l=1:size(d,2)
             k+=1
             dmat = hcat(dmat, d[:,l])
@@ -123,6 +134,8 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
     _choice = getindex.(index, choice)
     _demoRaw = getindex.(index, demoRaw)
     _wgt = getindex.(index, wgt)
+    _ageRate = getindex.(index, [:ageRate_avg])
+    _ageHCC = getindex.(index, [:HCC_age])
     _unins = getindex.(index, unins)
 
     # Get Person ID Dictionary Mapping for Easy Subsets
@@ -155,11 +168,38 @@ function ChoiceData(data_choice::DataFrame,data_market::DataFrame;
         rel_fe_Dict[id] = pars_relevant
     end
 
+    # Construct Risk Moments
+    println("Construct Risk Moments")
+    _tMomentDict = Dict{Int,Array{Int64,1}}()
+    moments = sort(unique(data_risk[:momentID]))
+    tMoments = Vector{Float64}(length(moments))
+    st_share = zeros(length(keys(_productDict)))
+    for m in moments
+        _tMomentDict[m] = data_risk[:Product][find(data_risk[:momentID].==m)]
+        tMoments[m] = data_risk[:T_moment][find(data_risk[:momentID].==m)][1]
+    end
+
+
+    _stDict = Dict{Int,Array{Int64,1}}()
+    states = unique(data_risk[:ST])
+    for s in states
+        _stDict[s] = data_risk[:Product][find(data_risk[:ST].==s)]
+    end
+
+    for j in keys(_productDict)
+        idx = find(data_risk[:Product].==j)
+        if length(idx)>0
+            st_share[j] = data_risk[:st_share][idx[1]]
+        end
+    end
+
     # Make the data object
-    m = ChoiceData(dmat,data_market,rmat,F, index, prodchars,prodchars_0,
+    m = ChoiceData(dmat,data_market,rmat,tMoments,st_share,
+            F, index, prodchars,prodchars_0,
             choice, demoRaw,wgt, unins, _person, _prodchars,_prodchars_0,
-            _choice, _demoRaw, _wgt, _unins,uniqids,_personDict,_productDict,
-            rel_fe_Dict)
+            _choice, _demoRaw, _wgt,_ageRate,_ageHCC,
+             _unins,uniqids,_personDict,_productDict,
+            rel_fe_Dict,_tMomentDict,_stDict)
     return m
 end
 
@@ -256,6 +296,8 @@ prodchars0(m::ChoiceData)   = m[m._prodchars_0]
 choice(m::ChoiceData)      = m[m._choice]
 demoRaw(m::ChoiceData)     = m[m._demoRaw]
 weight(m::ChoiceData)      = m[m._wgt]
+ageRate(m::ChoiceData)      = m[m._ageRate]
+ageHCC(m::ChoiceData)      = m[m._ageHCC]
 unins(m::ChoiceData)       = m[m._unins]
 rMoments(m::ChoiceData)       = m[m._rMoments]
 
@@ -276,7 +318,8 @@ function subset{T<:ModelData}(d::T, idx)
 #    people = data[d._person,:]
 
     # Don't subset any other fields for now...
-    return T(data,d.pdata,d.rMoments,fixedEf,
+    return T(data,d.pdata,d.rMoments,d.tMoments,d.st_share,
+    fixedEf,
     # Index of the column names
     d.index,
     # Names of rows (columns of input data)
@@ -293,11 +336,15 @@ function subset{T<:ModelData}(d::T, idx)
     d._choice,
     d._demoRaw,
     d._wgt,
+    d._ageRate,
+    d._ageHCC,
     d._unins,
     d._personIDs,
     d._personDict,
     d._productDict,
-    d._rel_fe_Dict)
+    d._rel_fe_Dict,
+    d._tMomentDict,
+    d._stDict)
 end
 
 ########## People Iterator ###############
@@ -350,7 +397,10 @@ type InsuranceLogit <: LogitModel
     # Product Level Data
     # Separate vectors, all sorted by product
     prods
-    shares
+    shares::Vector{Float64}
+    lives::Vector{Float64}
+    Γ_j::Vector{Float64}
+    AV_j::Vector{Float64}
     #Unique firm-level deltas
     deltas
 end
@@ -419,6 +469,7 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
     d = InsuranceLogit(parLength,
                         c_data,
                         risk_draws,
-                        pmat[:Product],pmat[:Share],pmat[:delta])
+                        pmat[:Product],pmat[:Share],pmat[:lives],
+                        pmat[:Gamma_j],pmat[:AV],pmat[:delta])
     return d
 end

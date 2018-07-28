@@ -7,6 +7,8 @@ using CSV
 df = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Data/estimationData_discrete.csv",
 types=Dict("unins_rate"=>Float64,"S_ij"=>Float64))
 df_mkt = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Data/marketData_discrete.csv")
+
+df_risk = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Data/riskMoments.csv")
 # May need to change column types
 # for key in [:Firm, :Product]
 #     df[key] = String.(df[key])

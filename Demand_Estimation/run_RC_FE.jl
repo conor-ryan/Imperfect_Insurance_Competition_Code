@@ -12,13 +12,15 @@ include("Halton.jl")
 include("RandomCoefficients.jl")
 include("Contraction.jl")
 include("Log_Likehood.jl")
+include("RiskMoments.jl")
 include("Estimate_Basic.jl")
+include("Estimate_GMM.jl")
 println("Code Loaded")
 
 # Load the Data
 include("load.jl")
 # Structre the data
-c = ChoiceData(df,df_mkt;
+c = ChoiceData(df,df_mkt,df_risk;
     demoRaw=[:AgeFE_31_39,
             :AgeFE_40_51,
             :AgeFE_52_64,
@@ -29,7 +31,7 @@ c = ChoiceData(df,df_mkt;
     fixedEffects=[:Firm])
 
 # Fit into model
-m = InsuranceLogit(c,100)
+m = InsuranceLogit(c,500)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
@@ -42,44 +44,31 @@ FEstart = rand(m.parLength[:FE])/100-.005
 p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 par0 = parDict(m,p0)
 ## Estimate
-est_res = estimate!(m, p0)
+flag, val, p_ll = estimate!(m, p0)
+
+est_res = estimate_GMM!(m,p_ll)
 
 
 
-grad_2 = Vector{Float64}(length(p0))
-ll =  log_likelihood!(grad_2,m,p0)
-@benchmark log_likelihood!(grad_2,m,p0)
-
-println("Gradient Test")
-f_ll(x) = log_likelihood(m,x)
-grad_1 = Vector{Float64}(length(p0))
-fval_old = log_likelihood(m,p0)
-ForwardDiff.gradient!(grad_1,f_ll, p0)
-
-println(fval_old-ll)
-println(maximum(abs.(grad_1-grad_2)))
-
-
-Profile.init(n=10^7,delay=.001)
-Profile.clear()
-Juno.@profile log_likelihood!(grad_2,m,p0)
-Juno.profiletree()
-Juno.profiler()
-
-
-
-
-
-
-
-
-
-
-
-
-
-println(fval-fval_old)
-println(maximum(abs.(grad_1-grad_2)))
+# grad_2 = Vector{Float64}(length(p0))
+# ll =  log_likelihood!(grad_2,m,p0)
+# @benchmark log_likelihood!(grad_2,m,p0)
+#
+# println("Gradient Test")
+# f_ll(x) = log_likelihood(m,x)
+# grad_1 = Vector{Float64}(length(p0))
+# fval_old = log_likelihood(m,p0)
+# ForwardDiff.gradient!(grad_1,f_ll, p0)
+#
+# println(fval_old-ll)
+# println(maximum(abs.(grad_1-grad_2)))
+#
+#
+# Profile.init(n=10^7,delay=.001)
+# Profile.clear()
+# Juno.@profile log_likelihood!(grad_2,m,p0)
+# Juno.profiletree()
+# Juno.profiler()
 
 
 
@@ -88,27 +77,27 @@ rundate = Dates.today()
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_fe_rc_$rundate.jld"
 save(file,"est_res",est_res)
 
-flag, fval, p_est = est_res
-
-
-
-# #parStart1 = parDict(m,p1)
-
-#
-
-
-#ll_gradient!(grad_2,m,p0)
-#
-
+# flag, fval, p_est = est_res
 #
 #
- individual_values!(m,parStart0)
-individual_shares(m,parStart0)
-app = next(eachperson(m.data),200)[1]
-# @benchmark util_gradient(m,app,parStart0)
 #
-# grad = util_gradient(m,app,parStart0)
+# # #parStart1 = parDict(m,p1)
 #
-println("Profiler")
-
+# #
 #
+#
+# #ll_gradient!(grad_2,m,p0)
+# #
+#
+# #
+# #
+#  individual_values!(m,parStart0)
+# individual_shares(m,parStart0)
+# app = next(eachperson(m.data),200)[1]
+# # @benchmark util_gradient(m,app,parStart0)
+# #
+# # grad = util_gradient(m,app,parStart0)
+# #
+# println("Profiler")
+#
+# #

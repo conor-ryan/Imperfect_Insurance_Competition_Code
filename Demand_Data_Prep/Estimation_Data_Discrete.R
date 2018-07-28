@@ -414,6 +414,7 @@ choices$PremPaid[choices$METAL=="CATASTROPHIC"] = with(choices[choices$METAL=="C
 
 # Per Member Premium
 choices[,PremPaid:=PremPaid/MEMBERS]
+choices[,ageRate_avg:=ageRate/MEMBERS]
 # Difference Out the Base Premium
 choices[,PremPaidDiff:=PremPaid-premBase]
 
@@ -455,7 +456,7 @@ choices = choices[,c("STATE","AREA","FPL_bucket","AGE_bucket","Mem_bucket",
                      "MedDeduct","MedOOP","High",
                      #"MedDeductDiff","MedOOPDiff","HighDiff",
                      #"MedDeductStandard","MedOOPStandard","HighStandard",
-                     "ageRate","FPL_imp","Benchmark","HHcont","subsidy","Quote","premBase",
+                     "ageRate","ageRate_avg","FPL_imp","Benchmark","HHcont","subsidy","Quote","premBase",
                      "PremPaid","PremPaidDiff","S_ij","N","Income","Mandate","unins_rate","nonexch_unins_rate")]
 
 #### Merge in Risk Score Moments ####
@@ -469,6 +470,24 @@ choices$Inc_Cat[with(choices,is.na(FPL_imp)|FPL_imp>4)] = 1
 choices = merge(choices,r_mom,by=c("Age_Cat","Inc_Cat"),all.x=TRUE)
 
 choices[,c("Age_Cat","Inc_Cat"):=NULL]
+
+# Merge in Age-specific HHS-HCC Risk Adjustment Factors
+HCC = read.csv("Risk_Adjustment/2014_HHS_HCC_AgeRA_Coefficients.csv")
+names(HCC) = c("Sex","Age","PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age")
+HCC = HCC[HCC$Sex==0,]
+
+choices[,AgeMatch:= pmax(floor(AGE/5)*5,21)]
+choices = merge(choices,HCC,by.x=c("AgeMatch"),by.y=c("Age"))
+
+## Consolidate Age-based Risk Scores
+choices[METAL=="PLATINUM",HCC_age:=PlatHCC_Age]
+choices[METAL=="GOLD",HCC_age:=GoldHCC_Age]
+choices[METAL%in%c("SILVER","SILVER 73"),HCC_age:=SilvHCC_Age]
+choices[METAL%in%c("SILVER 87","SILVER 94"),HCC_age:=GoldHCC_Age]
+choices[METAL=="BRONZE",HCC_age:=BronHCC_Age]
+choices[METAL=="CATASTROPHIC",HCC_age:=CataHCC_Age]
+
+
 # 
 # 
 # #### Type-Specific Choice Set ####
@@ -538,19 +557,6 @@ choices$Platinum[choices$METAL=="PLATINUM"] = 1
 choices$Catas = 0
 choices$Catas[choices$METAL=="CATASTROPHIC"] = 1
 
-# Set AV Values
-choices[METAL=="CATASTROPHIC",AV:=.57]
-choices[METAL=="BRONZE",AV:=.6]
-choices[METAL=="SILVER",AV:=.7]
-choices[METAL=="SILVER 73",AV:=.73]
-choices[METAL=="SILVER 87",AV:=.87]
-choices[METAL=="SILVER 94",AV:=.94]
-choices[METAL=="GOLD",AV:=.8]
-choices[METAL=="PLATINUM",AV:=.9]
-
-# Age_AV Fixed Effect
-choices[,AV_old:=AV]
-choices[AGE<52,AV_old:=0]
 
 # Age Fixed Effects
 choices[,AgeFE_18_30:=0]
@@ -564,6 +570,43 @@ choices[AGE>=40&AGE<52,AgeFE_40_51:=1]
 
 choices[,AgeFE_52_64:=0]
 choices[AGE>=52,AgeFE_52_64:=1]
+
+#### Regulation Parameters ####
+## Actuarial Value
+choices[METAL=="CATASTROPHIC",AV:=.57]
+choices[METAL=="BRONZE",AV:=.6]
+choices[METAL=="SILVER",AV:=.7]
+choices[METAL=="SILVER 73",AV:=.73]
+choices[METAL=="SILVER 87",AV:=.87]
+choices[METAL=="SILVER 94",AV:=.94]
+choices[METAL=="GOLD",AV:=.8]
+choices[METAL=="PLATINUM",AV:=.9]
+
+# Age_AV Fixed Effect
+choices[,AV_old:=AV]
+choices[AGE<52,AV_old:=0]
+
+
+## Merge in GCF
+gcf = read.csv("Data/2015_MLR/2015_GCF.csv")
+gcf$Market = with(gcf,paste(State,Rating.Area,sep="_"))
+gcf=as.data.table(gcf)
+setkey(gcf,Market)
+
+choices = merge(choices,gcf[,c("Market","GCF")],by="Market")
+
+## Induced Demand Factor
+choices[METAL=="BRONZE",IDF:=1.0]
+choices[METAL%in%c("SILVER","SILVER 73"),IDF:=1.03]
+choices[METAL%in%c("SILVER 87","SILVER 94"),IDF:=1.08]
+choices[METAL=="GOLD",IDF:=1.08]
+choices[METAL=="PLATINUM",IDF:=1.15]
+
+choices[,Gamma_j:=IDF*GCF]
+choices[METAL=="CATASTROPHIC",Gamma_j:=0]
+
+
+rm(gcf)
 
 
 #### Categorical Variables for Later Dummy Creation
@@ -613,6 +656,7 @@ insured = unique(choices[,c("Person","STATE","unins_rate","N")])
 insured = insured[,list(unins_rate=sum(unins_rate*N)/sum(N)),by="STATE"]
 
 shares = choices[,list(enroll=sum(S_ij*N),pop_offered=sum(N)),by=c("Product","Firm","Market","STATE","METAL",
+                                                                   "Gamma_j","AV",
                                                                    "Firm_Market_Cat","MedDeduct","MedOOP","High","premBase")]
 shares = merge(shares,insured,by="STATE")
 shares[,lives:=sum(enroll),by="Market"]
@@ -688,6 +732,7 @@ write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price",
                      "MedDeduct","ExcOOP","High","AV","AV_old",
                      "Family","Age","LowIncome","AGE","HighIncome","IncomeCts",
                      "METAL",
+                     "ageRate_avg","HCC_age",
                      "mean_HCC_Platinum","mean_HCC_Gold","mean_HCC_Silver","mean_HCC_Bronze","mean_HCC_Catastrophic",
                      "Any_HCC",
                      "var_HCC_Platinum","var_HCC_Gold","var_HCC_Silver","var_HCC_Bronze","var_HCC_Catastrophic",
@@ -697,7 +742,7 @@ write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price",
                      "unins_rate","nonexch_unins_rate")],
           "Intermediate_Output/Estimation_Data/estimationData_discrete.csv",row.names=FALSE)
 write.csv(choices,"Intermediate_Output/Estimation_Data/descriptiveData_discrete.csv",row.names=FALSE)
-write.csv(shares[,c("Product","Share")],
+write.csv(shares[,c("Product","Share","lives","Gamma_j","AV")],
           "Intermediate_Output/Estimation_Data/marketData_discrete.csv",row.names=FALSE)
 write.csv(shares,
           "Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv",row.names=FALSE)
@@ -705,35 +750,35 @@ write.csv(shares,
 # Create mini Michigan Dataset and Renumber Products
 # MI = choices[STATE=="MI"&Market%in%c("MI_1_0","MI_1_1"),]
 # MI_mkt = shares[STATE=="MI"&Market%in%c("MI_1_0","MI_1_1"),]
-MI = choices[STATE=="MI",]
-MI_mkt = shares[STATE=="MI",]
-
-MI$Product = as.factor(MI$Product)
-MI_mkt$Product = factor(MI_mkt$Product,levels=levels(MI$Product))
-
-MI$Product = as.numeric(MI$Product)
-MI_mkt$Product = as.numeric(MI_mkt$Product)
-
-setkey(MI,Person,Product)
-setkey(MI_mkt,Product)
-
-
-vars = c("Person","Firm","Market","Product","S_ij","N","Price",
-         "MedDeduct","ExcOOP","High","MedDeductDiff","ExcOOPDiff","HighDiff",
-         "Family","Age","LowIncome",names(choices)[grepl("F[0-9]_Y.*",names(choices))],"unins_rate","nonexch_unins_rate")
-
-write.csv(MI[,c("Person","Firm","Market","Product","S_ij","N","Price",
-                "PriceDiff",#"MedDeductDiff","ExcOOPDiff","HighDiff",
-                "MedDeduct","ExcOOP","High",
-                "Family","Age","LowIncome","AGE","HighIncome","IncomeCts",
-                "F0_Y0_LI0","F0_Y0_LI1","F0_Y1_LI0","F0_Y1_LI1",
-                "F1_Y0_LI0","F1_Y0_LI1","F1_Y1_LI0","F1_Y1_LI1","unins_rate")],
-          "Intermediate_Output/Estimation_Data/estimationData_MI_discrete.csv",row.names=FALSE)
-write.csv(MI_mkt[,c("Product","Share")],
-          "Intermediate_Output/Estimation_Data/marketData_MI_discrete.csv",row.names=FALSE)
-write.csv(MI_mkt,
-          "Intermediate_Output/Estimation_Data/marketDataMap_MI_discrete.csv",row.names=FALSE)
-
+# MI = choices[STATE=="MI",]
+# MI_mkt = shares[STATE=="MI",]
+# 
+# MI$Product = as.factor(MI$Product)
+# MI_mkt$Product = factor(MI_mkt$Product,levels=levels(MI$Product))
+# 
+# MI$Product = as.numeric(MI$Product)
+# MI_mkt$Product = as.numeric(MI_mkt$Product)
+# 
+# setkey(MI,Person,Product)
+# setkey(MI_mkt,Product)
+# 
+# 
+# vars = c("Person","Firm","Market","Product","S_ij","N","Price",
+#          "MedDeduct","ExcOOP","High","MedDeductDiff","ExcOOPDiff","HighDiff",
+#          "Family","Age","LowIncome",names(choices)[grepl("F[0-9]_Y.*",names(choices))],"unins_rate","nonexch_unins_rate")
+# 
+# write.csv(MI[,c("Person","Firm","Market","Product","S_ij","N","Price",
+#                 "PriceDiff",#"MedDeductDiff","ExcOOPDiff","HighDiff",
+#                 "MedDeduct","ExcOOP","High",
+#                 "Family","Age","LowIncome","AGE","HighIncome","IncomeCts",
+#                 "F0_Y0_LI0","F0_Y0_LI1","F0_Y1_LI0","F0_Y1_LI1",
+#                 "F1_Y0_LI0","F1_Y0_LI1","F1_Y1_LI0","F1_Y1_LI1","unins_rate")],
+#           "Intermediate_Output/Estimation_Data/estimationData_MI_discrete.csv",row.names=FALSE)
+# write.csv(MI_mkt[,c("Product","Share")],
+#           "Intermediate_Output/Estimation_Data/marketData_MI_discrete.csv",row.names=FALSE)
+# write.csv(MI_mkt,
+#           "Intermediate_Output/Estimation_Data/marketDataMap_MI_discrete.csv",row.names=FALSE)
+# 
 
 
 #### Tests
