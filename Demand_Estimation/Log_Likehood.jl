@@ -40,7 +40,7 @@ function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
     return ll/Pop
 end
 
-function log_likelihood!{T}(grad::Vector{Float64},d::InsuranceLogit,p::parDict{T})
+function log_likelihood!{T}(grad::Vector{T},d::InsuranceLogit,p::parDict{T})
     Q = d.parLength[:All]
     N = size(d.draws,1)
     grad[:] = 0.0
@@ -109,4 +109,52 @@ function calc_Avar{T}(d::InsuranceLogit,p::parDict{T})
     # This last line is ??
     AsVar = inv(Σ)./Pop
     return AsVar
+end
+
+
+
+
+function log_likelihood!{T}(hess::Matrix{Float64},grad::Vector{Float64},
+                            d::InsuranceLogit,p::parDict{T})
+    Q = d.parLength[:All]
+    N = size(d.draws,1)
+    hess[:] = 0.0
+    grad[:] = 0.0
+    ll = 0.0
+    Pop =sum(weight(d.data).*choice(d.data))
+
+    # Calculate μ_ij, which depends only on parameters
+    individual_values!(d,p)
+    individual_shares(d,p)
+    hess_obs = Matrix{Float64}(Q,Q)
+    grad_obs = Vector{Float64}(Q)
+    #shell_full = zeros(Q,N,38)
+    for app in eachperson(d.data)
+        K = length(person(app))
+        # if K>k_max
+        #     k_max = K
+        # end
+        #shell = shell_full[:,:,1:K]
+        ll_obs = ll_obs_hessian!(hess_obs,grad_obs,app,d,p)
+
+        ll+=ll_obs
+        for q in 1:Q
+            grad[q]+=grad_obs[q]/Pop
+            for r in 1:Q
+            hess[q,r]+=hess_obs[q,r]/Pop
+            end
+        end
+    end
+    if isnan(ll)
+        ll = -1e20
+    end
+    return ll/Pop
+end
+
+function log_likelihood!{T}(hess::Matrix{Float64},grad::Vector{Float64},
+                            d::InsuranceLogit,p::Array{T})
+    params = parDict(d,p)
+    ll = log_likelihood!(hess,grad,d,params)
+    convert_δ!(d)
+    return ll
 end

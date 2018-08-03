@@ -89,7 +89,7 @@ end
 
 # Update δ
 @views sliceMean{T}(x::Vector{T},idx::Array{Int64,1}) = mean(x[idx])
-@views function sliceMean_wgt{T}(x::Vector{T},w::Vector{Float64},idx::Array{Int64,1})
+@views function sliceMean_wgt{T,S}(x::Vector{T},w::Vector{S},idx::Array{Int64,1})
     wgts = w[idx]
     return sum(x[idx].*wgts)/sum(wgts)
 end

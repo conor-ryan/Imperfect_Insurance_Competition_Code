@@ -25,6 +25,9 @@ type parDict{T}
     # Shares for (ij) pairs
     s_hat::Vector{T}
     r_hat::Vector{T}
+    # Share Parameter Derivatives for (ij) pairs x Parameters
+    dSdθ::Matrix{T}
+    dRdθ::Matrix{T}
 end
 
 function parDict{T}(m::InsuranceLogit,x::Array{T})
@@ -72,13 +75,20 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
 
     #Initialize (ij) pairs of deltas
     L, M = size(m.data.data)
-    δ = Vector{T}(M)
     μ_ij = Matrix{T}(S,M)
     s_hat = Vector{T}(M)
     r_hat = Vector{T}(M)
-    unpack_δ!(δ,m)
 
-    return parDict{T}(γ_0,γ,β_0,β,σ,FE,randCoeffs,δ,μ_ij,s_hat,r_hat)
+    # Deltas are turned off
+    #δ = Vector{T}(M)
+    #unpack_δ!(δ,m)
+    δ = ones(M)
+
+    Q = m.parLength[:All]
+    dSdθ = Matrix{T}(Q,M)
+    dRdθ = Matrix{T}(Q,M)
+
+    return parDict{T}(γ_0,γ,β_0,β,σ,FE,randCoeffs,δ,μ_ij,s_hat,r_hat,dSdθ,dRdθ)
 end
 
 function calcRC!{T,S}(randCoeffs::Array{S},σ::Array{T},draws::Array{Float64,2})
@@ -116,7 +126,9 @@ function calc_indCoeffs{T}(p::parDict{T},β::Array{T,1},d::T,r_ind::Int)
     (N,K) = size(p.randCoeffs)
     β_i = Array{T,2}(N,Q)
     γ_i = d
-    β_i[:,1] = β[1]
+    for n in 1:N
+        β_i[n,1] = β[1]
+    end
 
     for k in 2:Q, n in 1:N
         β_i[n,k] = β[k] + p.randCoeffs[n,k-1,r_ind]
@@ -142,7 +154,7 @@ function util_value!{T}(app::ChoiceData,p::parDict{T})
     fe = p.FE
 
     ind = person(app)[1]
-    r_ind = Int(app[:riskIndex][1])
+    r_ind = Int(rInd(app)[1])
     idxitr = app._personDict[ind]
     X = permutedims(prodchars(app),(2,1))
     X_0 = permutedims(prodchars0(app),(2,1))
@@ -225,7 +237,7 @@ end
 
 function ll_obs_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
         ind = person(app)[1]
-        r_ind = Int(app[:riskIndex][1])
+        r_ind = Int(rInd(app)[1])
         S_ij = transpose(choice(app))
         wgt = transpose(weight(app))
         urate = transpose(unins(app))
@@ -264,7 +276,8 @@ function ll_obs_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
         Q = d.parLength[:All]
         Q_0 = Q - size(F_t,1)
         (N,K) = size(μ_ij)
-        grad_obs = zeros(Q)
+        grad_obs = Vector{T}(Q)
+        grad_obs[:] = 0.0
         ll_obs = 0.0
 
         ## Relevant Parameters for this observation
@@ -285,8 +298,8 @@ function ll_obs_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
 
         # Pre-Calculate Log-Likelihood Terms for Gradient
         # Also Calculate Log-Likelihood itself
-        gll_t1 = Vector{Float64}(K)
-        gll_t2 = Vector{Float64}(K)
+        gll_t1 = Vector{T}(K)
+        gll_t2 = Vector{T}(K)
         for k in 1:K
             #Gradient Terms
             gll_t1[k] = wgt[k]*S_ij[k]*(1/s_hat[k])
@@ -356,10 +369,10 @@ end
 function par_gradient{T}(x::Float64,
                             μ_ij::Array{T,2},δ::Vector{T},
                             μ_ij_sums::Vector{T},μ_ij_sums_sq::Vector{T},
-                            gll_t1::Vector{Float64},gll_t2::Vector{Float64})
+                            gll_t1::Vector{T},gll_t2::Vector{T})
     grad_obs = 0.0
     (N,K) = size(μ_ij)
-    dμ_ij = Vector{Float64}(K)
+    dμ_ij = Vector{T}(K)
     @inbounds(
     for n in 1:N
         dμ_ij_sums = 0.0
@@ -379,10 +392,10 @@ end
 function par_gradient{T}(x::Vector{Float64},
                             μ_ij::Array{T,2},δ::Vector{T},
                             μ_ij_sums::Vector{T},μ_ij_sums_sq::Vector{T},
-                            gll_t1::Vector{Float64},gll_t2::Vector{Float64})
+                            gll_t1::Vector{T},gll_t2::Vector{T})
     grad_obs = 0.0
     (N,K) = size(μ_ij)
-    dμ_ij = Vector{Float64}(K)
+    dμ_ij = Vector{T}(K)
     @inbounds(
     for n in 1:N
         dμ_ij_sums = 0.0
@@ -402,10 +415,10 @@ end
 function par_gradient_σ{T}(x::Vector{Float64},
                             μ_ij::Array{T,2},δ::Vector{T},
                             μ_ij_sums::Vector{T},μ_ij_sums_sq::Vector{T},
-                            gll_t1::Vector{Float64},gll_t2::Vector{Float64})
+                            gll_t1::Vector{T},gll_t2::Vector{T})
     grad_obs = 0.0
     (N,K) = size(μ_ij)
-    dμ_ij = Vector{Float64}(K)
+    dμ_ij = Vector{T}(K)
     @inbounds(
     for n in 1:N
         dμ_ij_sums = 0.0
@@ -424,10 +437,10 @@ end
 function par_gradient_σ{T}(x::Vector{Float64},Y::Vector{Float64},
                             μ_ij::Array{T,2},δ::Vector{T},
                             μ_ij_sums::Vector{T},μ_ij_sums_sq::Vector{T},
-                            gll_t1::Vector{Float64},gll_t2::Vector{Float64})
+                            gll_t1::Vector{T},gll_t2::Vector{T})
     grad_obs = 0.0
     (N,K) = size(μ_ij)
-    dμ_ij = Vector{Float64}(K)
+    dμ_ij = Vector{T}(K)
     @inbounds(
     for n in 1:N
         dμ_ij_sums = 0.0
@@ -444,11 +457,11 @@ function par_gradient_σ{T}(x::Vector{Float64},Y::Vector{Float64},
     return grad_obs/N
 end
 
-function par_gradient_inner_loop{T}(dμ_ij::Vector{Float64},dμ_ij_sums::Float64,
+function par_gradient_inner_loop{T}(dμ_ij::Vector{T},dμ_ij_sums::T,
                             n::Int64,
                             μ_ij::Array{T,2},δ::Vector{T},
                             μ_ij_sums::Vector{T},μ_ij_sums_sq::Vector{T},
-                            gll_t1::Vector{Float64},gll_t2::Vector{Float64})
+                            gll_t1::Vector{T},gll_t2::Vector{T})
 
     N,K = size(μ_ij)
     grad_obs = 0.0

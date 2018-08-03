@@ -19,7 +19,7 @@ function estimate!(d::InsuranceLogit, p0;method=:LD_TNEWTON_PRECOND_RESTART)
     # xtol_rel!(opt_stage2, 1e-6)
     # xtol_abs!(opt_stage2, 1e-6)
     # ftol_rel!(opt_stage2, 1e-10)
-    # maxtime!(opt_stage2, 500000)
+    maxtime!(opt_stage2, 500000)
 
     lb = repeat([-Inf],inner=length(p0))
     # lb[14] = 0.0

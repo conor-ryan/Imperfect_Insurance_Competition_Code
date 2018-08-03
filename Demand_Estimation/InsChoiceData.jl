@@ -37,6 +37,7 @@ struct ChoiceData <: ModelData
     _ageRate::Array{Int,1}
     _ageHCC::Array{Int,1}
     _unins::Array{Int,1}
+    _rInd::Array{Int,1}
 
     # ID Lookup Mappings
     _personIDs::Array{Float64,1}
@@ -137,6 +138,7 @@ function ChoiceData(data_choice::DataFrame,
     _ageRate = getindex.(index, [:ageRate_avg])
     _ageHCC = getindex.(index, [:HCC_age])
     _unins = getindex.(index, unins)
+    _rInd = getindex.(index, r_var)
 
     # Get Person ID Dictionary Mapping for Easy Subsets
     println("Person ID Mapping")
@@ -198,7 +200,8 @@ function ChoiceData(data_choice::DataFrame,
             F, index, prodchars,prodchars_0,
             choice, demoRaw,wgt, unins, _person, _prodchars,_prodchars_0,
             _choice, _demoRaw, _wgt,_ageRate,_ageHCC,
-             _unins,uniqids,_personDict,_productDict,
+             _unins,_rInd,
+             uniqids,_personDict,_productDict,
             rel_fe_Dict,_tMomentDict,_stDict)
     return m
 end
@@ -299,7 +302,7 @@ weight(m::ChoiceData)      = m[m._wgt]
 ageRate(m::ChoiceData)      = m[m._ageRate]
 ageHCC(m::ChoiceData)      = m[m._ageHCC]
 unins(m::ChoiceData)       = m[m._unins]
-rMoments(m::ChoiceData)       = m[m._rMoments]
+rInd(m::ChoiceData)       = m[m._rInd]
 
 
 fixedEffects(m::ChoiceData)= m.fixedEffects
@@ -339,6 +342,7 @@ function subset{T<:ModelData}(d::T, idx)
     d._ageRate,
     d._ageHCC,
     d._unins,
+    d._rInd,
     d._personIDs,
     d._personDict,
     d._productDict,
@@ -386,7 +390,7 @@ abstract type LogitModel end
 
 type InsuranceLogit <: LogitModel
     # Dictionary of Parameters and implied lengths
-    parLength::Dict{Symbol, Int}
+    parLength::Dict{Symbol, Int64}
     # ChoiceData struct
     data::ChoiceData
 
