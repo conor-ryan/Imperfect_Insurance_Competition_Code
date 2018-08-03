@@ -44,6 +44,18 @@ FEstart = rand(m.parLength[:FE])/100-.005
 
 p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 par0 = parDict(m,p0)
+
+# println("Gradient Test")
+# grad_2 = Vector{Float64}(length(p0))
+# res = GMM_objective!(grad_2,m,p0)
+# f_obj(x) = GMM_objective(m,x)
+# grad_1 = Vector{Float64}(length(p0))
+# fval_old = f_obj(p0)
+# ForwardDiff.gradient!(grad_1,f_obj, p0)
+# println(fval_old-res)
+# println(maximum(abs.(grad_1-grad_2)))
+
+
 ## Estimate
 flag, val, p_ll = estimate!(m, p0)
 est_res = estimate_GMM!(m,p_ll)
@@ -108,13 +120,7 @@ est_res = estimate_GMM!(m,p_ll)
 # println(fval_old-res)
 # println(maximum(abs.(grad_1-grad_2)))
 #
-# res = GMM_objective!(grad_2,m,p0)
-# f_obj(x) = GMM_objective(m,x)
-# grad_1 = Vector{Float64}(length(p0))
-# fval_old = f_obj(p0)
-# ForwardDiff.gradient!(grad_1,f_obj, p0)
-# println(fval_old-res)
-# println(maximum(abs.(grad_1-grad_2)))
+
 #
 #
 #

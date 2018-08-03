@@ -73,6 +73,8 @@ function estimate_GMM!(d::InsuranceLogit, p0;method=:LN_NELDERMEAD)
         println("Iteration $count at $x_displ")
         #obj = ll(x)
         obj = gmm_grad!(grad,x)
+        grad_size = sqrt(vecdot(grad,grad))
+        println("Gradient size equals $grad_size")
         #ForwardDiff.gradient!(grad, gmm, x)
 
         println("Objective equals $obj on iteration $count")

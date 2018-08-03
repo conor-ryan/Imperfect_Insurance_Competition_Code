@@ -26,7 +26,7 @@ function unPackParChars{T}(p::parDict{T},idxitr::UnitRange{Int})
     return μ_ij,δ,s_hat
 end
 
-function sumShares!(s_hat::Vector{Float64})
+function sumShares!(s_hat::Vector{Float64},ind::Float64)
     # Fix possible computational error
     for k in eachindex(s_hat)
         if abs(s_hat[k])<=1e-300
@@ -94,7 +94,7 @@ function ll_obs_hessian!{T}(hess::Matrix{Float64},grad::Vector{Float64},
         # Get Utility and derivative of Utility
         μ_ij,δ,s_hat = unPackParChars(p,idxitr)
 
-        s_insured = sumShares!(s_hat)
+        s_insured = sumShares!(s_hat,ind)
 
         (N,K) = size(μ_ij)
 
