@@ -2,13 +2,17 @@ using NLopt
 using ForwardDiff
 
 # Calculate Log Likelihood
-function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
+function log_likelihood{T}(d::InsuranceLogit,p::parDict{T};cont_flag=false)
     ll = 0.0
     Pop = 0.0
     #α = p.α[1]
     # Calculate μ_ij, which depends only on parameters
-    individual_values!(d,p)
-    individual_shares(d,p)
+    if cont_flag
+        contraction!(d,p)
+    else
+        individual_values!(d,p)
+        individual_shares(d,p)
+    end
     for app in eachperson(d.data)
     #app = next(eachperson(d.data),100)[1]
         ind = person(app)[1]
@@ -40,7 +44,7 @@ function log_likelihood{T}(d::InsuranceLogit,p::parDict{T})
     return ll/Pop
 end
 
-function log_likelihood!{T}(grad::Vector{T},d::InsuranceLogit,p::parDict{T})
+function log_likelihood!{T}(grad::Vector{T},d::InsuranceLogit,p::parDict{T};cont_flag = false)
     Q = d.parLength[:All]
     N = size(d.draws,1)
     grad[:] = 0.0
@@ -48,8 +52,12 @@ function log_likelihood!{T}(grad::Vector{T},d::InsuranceLogit,p::parDict{T})
     Pop =sum(weight(d.data).*choice(d.data))
 
     # Calculate μ_ij, which depends only on parameters
-    individual_values!(d,p)
-    individual_shares(d,p)
+    if cont_flag
+        contraction!(d,p)
+    else
+        individual_values!(d,p)
+        individual_shares(d,p)
+    end
 
     #shell_full = zeros(Q,N,38)
     for app in eachperson(d.data)
@@ -74,16 +82,16 @@ end
 
 
 
-function log_likelihood{T}(d::InsuranceLogit,p::Array{T})
+function log_likelihood{T}(d::InsuranceLogit,p::Array{T};cont_flag=false)
     params = parDict(d,p)
-    ll = log_likelihood(d,params)
+    ll = log_likelihood(d,params,cont_flag = cont_flag)
     convert_δ!(d)
     return ll
 end
 
-function log_likelihood!{T}(grad::Vector{Float64},d::InsuranceLogit,p::Array{T})
+function log_likelihood!{T}(grad::Vector{Float64},d::InsuranceLogit,p::Array{T};cont_flag=false)
     params = parDict(d,p)
-    ll = log_likelihood!(grad,d,params)
+    ll = log_likelihood!(grad,d,params,cont_flag = cont_flag)
     convert_δ!(d)
     return ll
 end
@@ -115,19 +123,23 @@ end
 
 
 function log_likelihood!{T}(hess::Matrix{Float64},grad::Vector{Float64},
-                            d::InsuranceLogit,p::parDict{T})
+                            d::InsuranceLogit,p::parDict{T};cont_flag=false)
     Q = d.parLength[:All]
     N = size(d.draws,1)
     hess[:] = 0.0
     grad[:] = 0.0
     ll = 0.0
     Pop =sum(weight(d.data).*choice(d.data))
-
-    # Calculate μ_ij, which depends only on parameters
-    individual_values!(d,p)
-    individual_shares(d,p)
     hess_obs = Matrix{Float64}(Q,Q)
     grad_obs = Vector{Float64}(Q)
+
+    if cont_flag
+        contraction!(d,p)
+    else
+        individual_values!(d,p)
+        individual_shares(d,p)
+    end
+
     #shell_full = zeros(Q,N,38)
     for app in eachperson(d.data)
         K = length(person(app))

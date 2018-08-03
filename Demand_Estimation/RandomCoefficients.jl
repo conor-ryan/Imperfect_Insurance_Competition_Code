@@ -80,9 +80,9 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
     r_hat = Vector{T}(M)
 
     # Deltas are turned off
-    #δ = Vector{T}(M)
-    #unpack_δ!(δ,m)
-    δ = ones(M)
+    δ = Vector{T}(M)
+    unpack_δ!(δ,m)
+    #δ = ones(M)
 
     Q = m.parLength[:All]
     dSdθ = Matrix{T}(Q,M)
@@ -215,6 +215,25 @@ function calc_shares{T}(μ_ij::Array{T},δ::Vector{T},r::Vector{Float64},r_age::
     return s_mean, r_mean
 end
 
+function calc_shares{T}(μ_ij::Array{T},δ::Vector{T})
+    (N,K) = size(μ_ij)
+    util = Matrix{T}(K,N)
+    s_hat = Matrix{T}(K,N)
+    for n in 1:N
+        expsum = 1.0
+        for i in 1:K
+            a = μ_ij[n,i]*δ[i]
+            util[i,n] = a
+            expsum += a
+        end
+        for i in 1:K
+            s_hat[i,n] = util[i,n]/expsum
+        end
+    end
+    s_mean = mean(s_hat,2)
+    return s_mean
+end
+
 function individual_shares{T}(d::InsuranceLogit,p::parDict{T})
     # Store Parameters
     δ_long = p.δ
@@ -230,6 +249,19 @@ function individual_shares{T}(d::InsuranceLogit,p::parDict{T})
         s,r = calc_shares(u,δ,r_scores,r_age_scores)
         p.s_hat[idxitr] = s
         p.r_hat[idxitr] = r
+    end
+    return Void
+end
+
+function individual_shares_norisk{T}(d::InsuranceLogit,p::parDict{T})
+    # Store Parameters
+    δ_long = p.δ
+    μ_ij_large = p.μ_ij
+    for idxitr in values(d.data._personDict)
+        δ = δ_long[idxitr]
+        u = μ_ij_large[:,idxitr]
+        s = calc_shares(u,δ)
+        p.s_hat[idxitr] = s
     end
     return Void
 end
