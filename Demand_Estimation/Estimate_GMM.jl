@@ -59,7 +59,7 @@ function estimate_GMM!(d::InsuranceLogit, p0;method=:LN_NELDERMEAD)
 
 
     gmm(x) = GMM_objective(d,x)
-    gmm_grad!(grad,x) = GMM_object(grad,d,x)
+    gmm_grad!(grad,x) = GMM_objective!(grad,d,x)
     # println(d.draws[1:30,:])
     disp_length = min(20,length(p0))
     count = 0
