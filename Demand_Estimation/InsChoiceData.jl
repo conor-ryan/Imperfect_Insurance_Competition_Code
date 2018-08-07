@@ -185,7 +185,7 @@ function ChoiceData(data_choice::DataFrame,
     _stDict = Dict{Int,Array{Int64,1}}()
     states = unique(data_risk[:ST])
     for s in states
-        _stDict[s] = data_risk[:Product][find(data_risk[:ST].==s)]
+        _stDict[s] = unique(data_risk[:Product][find(data_risk[:ST].==s)])
     end
 
     for j in keys(_productDict)

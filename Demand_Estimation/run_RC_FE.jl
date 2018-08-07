@@ -29,10 +29,10 @@ c = ChoiceData(df,df_mkt,df_risk;
             :LowIncome],
     prodchars=[:Price,:AV,],
     prodchars_0=[:Price,:AV,],
-    fixedEffects=[:constant])
+    fixedEffects=[:Firm])
 
 # Fit into model
-m = InsuranceLogit(c,10)
+m = InsuranceLogit(c,50)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
@@ -58,14 +58,20 @@ par0 = parDict(m,p0)
 
 ## Estimate
 flag, val, p_ll = estimate!(m, p0)
-est_res = estimate_GMM!(m,p_ll)
+
+W = calc_gmm_Avar(m,p_ll)
+
+est_res = estimate_GMM!(m,p_ll,W)
+#
+# W2 = calc_gmm_Avar(m,est_res[3])
+#
+# est_res = estimate_GMM!(m,est_res[3],W2)
 
 #
-# s_hess(x) = test_hess(app,m,x)
-# grad_s = Vector{Float64}(length(p0))
-# hess_s = Matrix{Float64}(length(p0),length(p0))
-# ForwardDiff.gradient!(grad_s,s_hess, p0)
-# ForwardDiff.hessian!(hess_s,s_hess, p0)
+# individual_values!(m,par0)
+# individual_shares(m,par0)
+#
+
 #
 #
 # ll_hess(x) = log_likelihood(app,m,x)
@@ -128,7 +134,7 @@ est_res = estimate_GMM!(m,p_ll)
 # #
 # Profile.init(n=10^8,delay=.001)
 # Profile.clear()
-# Juno.@profile GMM_objective!(grad_2,m,p0)
+# Juno.@profile calc_gmm_Avar(m,par0)
 # #Juno.@profile calc_risk_moments!(grad,m,par0)
 # Juno.profiletree()
 # Juno.profiler()

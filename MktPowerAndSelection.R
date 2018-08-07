@@ -196,7 +196,7 @@ alpha_h = 1
 #### Equilibrium ####
 ## NEEDS A FIX
 # Equal results for Monopoly
-res1 = nleqslv(c(p_h,p_l),fn=foc,N=5)
+res1 = nleqslv(c(p_h,p_l),fn=foc,N=100)
 p1 = res1$x
 
 res2 = optim(p1,fn=profit_max,N=N)
@@ -210,8 +210,12 @@ p4 = res4$x
 
 p5 = c(1.0125,1)
 # Properties of Equilibrium 
-p_h = p1[1]
-p_l = p1[2]
+N = 1
+# p_h = p2[1]
+# p_l = p2[2]
+p_l = 4
+delta = 0
+p_h = p_l + delta
 
 u_hh = utility_high(p_h,x_h)
 u_hl = utility_high(p_l,x_l)
@@ -266,8 +270,16 @@ dS_hh*dS_ll - dS_hl*dS_lh
 -S_l/dS_l
 -S_h/dS_h
 
+## Price Test
+# Low Type
+-S_l/dS_l + x_l*(mu_h*dS_hl*c_h + mu_l*dS_ll*c_l)/dS_l
+# High Type
+-S_h/dS_h + x_h*(mu_h*dS_hh*c_h + mu_l*dS_lh*c_l)/dS_h
+
+
 # Preferences
 u_hh 
 u_hl 
 u_lh 
 u_ll 
+u_lh - u_ll - (u_hh - u_hl)
