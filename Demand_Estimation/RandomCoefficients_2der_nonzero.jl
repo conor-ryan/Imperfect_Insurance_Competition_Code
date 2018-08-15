@@ -89,6 +89,8 @@ function ll_obs_hessian!{T}(hess::Matrix{Float64},grad::Vector{Float64},
         ind, r_ind, r_ind_metal, S_ij, wgt, urate, idxitr, X_t, X_0_t, Z, F_t, r_age = unPackChars(app,d)
 
         draws = d.draws
+        non_zero_draws = find(d.draws[:,r_ind].>0)
+        zero_draws = find(d.draws[:,r_ind].==0)
         risk = draws[:,r_ind_metal]
         r_avg = p.r_hat[idxitr]
 
@@ -152,6 +154,7 @@ function ll_obs_hessian!{T}(hess::Matrix{Float64},grad::Vector{Float64},
 
 
                 hess_calc!(dS1,dS2a,dS2b,dS3,dS4a,dS4b,
+                            zero_draws,non_zero_draws,
                             dR,risk,r_age,
                             dμ_ij_x,dμ_ij_y,dμ_ij_xy,
                             μ_ij,δ,X_mat,Y,
@@ -254,6 +257,27 @@ function calc_totTerms!(dS3::Vector{Float64},
     return tx3, ty3, txy7
 end
 
+function calc_totTerms!(Num::Int64,dS3::Vector{Float64},
+                        dS4a::Vector{Float64},dS4b::Vector{Float64},
+                        dμ_ij_x_sums::Float64,
+                        dμ_ij_y_sums::Float64,
+                        dμ_ij_xy_sums::Float64,
+                        μ_ij_sums_n::Float64,μ_ij_sums_sq_n::Float64,
+                        μ_ij_sums_cu_n::Float64)
+
+    @fastmath tx3 = (dμ_ij_x_sums/μ_ij_sums_sq_n)
+    @fastmath ty3 = (dμ_ij_y_sums/μ_ij_sums_sq_n)
+
+    @fastmath txy6 = dμ_ij_xy_sums/μ_ij_sums_n
+    @fastmath txy7 = 2*dμ_ij_x_sums*dμ_ij_y_sums/(μ_ij_sums_cu_n)
+    @fastmath txy8 = dμ_ij_xy_sums*(μ_ij_sums_n-1)/μ_ij_sums_sq_n
+
+    @inbounds @fastmath dS3[1]+= Num*(txy6 - txy7 - txy8)
+    @inbounds @fastmath dS4a[1]+= Num*tx3
+    @inbounds @fastmath dS4b[1]+= Num*ty3
+    return tx3, ty3, txy7
+end
+
 function calc_prodTerms!(n::Int64,dS1::Vector{Float64},
                         dS2a::Vector{Float64},dS2b::Vector{Float64},
                         dR::Vector{Float64},risk::Matrix{Float64},
@@ -293,9 +317,33 @@ function calc_prodTerms!(n::Int64,dS1::Vector{Float64},
     end
 end
 
+function calc_prodTerms!(n::Int64,N::Int64,dS1::Vector{Float64},
+                        dS2a::Vector{Float64},dS2b::Vector{Float64},
+                        dR::Vector{Float64},risk::Matrix{Float64},
+                        risk_age::Vector{Float64},
+                        dμ_ij_x::Vector{Float64},dμ_ij_x_sums::Float64,
+                        dμ_ij_y::Vector{Float64},dμ_ij_y_sums::Float64,
+                        dμ_ij_xy::Vector{Float64},dμ_ij_xy_sums::Float64,
+                        μ_ij::Matrix{Float64},δ::Vector{Float64},
+                        μ_ij_sums_n::Float64,μ_ij_sums_sq_n::Float64,
+                        μ_ij_sums_cu_n::Float64,
+                        tx3::Float64,ty3::Float64,txy7::Float64)
+
+    K = length(dS1)
+
+    for k in 1:K
+        @inbounds @fastmath tx = (dμ_ij_x[k]/μ_ij_sums_n-tx3*μ_ij[n,k]*δ[k])
+        @inbounds @fastmath dS1[k]+= N*(dμ_ij_xy[k]/μ_ij_sums_n - dμ_ij_x[k]*ty3 - dμ_ij_y[k]*tx3 - dμ_ij_xy_sums*μ_ij[n,k]*δ[k]/μ_ij_sums_sq_n + txy7*μ_ij[n,k]*δ[k])
+        @inbounds @fastmath dS2a[k]+= N*tx
+        @inbounds @fastmath dR[k]+= N*tx*(risk[n,k]+risk_age[k])
+        @inbounds @fastmath dS2b[k]+= N*(dμ_ij_y[k]/μ_ij_sums_n-ty3*μ_ij[n,k]*δ[k])
+    end
+end
+
 function hess_calc!(dS1::Vector{Float64},dS2a::Vector{Float64},
                     dS2b::Vector{Float64},dS3::Vector{Float64},
                     dS4a::Vector{Float64},dS4b::Vector{Float64},
+                    zero_draws::Vector{Int},non_zero_draws::Vector{Int},
                     dR::Vector{Float64},risk::Matrix{Float64},
                     risk_age::Vector{Float64},
                     dμ_ij_x::Vector{Float64},
@@ -315,7 +363,29 @@ function hess_calc!(dS1::Vector{Float64},dS2a::Vector{Float64},
 
     (N,K) = size(μ_ij)
 
-    for n in 1:N
+    ### 0 Draw Calculation ###
+    n = zero_draws[1]
+    Num = length(zero_draws)
+    μ_ij_sums_n = μ_ij_sums[n]
+    μ_ij_sums_sq_n = μ_ij_sums_sq[n]
+    μ_ij_sums_cu_n = μ_ij_sums_cu[n]
+
+    dμ_ij_x_sums, dμ_ij_y_sums, dμ_ij_xy_sums = calc_derSums(n,dμ_ij_x,dμ_ij_y,dμ_ij_xy,
+                        X_mat,Y,μ_ij,δ)
+
+    tx3, ty3, txy7 = calc_totTerms!(Num,dS3,dS4a,dS4b,
+                    dμ_ij_x_sums,dμ_ij_y_sums,dμ_ij_xy_sums,
+                    μ_ij_sums_n,μ_ij_sums_sq_n,μ_ij_sums_cu_n)
+
+    calc_prodTerms!(n,Num,dS1,dS2a,dS2b,dR,risk,risk_age,
+                dμ_ij_x,dμ_ij_x_sums,
+                dμ_ij_y,dμ_ij_y_sums,
+                dμ_ij_xy,dμ_ij_xy_sums,
+                μ_ij,δ,μ_ij_sums_n,
+                μ_ij_sums_sq_n,μ_ij_sums_cu_n,
+                tx3,ty3,txy7)
+
+    for n in non_zero_draws
         μ_ij_sums_n = μ_ij_sums[n]
         μ_ij_sums_sq_n = μ_ij_sums_sq[n]
         μ_ij_sums_cu_n = μ_ij_sums_cu[n]

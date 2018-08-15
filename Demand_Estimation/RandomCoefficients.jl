@@ -154,7 +154,7 @@ function util_value!{T}(app::ChoiceData,p::parDict{T})
     fe = p.FE
 
     ind = person(app)[1]
-    r_ind = Int(rInd(app)[1])
+    r_ind = Int(rIndS(app)[1])
     idxitr = app._personDict[ind]
     X = permutedims(prodchars(app),(2,1))
     X_0 = permutedims(prodchars0(app),(2,1))
@@ -190,7 +190,7 @@ function util_value!{T}(app::ChoiceData,p::parDict{T})
     return Void
 end
 
-function calc_shares{T}(μ_ij::Array{T},δ::Vector{T},r::Vector{Float64},r_age::Vector{Float64})
+function calc_shares{T}(μ_ij::Array{T},δ::Vector{T},r::Matrix{Float64},r_age::Vector{Float64})
     (N,K) = size(μ_ij)
     util = Matrix{T}(K,N)
     s_hat = Matrix{T}(K,N)
@@ -198,7 +198,7 @@ function calc_shares{T}(μ_ij::Array{T},δ::Vector{T},r::Vector{Float64},r_age::
 
     for n in 1:N
         expsum = 1.0
-        r_score = r[n]
+        #r_score = r[n,:]
         for i in 1:K
             a = μ_ij[n,i]*δ[i]
             util[i,n] = a
@@ -207,7 +207,7 @@ function calc_shares{T}(μ_ij::Array{T},δ::Vector{T},r::Vector{Float64},r_age::
         for i in 1:K
             s = util[i,n]/expsum
             s_hat[i,n] = s
-            r_hat[i,n] = s*(r_score + r_age[i])
+            r_hat[i,n] = s*(r[n,i] + r_age[i])
         end
     end
     s_mean = mean(s_hat,2)
@@ -238,12 +238,12 @@ function individual_shares{T}(d::InsuranceLogit,p::parDict{T})
     # Store Parameters
     δ_long = p.δ
     μ_ij_large = p.μ_ij
-    risk_long = d.data[:riskIndex]
+    risk_long = rInd(d.data)
     ageHCC_long = ageHCC(d.data)
     for idxitr in values(d.data._personDict)
         δ = δ_long[idxitr]
         u = μ_ij_large[:,idxitr]
-        r_ind = Int(risk_long[idxitr][1])
+        r_ind = Int.(risk_long[idxitr])
         r_scores = d.draws[:,r_ind]
         r_age_scores = ageHCC_long[idxitr]
         s,r = calc_shares(u,δ,r_scores,r_age_scores)
@@ -269,7 +269,7 @@ end
 
 function ll_obs_gradient{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
         ind = person(app)[1]
-        r_ind = Int(rInd(app)[1])
+        r_ind = Int(rIndS(app)[1])
         S_ij = transpose(choice(app))
         wgt = transpose(weight(app))
         urate = transpose(unins(app))

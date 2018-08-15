@@ -1,6 +1,7 @@
 rm(list=ls())
 library(data.table)
 library(doBy)
+library(Hmisc)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
 
 
@@ -45,7 +46,7 @@ crosswalk[grepl(" < 50",CC_AGE_SPLIT),Age_Max:=49]
 
 # #crosswalk = crosswalk[,list(HCC=min(HCC)),by="trunc_ICD9"]
 # crosswalk = unique(crosswalk[,c("trunc_ICD9","CC","Additional_CC","CC_SEX_SPLIT","Age_Min","Age_Max","Age_Diag_Min","Age_Diag_Max")])
-# CC_cats = as.numeric(unique(crosswalk$CC))
+CC_cats = as.numeric(unique(crosswalk$CC))
 # ## Minimum CC per truncated code. Imperfect adjustment... 
 # crosswalk = crosswalk[,list(CC=min(CC)),
 #                       by=c("trunc_ICD9","CC_SEX_SPLIT","Age_Min","Age_Max","Age_Diag_Min","Age_Diag_Max")]

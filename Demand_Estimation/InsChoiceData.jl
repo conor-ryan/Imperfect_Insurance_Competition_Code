@@ -38,6 +38,7 @@ struct ChoiceData <: ModelData
     _ageHCC::Array{Int,1}
     _unins::Array{Int,1}
     _rInd::Array{Int,1}
+    _rIndS::Array{Int,1}
 
     # ID Lookup Mappings
     _personIDs::Array{Float64,1}
@@ -92,29 +93,59 @@ function ChoiceData(data_choice::DataFrame,
 
     #### Risk Score Moments ####
     if riskscores
-        r_df = unique(df[[:Any_HCC,:mean_HCC_Silver,:var_HCC_Silver]])
-        rmat = Matrix{Float64}(size(r_df))
-        for ind in 1:ncol(r_df)
-            rmat[:,ind] = r_df[ind]
+        r_df = unique(data_choice[[:Rtype,:Any_HCC,
+                                :mean_HCC_Catastrophic,:var_HCC_Catastrophic,
+                                :mean_HCC_Bronze,:var_HCC_Bronze,
+                                :mean_HCC_Silver,:var_HCC_Silver,
+                                :mean_HCC_Gold,:var_HCC_Gold,
+                                :mean_HCC_Platinum,:var_HCC_Platinum]])
+        r_types = sort(unique(data_choice[:Rtype]))
+        rmat = Matrix{Float64}(length(r_types)*5,4)
+        for r in r_types
+            r_temp = r_df[find(r_df[:Rtype].==r)[1],:]
+            for m in 1:5
+                rmat[(r-1)*5+m,1] = (r-1)*5+m
+                rmat[(r-1)*5+m,2] = r_temp[1,2]
+                rmat[(r-1)*5+m,3] = r_temp[1,1+m*2]
+                rmat[(r-1)*5+m,4] = r_temp[1,2+m*2]
+            end
         end
 
         R_index = Vector{Float64}(n)
+        R_metal_index = Vector{Float64}(n)
         for ind in eachindex(R_index)
-            R_index[ind] = findin(rmat[:,1],df[ind,:Any_HCC])[1]
+            r =  findin(rmat[:,1],df[ind,:Rtype])[1]
+            R_index[ind] = (r-1)*5 + 3
+            AV = df[ind,:AV]
+            if AV==.57
+                R_metal_index[ind] = (r-1)*5 + 1
+            elseif AV==0.6
+                R_metal_index[ind] = (r-1)*5 + 2
+            elseif (AV==0.7) | (AV==0.73)
+                R_metal_index[ind] = (r-1)*5 + 3
+            elseif (AV>.75) & (AV!=.9)
+                R_metal_index[ind] = (r-1)*5 + 4
+            else
+                R_metal_index[ind] = (r-1)*5 + 5
+            end
         end
+
+        r_silv_var = [:riskIndex_Silver]
         r_var = [:riskIndex]
-        df[r_var] = R_index
+        #df[r_var] = R_index
     else
+        r_silv_var = [:riskIndex_Silver]
         r_var = [:riskIndex]
         R_index = Vector{Float64}(n)
+        R_metal_index = Vector{Float64}(n)
         rmat =  Matrix{Float64}(0,0)
     end
 
     # Create a data matrix, only including person id
     println("Put Together Data non FE data together")
     k = 0
-    for (d, var) in zip([i,X,X_0, y, Z,w,rm, s0,R_index], [person,prodchars,
-        prodchars_0,choice, demoRaw,wgt,riskChars,unins,r_var])
+    for (d, var) in zip([i,X,X_0, y, Z,w,rm, s0,R_metal_index,R_index], [person,prodchars,
+        prodchars_0,choice, demoRaw,wgt,riskChars,unins,r_var,r_silv_var])
         for l=1:size(d,2)
             k+=1
             dmat = hcat(dmat, d[:,l])
@@ -139,6 +170,7 @@ function ChoiceData(data_choice::DataFrame,
     _ageHCC = getindex.(index, [:HCC_age])
     _unins = getindex.(index, unins)
     _rInd = getindex.(index, r_var)
+    _rIndS = getindex.(index, r_silv_var)
 
     # Get Person ID Dictionary Mapping for Easy Subsets
     println("Person ID Mapping")
@@ -200,7 +232,7 @@ function ChoiceData(data_choice::DataFrame,
             F, index, prodchars,prodchars_0,
             choice, demoRaw,wgt, unins, _person, _prodchars,_prodchars_0,
             _choice, _demoRaw, _wgt,_ageRate,_ageHCC,
-             _unins,_rInd,
+             _unins,_rInd,_rIndS,
              uniqids,_personDict,_productDict,
             rel_fe_Dict,_tMomentDict,_stDict)
     return m
@@ -303,6 +335,7 @@ ageRate(m::ChoiceData)      = m[m._ageRate]
 ageHCC(m::ChoiceData)      = m[m._ageHCC]
 unins(m::ChoiceData)       = m[m._unins]
 rInd(m::ChoiceData)       = m[m._rInd]
+rIndS(m::ChoiceData)       = m[m._rIndS]
 
 
 fixedEffects(m::ChoiceData)= m.fixedEffects
@@ -343,6 +376,7 @@ function subset{T<:ModelData}(d::T, idx)
     d._ageHCC,
     d._unins,
     d._rInd,
+    d._rIndS,
     d._personIDs,
     d._personDict,
     d._productDict,
@@ -445,9 +479,9 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
     if riskscores
         risk_draws = Matrix{Float64}(haltonDim,size(c_data.rMoments,1))
         for mom in 1:size(c_data.rMoments,1)
-            any = 1 - c_data.rMoments[mom,1]
-            μ_risk = c_data.rMoments[mom,2]
-            std_risk = sqrt(c_data.rMoments[mom,3])
+            any = 1 - c_data.rMoments[mom,2]
+            μ_risk = c_data.rMoments[mom,3]
+            std_risk = sqrt(c_data.rMoments[mom,4])
             for ind in 1:haltonDim
                 if draws[ind]<any
                     risk_draws[ind,mom] = 0

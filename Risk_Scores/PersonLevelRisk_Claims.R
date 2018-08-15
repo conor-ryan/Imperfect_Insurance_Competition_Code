@@ -90,28 +90,42 @@ metalClaims = merge(metalEst,metalClaims,by.x=c("ST","Firm","Metal_std"),by.y=c(
 #metalClaims[,R_j:=(T_avg*12/avg_prem + Age_j/ST_A)*ST_R]
 metalClaims[,T_norm_data:=T_avg*12/avg_prem]
 
-test = metalClaims[,list(T_norm = sum(T_norm_data*lives)/sum(lives),
-                         EXP_RSK_ADJ=sum(EXP_RSK_ADJ)),by=c("ST","Firm")]
 
-### Adjust to match firm average risk 
-test = merge(test,firm_RA[,c("ST","Firm","R_f","payments_adj","T_norm_est")],by=c("ST","Firm"),all=TRUE)
-test[,T_adj:= T_norm_est-T_norm]
+# Drop firms with identical transfers across all metal levels
+metalClaims[,mean:=mean(T_norm_data),by=c("ST","Firm")]
+metalClaims[,noVar:=all(abs(T_norm_data-mean)<1e-3),by=c("ST","Firm")]
 
-metalClaims = merge(metalClaims,test[,c("ST","Firm","T_adj")],by=c("ST","Firm"))
+metal_moments = metalClaims[!is.na(T_norm_data)&!noVar,list(T_norm_data = sum(T_norm_data*EXP_MM)/sum(EXP_MM)),by=c("Metal_std")]
+metal_moments[,Metal_std:=factor(Metal_std,levels=c("BRONZE","SILVER","GOLD","PLATINUM"))]
+setkey(metal_moments,Metal_std)
 
-metalClaims[,T_norm_data:=T_norm_data+T_adj]
-metalClaims[,R_j:=(T_norm_data + Age_j/ST_A)*ST_R]
-
-test = metalClaims[,list(R_f_test=sum(R_j*lives)/sum(lives),
-                         T_norm = sum((T_norm_data)*lives)/sum(lives),
-                         EXP_RSK_ADJ=sum(EXP_RSK_ADJ)),by=c("ST","Firm")]
-
-test = merge(test,firm_RA[,c("ST","Firm","R_f","payments_adj","T_norm_est")],by=c("ST","Firm"),all=TRUE)
+# Wakely Numbers
+metal_moments$T_norm_data = c(.814,1.503,1.889,2.675)
 
 
-
-metalClaims_Est = metalClaims[,c("ST","Firm","Metal_std","Age_j","ST_A","T_norm_data","R_j")]
-setkey(metalClaims_Est,ST,Firm,Metal_std)
+# 
+# test = metalClaims[,list(T_norm = sum(T_norm_data*lives)/sum(lives),
+#                          EXP_RSK_ADJ=sum(EXP_RSK_ADJ)),by=c("ST","Firm")]
+# 
+# ### Adjust to match firm average risk 
+# test = merge(test,firm_RA[,c("ST","Firm","R_f","payments_adj","T_norm_est")],by=c("ST","Firm"),all=TRUE)
+# test[,T_adj:= T_norm_est-T_norm]
+# 
+# metalClaims = merge(metalClaims,test[,c("ST","Firm","T_adj")],by=c("ST","Firm"))
+# 
+# metalClaims[,T_norm_data:=T_norm_data+T_adj]
+# metalClaims[,R_j:=(T_norm_data + Age_j/ST_A)*ST_R]
+# 
+# test = metalClaims[,list(R_f_test=sum(R_j*lives)/sum(lives),
+#                          T_norm = sum((T_norm_data)*lives)/sum(lives),
+#                          EXP_RSK_ADJ=sum(EXP_RSK_ADJ)),by=c("ST","Firm")]
+# 
+# test = merge(test,firm_RA[,c("ST","Firm","R_f","payments_adj","T_norm_est")],by=c("ST","Firm"),all=TRUE)
+# 
+# 
+# 
+# metalClaims_Est = metalClaims[,c("ST","Firm","Metal_std","Age_j","ST_A","T_norm_data","R_j")]
+# setkey(metalClaims_Est,ST,Firm,Metal_std)
 
 
 ##### Output Moments ####
@@ -127,15 +141,20 @@ population[,st_share:=pop/sum(pop),by="ST"]
 mkt_data = merge(mkt_data,population[,c("ST","Market","st_share")],
                  by.x=c("STATE","Market"),by.y=c("ST","Market"))
 ## Risk Moments
-metal_moments = metalClaims_Est[!is.na(T_norm_data),c("ST","Firm","Metal_std","T_norm_data")]
+# 
+# # Drop firms with identical transfers across all metal levels
+# metalClaims_Est[,mean:=mean(T_norm_data),by=c("ST","Firm")]
+# metalClaims_Est[,noVar:=all(abs(T_norm_data-mean)<1e-3),by=c("ST","Firm")]
+# 
+# 
+# metal_moments = metalClaims_Est[!is.na(T_norm_data)&!noVar,c("ST","Firm","Metal_std","T_norm_data")]
 metal_moments[,momentID:=1:nrow(metal_moments)]
 
 firm_moments = firm_RA[Firm!="OTHER",c("ST","Firm","T_norm_est")]
 firm_moments[,momentID:=nrow(metal_moments)+1:nrow(firm_moments)]
 
-
 metal_moments = merge(mkt_data[,c("STATE","Firm","METAL","Product","st_share")],metal_moments,
-                      by.x=c("STATE","Firm","METAL"),by.y=c("ST","Firm","Metal_std"))
+                      by.x=c("METAL"),by.y=c("Metal_std"))
 firm_moments = merge(mkt_data[,c("STATE","Firm","Product","st_share")],firm_moments,
                       by.x=c("STATE","Firm"),by.y=c("ST","Firm"))
 
@@ -144,7 +163,21 @@ names(metal_moments) = c("Product","momentID","T_moment","st_share","ST")
 firm_moments = firm_moments[,c("Product","momentID","T_norm_est","st_share","STATE")]
 names(firm_moments) = c("Product","momentID","T_moment","st_share","ST")
 
-risk_moments = rbind(metal_moments,firm_moments)
+# Total Average Risk
+total_moment = mkt_data[,c("STATE","Firm","Product","st_share")]
+total_moment$T_moment = 1.448
+#total_moment$momentID = max(firm_moments$momentID) + 1
+total_moment$momentID = max(metal_moments$momentID) + 1
+total_moment$ST = total_moment$STATE
+
+total_moment = total_moment[,c("Product","momentID","T_moment","st_share","ST")]
+
+
+# risk_moments = rbind(metal_moments,firm_moments)
+# risk_moments = rbind(risk_moments,total_moment)
+risk_moments = rbind(metal_moments,total_moment)
+#risk_moments = total_moment
+#risk_moments$momentID = 1
 risk_moments$ST = as.numeric(risk_moments$ST)
 
 

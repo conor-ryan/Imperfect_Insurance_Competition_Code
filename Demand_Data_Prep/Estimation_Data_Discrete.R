@@ -467,6 +467,8 @@ choices$Age_Cat[choices$AGE>45] = 1
 choices$Inc_Cat = 0
 choices$Inc_Cat[with(choices,is.na(FPL_imp)|FPL_imp>4)] = 1
 
+choices[,Rtype:= 1+Age_Cat+Inc_Cat*2]
+
 choices = merge(choices,r_mom,by=c("Age_Cat","Inc_Cat"),all.x=TRUE)
 
 choices[,c("Age_Cat","Inc_Cat"):=NULL]
@@ -716,6 +718,8 @@ choices$MedOOPDiff = choices$MedOOPDiff/1000
 choices[,ExcOOP:= (MedOOP - MedDeduct)]
 choices[,ExcOOPDiff:= (MedOOPDiff - MedDeductDiff)]
 
+choices[,Big:=as.numeric(grepl("UNITED|BLUE|CIGNA|ASSURANT",Firm))]
+
 choices$Product = as.factor(choices$Product)
 shares$Product_Name = factor(shares$Product,levels=levels(choices$Product))
 
@@ -726,15 +730,17 @@ choices = choices[with(choices,order(Person,Product)),]
 setkey(choices,Person,Product)
 setkey(shares,Product)
 
+
+
 write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price",
                      "Firm_Market","Firm_Market_Cat","Firm_Market_Age","Firm_Market_Cat_Age",
                      "PriceDiff",#"MedDeductDiff","ExcOOPDiff","HighDiff",
-                     "MedDeduct","ExcOOP","High","AV","AV_old",
+                     "MedDeduct","ExcOOP","High","AV","AV_old","Big",
                      "Family","Age","LowIncome","AGE","HighIncome","IncomeCts",
                      "METAL",
-                     "ageRate_avg","HCC_age",
+                     "ageRate_avg","HCC_age","SilvHCC_Age",
                      "mean_HCC_Platinum","mean_HCC_Gold","mean_HCC_Silver","mean_HCC_Bronze","mean_HCC_Catastrophic",
-                     "Any_HCC",
+                     "Rtype","Any_HCC",
                      "var_HCC_Platinum","var_HCC_Gold","var_HCC_Silver","var_HCC_Bronze","var_HCC_Catastrophic",
                      "F0_Y0_LI0","F0_Y0_LI1","F0_Y1_LI0","F0_Y1_LI1",
                      "F1_Y0_LI0","F1_Y0_LI1","F1_Y1_LI0","F1_Y1_LI1",

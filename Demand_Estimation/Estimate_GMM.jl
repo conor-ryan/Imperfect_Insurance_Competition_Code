@@ -10,8 +10,8 @@ function GMM_objective!{T}(obj_grad::Vector{Float64},d::InsuranceLogit,p0::Array
     mom_grad = Matrix{Float64}(length(p0),length(d.data.tMoments))
     mom = calc_risk_moments!(mom_grad,d,par0)
 
-    moments = vcat(grad,mom./1000)
-    moments_grad = hcat(hess,mom_grad./1000)
+    moments = vcat(grad,mom)
+    moments_grad = hcat(hess,mom_grad)
 
     #W = eye(length(d.data.tMoments)+length(p0))
 
@@ -19,10 +19,21 @@ function GMM_objective!{T}(obj_grad::Vector{Float64},d::InsuranceLogit,p0::Array
     # moments_grad = hess
     #
     # W = eye(length(p0))
+    obj = 0.0
+    for i in 1:length(moments), j in 1:length(moments)
+        obj+= W[i,j]*moments[j]*moments[i]
+    end
 
-    obj = moments'*W*moments
+    obj_grad[:] = 0.0
+    for k in 1:length(p0),i in 1:length(moments), j in 1:length(moments)
+        obj_grad[k]+= W[i,j]*(moments[j]*moments_grad[k,i] + moments[i]*moments_grad[k,j])
+    end
 
-    obj_grad[:] = moments_grad*W*moments + moments_grad*W'*moments
+
+    # obj = moments'*W*moments
+    #
+    # obj_grad[:] = moments_grad*W*moments + moments_grad*W'*moments
+
     return obj
 end
 
@@ -39,14 +50,13 @@ function GMM_objective{T}(d::InsuranceLogit,p0::Array{T})
     return obj
 end
 
-function GMM_objective{T}(d::InsuranceLogit,p0::Array{T})
+function GMM_objective{T}(d::InsuranceLogit,p0::Array{T},W::Matrix{Float64})
     par0 = parDict(d,p0)
     grad = Vector{T}(length(p0))
     ll = log_likelihood!(grad,d,par0)
     mom = calc_risk_moments(d,par0)
 
     moments = vcat(grad,mom)
-    W = eye(length(d.data.tMoments)+length(p0))
 
     obj = moments'*W*moments
     return obj
@@ -55,8 +65,8 @@ end
 
 function estimate_GMM!(d::InsuranceLogit, p0::Vector{Float64},W::Matrix{Float64};method=:LN_NELDERMEAD)
     # Set up the optimization
-    #opt_stage1 = Opt(:LD_TNEWTON_PRECOND_RESTART, length(p0))
-    opt_stage1 = Opt(:LD_TNEWTON_PRECOND_RESTART, length(p0))
+    #opt_stage1 = Opt(:LD_MMA, length(p0))
+    opt_stage1 = Opt(:LD_MMA, length(p0))
     #opt = Opt(:LD_MMA, length(p0))
 
     #opt = Opt(:LD_TNEWTON_PRECOND_RESTART,length(p0))

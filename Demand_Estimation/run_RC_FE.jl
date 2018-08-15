@@ -10,7 +10,7 @@ include("Halton.jl")
 
 # Random Coefficients MLE
 include("RandomCoefficients.jl")
-include("RandomCoefficients_2der.jl")
+include("RandomCoefficients_2der_nonzero.jl")
 include("Contraction.jl")
 include("Log_Likehood.jl")
 include("RiskMoments.jl")
@@ -27,12 +27,12 @@ c = ChoiceData(df,df_mkt,df_risk;
             :AgeFE_52_64,
             :Family,
             :LowIncome],
-    prodchars=[:Price,:AV,],
-    prodchars_0=[:Price,:AV,],
-    fixedEffects=[:Firm])
+    prodchars=[:Price,:AV],
+    prodchars_0=[:Price,:AV],
+    fixedEffects=[:constant])
 
 # Fit into model
-m = InsuranceLogit(c,50)
+m = InsuranceLogit(c,100)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
@@ -47,29 +47,39 @@ par0 = parDict(m,p0)
 
 # println("Gradient Test")
 # grad_2 = Vector{Float64}(length(p0))
-# res = GMM_objective!(grad_2,m,p0)
-# f_obj(x) = GMM_objective(m,x)
+# W = eye(length(p0)+length(m.data.tMoments))
+# res = GMM_objective!(grad_2,m,p0,W)
+# f_obj(x) = GMM_objective(m,x,W)
 # grad_1 = Vector{Float64}(length(p0))
 # fval_old = f_obj(p0)
+# println("ForwardDiff")
 # ForwardDiff.gradient!(grad_1,f_obj, p0)
 # println(fval_old-res)
 # println(maximum(abs.(grad_1-grad_2)))
-
+#
 
 ## Estimate
 flag, val, p_ll = estimate!(m, p0)
-
+println("#################")
+println("#################")
+println("###### Estimation 2 #######")
+println("#################")
+println("#################")
 W = calc_gmm_Avar(m,p_ll)
-
+# W = eye(length(p0)+length(m.data.tMoments))
 est_res = estimate_GMM!(m,p_ll,W)
-#
-# W2 = calc_gmm_Avar(m,est_res[3])
-#
-# est_res = estimate_GMM!(m,est_res[3],W2)
+p_est = est_res[3]
+W2 = calc_gmm_Avar(m,p_est)
+println("#################")
+println("#################")
+println("###### Estimation 3 #######")
+println("#################")
+println("#################")
+est_res = estimate_GMM!(m,p_est,W2)
 
 #
-# individual_values!(m,par0)
-# individual_shares(m,par0)
+individual_values!(m,par0)
+individual_shares(m,par0)
 #
 
 #
@@ -85,8 +95,8 @@ est_res = estimate_GMM!(m,p_ll,W)
 #
 #
 # grad_2 = Vector{Float64}(length(p0))
-# grad_3 = Vector{Float64}(length(p0))
-# hess_2 = Matrix{Float64}(length(p0),length(p0))
+grad = Vector{Float64}(length(p0))
+hess = Matrix{Float64}(length(p0),length(p0))
 # hess_3 = Matrix{Float64}(length(p0),length(p0))
 # llg =  log_likelihood!(grad_2,m,p0)
 # llh =  log_likelihood!(hess_3,grad_3,m,par0)
@@ -132,12 +142,12 @@ est_res = estimate_GMM!(m,p_ll,W)
 #
 # #
 # #
-# Profile.init(n=10^8,delay=.001)
-# Profile.clear()
-# Juno.@profile calc_gmm_Avar(m,par0)
-# #Juno.@profile calc_risk_moments!(grad,m,par0)
-# Juno.profiletree()
-# Juno.profiler()
+Profile.init(n=10^8,delay=.001)
+Profile.clear()
+Juno.@profile log_likelihood!(hess,grad,m,par0)
+#Juno.@profile calc_risk_moments!(grad,m,par0)
+Juno.profiletree()
+Juno.profiler()
 #
 # for (x,i) in enumerate([1,2,5])
 #     print(x)

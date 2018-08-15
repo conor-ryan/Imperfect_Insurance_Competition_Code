@@ -101,26 +101,54 @@ function calc_risk_moments!{T}(grad::Matrix{Float64},d::InsuranceLogit,p::parDic
     t_norm_j = calc_Transfers!(dTdθ,s_hat_j,r_hat_j,a_hat_j,
                             dSdθ_j,dRdθ,dAdθ,d)
 
+    R_unwt = similar(r_hat_j)
+    dR_unwt = similar(dRdθ)
+    (Θ,J) = size(dR_unwt)
+    for θ in 1:Θ, j in 1:J
+        dR_unwt[θ,j] = dRdθ[θ,j]/d.Γ_j[j]
+    end
+
+    for j in 1:J
+        R_unwt[j] = r_hat_j[j]/d.Γ_j[j]
+    end
 
     mom_value = Vector{Float64}(length(d.data.tMoments))
 
     for (m,idx_mom) in d.data._tMomentDict
-        t_est = sliceMean_wgt(t_norm_j,s_hat_j,idx_mom)
-        #mom_value[m] = d.data.tMoments[m] - t_est
-        mom_value[m] = t_est
+        if m<=5
+            t_est = sliceMean_wgt(R_unwt,s_hat_j,idx_mom)
+            #mom_value[m] = d.data.tMoments[m] - t_est
+            mom_value[m] = t_est
+        else
+            t_est = sliceMean_wgt(t_norm_j,s_hat_j,idx_mom)
+            #mom_value[m] = d.data.tMoments[m] - t_est
+            mom_value[m] = t_est
+        end
+
     end
 
     for q in 1:Q
         for (m,idx_mom) in d.data._tMomentDict
-            t1 = 0.0
-            s_mom = sum(s_hat_j[idx_mom])
-            dS_mom = sum(dSdθ_j[q,idx_mom])
-            @inbounds @fastmath @simd for j in idx_mom
-                t1+= dSdθ_j[q,j]*t_norm_j[j] + s_hat_j[j]*dTdθ[q,j]
+            if m<=5
+                t1 = 0.0
+                s_mom = sum(s_hat_j[idx_mom])
+                dS_mom = sum(dSdθ_j[q,idx_mom])
+                @inbounds @fastmath @simd for j in idx_mom
+                    t1+= dSdθ_j[q,j]*R_unwt[j] + s_hat_j[j]*dR_unwt[q,j]
+                end
+                grad[q,m] = t1/s_mom - (dS_mom/s_mom)*mom_value[m]
+            else
+                t1 = 0.0
+                s_mom = sum(s_hat_j[idx_mom])
+                dS_mom = sum(dSdθ_j[q,idx_mom])
+                @inbounds @fastmath @simd for j in idx_mom
+                    t1+= dSdθ_j[q,j]*t_norm_j[j] + s_hat_j[j]*dTdθ[q,j]
+                end
+                grad[q,m] = t1/s_mom - (dS_mom/s_mom)*mom_value[m]
             end
-            grad[q,m] = t1/s_mom - (dS_mom/s_mom)*mom_value[m]
         end
     end
+    println("Risk moments are $mom_value")
 
     return mom_value .- d.data.tMoments
 end
@@ -190,6 +218,7 @@ function calc_risk_moments{T}(d::InsuranceLogit,p::parDict{T})
     S_unwt = Vector{T}(num_prods)
     s_hat_j = Vector{T}(num_prods)
     r_hat_j = Vector{T}(num_prods)
+    r_hat_unwt_j = Vector{T}(num_prods)
     a_hat_j = Vector{T}(num_prods)
 
     ageRate_long = ageRate(d.data)[1,:]
@@ -200,6 +229,7 @@ function calc_risk_moments{T}(d::InsuranceLogit,p::parDict{T})
         S_unwt[j] = sliceSum_wgt(p.s_hat,wgts,j_index_all)
         #@inbounds @fastmath s_hat_j[j]= (S_unwt[j]/d.lives[j])*d.data.st_share[j]
         @inbounds s_hat_j[j]= S_unwt[j]
+        r_hat_unwt_j[j] = sliceMean_wgt(p.r_hat,wgts_share,j_index_all)
         r_hat_j[j] = sliceMean_wgt(p.r_hat,wgts_share,j_index_all)*d.Γ_j[j]
         a_hat_j[j] = sliceMean_wgt(ageRate_long,wgts_share,j_index_all)*d.AV_j[j]*d.Γ_j[j]
     end
@@ -218,9 +248,16 @@ function calc_risk_moments{T}(d::InsuranceLogit,p::parDict{T})
     mom_value = Vector{T}(length(d.data.tMoments))
 
     for (m,idx_mom) in d.data._tMomentDict
-        t_est = sliceMean_wgt(t_norm_j,s_hat_j,idx_mom)
-        #mom_value[m] = d.data.tMoments[m] - t_est
-        mom_value[m] = t_est
+        if m<=5
+            t_est = sliceMean_wgt(r_hat_unwt_j,s_hat_j,idx_mom)
+            #mom_value[m] = d.data.tMoments[m] - t_est
+            mom_value[m] = t_est
+        else
+            t_est = sliceMean_wgt(t_norm_j,s_hat_j,idx_mom)
+            #mom_value[m] = d.data.tMoments[m] - t_est
+            mom_value[m] = t_est
+        end
+
     end
 
     return mom_value .- d.data.tMoments
@@ -360,21 +397,40 @@ function risk_moments_Avar{T}(d::InsuranceLogit,p::parDict{T})
 
     mom_value = Vector{T}(length(d.data.tMoments))
 
+    R_unwt = similar(r_hat_2_j)
+    J = length(r_hat_2_j)
+    for j in 1:J
+        R_unwt[j] = r_hat_2_j[j]/d.Γ_j[j]
+    end
+
     for (m,idx_mom) in d.data._tMomentDict
-        t_est = sliceMean_wgt(t_norm_j,s_hat_2_j,idx_mom)
-        #mom_value[m] = d.data.tMoments[m] - t_est
-        mom_value[m] = t_est
-        for k in d.prods
-            #S_hat_j Gradient
-            mom_grad[m,k] = sliceMean_wgt(T_grad[:,k],s_hat_2_j,idx_mom)
-            #A_hat_j Gradient
-            mom_grad[m,(num_prods + k)] = sliceMean_wgt(T_grad[:,(num_prods+k)],s_hat_2_j,idx_mom)
-            #R_hat_j Gradient
-            mom_grad[m,(num_prods*2 + k)] = sliceMean_wgt(T_grad[:,(num_prods*2+k)],s_hat_2_j,idx_mom)
-        end
-        for k in idx_mom
-            #S_hat_j Gradient Addition
-            mom_grad[m,k]+= (t_norm_j[k]-mom_value[m])/sum(s_hat_2_j[idx_mom])
+        if m<=5
+            t_est = sum(R_unwt[idx_mom])/sum(s_hat_2_j[idx_mom])
+            s_sum = sum(s_hat_2_j[idx_mom])
+            for k in idx_mom
+                #S_hat_j Gradient
+                mom_grad[m,k] = (r_hat_2_j[k]/d.Γ_j[k])/s_sum - t_est/s_sum
+                #A_hat_j Gradient
+                mom_grad[m,(num_prods + k)] = 0.0
+                #R_hat_j Gradient
+                mom_grad[m,(num_prods*2 + k)] = (s_hat_2_j[k]/d.Γ_j[k])/s_sum
+            end
+        else
+            t_est = sliceMean_wgt(t_norm_j,s_hat_2_j,idx_mom)
+            #mom_value[m] = d.data.tMoments[m] - t_est
+            mom_value[m] = t_est
+            for k in d.prods
+                #S_hat_j Gradient
+                mom_grad[m,k] = sliceMean_wgt(T_grad[:,k],s_hat_2_j,idx_mom)
+                #A_hat_j Gradient
+                mom_grad[m,(num_prods + k)] = sliceMean_wgt(T_grad[:,(num_prods+k)],s_hat_2_j,idx_mom)
+                #R_hat_j Gradient
+                mom_grad[m,(num_prods*2 + k)] = sliceMean_wgt(T_grad[:,(num_prods*2+k)],s_hat_2_j,idx_mom)
+            end
+            for k in idx_mom
+                #S_hat_j Gradient Addition
+                mom_grad[m,k]+= (t_norm_j[k]-mom_value[m])/sum(s_hat_2_j[idx_mom])
+            end
         end
     end
 
