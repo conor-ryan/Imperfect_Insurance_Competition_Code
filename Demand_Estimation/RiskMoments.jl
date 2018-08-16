@@ -115,7 +115,7 @@ function calc_risk_moments!{T}(grad::Matrix{Float64},d::InsuranceLogit,p::parDic
     mom_value = Vector{Float64}(length(d.data.tMoments))
 
     for (m,idx_mom) in d.data._tMomentDict
-        if m<=5
+        if true
             t_est = sliceMean_wgt(R_unwt,s_hat_j,idx_mom)
             #mom_value[m] = d.data.tMoments[m] - t_est
             mom_value[m] = t_est
@@ -129,7 +129,7 @@ function calc_risk_moments!{T}(grad::Matrix{Float64},d::InsuranceLogit,p::parDic
 
     for q in 1:Q
         for (m,idx_mom) in d.data._tMomentDict
-            if m<=5
+            if true
                 t1 = 0.0
                 s_mom = sum(s_hat_j[idx_mom])
                 dS_mom = sum(dSdθ_j[q,idx_mom])
@@ -148,7 +148,7 @@ function calc_risk_moments!{T}(grad::Matrix{Float64},d::InsuranceLogit,p::parDic
             end
         end
     end
-    mom_disp = mom_value[1:5]
+    mom_disp = mom_value[1:6]
     println("Risk moments are $mom_disp")
 
     return mom_value .- d.data.tMoments
@@ -249,7 +249,7 @@ function calc_risk_moments{T}(d::InsuranceLogit,p::parDict{T})
     mom_value = Vector{T}(length(d.data.tMoments))
 
     for (m,idx_mom) in d.data._tMomentDict
-        if m<=5
+        if true
             t_est = sliceMean_wgt(r_hat_unwt_j,s_hat_j,idx_mom)
             #mom_value[m] = d.data.tMoments[m] - t_est
             mom_value[m] = t_est
@@ -405,7 +405,7 @@ function risk_moments_Avar{T}(d::InsuranceLogit,p::parDict{T})
     end
 
     for (m,idx_mom) in d.data._tMomentDict
-        if m<=5
+        if true
             t_est = sum(R_unwt[idx_mom])/sum(s_hat_2_j[idx_mom])
             s_sum = sum(s_hat_2_j[idx_mom])
             for k in idx_mom

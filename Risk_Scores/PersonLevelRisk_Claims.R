@@ -100,7 +100,7 @@ metal_moments[,Metal_std:=factor(Metal_std,levels=c("BRONZE","SILVER","GOLD","PL
 setkey(metal_moments,Metal_std)
 
 # Wakely Numbers
-metal_moments$T_norm_data = c(.814,1.503,1.889,2.675)
+metal_moments$R_adj = c(.814,1.503,1.889,2.675)
 
 
 # 
@@ -150,17 +150,20 @@ mkt_data = merge(mkt_data,population[,c("ST","Market","st_share")],
 # metal_moments = metalClaims_Est[!is.na(T_norm_data)&!noVar,c("ST","Firm","Metal_std","T_norm_data")]
 metal_moments[,momentID:=1:nrow(metal_moments)]
 
-firm_moments = firm_RA[Firm!="OTHER",c("ST","Firm","T_norm_est")]
-firm_moments[,momentID:=nrow(metal_moments)+1++1:nrow(firm_moments)]
+firm_moments = firm_RA[Firm!="OTHER",c("ST","Firm","T_norm_adj","R_adj_natl","memberMonths")]
+firm_moments[,Big:=as.numeric(grepl("UNITED|BLUE|CIGNA|ASSURANT",Firm))]
+firm_moments[,R_avg:=sum(R_adj_natl*memberMonths)/sum(memberMonths),by="Big"]
+firm_moments = firm_moments[Big==1,]
+firm_moments[,momentID:=nrow(metal_moments)+2]
 
 metal_moments = merge(mkt_data[,c("STATE","Firm","METAL","Product","st_share")],metal_moments,
                       by.x=c("METAL"),by.y=c("Metal_std"))
 firm_moments = merge(mkt_data[,c("STATE","Firm","Product","st_share")],firm_moments,
                       by.x=c("STATE","Firm"),by.y=c("ST","Firm"))
 
-metal_moments = metal_moments[,c("Product","momentID","T_norm_data","st_share","STATE")]
+metal_moments = metal_moments[,c("Product","momentID","R_adj","st_share","STATE")]
 names(metal_moments) = c("Product","momentID","T_moment","st_share","ST")
-firm_moments = firm_moments[,c("Product","momentID","T_norm_est","st_share","STATE")]
+firm_moments = firm_moments[,c("Product","momentID","R_avg","st_share","STATE")]
 names(firm_moments) = c("Product","momentID","T_moment","st_share","ST")
 
 # Total Average Risk

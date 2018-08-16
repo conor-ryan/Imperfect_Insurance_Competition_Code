@@ -10,8 +10,8 @@ function GMM_objective!{T}(obj_grad::Vector{Float64},d::InsuranceLogit,p0::Array
     mom_grad = Matrix{Float64}(length(p0),length(d.data.tMoments))
     mom = calc_risk_moments!(mom_grad,d,par0)
 
-    moments = vcat(grad,mom)
-    moments_grad = hcat(hess,mom_grad)
+    moments = vcat(mom,grad)
+    moments_grad = hcat(mom_grad,hess)
 
     #W = eye(length(d.data.tMoments)+length(p0))
 
@@ -78,9 +78,9 @@ function estimate_GMM!(d::InsuranceLogit, p0::Vector{Float64},W::Matrix{Float64}
     maxtime!(opt_stage1, 500000)
     ftol_rel!(opt_stage1,1e-8)
 
-    lb = repeat([-Inf],inner=length(p0))
+    lb = repeat([-5],inner=length(p0))
     # lb[14] = 0.0
-    ub = repeat([Inf],inner=length(p0))
+    ub = repeat([5],inner=length(p0))
     # ub[14] = .99
 
     lower_bounds!(opt_stage1, lb)
@@ -114,7 +114,26 @@ function estimate_GMM!(d::InsuranceLogit, p0::Vector{Float64},W::Matrix{Float64}
     min_objective!(opt_stage1, gmm)
 
     # Run Optimization
+    # maxeval!(opt_stage1,10)
+    #
+    # lb = repeat([-5],inner=length(p0))
+    # # lb[14] = 0.0
+    # ub = repeat([5],inner=length(p0))
+    # # ub[14] = .99
+    # lower_bounds!(opt_stage1, lb)
+    # upper_bounds!(opt_stage1, ub)
+    # minf, minx, ret= optimize(opt_stage1, p0)
+
+    maxeval!(opt_stage1,25000)
+    lb = repeat([-Inf],inner=length(p0))
+    # lb[14] = 0.0
+    ub = repeat([Inf],inner=length(p0))
+    # ub[14] = .99
+    lower_bounds!(opt_stage1, lb)
+    upper_bounds!(opt_stage1, ub)
     minf, minx, ret= optimize(opt_stage1, p0)
+
+
     println("In Stage 1, got $minf at $minx after $count iterations (returned $ret)")
 
     # Return the object

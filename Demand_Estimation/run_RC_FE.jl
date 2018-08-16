@@ -27,8 +27,8 @@ c = ChoiceData(df,df_mkt,df_risk;
             :AgeFE_52_64,
             :Family,
             :LowIncome],
-    prodchars=[:Price,:AV],
-    prodchars_0=[:Price,:AV],
+    prodchars=[:Price,:AV,:Big],
+    prodchars_0=[:Price,:AV,:Big],
     fixedEffects=[:constant])
 
 # Fit into model
@@ -65,8 +65,8 @@ println("#################")
 println("###### Estimation 2 #######")
 println("#################")
 println("#################")
-W = calc_gmm_Avar(m,p_ll)
-# W = eye(length(p0)+length(m.data.tMoments))
+#W = calc_gmm_Avar(m,p_ll)
+W = eye(length(p0)+length(m.data.tMoments))
 est_res = estimate_GMM!(m,p_ll,W)
 p_est = est_res[3]
 W2 = calc_gmm_Avar(m,p_est)
