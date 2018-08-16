@@ -148,7 +148,8 @@ function calc_risk_moments!{T}(grad::Matrix{Float64},d::InsuranceLogit,p::parDic
             end
         end
     end
-    println("Risk moments are $mom_value")
+    mom_disp = mom_value[1:5]
+    println("Risk moments are $mom_disp")
 
     return mom_value .- d.data.tMoments
 end

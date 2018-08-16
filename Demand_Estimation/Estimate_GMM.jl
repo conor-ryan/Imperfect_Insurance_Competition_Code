@@ -65,8 +65,8 @@ end
 
 function estimate_GMM!(d::InsuranceLogit, p0::Vector{Float64},W::Matrix{Float64};method=:LN_NELDERMEAD)
     # Set up the optimization
-    #opt_stage1 = Opt(:LD_MMA, length(p0))
-    opt_stage1 = Opt(:LD_MMA, length(p0))
+    opt_stage1 = Opt(:LD_LBFGS, length(p0))
+    #opt_stage1 = Opt(:LD_TNEWTON_PRECOND_RESTART, length(p0))
     #opt = Opt(:LD_MMA, length(p0))
 
     #opt = Opt(:LD_TNEWTON_PRECOND_RESTART,length(p0))

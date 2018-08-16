@@ -77,9 +77,9 @@ println("#################")
 println("#################")
 est_res = estimate_GMM!(m,p_est,W2)
 
-#
-individual_values!(m,par0)
-individual_shares(m,par0)
+
+# individual_values!(m,par0)
+# individual_shares(m,par0)
 #
 
 #
@@ -95,8 +95,8 @@ individual_shares(m,par0)
 #
 #
 # grad_2 = Vector{Float64}(length(p0))
-grad = Vector{Float64}(length(p0))
-hess = Matrix{Float64}(length(p0),length(p0))
+# grad = Vector{Float64}(length(p0))
+# hess = Matrix{Float64}(length(p0),length(p0))
 # hess_3 = Matrix{Float64}(length(p0),length(p0))
 # llg =  log_likelihood!(grad_2,m,p0)
 # llh =  log_likelihood!(hess_3,grad_3,m,par0)
@@ -142,12 +142,12 @@ hess = Matrix{Float64}(length(p0),length(p0))
 #
 # #
 # #
-Profile.init(n=10^8,delay=.001)
-Profile.clear()
-Juno.@profile log_likelihood!(hess,grad,m,par0)
-#Juno.@profile calc_risk_moments!(grad,m,par0)
-Juno.profiletree()
-Juno.profiler()
+# Profile.init(n=10^8,delay=.001)
+# Profile.clear()
+# Juno.@profile log_likelihood!(hess,grad,m,par0)
+# #Juno.@profile calc_risk_moments!(grad,m,par0)
+# Juno.profiletree()
+# Juno.profiler()
 #
 # for (x,i) in enumerate([1,2,5])
 #     print(x)

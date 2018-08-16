@@ -151,7 +151,7 @@ mkt_data = merge(mkt_data,population[,c("ST","Market","st_share")],
 metal_moments[,momentID:=1:nrow(metal_moments)]
 
 firm_moments = firm_RA[Firm!="OTHER",c("ST","Firm","T_norm_est")]
-firm_moments[,momentID:=nrow(metal_moments)+1:nrow(firm_moments)]
+firm_moments[,momentID:=nrow(metal_moments)+1++1:nrow(firm_moments)]
 
 metal_moments = merge(mkt_data[,c("STATE","Firm","METAL","Product","st_share")],metal_moments,
                       by.x=c("METAL"),by.y=c("Metal_std"))
@@ -173,9 +173,9 @@ total_moment$ST = total_moment$STATE
 total_moment = total_moment[,c("Product","momentID","T_moment","st_share","ST")]
 
 
-# risk_moments = rbind(metal_moments,firm_moments)
-# risk_moments = rbind(risk_moments,total_moment)
-risk_moments = rbind(metal_moments,total_moment)
+risk_moments = rbind(metal_moments,firm_moments)
+risk_moments = rbind(risk_moments,total_moment)
+# risk_moments = rbind(metal_moments,total_moment)
 #risk_moments = total_moment
 #risk_moments$momentID = 1
 risk_moments$ST = as.numeric(risk_moments$ST)
