@@ -85,8 +85,11 @@ function ChoiceData(data_choice::DataFrame,
     rm = hcat(Array{Float64}(data_choice[riskChars]))
 
     println("Create Fixed Effects")
-    F, feNames = build_FE(data_choice,fixedEffects)
+    bigFirm = :Big in prodchars_0
+    F, feNames = build_FE(data_choice,fixedEffects,bigFirm = bigFirm)
     F = permutedims(F,(2,1))
+
+
 
     index = Dict{Symbol, Int}()
     dmat = Matrix{Float64}(n,0)
@@ -249,7 +252,7 @@ function build_ProdDict{T,N}(j::Array{T,N})
     return _productDict
 end
 
-function build_FE{T}(data_choice::DataFrame,fe_list::Vector{T})
+function build_FE{T}(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false)
     # Create Fixed Effects
     n, k = size(data_choice)
     L = 0
@@ -278,6 +281,9 @@ function build_FE{T}(data_choice::DataFrame,fe_list::Vector{T})
             #     num_effects = length(factor_list) - 4
             # end
         end
+        if bigFirm & (fe==:Firm)
+            num_effects-= 1
+        end
         L+=num_effects
     end
 
@@ -304,6 +310,10 @@ function build_FE{T}(data_choice::DataFrame,fe_list::Vector{T})
             # if fac in ["ND_4","MD_4","IA_7"]
             #     continue
             # end
+
+            if bigFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA")
+                continue
+            end
 
             F[fac_variables.==fac,ind] = 1
             ind+= 1
