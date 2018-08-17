@@ -32,7 +32,7 @@ c = ChoiceData(df,df_mkt,df_risk;
     fixedEffects=[:Firm])
 
 # Fit into model
-m = InsuranceLogit(c,100)
+m = InsuranceLogit(c,1000)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
@@ -142,12 +142,12 @@ est_res = estimate_GMM!(m,p_est,W2)
 #
 # #
 # #
-# Profile.init(n=10^8,delay=.001)
-# Profile.clear()
-# Juno.@profile log_likelihood!(hess,grad,m,par0)
-# #Juno.@profile calc_risk_moments!(grad,m,par0)
-# Juno.profiletree()
-# Juno.profiler()
+Profile.init(n=10^8,delay=.001)
+Profile.clear()
+Juno.@profile res = GMM_objective!(grad_2,m,p0,W)
+#Juno.@profile calc_risk_moments!(grad,m,par0)
+Juno.profiletree()
+Juno.profiler()
 #
 # for (x,i) in enumerate([1,2,5])
 #     print(x)

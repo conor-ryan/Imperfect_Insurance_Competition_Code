@@ -78,13 +78,13 @@ function estimate_GMM!(d::InsuranceLogit, p0::Vector{Float64},W::Matrix{Float64}
     maxtime!(opt_stage1, 500000)
     ftol_rel!(opt_stage1,1e-8)
 
-    lb = repeat([-5],inner=length(p0))
-    # lb[14] = 0.0
-    ub = repeat([5],inner=length(p0))
-    # ub[14] = .99
-
-    lower_bounds!(opt_stage1, lb)
-    upper_bounds!(opt_stage1, ub)
+    # lb = repeat([-5],inner=length(p0))
+    # # lb[14] = 0.0
+    # ub = repeat([5],inner=length(p0))
+    # # ub[14] = .99
+    #
+    # lower_bounds!(opt_stage1, lb)
+    # upper_bounds!(opt_stage1, ub)
 
 
     #gmm(x) = GMM_objective(d,x,W)
