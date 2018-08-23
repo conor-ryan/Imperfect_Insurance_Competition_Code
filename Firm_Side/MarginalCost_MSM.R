@@ -53,7 +53,7 @@ setkey(metalClaims,ST,Firm,Metal_std)
 
 
 
-#### MEPS Moments ####
+#### MEPS Age Moments ####
 ageMoments = as.data.table(read.csv("Data/2015_MEPS/ageMoments.csv"))
 setkey(ageMoments,Age_Bin)
 
@@ -61,6 +61,11 @@ full_predict[,Age_Bin:=floor(AGE/5)*5]
 full_predict[AGE>=18 & Age_Bin==15,Age_Bin:=20]
 full_predict[,Age_1:=AGE/10]
 full_predict[,Age_2:=Age_1^2]
+
+
+#### MEPS Risk Score Moments ####
+
+
 
 #### Define Cost Function ####
 ST_list = sort(unique(full_predict$ST))

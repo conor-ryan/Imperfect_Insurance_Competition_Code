@@ -117,3 +117,56 @@ moments = moments[,-grep("PERWT15F",names(moments))]
 names(moments) = c("Age_Cat","Inc_Cat","mean_HCC_Platinum","mean_HCC_Gold","mean_HCC_Silver","mean_HCC_Bronze","mean_HCC_Catastrophic",
                   "Any_HCC","var_HCC_Platinum","var_HCC_Gold","var_HCC_Silver","var_HCC_Bronze","var_HCC_Catastrophic")
 write.csv(moments,"Intermediate_Output/MEPS_Moments/R_Score_Moments.csv",row.names=FALSE)
+
+
+#### Risk - Cost Moments ####
+meps = mepsFull[,c("HIEUIDX","DUPERSID","PID","PANEL","AGELAST","AGE15X","TTLP15X","POVLEV15","OFFER31X","OFFER42X","OFFER53X",
+                   "TRIEV15","MCREV15","MCDEV15","OPAEV15","OPBEV15","ADSMOK42",
+                   "UNINS15","INSCOV15","INSURC15","TOTEXP15","PERWT15F")]
+
+meps_risk = read.csv("Intermediate_Output/MEPS_Moments/meps_risk_scores.csv")
+
+meps = merge(meps,meps_risk,by=c("DUPERSID","PANEL"),all.x=TRUE)
+
+# mepsPers = read.csv("Data/2015_MEPS/MEPS_Person_2015.csv")
+# ## Non Group Coverage
+# mepsPers = mepsPers[mepsPers$PRIVCAT%in%c(2,3,5,6,99),]
+# # #Not Through Employer or Association 
+# mepsPers = mepsPers[mepsPers$CMJINS!=1,]
+# mepsPers = mepsPers[mepsPers$TYPEFLAG%in%c(5,6,7,11,12,13,21),]
+# 
+# mepsPers = mepsPers[mepsPers$STEXCH!=-1,]
+# 
+# mepsPers = summaryBy(STEXCH~DUPERSID+PANEL,data=mepsPers,FUN=min,keep.names=TRUE)
+# 
+# meps = merge(meps,mepsPers,by=c("DUPERSID","PANEL"),all.x=TRUE)
+# meps = merge(meps,meps_risk,by=c("DUPERSID","PANEL"),all.x=TRUE)
+# 
+# ## Keep Non-Group Only
+# meps = meps[!is.na(meps$STEXCH),]
+
+
+# Subset on 0 - 65, Insured
+meps = meps[meps$AGE15X>=0,]
+meps = meps[meps$AGE15X<66,]
+meps = meps[meps$UNINS15==2,]
+meps = as.data.table(meps)
+
+## Non-Zero Average Cost
+
+meps[,HCC_positive:=0]
+meps[HCC_Score_Silver>0,HCC_positive:=1]
+
+riskMoments = meps[,list(avgCost=sum(PERWT15F*TOTEXP15)/sum(PERWT15F)),by="HCC_positive"]
+riskMoments[,costIndex:=avgCost/min(avgCost)]
+setkey(riskMoments,costIndex)
+
+
+write.csv(riskMoments,file="Intermediate_Output/MEPS_Moments/riskMoments.csv",row.names=FALSE)
+
+
+
+
+
+
+

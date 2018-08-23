@@ -5,7 +5,7 @@ library(data.table)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
 
 ## Run
-run = "2018-05-12"
+run = "2018-08-17"
 
 #### 2015 Subsidy Percentage Function ####
 
@@ -301,6 +301,9 @@ acs[,ExcOOPDiff:= (MedOOPDiff - MedDeductDiff)]
 acs[,Age := 0]
 acs[AGE>=39,Age:= 1]
 
+acs[,Big:=as.numeric(grepl("UNITED|BLUE|CIGNA|ASSURANT",Firm))]
+
+
 
 # Product Variables
 acs[,Market:= paste(ST,gsub("Rating Area ","",AREA),sep="_")]
@@ -328,7 +331,8 @@ acs = acs[!is.na(acs$Product),]
 
 #### Fixed Effects ####
 # Market Product Category Fixed Effects
-firm_list = sort(unique(prod_map$Firm_Market_Cat))[-1]
+firm_list = sort(unique(prod_map$Firm))
+firm_list = firm_list[firm_list!="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA"]
 for (fe in firm_list){
   var = paste("FE",fe,sep="_")
   acs[,c(var):=0]
@@ -394,8 +398,45 @@ density[,mkt_density:=PERWT/mkt_size]
 
 acs = merge(acs,density[,c("Market","Person","mkt_density")],by=c("Market","Person"))
 
-#### Read in Parameters ####
+
+#### Random Draws ####
+## Moments
+r_mom = read.csv("Intermediate_Output/MEPS_Moments/R_Score_Moments.csv")
+acs[,Age_Cat:= 0]
+acs[AGE>45,Age_Cat:= 1]
+
+acs[,Inc_Cat:= 0]
+acs[HHincomeFPL>4,Inc_Cat:= 1]
+
+#acs[,Rtype:= 1+Age_Cat+Inc_Cat*2]
+r_mom$Rtype= with(r_mom,1+Age_Cat+Inc_Cat*2)
+
+acs = merge(acs,r_mom,by=c("Age_Cat","Inc_Cat"),all.x=TRUE)
+
+acs[,c("Age_Cat","Inc_Cat"):=NULL]
+
+
+## Draws
 n_draws = 100
+
+draws = halton(n_draws+100,dim=1,usetime=TRUE,normal=FALSE)[101:(100+n_draws)]
+
+HCC_draws = matrix(NA,nrow=n_draws,ncol=max(acs$Rtype))
+
+for (j in 1:max(r_mom$Rtype)){
+  any = 1 - r_mom$Any_HCC[r_mom$Rtype==j]
+  mu = r_mom$mean_HCC_Silver[r_mom$Rtype==j]
+  sigma = sqrt(r_mom$var_HCC_Silver[r_mom$Rtype==j])
+  draws_any = (draws-any)/(1-any)
+  
+  log_norm = exp(qnorm(draws_any)*sigma + mu)
+  log_norm[is.nan(log_norm)] = 0
+  
+  HCC_draws[,j] = log_norm
+}
+
+#### Read in Parameters ####
+
 
 parFile = paste("Estimation_Output/estimationresults_",run,".csv",sep="")
 pars = read.csv(parFile)
@@ -405,20 +446,19 @@ deltas = read.csv(delFile)
 
 beta_vec = pars$pars
 
-gamma0 = beta_vec[1]
-gamma = beta_vec[2:6]
-beta0 = beta_vec[7:8]
-beta = matrix(0,nrow=2,ncol=5)
+
+gamma = beta_vec[1:5]
+beta0 = beta_vec[6:8]
+beta = matrix(0,nrow=3,ncol=5)
 beta[1,1:ncol(beta)] = beta_vec[9:13]
 sigma = beta_vec[14:15]
 FE_pars = beta_vec[16:length(beta_vec)]
 
-draws = halton(n_draws,dim=2,usetime=TRUE,normal=TRUE)
-randCoeffs = matrix(nrow=n_draws,ncol=length(sigma)+1)
-randCoeffs[,1] = draws[,1]*sigma[1]
-randCoeffs[,2] = 0
-for (k in 3:3){
-  randCoeffs[,k] = draws[,2]*sigma[k-1]
+
+
+randCoeffs = array(data=NA,dim=c(n_draws,ncol(HCC_draws),length(sigma)))
+for (k in 1:length(sigma)){
+  randCoeffs[,,k] = HCC_draws*sigma[k]
 }
 
 acs = merge(acs,deltas,by.x="Product",by.y="prods")
@@ -432,6 +472,7 @@ people = sort(unique(acs$Person))
 predict_data = acs[,c("Person","Product")]
 predict_data[,s_pred:= vector("double",nrow(predict_data))]
 predict_data[,non_price_util:= vector("double",nrow(predict_data))]
+predict_data[,HCC_draw:= vector("double",nrow(predict_data))]
 
 ## Replicate People in Order
 sortedFirst = function(x,y){
@@ -479,39 +520,52 @@ for (p in people){
                                 "AgeFE_51_64",
                                 "Family",
                                 "LowIncome")])
-  chars = as.matrix(perData[,c("Price","AV")])
-  chars_0 = as.matrix(perData[,c("Price","AV")])
+  chars = as.matrix(perData[,c("Price","AV","Big")])
+  chars_0 = as.matrix(perData[,c("Price","AV","Big")])
   FE = as.matrix(perData[,.SD,.SDcols=names(perData)[grep("^FE_",names(perData))]])
   delta = perData$delta
   
-  intercept = (demos%*%gamma)[1,1] + randCoeffs[,1]
+  intercept = (demos%*%gamma)[1,1] #+ randCoeffs[,1]
   
   chars_int = chars_0%*%beta0 + FE%*%FE_pars
+  chars_int = matrix(chars_int,nrow=nrow(chars),ncol=n_draws)
   
   beta_z = demos%*%t(beta)
   beta_zi = matrix(beta_z,nrow=n_draws,ncol=length(beta_z),byrow=TRUE)
-  for (n in 1:n_draws){
-    beta_zi[n,] = beta_zi[n,] + randCoeffs[n,2:3]
-  }
+  r_ind = unique(perData$Rtype)
+  # for (n in 1:n_draws){
+  #   beta_zi[n,2:ncol(beta_zi)] = beta_zi[n,2:ncol(beta_zi)] + randCoeffs[n,r_ind,]
+  # }
+  beta_zi[,2:ncol(beta_zi)] = beta_zi[,2:ncol(beta_zi)] + randCoeffs[,r_ind,]
   
   price_val = chars_0[,1]*(beta0[1] + beta_z[,1])
+  price_val = matrix(price_val,nrow=nrow(chars),ncol=n_draws)
   
-  util = matrix(NA,nrow=nrow(chars),ncol=n_draws)
-  util_non_price = matrix(NA,nrow=nrow(chars),ncol=n_draws)
+  
+  # util = matrix(NA,nrow=nrow(chars),ncol=n_draws)
+  # util_non_price = matrix(NA,nrow=nrow(chars),ncol=n_draws)
   shares = matrix(NA,nrow=nrow(chars),ncol=n_draws)
-  for(n in 1:n_draws){
-    util[,n] = exp(intercept[n] + chars_int + chars%*%beta_zi[n,])*delta
-    
-    util_non_price[,n] = exp(intercept[n] + chars_int + chars%*%beta_zi[n,]-price_val)*delta
-  }
+  util = exp(intercept + chars_int + chars%*%t(beta_zi))*delta
+  util_non_price = exp(intercept + chars_int + chars%*%t(beta_zi)-price_val)*delta
+  
+  # for(n in 1:n_draws){
+  #   util[,n] = exp(intercept + chars_int + chars%*%beta_zi[n,])*delta
+  #   
+  #   util_non_price[,n] = exp(intercept + chars_int + chars%*%beta_zi[n,]-price_val)*delta
+  # }
+  
+  
   expsum = apply(util,MARGIN=2,sum)
-  for(n in 1:n_draws){
-    shares[,n] = util[,n]/(1+expsum[n])
-  }
+  expsum = matrix(expsum,nrow=nrow(chars),ncol=n_draws,byrow=TRUE)
+  shares = util/(1+expsum)
+  # for(n in 1:n_draws){
+  #   shares[,n] = util[,n]/(1+expsum[n])
+  # }
   acs[.(p),s_pred_mean:=apply(shares,MARGIN=1,FUN=mean)]
   acs[.(p),alpha:=(beta0[1] + beta_z[,1])]
   predict_data[.(p),s_pred:=as.vector(shares)]
   predict_data[.(p),non_price_util:=as.vector(util_non_price)]
+  predict_data[.(p),HCC_draw:=rep(HCC_draws[,r_ind],each=nrow(chars))]
   if (cnt%%500==0){
     print(cnt)
   }
@@ -523,9 +577,9 @@ acs_old = as.data.frame(acs)
 acs = acs[,c("Person","Firm","ST","Market","Product_Name","Product",
              "METAL","Mandate","subsidy",
              "Price","PriceDiff","MedDeduct","MedOOP","High","premBase",
-             "AV","Gamma_j","mkt_density",
+             "AV","Big","Gamma_j","mkt_density",
              "alpha","s_pred_mean",
-             "HCC_age",
+             "HCC_age","Rtype",
              "AGE","HHincomeFPL","MEMBERS",
              "Family","Age","LowIncome","ageRate","ageRate_avg","PERWT")]
 
@@ -536,24 +590,24 @@ acs[Metal_std=="SILVER",AV_std:=.7]
 
 
 ## Integrate Draws and Prediction Data
-draws = as.data.table(draws)
+draws = as.data.table(HCC_draws)
 n_draws = nrow(draws)
 draws[,d_ind:=as.integer(1:n_draws)]
 setkey(draws,d_ind)
 setkey(predict_data,d_ind,Person)
-nu_h_large = draws[predict_data$d_ind,2]*sign(sigma[2])
-nu_i_large = draws[predict_data$d_ind,1]*sign(sigma[1])
+#nu_h_large = draws[predict_data$d_ind,2]*sign(sigma[2])
+#nu_i_large = draws[predict_data$d_ind,1]*sign(sigma[1])
 
-predict_data[,alpha_draw:=0]
-predict_data[,nu_h:=nu_h_large]
-predict_data[,nu_i:=nu_i_large]
-rm(nu_h_large,nu_i_large)
+# predict_data[,alpha_draw:=0]
+# predict_data[,nu_h:=nu_h_large]
+# predict_data[,nu_i:=nu_i_large]
+# rm(nu_h_large,nu_i_large)
 
 ## Merge Data
 full_predict = merge(acs,predict_data,by=c("Product","Person"))
 
 ## Adjust statistics
-full_predict[,WTP:=-0.10*(beta0[2]+sigma[2]*nu_h)/alpha]
+full_predict[,WTP:=-0.10*(beta0[2]+sigma[1]*HCC_draw)/alpha]
 full_predict[,mkt_density:=mkt_density/n_draws]
 full_predict[,PERWT:=PERWT/n_draws]
 
