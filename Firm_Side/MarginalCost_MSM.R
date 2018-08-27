@@ -4,7 +4,7 @@ library(nleqslv)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 ## Run
-run = "2018-05-12"
+run = "2018-08-17"
 
 #### Load Simulation Data and Merge in GCF/AV data ####
 simFile = paste("Simulation_Risk_Output/simData_",run,".rData",sep="")
@@ -54,7 +54,7 @@ setkey(metalClaims,ST,Firm,Metal_std)
 
 
 #### MEPS Age Moments ####
-ageMoments = as.data.table(read.csv("Data/2015_MEPS/ageMoments.csv"))
+ageMoments = as.data.table(read.csv("Intermediate_Output/MEPS_Moments/ageMoments.csv"))
 setkey(ageMoments,Age_Bin)
 
 full_predict[,Age_Bin:=floor(AGE/5)*5]
@@ -64,7 +64,11 @@ full_predict[,Age_2:=Age_1^2]
 
 
 #### MEPS Risk Score Moments ####
+riskMoments = as.data.table(read.csv("Intermediate_Output/MEPS_Moments/riskMoments.csv"))
+setkey(riskMoments,HCC_positive)
 
+full_predict[,HCC_positive:=0]
+full_predict[HCC_Silver>0,HCC_positive:=1]
 
 
 #### Define Cost Function ####
@@ -94,8 +98,7 @@ prodData = full_predict[,list(sim_lives=sum(wgt),
                               inc = sum(LowIncome*wgt)/sum(wgt),
                               fpl = sum(HHincomeFPL*wgt)/sum(wgt),
                               high = sum(High*wgt)/sum(wgt),
-                              nu_h = sum(nu_h*wgt)/sum(wgt),
-                              nu_i = sum(nu_i*wgt)/sum(wgt),
+                              HCC = sum(HCC_Silver*wgt)/sum(wgt),
                               WTP_j = sum(WTP*wgt)/sum(wgt),
                               AV = sum(AV*wgt)/sum(wgt)), 
                         by=c("ST","Firm","Metal_std","AV_std",names(full_predict)[grep("^FE_",names(full_predict))])]
@@ -104,6 +107,56 @@ setkey(prodData,ST,Firm,Metal_std)
 ## regression test
 regData = merge(prodData,metalClaims,by=c("ST","Firm","Metal_std"))
 reg = lm(logAvgCost~ST+AV_std+Age_j+WTP_j,data=regData)
+
+
+#### Assymptotic Variance GMM ####
+people = unique(full_predict$Person)
+setkey(full_predict,Person)
+
+aVar <- function(phi){
+  full_predict[,C:=exp(estMat%*%phi)]
+  
+  J = length(unique(full_predict$Product))
+  var = matrix(0,nrow=J*3,ncol=J*3)
+  Pop = full_predict[,sum(PERWT)/n_draws]
+  
+  for (p in people){
+    C_mom = rep(0,J)
+    C_mom_HCC = rep(0,J)
+    C_mom_nonHCC = rep(0,J)
+    perData = full_predict[.(p),]
+    
+    per_prod_Data = perData[,list(C_avg = sum(C*s_pred)/sum(s_pred),
+                                  C_avg_HCC = sum(C*HCC_positive*s_pred)/sum(s_pred*HCC_positive),
+                                  C_avg_nonHCC = sum(C*(1-HCC_positive)*s_pred)/sum(s_pred*(1-HCC_positive))),
+                            by=c("Product","s_pred_mean")]
+    idx = per_prod_Data$Product
+    C_mom[idx] = per_prod_Data$C_avg
+    C_mom_HCC[idx] = per_prod_Data$C_avg_HCC
+    C_mom_nonHCC[idx] = per_prod_Data$C_avg_nonHCC
+    prwgt = unique(perData$PERWT)
+    
+    moments = prwgt*c(C_mom,C_mom_HCC,C_mom_nonHCC)
+    idx_long = c(idx,J+idx,J*2+idx)
+    
+    for (i in idx_long){
+      for (j in idx_long){
+        var[i,j] = var[i,j] + moments[i]*moments[j]/Pop
+      }
+    }
+    #var = moments%*%t(moments)
+  }
+  
+  return(var)
+}
+
+
+
+
+
+
+
+
 
 cost_function_est<- function(phi){
   ## Demographic Cost
@@ -144,30 +197,12 @@ cost_function_est<- function(phi){
   Cost_age[,C_idx:=C_avg/min(C_avg)]
 
   Moments_Age = Cost_age$C_idx - ageMoments$costIndex
+  
+  Cost_risk = full_predict[,list(C_avg=sum(C*s_pred*HCC_positive*PERWT/n_draws)/sum(s_pred*HCC_positive*PERWT/n_draws))]
+  
 
   moments = c(Moments_Prod,Moments_Firm,Moments_Age)
 
-  
-  
-  # prodData[,logC:=phi[1]*Age_j + 
-  #            phi[2]*WTP_j +
-  #            phi[3]*AV_std +
-  #            phi[4]*FE_AK + 
-  #            phi[5]*FE_GA +
-  #            phi[6]*FE_IA +
-  #            phi[7]*FE_IL +
-  #            phi[8]*FE_MD +
-  #            phi[9]*FE_MI +
-  #            phi[10]*FE_MO +
-  #            phi[11]*FE_ND +
-  #            phi[12]*FE_NE +
-  #            phi[13]*FE_NM +
-  #            phi[14]*FE_OK +
-  #            phi[15]*FE_OR +
-  #            phi[16]*FE_TX +
-  #            phi[17]*FE_UT]
-  # moments = prodData$logC - metalClaims$logAvgCost
-  # moments = moments[!is.na(moments)]
   
   error = sum((moments)^2)
   rm(Cost_prod,Cost_firm)

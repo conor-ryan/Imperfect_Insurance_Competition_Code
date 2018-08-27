@@ -29,10 +29,10 @@ c = ChoiceData(df,df_mkt,df_risk;
             :LowIncome],
     prodchars=[:Price,:AV,:Big],
     prodchars_0=[:Price,:AV,:Big],
-    fixedEffects=[:Firm])
+    fixedEffects=[:Firm,:Market])
 
 # Fit into model
-m = InsuranceLogit(c,1000)
+m = InsuranceLogit(c,100)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
@@ -58,27 +58,40 @@ par0 = parDict(m,p0)
 # println(maximum(abs.(grad_1-grad_2)))
 #
 
+rundate = Dates.today()
+
 ## Estimate
-# flag, val, p_ll = estimate!(m, p0)
-# println("#################")
-# println("#################")
-# println("###### Estimation 2 #######")
-# println("#################")
-# println("#################")
-# #W = calc_gmm_Avar(m,p_ll)
-# W = eye(length(p0)+length(m.data.tMoments))
-# est_res = estimate_GMM!(m,p_ll,W)
-# p_est = est_res[3]
+flag, val, p_ll = estimate!(m, p0)
+println("#################")
+println("#################")
+println("###### Estimation 2 #######")
+println("#################")
+println("#################")
 
-p_est = [-3.13731, -3.66356, -4.17707, 1.28711, -4.07659, -2.71348, 6.95234, 1.62123, 1.38525, 1.76242, 2.19671, -0.262142, -0.0726661, 0.436289, -0.00440429, -1.05899, -1.26554, -2.03655, -1.29205, -2.45016, -4.87626, -2.82076, -1.98936, -1.08366, -7.1579, 1.47115, -1.50611, 0.45754, -1.24011, -2.79319, -0.826092, -0.365338, -1.93863, -0.208294, -0.889068, -2.43939, -0.482924, -3.27541, -0.0832024, 5.04283, 1.18866, -5.64587, -1.4914, -4.14378, 0.0746764, -4.63658, -1.09026, -0.0150545, -0.959422, -2.73396, 0.244816, 1.08502, -0.997056, 0.850759, -7.69697, 1.36272, -2.83583, -2.97174, -7.16544, -0.510894, 1.07375, -2.01001, -1.86915, -2.39802, -0.105112, -2.45296, -3.23003, -4.05812, -1.39944, 3.05908]
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_stage1_$rundate.jld"
+save(file,"p_ll",p_ll)
+#W = calc_gmm_Avar(m,p_ll)
+W = eye(length(p0)+length(m.data.tMoments))
+est_res = estimate_GMM!(m,p_ll,W)
 
-W2 = calc_gmm_Avar(m,p_est)
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_stage2_$rundate.jld"
+save(file,"est_res",est_res)
+
+
+p_est = est_res[3]
+
+# p_est = [-3.13731, -3.66356, -4.17707, 1.28711, -4.07659, -2.71348, 6.95234, 1.62123, 1.38525, 1.76242, 2.19671, -0.262142, -0.0726661, 0.436289, -0.00440429, -1.05899, -1.26554, -2.03655, -1.29205, -2.45016, -4.87626, -2.82076, -1.98936, -1.08366, -7.1579, 1.47115, -1.50611, 0.45754, -1.24011, -2.79319, -0.826092, -0.365338, -1.93863, -0.208294, -0.889068, -2.43939, -0.482924, -3.27541, -0.0832024, 5.04283, 1.18866, -5.64587, -1.4914, -4.14378, 0.0746764, -4.63658, -1.09026, -0.0150545, -0.959422, -2.73396, 0.244816, 1.08502, -0.997056, 0.850759, -7.69697, 1.36272, -2.83583, -2.97174, -7.16544, -0.510894, 1.07375, -2.01001, -1.86915, -2.39802, -0.105112, -2.45296, -3.23003, -4.05812, -1.39944, 3.05908]
+
 println("#################")
 println("#################")
 println("###### Estimation 3 #######")
 println("#################")
 println("#################")
+m = InsuranceLogit(c,1000)
+W2 = calc_gmm_Avar(m,p_est)
 est_res = estimate_GMM!(m,p_est,W2)
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_stage3_$rundate.jld"
+save(file,"est_res",est_res)
 
 
 # individual_values!(m,par0)
@@ -156,9 +169,7 @@ est_res = estimate_GMM!(m,p_est,W2)
 #     print(x)
 # end
 
-rundate = Dates.today()
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_fe_rc_$rundate.jld"
-save(file,"est_res",est_res)
+
 
 # flag, fval, p_est = est_res
 #

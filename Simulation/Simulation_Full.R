@@ -472,7 +472,7 @@ people = sort(unique(acs$Person))
 predict_data = acs[,c("Person","Product")]
 predict_data[,s_pred:= vector("double",nrow(predict_data))]
 predict_data[,non_price_util:= vector("double",nrow(predict_data))]
-predict_data[,HCC_draw:= vector("double",nrow(predict_data))]
+predict_data[,HCC_Silver:= vector("double",nrow(predict_data))]
 
 ## Replicate People in Order
 sortedFirst = function(x,y){
@@ -565,7 +565,7 @@ for (p in people){
   acs[.(p),alpha:=(beta0[1] + beta_z[,1])]
   predict_data[.(p),s_pred:=as.vector(shares)]
   predict_data[.(p),non_price_util:=as.vector(util_non_price)]
-  predict_data[.(p),HCC_draw:=rep(HCC_draws[,r_ind],each=nrow(chars))]
+  predict_data[.(p),HCC_Silver:=rep(HCC_draws[,r_ind],each=nrow(chars))]
   if (cnt%%500==0){
     print(cnt)
   }
@@ -607,7 +607,7 @@ setkey(predict_data,d_ind,Person)
 full_predict = merge(acs,predict_data,by=c("Product","Person"))
 
 ## Adjust statistics
-full_predict[,WTP:=-0.10*(beta0[2]+sigma[1]*HCC_draw)/alpha]
+full_predict[,WTP:=-0.10*(beta0[2]+sigma[1]*HCC_Silver)/alpha]
 full_predict[,mkt_density:=mkt_density/n_draws]
 full_predict[,PERWT:=PERWT/n_draws]
 
