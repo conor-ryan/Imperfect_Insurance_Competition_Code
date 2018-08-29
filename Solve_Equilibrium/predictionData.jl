@@ -39,9 +39,9 @@ function ChoiceData(data_est::DataFrame,df_mkt::DataFrame)
     ## Set Catastrophic Gamma_j Values to -100
     data_est[:Gamma_j][find(ismissing.(data_est[:Gamma_j]))] = -100
     ## Get Benchmark
-    R_bench = df_mkt[:R_bench][df_mkt[:Firm].=="OTHER"][1]
+    #R_bench = df_mkt[:R_bench][df_mkt[:Firm].=="OTHER"][1]
 
-    data_est[:R_Gamma_j] = data_est[:Gamma_j].*data_est[:R]./R_bench
+    data_est[:R_Gamma_j] = data_est[:Gamma_j].*data_est[:R]  #./R_bench
     data_est[:A_Gamma_j] = data_est[:Gamma_j].*data_est[:ageRate_avg].*data_est[:AV]
 
     ## Adjust Alpha for Monthly Prices
@@ -203,7 +203,7 @@ function EqData(cdata::ChoiceData,mkt::DataFrame,cpars::DataFrame)
 
     costBase = Vector{Float64}(J)
     cost = Vector{Float64}(J)
-    costBase[:] = mkt[:Cost_prod][mkt[:Firm].!="OTHER"]
+    #costBase[:] = mkt[:Cost_prod][mkt[:Firm].!="OTHER"]
 
     prods = Vector{Int64}(J)
     prods[:] = sort(mkt[:Product][mkt[:Firm].!="OTHER"])
@@ -212,7 +212,8 @@ function EqData(cdata::ChoiceData,mkt::DataFrame,cpars::DataFrame)
     s_pred_byperson = Vector{Float64}(N)
     price_ij = Vector{Float64}(N)
 
-    R_bench = mkt[:R_bench][1]
+    #R_bench = mkt[:R_bench][1]
+    R_bench = 1.0
     RA_share = mkt[:RA_share][1]
 
     mkt_index = Dict{Real,Array{Int64,1}}()
@@ -231,7 +232,7 @@ function EqData(cdata::ChoiceData,mkt::DataFrame,cpars::DataFrame)
 
     ### Create Product Avg Data
     index = Dict{Symbol, Int}()
-    varNames = [:WTP,:AGE,:ageRate_avg,
+    varNames = [:C,:ageRate_avg,
                 :R_Gamma_j,:A_Gamma_j,:Catastrophic,
                 :S_j,:lives]
     for (l,var) in enumerate(varNames)
@@ -291,7 +292,7 @@ function evaluate_model!(e::EqData;init=false)
     calcProd_Avg!(e)
 
     ## Set Cost
-    e.Cost_j[:] = e.Cost_base_j.*exp.(e[:AGE].*e.cost_pars[:Age_j] + e[:WTP].*e.cost_pars[:WTP_j])
+    #e.Cost_j[:] = e.Cost_base_j.*exp.(e[:AGE].*e.cost_pars[:Age_j] + e[:WTP].*e.cost_pars[:WTP_j])
 
     ## Set Fixed RA Parameters
     if init
@@ -543,8 +544,9 @@ function eval_FOC(e::EqData)
     ## Draw Long Variables
     A_Gamma_long = e.data[:A_Gamma_j]
     R_Gamma_long = e.data[:R_Gamma_j]
-    Age_long = e.data[:AGE]
-    WTP_long = e.data[:WTP]
+    #Age_long = e.data[:AGE]
+    #WTP_long = e.data[:WTP]
+    Cost_long = e.data[:C]
     weights = e.data[:mkt_density]
 
     vidx = e.data.index
@@ -630,11 +632,13 @@ function eval_FOC(e::EqData)
         dAge_j = chg_in_avg(deriv_long,:AGE,Age_long,S_j,dsdp[:,n],e,weights)
         dWTP_j = chg_in_avg(deriv_long,:WTP,WTP_long,S_j,dsdp[:,n],e,weights)
 
-        dCost[:,n] = (dAge_j.*e.cost_pars[:Age_j] + dWTP_j.*e.cost_pars[:WTP_j]).*e.Cost_j
+        #dCost[:,n] = (dAge_j.*e.cost_pars[:Age_j] + dWTP_j.*e.cost_pars[:WTP_j]).*e.Cost_j
         dR_Gamma_j = chg_in_avg(deriv_long,:R_Gamma_j,R_Gamma_long,
                         S_j,dsdp[:,n],e,weights)
 
         dA_Gamma_j = chg_in_avg(deriv_long,:A_Gamma_j,A_Gamma_long,
+                        S_j,dsdp[:,n],e,weights)
+        dCost[:,n] = chg_in_avg(deriv_long,:C,Cost_long,
                         S_j,dsdp[:,n],e,weights)
 
         ds_0_dp = -sum(dsdp[:,n].*(1-Catas_j))
