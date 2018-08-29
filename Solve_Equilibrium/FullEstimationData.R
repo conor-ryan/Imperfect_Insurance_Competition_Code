@@ -31,13 +31,40 @@ beta_vec = pars$pars
 ## Cost Function 
 costFile = paste("Simulation_Risk_Output/costParameters_MSM_Stage2_",run,".rData",sep="")
 load(costFile)
-CostRes = est_res
+phi = est_res$estimate
 
 #cost_par = CostRes$coefficients[grep("(Age|WTP)",names(CostRes$coefficients))]
 
 ## Consolidate Silver Plans ##
 full_predict[,Product:=min(Product),by=c("Firm","Metal_std","Market")]
 full_predict[,premBase:=median(premBase),by=c("Firm","Metal_std","Market")]
+
+#### Apply Cost Data ####
+ST_list = sort(unique(full_predict$ST))
+for (fe in ST_list){
+  var = paste("FE",fe,sep="_")
+  full_predict[,c(var):=0]
+  full_predict[ST==fe,c(var):=1]
+}
+
+
+full_predict[,C:=exp(phi[1]*AGE/10 + 
+                       phi[2]*HCC_Silver + 
+                       phi[3]*AV_std + 
+                       phi[4]*FE_AK + 
+                       phi[5]*FE_GA + 
+                       phi[6]*FE_IA + 
+                       phi[7]*FE_IL + 
+                       phi[8]*FE_MD + 
+                       phi[9]*FE_MI + 
+                       phi[10]*FE_MO + 
+                       phi[11]*FE_ND + 
+                       phi[12]*FE_NE + 
+                       phi[13]*FE_NM + 
+                       phi[14]*FE_OK + 
+                       phi[15]*FE_OR + 
+                       phi[16]*FE_TX + 
+                       phi[17]*FE_UT)]
 
 
 
@@ -101,12 +128,16 @@ prod_data = unique(full_predict[,c("Product","Metal_std","ST","Market","Firm",
 
 
 #### Save Data ####
+
+
 #write.csv(t(cost_par),file="Intermediate_Output/Equilibrium_Data/cost_pars.csv",row.names=FALSE)
-
-
 
 predFile = paste("Simulation_Risk_Output/predData_",run,".rData",sep="")
 save(full_predict,prod_data,file=predFile)
+
+
+
+##### Consolidate Data for Simulation ####
 
 ## Eliminate Strings
 full_predict[,Catastrophic:=0]
@@ -115,12 +146,23 @@ full_predict[METAL=="CATASTROPHIC",Catastrophic:=1]
 ## Unique Person Variables
 full_predict[,Person:=Person*1000+d_ind]
 
+
+compact_predict = full_predict[,list(PERWT= sum(PERWT)),by=c("ST","Person","Product","Catastrophic","AV","Gamma_j",
+                                                             "R","C","alpha","WTP","AGE","mkt_density",
+                                                             "ageRate","ageRate_avg",
+                                                             "Mandate","subsidy","MEMBERS","non_price_util")]
+
+
+
 setkey(full_predict,Product,Person)
 setkey(prod_data,Product)
+
+
+
 for (st in unique(full_predict$ST)){
 
 write.csv(full_predict[ST==st,c("Person","Product","Catastrophic","AV","Gamma_j",
-                          "R","alpha","WTP","AGE","mkt_density","ageRate","ageRate_avg",
+                          "R","C","alpha","WTP","AGE","mkt_density","ageRate","ageRate_avg",
                           "Mandate","subsidy","MEMBERS","non_price_util","PERWT")],
           file=paste("Intermediate_Output/Equilibrium_Data/estimated_Data_",st,".csv",sep=""),
                      row.names=FALSE)

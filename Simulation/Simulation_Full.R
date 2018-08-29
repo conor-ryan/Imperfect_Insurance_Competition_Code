@@ -342,14 +342,14 @@ for (fe in firm_list){
 acs[,AgeFE_18_30:=0]
 acs[AGE<=30,AgeFE_18_30:=1]
 
-acs[,AgeFE_31_40:=0]
-acs[AGE>30&AGE<=40,AgeFE_31_40:=1]
+acs[,AgeFE_30_39:=0]
+acs[AGE>=30&AGE<=39,AgeFE_30_39:=1]
 
-acs[,AgeFE_41_50:=0]
-acs[AGE>40&AGE<=50,AgeFE_41_50:=1]
+acs[,AgeFE_40_51:=0]
+acs[AGE>=40&AGE<=51,AgeFE_40_51:=1]
 
-acs[,AgeFE_51_64:=0]
-acs[AGE>50,AgeFE_51_64:=1]
+acs[,AgeFE_52_64:=0]
+acs[AGE>=52,AgeFE_52_64:=1]
 
 #### Regulation Parameters ####
 ## Actuarial Value
@@ -435,6 +435,26 @@ for (j in 1:max(r_mom$Rtype)){
   HCC_draws[,j] = log_norm
 }
 
+HCC_draws_metal = matrix(NA,nrow=n_draws,ncol=max(acs$Rtype)*5)
+metal_list = c("Catastrophic","Bronze","Silver","Gold","Platinum")
+
+for (j in 1:max(r_mom$Rtype)){
+  for (m in 1:5){
+    any = 1 - r_mom$Any_HCC[r_mom$Rtype==j]
+    mean_var = paste("mean_HCC",metal_list[m],sep="_")
+    sigma_var = paste("var_HCC",metal_list[m],sep="_")
+    
+    mu = r_mom[[mean_var]][r_mom$Rtype==j]
+    sigma = sqrt(r_mom[[sigma_var]][r_mom$Rtype==j])
+    draws_any = (draws-any)/(1-any)
+    
+    log_norm = exp(qnorm(draws_any)*sigma + mu)
+    log_norm[is.nan(log_norm)] = 0
+    
+    HCC_draws_metal[,(m-1)*max(r_mom$Rtype)+j] = log_norm
+  }
+}
+
 #### Read in Parameters ####
 
 
@@ -515,9 +535,9 @@ for (p in people){
   cnt = cnt+1
   perData = acs[.(p),]
   
-  demos = as.matrix(perData[1,c("AgeFE_31_40",
-                                "AgeFE_41_50",
-                                "AgeFE_51_64",
+  demos = as.matrix(perData[1,c("AgeFE_31_39",
+                                "AgeFE_40_51",
+                                "AgeFE_52_64",
                                 "Family",
                                 "LowIncome")])
   chars = as.matrix(perData[,c("Price","AV","Big")])
@@ -619,6 +639,30 @@ save(acs,predict_data,draws,file=simFile)
 ## Save Data
 simFile = paste("Simulation_Risk_Output/simData_",run,".rData",sep="")
 save(acs,full_predict,draws,file=simFile)
+
+
+
+#### Firm-level Risk Data ####
+## Fill in Appropriate HCC RisK Scores
+full_predict[,HCC_Metal:=vector(mode="numeric",length=nrow(full_predict))]
+
+HCC_long = as.vector(HCC_draws_metal)
+
+full_predict[AV==.57,Rtype_m:=1]
+full_predict[AV==.6,Rtype_m:=2]
+full_predict[AV%in%c(.7,.73),Rtype_m:=3]
+full_predict[AV%in%c(.87,.8,.94),Rtype_m:=4]
+full_predict[AV==.9,Rtype_m:=5]
+
+full_predict[,index:=((Rtype_m-1)*4 + (Rtype-1))*n_draws + d_ind]
+full_predict[,HCC_Metal:=HCC_long[index]]
+
+## Firm Data
+full_predict[,sum(HCC_Metal*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws)]
+
+firm_RA_Sim = full_predict[METAL!="CATASTROPHIC",list(R_f=sum(HCC_Metal*Gamma_j*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws),
+                                 A_f=sum(ageRate_avg*AV_std*Gamma_j*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws)),
+                           by=c("Firm","ST")]
 
 
 ### Predicted Product Shares ####

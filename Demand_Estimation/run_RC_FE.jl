@@ -29,7 +29,7 @@ c = ChoiceData(df,df_mkt,df_risk;
             :LowIncome],
     prodchars=[:Price,:AV,:Big],
     prodchars_0=[:Price,:AV,:Big],
-    fixedEffects=[:Firm,:Market])
+    fixedEffects=[:Firm])
 
 # Fit into model
 m = InsuranceLogit(c,100)
@@ -72,7 +72,7 @@ file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimati
 save(file,"p_ll",p_ll)
 #W = calc_gmm_Avar(m,p_ll)
 W = eye(length(p0)+length(m.data.tMoments))
-est_res = estimate_GMM!(m,p_ll,W)
+est_res = estimate_GMM!(m,p_est,W)
 
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_stage2_$rundate.jld"
 save(file,"est_res",est_res)
@@ -94,8 +94,19 @@ file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimati
 save(file,"est_res",est_res)
 
 
-# individual_values!(m,par0)
-# individual_shares(m,par0)
+##### TEST ######
+rundate = "2018-08-25"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_fe_rc_$rundate.jld"
+p_est = load(file)["est_res"][3]
+
+par0 = parDict(m,p_est)
+
+individual_values!(m,par0)
+individual_shares(m,par0)
+
+grad = Matrix{Float64}(length(p_est),length(m.data.tMoments))
+r = calc_risk_moments!(grad,m,par0)
+
 #
 
 #
@@ -141,7 +152,7 @@ save(file,"est_res",est_res)
 # # println(maximum(abs.(grad_1-grad_3)))
 # # println(maximum(abs.(hess_1-hess_3)))
 #
-# grad = Matrix{Float64}(length(p0),length(m.data.tMoments))
+grad = Matrix{Float64}(length(p0),length(m.data.tMoments))
 # @benchmark res = calc_risk_moments!(grad,m,par0)
 #
 # res,grad_2 = calc_risk_moments!(grad,m,par0)

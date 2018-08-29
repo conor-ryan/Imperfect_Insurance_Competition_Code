@@ -51,7 +51,7 @@ firm_moments = firm_moments[Big==1,]
 firm_moments[,momentID:=nrow(metal_moments)+2]
 
 #### Total Enrolled Moment ####
-total_moment = mkt_data[,c("STATE","Firm","Product")]
+total_moment = mkt_data[mkt_data$METAL!="CATASTROPHIC",c("STATE","Firm","Product")]
 total_moment$T_moment = 1.448
 total_moment$momentID = max(metal_moments$momentID) + 1
 total_moment$ST = total_moment$STATE
@@ -85,5 +85,10 @@ risk_moments$ST = as.numeric(risk_moments$ST)
 risk_moments$st_share = 0 
 
 unique(risk_moments[,c("T_moment","momentID")])
+
+
+# risk_moment_test = read.csv("Intermediate_Output/Estimation_Data/riskMoments.csv")
+# 
+# test = merge(risk_moments,risk_moment_test,by=c("Product","momentID","ST"),all=TRUE)
 
 write.csv(risk_moments,"Intermediate_Output/Estimation_Data/riskMoments.csv",row.names=FALSE)

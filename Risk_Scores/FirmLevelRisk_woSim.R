@@ -132,6 +132,7 @@ firm_RA[,MLR_avg_prem:=max(MLR_avg_prem,na.rm=TRUE),by="ST"]
 firm_RA[,T_norm_adj:=-payments_adj/(memberMonths*RA_prem)]
 firm_RA[,R_adj:=(T_norm_adj+1)*AvgPLRS]
 firm_RA[,R_adj_natl:=(T_norm_adj+1)*1.448]
+firm_RA[,ST_R:=sum(memberMonths*R_adj_natl)/sum(memberMonths),by="ST"]
 
 
 

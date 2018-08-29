@@ -5,16 +5,56 @@ library(data.table)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
 
 ## Run 
-run = "2018-05-12"
+run = "2018-08-25"
 
 #### Read in Data ####
 estData = read.csv("Intermediate_Output/Estimation_Data/estimationData_discrete.csv")
 estData = as.data.table(estData)
 setkey(estData,Person,Product)
 
-#### Read in Parameters ####
+#### Draws ####
 n_draws = 100
+r_mom = read.csv("Intermediate_Output/MEPS_Moments/R_Score_Moments.csv")
+r_mom$Rtype= with(r_mom,1+Age_Cat+Inc_Cat*2)
 
+draws = halton(n_draws+100,dim=1,usetime=TRUE,normal=FALSE)[101:(100+n_draws)]
+
+HCC_draws = matrix(NA,nrow=n_draws,ncol=max(estData$Rtype))
+RtypeMax = max(estData$Rtype)
+
+for (j in 1:RtypeMax){
+  any = 1 - r_mom$Any_HCC[r_mom$Rtype==j]
+  mu = r_mom$mean_HCC_Silver[r_mom$Rtype==j]
+  sigma = sqrt(r_mom$var_HCC_Silver[r_mom$Rtype==j])
+  draws_any = (draws-any)/(1-any)
+  
+  log_norm = exp(qnorm(draws_any)*sigma + mu)
+  log_norm[is.nan(log_norm)] = 0
+  
+  HCC_draws[,j] = log_norm
+}
+
+HCC_draws_metal = matrix(NA,nrow=n_draws,ncol=RtypeMax*5)
+metal_list = c("Catastrophic","Bronze","Silver","Gold","Platinum")
+
+for (j in 1:RtypeMax){
+  for (m in 1:5){
+    any = 1 - r_mom$Any_HCC[r_mom$Rtype==j]
+    mean_var = paste("mean_HCC",metal_list[m],sep="_")
+    sigma_var = paste("var_HCC",metal_list[m],sep="_")
+    
+    mu = r_mom[[mean_var]][r_mom$Rtype==j]
+    sigma = sqrt(r_mom[[sigma_var]][r_mom$Rtype==j])
+    draws_any = (draws-any)/(1-any)
+    
+    log_norm = exp(qnorm(draws_any)*sigma + mu)
+    log_norm[is.nan(log_norm)] = 0
+    
+    HCC_draws_metal[,(m-1)*RtypeMax+j] = log_norm
+  }
+}
+
+#### Read in Parameters ####
 parFile = paste("Estimation_Output/estimationresults_",run,".csv",sep="")
 pars = read.csv(parFile)
 
@@ -23,20 +63,19 @@ deltas = read.csv(delFile)
 
 beta_vec = pars$pars
 
-gamma0 = beta_vec[1]
-gamma = beta_vec[2:6]
-beta0 = beta_vec[7:8]
-beta = matrix(0,nrow=2,ncol=5)
+
+gamma = beta_vec[1:5]
+beta0 = beta_vec[6:8]
+beta = matrix(0,nrow=3,ncol=5)
 beta[1,1:ncol(beta)] = beta_vec[9:13]
 sigma = beta_vec[14:15]
 FE_pars = beta_vec[16:length(beta_vec)]
 
-draws = halton(n_draws,dim=2,usetime=TRUE,normal=TRUE)
-randCoeffs = matrix(nrow=n_draws,ncol=length(sigma)+1)
-randCoeffs[,1] = draws[,1]*sigma[1]
-randCoeffs[,2] = 0
-for (k in 3:3){
-  randCoeffs[,k] = draws[,2]*sigma[k-1]
+
+
+randCoeffs = array(data=NA,dim=c(n_draws,ncol(HCC_draws),length(sigma)))
+for (k in 1:length(sigma)){
+  randCoeffs[,,k] = HCC_draws*sigma[k]
 }
 
 #estData = merge(estData,deltas,by.x="Product",by.y="prods")
@@ -45,12 +84,20 @@ estData[,delta:=1]
 
 #### Create Fixed Effects ####
 # Market Product Category Fixed Effects
-firm_list = sort(unique(estData$Firm_Market_Cat))[-1]
+firm_list = sort(unique(estData$Firm))
+firm_list = firm_list[firm_list!="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA"]
 for (fe in firm_list){
   var = paste("FE",fe,sep="_")
   estData[,c(var):=0]
   estData[Firm_Market_Cat==fe,c(var):=1]
 }
+# 
+# firm_list = sort(unique(estData$Firm_Market_Cat))[-1]
+# for (fe in firm_list){
+#   var = paste("FE",fe,sep="_")
+#   estData[,c(var):=0]
+#   estData[Firm_Market_Cat==fe,c(var):=1]
+# }
 
 
 #### Convert Data Sets ####
@@ -99,49 +146,101 @@ setkey(predict_data,Person)
 cnt = 0
 start = Sys.time()
 estData[,s_pred_mean:=vector("double",nrow(estData))]
+estData[,alpha:=vector("double",nrow(estData))]
+
+#### Predict ####
+cnt = 0
+start = Sys.time()
 for (p in people){
   cnt = cnt+1
   perData = estData[.(p),]
   
-  demos = as.matrix(perData[1,c("AgeFE_31_40",
-                                "AgeFE_41_50",
-                                "AgeFE_51_64",
+  demos = as.matrix(perData[1,c("AgeFE_31_39",
+                                "AgeFE_40_51",
+                                "AgeFE_52_64",
                                 "Family",
                                 "LowIncome")])
-  #chars = as.matrix(perData[,c("Price","MedDeduct","MedOOP","High")])
-  chars = as.matrix(perData[,c("Price","AV")])
-  chars_0 = as.matrix(perData[,c("Price","AV")])
+  chars = as.matrix(perData[,c("Price","AV","Big")])
+  chars_0 = as.matrix(perData[,c("Price","AV","Big")])
   FE = as.matrix(perData[,.SD,.SDcols=names(perData)[grep("^FE_",names(perData))]])
   delta = perData$delta
   
-  intercept = gamma0 + (demos%*%gamma)[1,1] + randCoeffs[,1]
+  intercept = (demos%*%gamma)[1,1] #+ randCoeffs[,1]
   
   chars_int = chars_0%*%beta0 + FE%*%FE_pars
-  #chars_int = chars%*%beta0
+  chars_int = matrix(chars_int,nrow=nrow(chars),ncol=n_draws)
   
   beta_z = demos%*%t(beta)
   beta_zi = matrix(beta_z,nrow=n_draws,ncol=length(beta_z),byrow=TRUE)
-  for (k in 1:n_draws){
-    beta_zi[k,] = beta_zi[k,] + randCoeffs[k,2:3]
-  }
+  r_ind = unique(perData$Rtype)
+  # for (n in 1:n_draws){
+  #   beta_zi[n,2:ncol(beta_zi)] = beta_zi[n,2:ncol(beta_zi)] + randCoeffs[n,r_ind,]
+  # }
+  beta_zi[,2:ncol(beta_zi)] = beta_zi[,2:ncol(beta_zi)] + randCoeffs[,r_ind,]
+  
+  price_val = chars_0[,1]*(beta0[1] + beta_z[,1])
+  price_val = matrix(price_val,nrow=nrow(chars),ncol=n_draws)
   
   
-  util = matrix(NA,nrow=nrow(chars),ncol=n_draws)
+  # util = matrix(NA,nrow=nrow(chars),ncol=n_draws)
+  # util_non_price = matrix(NA,nrow=nrow(chars),ncol=n_draws)
   shares = matrix(NA,nrow=nrow(chars),ncol=n_draws)
-  for(k in 1:n_draws){
-    util[,k] = exp(intercept[k] + chars_int + chars%*%beta_zi[k,])*delta
-  }
+  util = exp(intercept + chars_int + chars%*%t(beta_zi))*delta
+  util_non_price = exp(intercept + chars_int + chars%*%t(beta_zi)-price_val)*delta
+  
+  # for(n in 1:n_draws){
+  #   util[,n] = exp(intercept + chars_int + chars%*%beta_zi[n,])*delta
+  #   
+  #   util_non_price[,n] = exp(intercept + chars_int + chars%*%beta_zi[n,]-price_val)*delta
+  # }
+  
+  
   expsum = apply(util,MARGIN=2,sum)
-  for(k in 1:n_draws){
-    shares[,k] = util[,k]/(1+expsum[k])
-  }
+  expsum = matrix(expsum,nrow=nrow(chars),ncol=n_draws,byrow=TRUE)
+  shares = util/(1+expsum)
+  # for(n in 1:n_draws){
+  #   shares[,n] = util[,n]/(1+expsum[n])
+  # }
   estData[.(p),s_pred_mean:=apply(shares,MARGIN=1,FUN=mean)]
+  estData[.(p),alpha:=(beta0[1] + beta_z[,1])]
   predict_data[.(p),s_pred:=as.vector(shares)]
+  predict_data[.(p),non_price_util:=as.vector(util_non_price)]
+  predict_data[.(p),HCC_Silver:=rep(HCC_draws[,r_ind],each=nrow(chars))]
   if (cnt%%500==0){
     print(cnt)
   }
 }
 Sys.time() - start
+
+
+full_predict = merge(estData[,c("Person","Product","Firm","METAL","AV","ageRate_avg","N",
+                                "HCC_age","Rtype")],predict_data,by=c("Product","Person"))
+
+
+#### Firm-level Risk Data ####
+## Fill in Appropriate HCC RisK Scores
+full_predict[,HCC_Metal:=vector(mode="numeric",length=nrow(full_predict))]
+
+HCC_long = as.vector(HCC_draws_metal)
+
+full_predict[AV==.57,Rtype_m:=1]
+full_predict[AV==.6,Rtype_m:=2]
+full_predict[AV%in%c(.7,.73),Rtype_m:=3]
+full_predict[AV%in%c(.87,.8,.94),Rtype_m:=4]
+full_predict[AV==.9,Rtype_m:=5]
+
+full_predict[,index:=((Rtype_m-1)*4 + (Rtype-1))*n_draws + d_ind]
+full_predict[,HCC_Metal:=HCC_long[index]]
+full_predict[,R:=HCC_Metal + HCC_age]
+
+## Firm Data
+full_predict[METAL!="CATASTROPHIC",sum(R*s_pred*N)/sum(s_pred*N)]
+
+# firm_RA_Sim = full_predict[METAL!="CATASTROPHIC",list(R_f=sum(HCC_Metal*Gamma_j*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws),
+#                                                       A_f=sum(ageRate_avg*AV_std*Gamma_j*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws)),
+#                            by=c("Firm","ST")]
+
+
 estData[,s_pred:=s_pred_mean]
 
 ### Predicted Product Shares ####
