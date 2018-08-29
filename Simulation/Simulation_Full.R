@@ -579,7 +579,7 @@ acs = acs[,c("Person","Firm","ST","Market","Product_Name","Product",
              "Price","PriceDiff","MedDeduct","MedOOP","High","premBase",
              "AV","Big","Gamma_j","mkt_density",
              "alpha","s_pred_mean",
-             "HCC_age","Rtype",
+             "HCC_age","Rtype","Any_HCC",
              "AGE","HHincomeFPL","MEMBERS",
              "Family","Age","LowIncome","ageRate","ageRate_avg","PERWT")]
 

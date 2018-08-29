@@ -5,14 +5,14 @@ library(ggplot2)
 library(scales)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
-run = "2018-05-12"
+run = "2018-08-17"
 
 #### Read in Data ####
 predFile = paste("Simulation_Risk_Output/predData_",run,".rData",sep="")
 load(predFile)
 
 ## Cost Function 
-costFile = paste("Simulation_Risk_Output/costParameters_",run,".rData",sep="")
+costFile = paste("Simulation_Risk_Output/costParameters_MSM_Stage2_",run,".rData",sep="")
 load(costFile)
 
 cost_par = CostRes$coefficients[grep("(Age|WTP)",names(CostRes$coefficients))]
