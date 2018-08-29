@@ -5,7 +5,7 @@ library(data.table)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
 
 ## Run
-run = "2018-08-17"
+run = "2018-08-25"
 
 #### 2015 Subsidy Percentage Function ####
 
