@@ -176,13 +176,6 @@ full_predict[METAL=="CATASTROPHIC",Catastrophic:=1]
 full_predict[,Person:=Person*1000+d_ind]
 
 
-compact_predict = full_predict[,list(PERWT= sum(PERWT)),by=c("ST","Person","Product","Catastrophic","AV","Gamma_j",
-                                                             "R","C","alpha","WTP","AGE","mkt_density",
-                                                             "ageRate","ageRate_avg",
-                                                             "Mandate","subsidy","MEMBERS","non_price_util")]
-
-
-
 setkey(full_predict,Product,Person)
 setkey(prod_data,Product)
 
