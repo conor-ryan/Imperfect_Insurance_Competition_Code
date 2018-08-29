@@ -336,14 +336,14 @@ firm_list = firm_list[firm_list!="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA"]
 for (fe in firm_list){
   var = paste("FE",fe,sep="_")
   acs[,c(var):=0]
-  acs[Firm_Market_Cat==fe,c(var):=1]
+  acs[Firm==fe,c(var):=1]
 }
 
 acs[,AgeFE_18_30:=0]
 acs[AGE<=30,AgeFE_18_30:=1]
 
-acs[,AgeFE_30_39:=0]
-acs[AGE>=30&AGE<=39,AgeFE_30_39:=1]
+acs[,AgeFE_31_39:=0]
+acs[AGE>=31&AGE<=39,AgeFE_31_39:=1]
 
 acs[,AgeFE_40_51:=0]
 acs[AGE>=40&AGE<=51,AgeFE_40_51:=1]
@@ -417,7 +417,7 @@ acs[,c("Age_Cat","Inc_Cat"):=NULL]
 
 
 ## Draws
-n_draws = 100
+n_draws = 1000
 
 draws = halton(n_draws+100,dim=1,usetime=TRUE,normal=FALSE)[101:(100+n_draws)]
 
@@ -531,6 +531,7 @@ cnt = 0
 start = Sys.time()
 acs[,s_pred_mean:=vector("double",nrow(acs))]
 acs[,alpha:=vector("double",nrow(acs))]
+gc()
 for (p in people){
   cnt = cnt+1
   perData = acs[.(p),]
@@ -591,6 +592,11 @@ for (p in people){
   }
 }
 Sys.time() - start
+#####################################################################
+############# SIMULATION STILL NEEDS TO BE VALIDATED ################
+####################################################################
+
+
 
 #### Clean and Save Data ####
 acs_old = as.data.frame(acs)
@@ -623,18 +629,33 @@ setkey(predict_data,d_ind,Person)
 # predict_data[,nu_i:=nu_i_large]
 # rm(nu_h_large,nu_i_large)
 
-## Merge Data
-full_predict = merge(acs,predict_data,by=c("Product","Person"))
+
+#### Compact Prediction Data ####
+predict_compact = predict_data[,list(d_ind=mean(d_ind)),
+                               by=c("Person","Product","s_pred","non_price_util","HCC_Silver")]
+d0_draws = which(apply(HCC_draws,MARGIN=1,FUN=sum)==0)[1]
+predict_compact[HCC_Silver==0,d_ind:=d0_draws]
+
+rm(predict_data)
+
+full_predict = merge(acs,predict_compact,by=c("Product","Person"))
+
+full_predict[,cnt:=1]
+full_predict[HCC_Silver>0,pos_cnt:=sum(cnt),by=c("Person","Product")]
+full_predict[,pos_cnt:=max(pos_cnt,na.rm=TRUE),by=c("Person","Product")]
+full_predict[HCC_Silver>0,draw_wgt:=1]
+full_predict[HCC_Silver==0,draw_wgt:=n_draws-pos_cnt]
+full_predict[,c("cnt","pos_cnt"):=NULL]
 
 ## Adjust statistics
 full_predict[,WTP:=-0.10*(beta0[2]+sigma[1]*HCC_Silver)/alpha]
-full_predict[,mkt_density:=mkt_density/n_draws]
-full_predict[,PERWT:=PERWT/n_draws]
+full_predict[,mkt_density:=mkt_density/n_draws*draw_wgt]
+full_predict[,PERWT:=PERWT/n_draws*draw_wgt]
 
 
 ## Save Data
 simFile = paste("Simulation_Risk_Output/simData_old_",run,".rData",sep="")
-save(acs,predict_data,draws,file=simFile)
+save(acs,predict_compact,draws,file=simFile)
 
 ## Save Data
 simFile = paste("Simulation_Risk_Output/simData_",run,".rData",sep="")
@@ -656,13 +677,26 @@ full_predict[AV==.9,Rtype_m:=5]
 
 full_predict[,index:=((Rtype_m-1)*4 + (Rtype-1))*n_draws + d_ind]
 full_predict[,HCC_Metal:=HCC_long[index]]
+full_predict[,R:=HCC_Metal + HCC_age]
+
+full_predict[,c("index","Rtype_m","HCC_Metal"):=NULL]
+
 
 ## Firm Data
-full_predict[,sum(HCC_Metal*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws)]
+full_predict[,sum(R*s_pred*PERWT)/sum(s_pred*PERWT)]
+full_predict[Big==1,sum(R*s_pred*PERWT)/sum(s_pred*PERWT)]
 
-firm_RA_Sim = full_predict[METAL!="CATASTROPHIC",list(R_f=sum(HCC_Metal*Gamma_j*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws),
-                                 A_f=sum(ageRate_avg*AV_std*Gamma_j*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws)),
+firm_RA_Sim = full_predict[METAL!="CATASTROPHIC",list(enroll = sum(s_pred*PERWT),
+                                                      R_Gamma_f=sum(R*Gamma_j*s_pred*PERWT)/sum(s_pred*PERWT),
+                                                      R_f=sum(R*s_pred*PERWT)/sum(s_pred*PERWT),
+                                 A_Gamma_f=sum(ageRate_avg*AV_std*Gamma_j*s_pred*PERWT)/sum(s_pred*PERWT),
+                                 A_f=sum(ageRate_avg*s_pred*PERWT)/sum(s_pred*PERWT)),
                            by=c("Firm","ST")]
+firm_RA_Sim[,st_share:=enroll/sum(enroll),by="ST"]
+setkey(firm_RA_Sim,ST,Firm)
+
+simFile = paste("Simulation_Risk_Output/firm_RA_Sim_",run,".rData",sep="")
+save(firm_RA_Sim,file=simFile)
 
 
 ### Predicted Product Shares ####

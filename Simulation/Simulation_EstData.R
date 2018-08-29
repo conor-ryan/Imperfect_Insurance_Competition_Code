@@ -13,11 +13,11 @@ estData = as.data.table(estData)
 setkey(estData,Person,Product)
 
 #### Draws ####
-n_draws = 100
+n_draws = 1000
 r_mom = read.csv("Intermediate_Output/MEPS_Moments/R_Score_Moments.csv")
 r_mom$Rtype= with(r_mom,1+Age_Cat+Inc_Cat*2)
 
-draws = halton(n_draws+100,dim=1,usetime=TRUE,normal=FALSE)[101:(100+n_draws)]
+draws = halton(n_draws+500,dim=1,usetime=TRUE,normal=FALSE)[501:(500+n_draws)]
 
 HCC_draws = matrix(NA,nrow=n_draws,ncol=max(estData$Rtype))
 RtypeMax = max(estData$Rtype)
@@ -89,7 +89,7 @@ firm_list = firm_list[firm_list!="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA"]
 for (fe in firm_list){
   var = paste("FE",fe,sep="_")
   estData[,c(var):=0]
-  estData[Firm_Market_Cat==fe,c(var):=1]
+  estData[Firm==fe,c(var):=1]
 }
 # 
 # firm_list = sort(unique(estData$Firm_Market_Cat))[-1]
@@ -212,10 +212,28 @@ for (p in people){
 }
 Sys.time() - start
 
+rm(beta_zi,chars_int,deltas,demos,expsum,FE,pars,perData,price_val,r_mom,shares,util,util_non_price,
+   beta_vec,FE_pars,firm_list,first_inds,ind_draw,ind_temp,index,log_norm,people,repl,randCoeffs)
+gc()
 
-full_predict = merge(estData[,c("Person","Product","Firm","METAL","AV","ageRate_avg","N",
-                                "HCC_age","Rtype")],predict_data,by=c("Product","Person"))
+predict_data[,"non_price_util":=NULL]
+predict_data[,"draw_wgt":=NULL]
+predict_compact = predict_data[,list(d_ind=mean(d_ind)),
+                               by=c("Person","Product","s_pred","HCC_Silver")]
+d0_draws = which(apply(HCC_draws,MARGIN=1,FUN=sum)==0)[1]
+predict_compact[HCC_Silver==0,d_ind:=d0_draws]
 
+rm(predict_data)
+
+full_predict = merge(estData[,c("Person","Product","AV","N","METAL",
+                                "HCC_age","Rtype","Any_HCC")],predict_compact,by=c("Product","Person"))
+
+full_predict[,cnt:=1]
+full_predict[HCC_Silver>0,pos_cnt:=sum(cnt),by=c("Person","Product")]
+full_predict[,pos_cnt:=max(pos_cnt,na.rm=TRUE),by=c("Person","Product")]
+full_predict[HCC_Silver>0,draw_wgt:=1]
+full_predict[HCC_Silver==0,draw_wgt:=n_draws-pos_cnt]
+full_predict[,c("cnt","pos_cnt"):=NULL]
 
 #### Firm-level Risk Data ####
 ## Fill in Appropriate HCC RisK Scores
@@ -233,8 +251,13 @@ full_predict[,index:=((Rtype_m-1)*4 + (Rtype-1))*n_draws + d_ind]
 full_predict[,HCC_Metal:=HCC_long[index]]
 full_predict[,R:=HCC_Metal + HCC_age]
 
+full_predict[,c("index","Rtype_m","HCC_Metal"):=NULL]
+
 ## Firm Data
-full_predict[METAL!="CATASTROPHIC",sum(R*s_pred*N)/sum(s_pred*N)]
+test = full_predict[Person==1,]
+test[,sum(R*s_pred*draw_wgt)/sum(s_pred*draw_wgt),by="Product"]
+
+full_predict[METAL!="CATASTROPHIC",sum(R*s_pred*draw_wgt*N)/sum(s_pred*draw_wgt*N)]
 
 # firm_RA_Sim = full_predict[METAL!="CATASTROPHIC",list(R_f=sum(HCC_Metal*Gamma_j*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws),
 #                                                       A_f=sum(ageRate_avg*AV_std*Gamma_j*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws)),

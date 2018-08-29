@@ -89,6 +89,35 @@ full_predict[,R:=HCC_age+HCC_Silver]
 # full_predict = merge(full_predict,other_RA[Firm_Ag=="Inside",c("ST","RA_share")],by="ST",all.x=TRUE)
 
 
+## Load Risk Score Data
+load("Simulation_Risk_Output/FirmRiskScores_woSim.rData")
+load(paste("Simulation_Risk_Output/firm_RA_Sim_",run,".rData",sep=""))
+
+firm_RA = merge(firm_RA,firm_RA_Sim,by=c("ST","Firm"),all=TRUE)
+setkey(firm_RA,ST,Firm)
+
+firm_RA[,st_share_adj:=memberMonths/sum(memberMonths),by="ST"]
+firm_RA[Firm=="OTHER",oth_share:=st_share_adj]
+firm_RA[,RA_share:=1-max(oth_share,na.rm=TRUE),by="ST"]
+firm_RA[Firm!="OTHER",st_share_adj:=st_share*RA_share]
+
+firm_RA[Firm!="OTHER",R_Gamma_Avg:=sum(st_share_adj*R_Gamma_f),by="ST"]
+firm_RA[,R_Gamma_Avg:=max(R_Gamma_Avg,na.rm=TRUE),by="ST"]
+firm_RA[Firm=="OTHER",R_Gamma_f:=(T_norm_adj+1)*R_Gamma_Avg/(1-oth_share*(T_norm_adj+1))]
+
+firm_RA[,ST_R:=sum(st_share_adj*R_Gamma_f),by="ST"]
+firm_RA[Firm!="OTHER",ST_A:=sum(st_share_adj*A_Gamma_f)/sum(st_share_adj),by="ST"]
+firm_RA[,ST_A:=max(ST_A,na.rm=TRUE),by="ST"]
+firm_RA[Firm=="OTHER",A_Gamma_f:=ST_A]
+firm_RA[,T_est:=R_Gamma_f/ST_R - A_Gamma_f/ST_A]
+
+
+prod_data = unique(full_predict[,c("Product","Metal_std","ST","Market","Firm",
+                          "premBase","AV_std")])
+
+prod_data = merge(prod_data,firm_RA[,c("ST","Firm","RA_share","R_Gamma_f")],by=c("ST","Firm"),all=TRUE)
+names(prod_data) = c("ST","Firm","Product","Metal_std","Market","premBase","AV_std","RA_share","R_f")
+
 #### Product Level Data ####
 # prod_data = full_predict[,list(Age_j = sum(s_pred*AGE*mkt_density)/sum(s_pred*mkt_density),
 #                                WTP_j = sum(s_pred*WTP*mkt_density)/sum(s_pred*mkt_density)),
@@ -98,8 +127,8 @@ full_predict[,R:=HCC_age+HCC_Silver]
 # 
 # prod_data[,c("Age_j","WTP_j"):=NULL]
 
-prod_data = unique(full_predict[,c("Product","Metal_std","ST","Market","Firm",
-                          "premBase","AV_std")])
+# prod_data = unique(full_predict[,c("Product","Metal_std","ST","Market","Firm",
+#                           "premBase","AV_std")])
 
 
 # ## Normalize at the Firm Level
