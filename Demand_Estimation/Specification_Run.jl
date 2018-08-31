@@ -1,5 +1,6 @@
 function run_specification(df::DataFrame,
-                            df_mkt::DataFrame;
+                            df_mkt::DataFrame,
+                            df_risk::DataFrame;
                             haltonDim = 1,
                             spec_prodchars=[:Price,:MedDeduct,:High],
                             spec_prodchars_0=[:PriceDiff],
@@ -8,7 +9,7 @@ function run_specification(df::DataFrame,
                             nested = false)
 
     ## Build Model
-    c_data = ChoiceData(df,df_mkt;
+    c_data = ChoiceData(df,df_mkt,df_risk;
         demoRaw=spec_demoRaw,
         prodchars=spec_prodchars,
         prodchars_0=spec_prodchars_0,
@@ -33,9 +34,11 @@ function run_specification(df::DataFrame,
     println("Begin Estimation")
 
     ## Estimate
-    flag, fval, p_est = estimate!(m, p0)
-
-    return p_est , m, (flag,fval)
+    p_est, fval = newton_raphson(m,p0)
+    return p_est, m, fval
+    
+    # flag, fval, p_est = estimate!(m, p0)
+    # return p_est , m, (flag,fval)
 
 end
 

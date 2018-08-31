@@ -159,77 +159,56 @@ function gradient_ascent(d,p0;max_step=1e-3,init_step=1e-9,max_itr=2000,grad_tol
 end
 
 
-function newton_raphson(d,p0;max_step=1e-5,max_itr=2000)
+function newton_raphson(d,p0;grad_tol=1e-12,step_tol=1e-8,max_itr=2000)
     ## Initialize Parameter Vector
     p_vec = p0
     N = length(p0)
-    # Step Size
-    #max_step = 1e-7
-    step = max_step
-    # Likelihood Functions
-    #ll(x) = log_likelihood(d,x)
-    ll(x) = evaluate_iteration!(d,x,update=false)
-    # Tracking Variables
+
     count = 0
     grad_size = 10000
-    tol = 1
     f_eval_old = 1.0
     # # Initialize δ
     param_dict = parDict(d,p_vec)
-    #cfg = ForwardDiff.GradientConfig(ll, p_vec, ForwardDiff.Chunk{4}())
-    #contraction!(d,param_dict)
-    # Maximize by Gradient Ascent
-    while (grad_size>1000) & (count<max_itr)
-        count+=1
-        # Compute δ with Contraction
-        println("Update δ")
-        param_dict = parDict(d,p_vec)
-        contraction!(d,param_dict)
-        # Evaluate Likelihood
-        f_eval = ll(p_vec)
-        println("likelihood equals $f_eval on iteration $count")
 
-        # if (count>1) & ((f_eval-f_eval_old)/f_eval_old > 0.02)
-        #     println("Reset")
-        #     step = step_old/10
-        #     p_vec = p_old + step.*grad_new
-        #     continue
-        # end
+    # Initialize Gradient
+    grad_new = similar(p0)
+    hess_new = Matrix{Float64}(length(p0),length(p0))
+    f_final_val = 0.0
+    # Maximize by Newtons Method
+    while (grad_size>grad_tol) & (count<max_itr)
+        count+=1
 
         # Compute Gradient, holding δ fixed
-        grad_new = similar(p_vec)
-        ForwardDiff.gradient!(grad_new, ll, p_vec)
-        println("Gradient is $grad_new")
 
+        fval = log_likelihood!(hess_new,grad_new,d,p_vec)
 
-        hess_new = Matrix{Float64}(N,N)
-        ForwardDiff.hessian!(hess_new, ll, p_vec)
-        println("Hessian is $hess_new")
+        # ForwardDiff.gradient!(grad_new, ll, p_vec)
+        # println("Gradient is $grad_new")
+        #
+        #
+        # hess_new = Matrix{Float64}(N,N)
+        # ForwardDiff.hessian!(hess_new, ll, p_vec)
+        # println("Hessian is $hess_new")
 
-        #Save Iteration
-        p_old = copy(p_vec)
-        f_eval_old = copy(f_eval)
+        step = - inv(hess_new)*grad_new
 
-        # Update Parameters
-        p_vec += inv(hess_new)*grad_new
-        p_vec += step.*grad_new
-        println("Update Parameters to $p_vec")
-
-
-        # New Step Size
-        if count>1
-            grad_diff = (grad_new-grad_old)
-            step = abs(vecdot(step.*grad_new,grad_diff)/vecdot(grad_diff,grad_diff))
-            println("New optimal step size: $step")
+        p_test = p_vec .+ step
+        f_test = log_likelihood(d,p_test)
+        while (f_test<fval) | isnan(f_test)
+            p_test_disp = p_test[1:20]
+            println("Trial: Got $f_test at parameters $p_test_disp")
+            step/= 2
+            p_test = p_vec .+ step
+            f_test = log_likelihood(d,p_test)
         end
-        # Save Gradient
-        grad_old = copy(grad_new)
+        p_vec+= step
+        p_vec_disp = p_vec[1:20]
+        f_final_val = f_test
+        println("Update Parameters to $p_vec_disp")
 
         grad_size = sqrt(vecdot(grad_new,grad_new))
         println("Gradient Size: $grad_size")
-
-        #Update step size
-        step = min(step,max_step)
+        println("Function Value is $f_test at iteration $count")
     end
-    return p_vec
+    return p_vec,f_final_val
 end

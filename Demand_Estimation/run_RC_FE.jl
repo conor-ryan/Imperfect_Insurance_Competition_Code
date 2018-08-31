@@ -9,7 +9,7 @@ include("InsChoiceData.jl")
 include("Halton.jl")
 
 # Random Coefficients MLE
-include("RandomCoefficients.jl")
+include("RandomCoefficients_nonzero.jl")
 include("RandomCoefficients_2der_nonzero.jl")
 include("Contraction.jl")
 include("Log_Likehood.jl")
@@ -29,10 +29,10 @@ c = ChoiceData(df,df_mkt,df_risk;
             :LowIncome],
     prodchars=[:Price,:AV,:Big],
     prodchars_0=[:Price,:AV,:Big],
-    fixedEffects=[:Firm])
+    fixedEffects=[:Firm_Market_Cat])
 
 # Fit into model
-m = InsuranceLogit(c,1000)
+m = InsuranceLogit(c,30)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
@@ -47,6 +47,14 @@ par0 = parDict(m,p0)
 
 # println("Gradient Test")
 # grad_2 = Vector{Float64}(length(p0))
+# res = log_likelihood!(grad_2,m,p0)
+# f_ll(x) = log_likelihood(m,x)
+# grad_1 = Vector{Float64}(length(p0))
+# fval_old = f_ll(p0)
+# ForwardDiff.gradient!(grad_1,f_ll, p0)
+# println(fval_old-res)
+# println(maximum(abs.(grad_1-grad_2)))
+
 # W = eye(length(p0)+length(m.data.tMoments))
 # res = GMM_objective!(grad_2,m,p0,W)
 # f_obj(x) = GMM_objective(m,x,W)
@@ -57,11 +65,15 @@ par0 = parDict(m,p0)
 # println(fval_old-res)
 # println(maximum(abs.(grad_1-grad_2)))
 #
+p_ll = newton_raphson(m,p0)
 
 rundate = Dates.today()
 
 ## Estimate
 flag, val, p_ll = estimate!(m, p0)
+
+
+
 println("#################")
 println("#################")
 println("###### Estimation 2 #######")
