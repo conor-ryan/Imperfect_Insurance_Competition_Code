@@ -6,8 +6,7 @@ library(doBy)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 ## Run
-run = "2018-08-17"
-
+run = "2018-08-25"
 #### Load Simulation Data and Merge in GCF/AV data ####
 simFile = paste("Simulation_Risk_Output/simData_",run,".rData",sep="")
 load(simFile)
@@ -110,6 +109,17 @@ prod_moments = prod_moments[!is.na(prod_moments$logAvgCost),]
 
 
 rm(acs,MLR_Data)
+#### Clear Memory ####
+remove_Vars = ls()[!grepl("(full_predict|full_predict|Moments|Claims|est|moments|phi_start|aVar|cost_function|dAvar|run|n_draws|mom_Num)",ls())]
+
+full_predict = full_predict[,c("ST","Firm","Person","Product","Metal_std",
+                                                             "s_pred","draw_wgt",
+                                                             "Age_Bin","HCC_positive","HCC_Silver",
+                                                              "Age_1","Age_2","WTP","AV_std","Any_HCC","PERWT")]
+
+
+rm(a,claims,crosswalk,draws,enroll,fe,firm_moments,firmData,metal_moments,metalData,mkt_data,population,var)
+gc()
 
 #### Define Fixed Effects and Starting Parameters ####
 ST_list = sort(unique(full_predict$ST))
@@ -131,23 +141,25 @@ phi_start = c(phi_age,phi_HCC,phi_AV,phi_ST)
 aVar <- function(phi){
   #estMat_full = as.matrix(full_predict[,.SD,.SDcols=c("Age_1","HCC_Silver","AV_std",names(full_predict)[grep("^FE_",names(full_predict))])])
   
-  full_predict[,C:=exp(phi[1]*Age_1 + 
-                         phi[2]*HCC_Silver + 
-                         phi[3]*AV_std + 
-                         phi[4]*FE_AK + 
-                         phi[5]*FE_GA + 
-                         phi[6]*FE_IA + 
-                         phi[7]*FE_IL + 
-                         phi[8]*FE_MD + 
-                         phi[9]*FE_MI + 
-                         phi[10]*FE_MO + 
-                         phi[11]*FE_ND + 
-                         phi[12]*FE_NE + 
-                         phi[13]*FE_NM + 
-                         phi[14]*FE_OK + 
-                         phi[15]*FE_OR + 
-                         phi[16]*FE_TX + 
-                         phi[17]*FE_UT)]
+  
+  full_predict[,C:=exp(estMat%*%phi)]
+    # full_predict[,C:=exp(phi[1]*Age_1 + 
+    #                      phi[2]*HCC_Silver + 
+    #                      phi[3]*AV_std + 
+    #                      phi[4]*FE_AK + 
+    #                      phi[5]*FE_GA + 
+    #                      phi[6]*FE_IA + 
+    #                      phi[7]*FE_IL + 
+    #                      phi[8]*FE_MD + 
+    #                      phi[9]*FE_MI + 
+    #                      phi[10]*FE_MO + 
+    #                      phi[11]*FE_ND + 
+    #                      phi[12]*FE_NE + 
+    #                      phi[13]*FE_NM + 
+    #                      phi[14]*FE_OK + 
+    #                      phi[15]*FE_OR + 
+    #                      phi[16]*FE_TX + 
+    #                      phi[17]*FE_UT)]
 
   var_list = c("s_pred_mean","C_avg",
                "C_avg_HCC","C_avg_nonHCC",
@@ -160,17 +172,19 @@ aVar <- function(phi){
   J = length(unique(full_predict$Product))
   var = Matrix(0,nrow=J*M,ncol=J*M,sparse=TRUE)
   mean_moments = Matrix(0,nrow=J*M,ncol=1,sparse=TRUE)
-  Pop = full_predict[,sum(PERWT)/n_draws]
+  Pop = full_predict[,sum(PERWT)]
 
   ageBins = unique(full_predict$Age_Bin)
   cnt = 0 
   
-  per_prod_Data = full_predict[,list(C_avg = mean(C*s_pred),
-                                C_avg_HCC = sum(C*HCC_positive*s_pred)/(Any_HCC*n_draws),
-                                C_avg_nonHCC = sum(C*(1-HCC_positive)*s_pred)/((1-Any_HCC)*n_draws),
-                               S_HCC = sum(HCC_positive*s_pred)/(Any_HCC*n_draws),
-                               S_nonHCC = sum((1-HCC_positive)*s_pred)/((1-Any_HCC)*n_draws)),
-                          by=c("Person","Product","Age_Bin","s_pred_mean","ST","PERWT","Firm")]
+  per_prod_Data = full_predict[,list(C_avg = sum(C*s_pred*draw_wgt)/n_draws,
+                                     s_pred_mean = sum(s_pred*draw_wgt)/n_draws,
+                                     PERWT = sum(PERWT),
+                                C_avg_HCC = sum(C*HCC_positive*s_pred*draw_wgt/Any_HCC)/(n_draws),
+                                C_avg_nonHCC = sum(C*(1-HCC_positive)*s_pred*draw_wgt/(1-Any_HCC))/(n_draws),
+                               S_HCC = sum(HCC_positive*s_pred*draw_wgt/Any_HCC)/(n_draws),
+                               S_nonHCC = sum((1-HCC_positive)*s_pred*draw_wgt/(1-Any_HCC))/(n_draws)),
+                          by=c("Person","Product","Age_Bin","ST","Firm")]
   
 
   for (a in ageBins){
@@ -283,35 +297,40 @@ dAvar <-function(moments){
 
 full_predict[,C:=vector(mode="numeric",length=nrow(full_predict))]
 
-compact_predict = full_predict[,list(PERWT= sum(PERWT)),by=c("ST","Firm","Person","Product","Metal_std",
-                                                             "s_pred",
-                                                             "Age_Bin","HCC_positive","HCC_Silver",
-                                                              "Age_1","Age_2","WTP","AV_std","Any_HCC",
-                                                             names(full_predict)[grep("^FE_",names(full_predict))])]
+# compact_predict = full_predict[,list(PERWT= sum(PERWT)),by=c("ST","Firm","Person","Product","Metal_std",
+#                                                              "s_pred",
+#                                                              "Age_Bin","HCC_positive","HCC_Silver",
+#                                                               "Age_1","Age_2","WTP","AV_std","Any_HCC",
+#                                                              names(full_predict)[grep("^FE_",names(full_predict))])]
 
-estMat = as.matrix(compact_predict[,.SD,.SDcols=c("Age_1","HCC_Silver","AV_std",names(compact_predict)[grep("^FE_",names(compact_predict))])])
+estMat = as.matrix(full_predict[,.SD,.SDcols=c("Age_1","HCC_Silver","AV_std",names(full_predict)[grep("^FE_",names(full_predict))])])
 #estMat = as.matrix(full_predict[,.SD,.SDcols=c("Age_1","Age_2","WTP","AV_std",names(full_predict)[grep("^FE_",names(full_predict))])])
 
+# full_predict = full_predict[,c("ST","Firm","Person","Product","Metal_std",
+#                                 "s_pred","C",
+#                                 "Age_Bin","HCC_positive","HCC_Silver",
+#                                  "Age_1","Age_2","WTP","AV_std","Any_HCC","PERWT")]
+gc()
 
 cost_function_est<- function(phi,W){
   ## Demographic Cost
-  compact_predict[,C:=exp(estMat%*%phi)]
+  full_predict[,C:=exp(estMat%*%phi)]
 
   
   # ## Firm Level Risk
-  Cost_prod = compact_predict[,list(C_avg=sum(C*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws)),
+  Cost_prod = full_predict[,list(C_avg=sum(C*s_pred*PERWT)/sum(s_pred*PERWT)),
                               by=c("ST","Firm","Metal_std")]
   setkey(Cost_prod,ST,Firm,Metal_std)
 
   Moments_Prod = log(Cost_prod$C_avg) - metalClaims$logAvgCost
   Moments_Prod = Moments_Prod[!is.na(metalClaims$logAvgCost)]
 
-  Cost_firm = compact_predict[,list(C_avg=sum(C*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws)),by=c("ST","Firm")]
+  Cost_firm = full_predict[,list(C_avg=sum(C*s_pred*PERWT)/sum(s_pred*PERWT)),by=c("ST","Firm")]
   setkey(Cost_firm,ST,Firm)
 
   Moments_Firm = log(Cost_firm$C_avg) - firmClaims$logAvgCost
 
-  Cost_age = compact_predict[,list(C_avg=sum(C*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws)),
+  Cost_age = full_predict[,list(C_avg=sum(C*s_pred*PERWT)/sum(s_pred*PERWT)),
                              by=c("Age_Bin")]
   setkey(Cost_age,Age_Bin)
   low_Cost = Cost_age$C_avg[Cost_age$Age_Bin==20]
@@ -319,8 +338,8 @@ cost_function_est<- function(phi,W){
 
   Moments_Age = Cost_age$C_idx- ageMoments$costIndex
   
-  Cost_risk = compact_predict[,sum(C*s_pred*HCC_positive*PERWT/(n_draws*Any_HCC))/sum(s_pred*HCC_positive*PERWT/(n_draws*Any_HCC))]
-  Cost_non_risk = compact_predict[,sum(C*s_pred*(1-HCC_positive)*PERWT/(n_draws*(1-Any_HCC)))/sum(s_pred*(1-HCC_positive)*PERWT/(n_draws*(1-Any_HCC)))]
+  Cost_risk = full_predict[,sum(C*s_pred*HCC_positive*PERWT/(n_draws*Any_HCC))/sum(s_pred*HCC_positive*PERWT/(n_draws*Any_HCC))]
+  Cost_non_risk = full_predict[,sum(C*s_pred*(1-HCC_positive)*PERWT/(n_draws*(1-Any_HCC)))/sum(s_pred*(1-HCC_positive)*PERWT/(n_draws*(1-Any_HCC)))]
 
   
   Moments_Risk = c(1,Cost_risk/Cost_non_risk)
@@ -335,7 +354,7 @@ cost_function_est<- function(phi,W){
   
   print(error)
   print(phi)
-  compact_predict[,C:=0]
+  full_predict[,C:=0]
   #prodData[,c("logC"):=NULL]
   return(error)
 }
@@ -348,24 +367,19 @@ cost_function_est<- function(phi,W){
 # cost_function_est(phi_start,Wgt)
 # Sys.time()-st
 
-#### Clear Memory ####
-remove_Vars = ls()[!grepl("(full_predict|compact_predict|Moments|Claims|est|moments|phi_start|aVar|cost_function|dAvar|run|n_draws|mom_Num)",ls())]
-
-rm(a,claims,crosswalk,draws,enroll,fe,firm_moments,firmData,metal_moments,metalData,mkt_data,population,var)
-gc()
-
 #### Regression Test ####
-prod_Avgs = merge(compact_predict,prod_moments[,c("Product","logAvgCost","M_num")],by="Product",allow.cartesian = TRUE)
+prod_Avgs = merge(full_predict[,c("ST","Firm","Product","Age_1",
+                                  "s_pred","PERWT","HCC_Silver","AV_std")],prod_moments[,c("Product","logAvgCost","M_num")],by="Product",allow.cartesian = TRUE)
 
-prod_Avgs = prod_Avgs[,list(Age = sum(10*Age_1*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws),
-                               HCC = sum(HCC_Silver*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws),
-                            AV = sum(AV_std*s_pred*PERWT/n_draws)/sum(s_pred*PERWT/n_draws)),
+prod_Avgs = prod_Avgs[,list(Age = sum(10*Age_1*s_pred*PERWT)/sum(s_pred*PERWT),
+                               HCC = sum(HCC_Silver*s_pred*PERWT)/sum(s_pred*PERWT),
+                            AV = sum(AV_std*s_pred*PERWT)/sum(s_pred*PERWT)),
                          by=c("ST","Firm","M_num","logAvgCost")]
 
 res = lm(logAvgCost~-1+Age+HCC+AV+ST,data=prod_Avgs)
 phi_start = res$coefficients
-rm(prod_Avgs)
-
+rm(prod_Avgs,res)
+gc()
 #### Estimate GMM ####
 # Stage 1 
 print("GMM Stage 1")
