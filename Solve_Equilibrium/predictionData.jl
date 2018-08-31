@@ -163,7 +163,7 @@ type EqData
     # Products
     prods::Vector{Int64}
     # Cost Parameters
-    cost_pars::DataFrame
+    #cost_pars::DataFrame
 
     # Firm Prices
     premBase_j::Vector{Float64}
@@ -195,7 +195,7 @@ type EqData
     avgPrem_fix::Float64
 end
 
-function EqData(cdata::ChoiceData,mkt::DataFrame,cpars::DataFrame)
+function EqData(cdata::ChoiceData,mkt::DataFrame)#,cpars::DataFrame)
     J = sum([mkt[:Firm].!="OTHER"][1])
     premBase = Vector{Float64}(J)
     premBase[:] = mkt[:premBase][mkt[:Firm].!="OTHER"]
@@ -263,7 +263,7 @@ function EqData(cdata::ChoiceData,mkt::DataFrame,cpars::DataFrame)
     ST_A_fix = 0.0
     avgPrem_fix = 0.0
 
-    return EqData(cdata,pmat,index,prods,cpars,
+    return EqData(cdata,pmat,index,prods, #cpars,
     premBase,costBase,cost,ownMat,
     mkt_index,mkt_map,
     s_pred,s_pred_byperson,price_ij,
@@ -907,7 +907,7 @@ function run_st_equil(st::String)
     df = CSV.read(file1,types=Dict("AGE"=>Float64,"Mandate"=>Float64,"MEMBERS"=>Float64,"Gamma_j"=>Union{Missing,Float64}),null="NA")
     file2 = "Intermediate_Output/Equilibrium_Data/estimated_prodData_$st.csv"
     df_mkt = CSV.read(file2,null="NA")
-    cost_pars = CSV.read("Intermediate_Output/Equilibrium_Data/cost_pars.csv",null="NA")
+    #cost_pars = CSV.read("Intermediate_Output/Equilibrium_Data/cost_pars.csv",null="NA")
 
     # Solve Model
     println("Build Model")

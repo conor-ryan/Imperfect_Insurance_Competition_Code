@@ -29,9 +29,9 @@ pars = read.csv(parFile)
 beta_vec = pars$pars
 
 ## Cost Function 
-costFile = paste("Simulation_Risk_Output/costParameters_MSM_Stage2_",run,".rData",sep="")
+costFile = paste("Simulation_Risk_Output/costParameters_MSM_Stage1_",run,".rData",sep="")
 load(costFile)
-phi = est_res$estimate
+phi = est_res_1$estimate
 
 #cost_par = CostRes$coefficients[grep("(Age|WTP)",names(CostRes$coefficients))]
 
@@ -181,7 +181,7 @@ setkey(prod_data,Product)
 
 
 
-for (st in unique(full_predict$ST)){
+for (st in sort(unique(full_predict$ST))){
 
 write.csv(full_predict[ST==st,c("Person","Product","Catastrophic","AV","Gamma_j",
                           "R","C","alpha","WTP","AGE","mkt_density","ageRate","ageRate_avg",
