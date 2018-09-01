@@ -159,7 +159,7 @@ function gradient_ascent(d,p0;max_step=1e-3,init_step=1e-9,max_itr=2000,grad_tol
 end
 
 
-function newton_raphson(d,p0;grad_tol=1e-12,step_tol=1e-8,max_itr=2000)
+function newton_raphson(d,p0;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
     ## Initialize Parameter Vector
     p_vec = p0
     N = length(p0)
@@ -183,6 +183,12 @@ function newton_raphson(d,p0;grad_tol=1e-12,step_tol=1e-8,max_itr=2000)
 
         fval = log_likelihood!(hess_new,grad_new,d,p_vec)
 
+        grad_size = sqrt(vecdot(grad_new,grad_new))
+        if (grad_size<1e-8) & (count>10)
+            println("Got to Break Point...?")
+            break
+        end
+
         # ForwardDiff.gradient!(grad_new, ll, p_vec)
         # println("Gradient is $grad_new")
         #
@@ -204,10 +210,14 @@ function newton_raphson(d,p0;grad_tol=1e-12,step_tol=1e-8,max_itr=2000)
             p_test = p_vec .+ step
             f_test = log_likelihood(d,p_test)
             trial_cnt+=1
-            if trial_cnt==10
+            if (trial_cnt==10) & (grad_size>1e-5)
                 println("Algorithm Stalled: Random Step")
                 max_trial_cnt+=1
                 step = rand(length(step))/1000-.005
+            elseif (trial_cnt==10) & (grad_size<=1e-5)
+                println("Algorithm Stalled: Random Step")
+                max_trial_cnt+=1
+                step = rand(length(step))/10000-.005
             end
         end
         p_vec+= step
@@ -215,14 +225,9 @@ function newton_raphson(d,p0;grad_tol=1e-12,step_tol=1e-8,max_itr=2000)
         f_final_val = f_test
         println("Update Parameters to $p_vec_disp")
 
-        grad_size = sqrt(vecdot(grad_new,grad_new))
+
         println("Gradient Size: $grad_size")
         println("Function Value is $f_test at iteration $count")
-
-        if (grad_size<1e-12) & (count>10)
-            println("Got to Break Point...?")
-            break
-        end
     end
     # if (grad_size>grad_tol)
     #     println("Estimate Instead")
