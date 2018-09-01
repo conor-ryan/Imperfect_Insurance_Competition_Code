@@ -24,7 +24,7 @@ println("Code Loaded")
 
 #### General Specification ####
 
-halton_draws = 50
+halton_draws = 200
 spec_demoRaw = [:AgeFE_31_39,
         :AgeFE_40_51,
         :AgeFE_52_64,
@@ -37,27 +37,27 @@ rundate = Dates.today()
 
 # #### Run Specification 1 ####
 # println("Run Specification 1")
-# spec1 = run_specification(df,df_mkt,df_risk,
-#                     haltonDim = halton_draws,
-#                     spec_demoRaw=spec_demoRaw,
-#                     spec_prodchars=spec_prodchars,
-#                     spec_prodchars_0=spec_prodchars_0,
-#                     spec_fixedEffects=[:Firm])
-#
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_sm_spec1_$rundate.jld"
-# save(file,"spec1",spec1)
-#
-# #### Run Specification 2 ####
-# println("Run Specification 2")
-# spec2 = run_specification(df,df_mkt,df_risk,
-#                     haltonDim = halton_draws,
-#                     spec_demoRaw=spec_demoRaw,
-#                     spec_prodchars=spec_prodchars,
-#                     spec_prodchars_0=spec_prodchars_0,
-#                     spec_fixedEffects=[:Firm_Market_Cat])
-#
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_sm_spec2_$rundate.jld"
-# save(file,"spec2",spec2)
+spec1 = run_specification(df,df_mkt,df_risk,
+                    haltonDim = halton_draws,
+                    spec_demoRaw=spec_demoRaw,
+                    spec_prodchars=spec_prodchars,
+                    spec_prodchars_0=spec_prodchars_0,
+                    spec_fixedEffects=[:Firm])
+
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_sm_spec1_$rundate.jld"
+save(file,"spec1",spec1)
+
+#### Run Specification 2 ####
+println("Run Specification 2")
+spec2 = run_specification(df,df_mkt,df_risk,
+                    haltonDim = halton_draws,
+                    spec_demoRaw=spec_demoRaw,
+                    spec_prodchars=spec_prodchars,
+                    spec_prodchars_0=spec_prodchars_0,
+                    spec_fixedEffects=[:Firm_Market_Cat])
+
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_sm_spec2_$rundate.jld"
+save(file,"spec2",spec2)
 
 #### Run Specification 3 ####
 println("Run Specification 3")

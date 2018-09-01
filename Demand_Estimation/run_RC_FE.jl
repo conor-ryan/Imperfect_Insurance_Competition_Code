@@ -51,7 +51,8 @@ res = log_likelihood!(grad_2,m,p0)
 f_ll(x) = log_likelihood(m,x)
 grad_1 = Vector{Float64}(length(p0))
 fval_old = f_ll(p0)
-ForwardDiff.gradient!(grad_1,f_ll, p0)
+cfg = ForwardDiff.GradientConfig(f_ll, p0, ForwardDiff.Chunk{2}());
+ForwardDiff.gradient!(grad_1,f_ll, p0,cfg)
 println(fval_old-res)
 println(maximum(abs.(grad_1-grad_2)))
 
