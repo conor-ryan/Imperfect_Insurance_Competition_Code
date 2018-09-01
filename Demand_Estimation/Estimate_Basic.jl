@@ -176,7 +176,7 @@ function newton_raphson(d,p0;grad_tol=1e-12,step_tol=1e-8,max_itr=2000)
     f_final_val = 0.0
     max_trial_cnt = 0
     # Maximize by Newtons Method
-    while (grad_size>grad_tol) & (count<max_itr) & max_trial_cnt<20
+    while (grad_size>grad_tol) & (count<max_itr) & (max_trial_cnt<20)
         count+=1
 
         # Compute Gradient, holding δ fixed
@@ -199,6 +199,7 @@ function newton_raphson(d,p0;grad_tol=1e-12,step_tol=1e-8,max_itr=2000)
         while ((f_test<fval) | isnan(f_test)) & (trial_cnt<10)
             p_test_disp = p_test[1:20]
             println("Trial: Got $f_test at parameters $p_test_disp")
+            println("Previous Iteration at $fval")
             step/= 10
             p_test = p_vec .+ step
             f_test = log_likelihood(d,p_test)
@@ -206,7 +207,7 @@ function newton_raphson(d,p0;grad_tol=1e-12,step_tol=1e-8,max_itr=2000)
             if trial_cnt==10
                 println("Algorithm Stalled: Random Step")
                 max_trial_cnt+=1
-                step = rand(length(step))/100-.005
+                step = rand(length(step))/1000-.005
             end
         end
         p_vec+= step
