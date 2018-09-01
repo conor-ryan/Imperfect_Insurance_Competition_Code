@@ -29,7 +29,7 @@ c = ChoiceData(df,df_mkt,df_risk;
             :LowIncome],
     prodchars=[:Price,:AV,:Big],
     prodchars_0=[:Price,:AV,:Big],
-    fixedEffects=[:Firm_Market_Cat])
+    fixedEffects=[:Firm_Market_Age])
 
 # Fit into model
 m = InsuranceLogit(c,30)
@@ -45,15 +45,15 @@ FEstart = rand(m.parLength[:FE])/100-.005
 p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 par0 = parDict(m,p0)
 
-# println("Gradient Test")
-# grad_2 = Vector{Float64}(length(p0))
-# res = log_likelihood!(grad_2,m,p0)
-# f_ll(x) = log_likelihood(m,x)
-# grad_1 = Vector{Float64}(length(p0))
-# fval_old = f_ll(p0)
-# ForwardDiff.gradient!(grad_1,f_ll, p0)
-# println(fval_old-res)
-# println(maximum(abs.(grad_1-grad_2)))
+println("Gradient Test")
+grad_2 = Vector{Float64}(length(p0))
+res = log_likelihood!(grad_2,m,p0)
+f_ll(x) = log_likelihood(m,x)
+grad_1 = Vector{Float64}(length(p0))
+fval_old = f_ll(p0)
+ForwardDiff.gradient!(grad_1,f_ll, p0)
+println(fval_old-res)
+println(maximum(abs.(grad_1-grad_2)))
 
 # W = eye(length(p0)+length(m.data.tMoments))
 # res = GMM_objective!(grad_2,m,p0,W)
