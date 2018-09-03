@@ -113,8 +113,8 @@ function ll_obs_hessian!{T}(hess::Matrix{Float64},grad::Vector{Float64},
         gll_t1, gll_t2, gll_t3, gll_t4, ll_obs = ll_Terms(wgt,S_ij,urate,s_hat,s_insured)
 
         #hess = zeros(Q,Q)
-        hess[:] = 0.0
-        grad[:] = 0.0
+        #hess[:] = 0.0
+        #grad[:] = 0.0
         X_mat = Array{Float64}(N,K)
         Y_mat = Array{Array{Float64,2},1}(length(pars_relevant))
         #Y_mat = Array{Float64}(N,K)
@@ -164,18 +164,18 @@ function ll_obs_hessian!{T}(hess::Matrix{Float64},grad::Vector{Float64},
                 hess_obs = combine_hess(N,gll_t1,gll_t2,gll_t3,gll_t4,
                             dS1,dS2a,dS2b,dS3,dS4a,dS4b)
 
-                hess[q,r] = hess_obs
-                hess[r,q] = hess_obs
+                hess[q,r]+= hess_obs
+                hess[r,q]+= hess_obs
             end
             ## Calculate Gradient
-            grad[q] = combine_grad(N,gll_t1,gll_t3,dS2a,dS4a)
+            grad[q]+= combine_grad(N,gll_t1,gll_t3,dS2a,dS4a)
             for (k,ij) in enumerate(idxitr)
                 @inbounds @fastmath p.dSdθ[q,ij] = dS2a[k]/N
                 @inbounds @fastmath p.dRdθ[q,ij] = dR[k]/(s_hat[k]*N) - (dS2a[k]/N)/s_hat[k] * r_avg[k]
             end
         end
 
-    return ll_obs
+    return ll_obs,pars_relevant
 end
 
 function combine_hess(N::Int64,

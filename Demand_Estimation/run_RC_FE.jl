@@ -89,7 +89,7 @@ println("#################")
 
 rundate = "2018-08-28"
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld"
-save(file,"est_res",est_res)
+#save(file,"est_res",est_res)
 est_res = load(file)["est_res"]
 
 p_est = est_res[3]
@@ -101,7 +101,7 @@ println("#################")
 println("###### Estimation 3 #######")
 println("#################")
 println("#################")
-m = InsuranceLogit(c,1000)
+m = InsuranceLogit(c,500)
 W2 = calc_gmm_Avar(m,p_est)
 est_res = estimate_GMM!(m,p_est,W2)
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_stage3_$rundate.jld"
@@ -166,7 +166,7 @@ save(file,"est_res",est_res)
 # # println(maximum(abs.(grad_1-grad_3)))
 # # println(maximum(abs.(hess_1-hess_3)))
 #
-grad = Matrix{Float64}(length(p0),length(m.data.tMoments))
+#grad = Matrix{Float64}(length(p0),length(m.data.tMoments))
 # @benchmark res = calc_risk_moments!(grad,m,par0)
 #
 # res,grad_2 = calc_risk_moments!(grad,m,par0)
@@ -183,9 +183,15 @@ grad = Matrix{Float64}(length(p0),length(m.data.tMoments))
 #
 # #
 # #
+# p0 = p_est
+# W = eye(size(W2,2))
+# grad_2 = Vector{Float64}(length(p0))
+# hess = Matrix{Float64}(length(p0),length(p0))
 # Profile.init(n=10^8,delay=.001)
 # Profile.clear()
-# Juno.@profile res = GMM_objective!(grad_2,m,p0,W)
+# #Juno.@profile add_obs_mat!(hess,grad,hess_obs,grad_obs,Pop)
+# Juno.@profile log_likelihood!(hess,grad_2,m,par0)
+# #Juno.@profile res = GMM_objective!(grad_2,m,p0,W)
 # #Juno.@profile calc_risk_moments!(grad,m,par0)
 # Juno.profiletree()
 # Juno.profiler()

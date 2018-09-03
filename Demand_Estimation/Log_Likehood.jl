@@ -129,7 +129,7 @@ end
 
 
 function log_likelihood!{T}(hess::Matrix{Float64},grad::Vector{Float64},
-                            d::InsuranceLogit,p::parDict{T};cont_flag=false)
+                            d::InsuranceLogit,p::parDict{T};cont_flag::Bool=false)
     Q = d.parLength[:All]
     N = size(d.draws,1)
     hess[:] = 0.0
@@ -153,21 +153,45 @@ function log_likelihood!{T}(hess::Matrix{Float64},grad::Vector{Float64},
         #     k_max = K
         # end
         #shell = shell_full[:,:,1:K]
-        ll_obs = ll_obs_hessian!(hess_obs,grad_obs,app,d,p)
+        ll_obs,pars_relevant = ll_obs_hessian!(hess,grad,app,d,p)
 
         ll+=ll_obs
-        for q in 1:Q
-            grad[q]+=grad_obs[q]/Pop
-            for r in 1:Q
-            hess[q,r]+=hess_obs[q,r]/Pop
-            end
-        end
+
+        #add_obs_mat!(hess,grad,hess_obs,grad_obs,Pop,pars_relevant)
+
     end
     if isnan(ll)
         ll = -1e20
     end
+    for q in 1:Q
+        grad[q]=grad[q]/Pop
+        for r in 1:Q
+        hess[q,r]=hess[q,r]/Pop
+        end
+    end
+
     return ll/Pop
 end
+
+function add_obs_mat!(hess::Matrix{Float64},grad::Vector{Float64},
+                        hess_obs::Matrix{Float64},grad_obs::Vector{Float64},
+                        Pop::Float64,pars_relevant::Vector{Int})
+    Q = length(grad)
+    for q in pars_relevant
+        grad[q]+=grad_obs[q]/Pop
+        for r in pars_relevant
+        hess[q,r]+=hess_obs[q,r]/Pop
+        end
+    end
+    return Void
+end
+
+function test()
+    for i in 1:1000, j in 1:1000
+        x = 3.4 + 9.0
+    end
+end
+
 
 function log_likelihood!{T}(hess::Matrix{Float64},grad::Vector{Float64},
                             d::InsuranceLogit,p::Array{T})
