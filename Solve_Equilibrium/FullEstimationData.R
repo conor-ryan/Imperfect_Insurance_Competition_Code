@@ -119,13 +119,13 @@ prod_data = merge(prod_data,firm_RA[,c("ST","Firm","RA_share","R_Gamma_f")],by=c
 names(prod_data) = c("ST","Firm","Product","Metal_std","Market","premBase","AV_std","RA_share","R_f")
 
 #### Product Level Data ####
-# prod_data = full_predict[,list(Age_j = sum(s_pred*AGE*mkt_density)/sum(s_pred*mkt_density),
-#                                WTP_j = sum(s_pred*WTP*mkt_density)/sum(s_pred*mkt_density)),
-#                          by=c("Product","Metal_std","ST","Market","Firm",
-#                               "premBase","AV_std","RA_share")]
-# prod_data[,Cost_prod:=exp(predict(CostRes,newdata=prod_data)-cost_par[1]*Age_j - cost_par[2]*WTP_j)]
-# 
-# prod_data[,c("Age_j","WTP_j"):=NULL]
+prod_data = full_predict[,list(Age_j = sum(s_pred*AGE*mkt_density)/sum(s_pred*mkt_density),
+                               WTP_j = sum(s_pred*WTP*mkt_density)/sum(s_pred*mkt_density),
+                               Cost_j = sum(s_pred*C*mkt_density)/sum(s_pred*mkt_density),
+                               R_j = sum(s_pred*HCC_Silver*mkt_density)/sum(s_pred*mkt_density)),
+                         by=c("Product","Metal_std","ST","Market","Firm",
+                              "premBase","AV_std")]
+
 
 # prod_data = unique(full_predict[,c("Product","Metal_std","ST","Market","Firm",
 #                           "premBase","AV_std")])

@@ -29,10 +29,10 @@ c = ChoiceData(df,df_mkt,df_risk;
             :LowIncome],
     prodchars=[:Price,:AV,:Big],
     prodchars_0=[:Price,:AV,:Big],
-    fixedEffects=[:Firm_Market_Age])
+    fixedEffects=[:Firm_Market_Cat])
 
 # Fit into model
-m = InsuranceLogit(c,30)
+m = InsuranceLogit(c,100)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
@@ -45,16 +45,16 @@ FEstart = rand(m.parLength[:FE])/100-.005
 p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 par0 = parDict(m,p0)
 
-println("Gradient Test")
-grad_2 = Vector{Float64}(length(p0))
-res = log_likelihood!(grad_2,m,p0)
-f_ll(x) = log_likelihood(m,x)
-grad_1 = Vector{Float64}(length(p0))
-fval_old = f_ll(p0)
-cfg = ForwardDiff.GradientConfig(f_ll, p0, ForwardDiff.Chunk{2}());
-ForwardDiff.gradient!(grad_1,f_ll, p0,cfg)
-println(fval_old-res)
-println(maximum(abs.(grad_1-grad_2)))
+# println("Gradient Test")
+# grad_2 = Vector{Float64}(length(p0))
+# res = log_likelihood!(grad_2,m,p0)
+# f_ll(x) = log_likelihood(m,x)
+# grad_1 = Vector{Float64}(length(p0))
+# fval_old = f_ll(p0)
+# cfg = ForwardDiff.GradientConfig(f_ll, p0, ForwardDiff.Chunk{2}());
+# ForwardDiff.gradient!(grad_1,f_ll, p0,cfg)
+# println(fval_old-res)
+# println(maximum(abs.(grad_1-grad_2)))
 
 # W = eye(length(p0)+length(m.data.tMoments))
 # res = GMM_objective!(grad_2,m,p0,W)
@@ -66,12 +66,12 @@ println(maximum(abs.(grad_1-grad_2)))
 # println(fval_old-res)
 # println(maximum(abs.(grad_1-grad_2)))
 #
-p_ll = newton_raphson(m,p0)
+#p_ll = newton_raphson(m,p0)
 
 rundate = Dates.today()
 
 ## Estimate
-flag, val, p_ll = estimate!(m, p0)
+# flag, val, p_ll = estimate!(m, p0)
 
 
 
@@ -81,15 +81,16 @@ println("###### Estimation 2 #######")
 println("#################")
 println("#################")
 
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_stage1_$rundate.jld"
-save(file,"p_ll",p_ll)
-#W = calc_gmm_Avar(m,p_ll)
-W = eye(length(p0)+length(m.data.tMoments))
-est_res = estimate_GMM!(m,p_est,W)
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_stage1_$rundate.jld"
+# save(file,"p_ll",p_ll)
+# #W = calc_gmm_Avar(m,p_ll)
+# W = eye(length(p0)+length(m.data.tMoments))
+# est_res = estimate_GMM!(m,p_est,W)
 
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_stage2_$rundate.jld"
+rundate = "2018-08-28"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld"
 save(file,"est_res",est_res)
-
+est_res = load(file)["est_res"]
 
 p_est = est_res[3]
 
@@ -108,17 +109,17 @@ save(file,"est_res",est_res)
 
 
 ##### TEST ######
-rundate = "2018-08-25"
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_fe_rc_$rundate.jld"
-p_est = load(file)["est_res"][3]
-
-par0 = parDict(m,p_est)
-
-individual_values!(m,par0)
-individual_shares(m,par0)
-
-grad = Matrix{Float64}(length(p_est),length(m.data.tMoments))
-r = calc_risk_moments!(grad,m,par0)
+# rundate = "2018-08-25"
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_fe_rc_$rundate.jld"
+# p_est = load(file)["est_res"][3]
+#
+# par0 = parDict(m,p_est)
+#
+# individual_values!(m,par0)
+# individual_shares(m,par0)
+#
+# grad = Matrix{Float64}(length(p_est),length(m.data.tMoments))
+# r = calc_risk_moments!(grad,m,par0)
 
 #
 

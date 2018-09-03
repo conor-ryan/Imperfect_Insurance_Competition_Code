@@ -51,7 +51,7 @@ function ChoiceData(data_est::DataFrame,df_mkt::DataFrame)
     println("Construct Data")
     varNames = [:Person,:Product,:R,:alpha,:WTP,:AGE,:mkt_density,:ageRate,:ageRate_avg,
                 :Mandate,:subsidy,:MEMBERS,:non_price_util,
-                :R_Gamma_j,:A_Gamma_j,
+                :R_Gamma_j,:A_Gamma_j,:C,
                 :Catastrophic,:AV,:Gamma_j,:PERWT]
     for (l,var) in enumerate(varNames)
         mat_temp = Array{Float64}(data_est[var])
@@ -553,6 +553,9 @@ function eval_FOC(e::EqData)
     alpha_long = e.data.data_byperson[:,vidx[:alpha]]
     ageRate_long =  e.data.data_byperson[:,vidx[:ageRate_avg]]
 
+    ### Average Cost for Comparison ###
+
+
 
     st_lives = sum(lives)
     S_0 = similar(lives)
@@ -629,8 +632,8 @@ function eval_FOC(e::EqData)
         dsdp_0[n] = sum(dsdp[:,n])
         dsdp_rev_0[n] = sum(dsdp_rev[:,n])
 
-        dAge_j = chg_in_avg(deriv_long,:AGE,Age_long,S_j,dsdp[:,n],e,weights)
-        dWTP_j = chg_in_avg(deriv_long,:WTP,WTP_long,S_j,dsdp[:,n],e,weights)
+        #dAge_j = chg_in_avg(deriv_long,:AGE,Age_long,S_j,dsdp[:,n],e,weights)
+        #dWTP_j = chg_in_avg(deriv_long,:WTP,WTP_long,S_j,dsdp[:,n],e,weights)
 
         #dCost[:,n] = (dAge_j.*e.cost_pars[:Age_j] + dWTP_j.*e.cost_pars[:WTP_j]).*e.Cost_j
         dR_Gamma_j = chg_in_avg(deriv_long,:R_Gamma_j,R_Gamma_long,
@@ -638,8 +641,8 @@ function eval_FOC(e::EqData)
 
         dA_Gamma_j = chg_in_avg(deriv_long,:A_Gamma_j,A_Gamma_long,
                         S_j,dsdp[:,n],e,weights)
-        dCost[:,n] = chg_in_avg(deriv_long,:C,Cost_long,
-                        S_j,dsdp[:,n],e,weights)
+
+        dCost[:,n] = sum_by_prod(deriv_long,Cost_long,e,weights)
 
         ds_0_dp = -sum(dsdp[:,n].*(1-Catas_j))
         # Check ds_M_dp for catastrophic plans
@@ -715,7 +718,7 @@ function eval_FOC(e::EqData)
         A = A_j[m_idx]
         T = T_j[m_idx]
         T_fix = T_j_fix[m_idx]
-        C = e.Cost_j[m_idx]
+        #C = e.Cost_j[m_idx]
 
         m_dsdp = dsdp[m_idx,m_idx].*e.ownMat[m_idx,m_idx]
         m_dsdp_rev = dsdp_rev[m_idx,m_idx].*e.ownMat[m_idx,m_idx]
@@ -729,6 +732,7 @@ function eval_FOC(e::EqData)
 
         m_dTdp_fix = dTdp_fix[:,m_idx].*e.ownMat[:,m_idx]
         m_dCost = dCost[m_idx,m_idx].*e.ownMat[m_idx,m_idx]
+        m_dCost = sum(m_dCost,1)'
 
         #rev = inv(m_dsdp_rev)*(m_dsdp_rev*P + S.*A)
         # markup = inv(m_dsdp_rev)*S.*A
@@ -737,7 +741,8 @@ function eval_FOC(e::EqData)
         # cost = inv(m_dsdp_rev)*(m_dsdp*C + m_dCost*S)
 
         # The cost matrix should maybe be transposed...
-        foc_Std[m_idx] = L_m*( S.*A - (m_dsdp*C + m_dCost'*S) )
+        #foc_Std[m_idx] = L_m*( S.*A - (m_dsdp*C + m_dCost'*S) )
+        foc_Std[m_idx] = L_m*( S.*A - m_dCost)
         foc_RA[m_idx] = L_m*m_dsdp*T + m_dTdp'*(S_m.*S_j)
         foc_RA_fix[m_idx] = L_m*m_dsdp*T_fix + m_dTdp_fix'*(S_m.*S_j)
 
@@ -749,7 +754,7 @@ function eval_FOC(e::EqData)
         # foc_err[m_idx] = (rev-cost)./100
 
         markup[m_idx] = -inv(m_dsdp_rev)*(S.*A)
-        margCost[m_idx] = inv(m_dsdp_rev)*(m_dsdp*C + m_dCost'*S)
+        margCost[m_idx] = inv(m_dsdp_rev)*(m_dCost)
         RA_term1[m_idx] = -inv(m_dsdp_rev)*(m_dsdp*T)
         RA_term2[m_idx] = -inv(m_dsdp_rev)*(m_dAC'*S)
         RA_term3[m_idx] =  inv(m_dsdp_rev)*(m_dP_A'*S)
@@ -841,7 +846,7 @@ function update_Prices!(P_new::Vector{Float64},
     foc_err = (P_new - e.premBase_j)./100
 
     ### MLR Constraint
-    MLR_const = e.Cost_j./0.7
+    MLR_const = e[:C]./0.7
     constrained_bool = (P_new.>=MLR_const).& (e[:S_j].>=(1e-5))
     if any( constrained_bool )
         constrained = find( constrained_bool )
@@ -913,7 +918,7 @@ function run_st_equil(st::String)
     println("Build Model")
     c = ChoiceData(df,df_mkt)
 
-    model = EqData(c,df_mkt,cost_pars)
+    model = EqData(c,df_mkt)
 
     # Initialize Price Vectors
     P_base = Vector{Float64}(length(model.prods))
@@ -931,11 +936,11 @@ function run_st_equil(st::String)
     P_fix[:] = model.premBase_j[:]
 
     println("Estimate No Transfers")
-    solve_model!(model,0.02,sim="No Transfer")
+    solve_model!(model,1e-3,sim="No Transfer")
     P_non[:] = model.premBase_j[:]
 
     println("Estimate Half Transfers")
-    solve_model!(model,0.02,sim="Half Transfer")
+    solve_model!(model,1e-3,sim="Half Transfer")
     P_half[:] = model.premBase_j[:]
 
 
@@ -968,7 +973,7 @@ function Check_Margin(st::String)
     println("Build Model")
     c = ChoiceData(df,df_mkt)
 
-    model = EqData(c,df_mkt,cost_pars)
+    model = EqData(c,df_mkt)
 
     evaluate_model!(model,init=true)
     foc_Std, foc_RA, foc_RA_fix, S_m, dsdp_rev = eval_FOC(model)

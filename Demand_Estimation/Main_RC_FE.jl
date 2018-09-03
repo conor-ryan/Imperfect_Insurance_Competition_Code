@@ -24,7 +24,7 @@ println("Code Loaded")
 
 #### General Specification ####
 
-halton_draws = 100
+halton_draws = 1000
 spec_demoRaw = [:AgeFE_31_39,
         :AgeFE_40_51,
         :AgeFE_52_64,
