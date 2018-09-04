@@ -75,7 +75,7 @@ function estimate_GMM!(d::InsuranceLogit, p0::Vector{Float64},W::Matrix{Float64}
     #opt = Opt(:LN_COBYLA, length(p0))
 
     #maxeval!(opt_stage1,20000)
-    maxtime!(opt_stage1, 500000)
+    maxtime!(opt_stage1, 580000)
     ftol_rel!(opt_stage1,1e-8)
 
     lb = repeat([-1000],inner=length(p0))
