@@ -165,7 +165,9 @@ function ll_obs_hessian!{T}(hess::Matrix{Float64},grad::Vector{Float64},
                             dS1,dS2a,dS2b,dS3,dS4a,dS4b)
 
                 hess[q,r]+= hess_obs
-                hess[r,q]+= hess_obs
+                if (q!=r)
+                    hess[r,q]+= hess_obs
+                end
             end
             ## Calculate Gradient
             grad[q]+= combine_grad(N,gll_t1,gll_t3,dS2a,dS4a)

@@ -32,7 +32,7 @@ c = ChoiceData(df,df_mkt,df_risk;
     fixedEffects=[:Firm_Market_Cat])
 
 # Fit into model
-m = InsuranceLogit(c,100)
+m = InsuranceLogit(c,500)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
@@ -44,17 +44,23 @@ FEstart = rand(m.parLength[:FE])/100-.005
 
 p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 par0 = parDict(m,p0)
-
+#
 # println("Gradient Test")
 # grad_2 = Vector{Float64}(length(p0))
-# res = log_likelihood!(grad_2,m,p0)
+# hess_2 = Matrix{Float64}(length(p0),length(p0))
+# res = log_likelihood!(hess_2,grad_2,m,p0)
+#
 # f_ll(x) = log_likelihood(m,x)
 # grad_1 = Vector{Float64}(length(p0))
+# hess_1 = Matrix{Float64}(length(p0),length(p0))
 # fval_old = f_ll(p0)
-# cfg = ForwardDiff.GradientConfig(f_ll, p0, ForwardDiff.Chunk{2}());
-# ForwardDiff.gradient!(grad_1,f_ll, p0,cfg)
+# ForwardDiff.gradient!(grad_1,f_ll, p0)
+# ForwardDiff.hessian!(hess_1,f_ll, p0)
+#
 # println(fval_old-res)
 # println(maximum(abs.(grad_1-grad_2)))
+# println(maximum(abs.(hess_1-hess_2)))
+#
 
 # W = eye(length(p0)+length(m.data.tMoments))
 # res = GMM_objective!(grad_2,m,p0,W)
@@ -62,7 +68,9 @@ par0 = parDict(m,p0)
 # grad_1 = Vector{Float64}(length(p0))
 # fval_old = f_obj(p0)
 # println("ForwardDiff")
-# ForwardDiff.gradient!(grad_1,f_obj, p0)
+# cfg = ForwardDiff.GradientConfig(f_obj, p0, ForwardDiff.Chunk{4}());
+#
+# ForwardDiff.gradient!(grad_1,f_obj, p0, cfg)
 # println(fval_old-res)
 # println(maximum(abs.(grad_1-grad_2)))
 #
@@ -184,14 +192,14 @@ save(file,"est_res",est_res)
 # #
 # #
 # p0 = p_est
-# W = eye(size(W2,2))
-# grad_2 = Vector{Float64}(length(p0))
+# W = eye(length(p0)+6)
+# grad_2 = Vector{Float64}(length(p0)+6)
 # hess = Matrix{Float64}(length(p0),length(p0))
 # Profile.init(n=10^8,delay=.001)
 # Profile.clear()
 # #Juno.@profile add_obs_mat!(hess,grad,hess_obs,grad_obs,Pop)
-# Juno.@profile log_likelihood!(hess,grad_2,m,par0)
-# #Juno.@profile res = GMM_objective!(grad_2,m,p0,W)
+# #Juno.@profile log_likelihood!(hess,grad_2,m,par0)
+# Juno.@profile res = GMM_objective!(grad_2,m,p0,W)
 # #Juno.@profile calc_risk_moments!(grad,m,par0)
 # Juno.profiletree()
 # Juno.profiler()

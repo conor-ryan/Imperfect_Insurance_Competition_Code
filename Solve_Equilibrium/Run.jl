@@ -11,8 +11,7 @@ include("predictionData.jl")
 
 states = ["AK","NE","ND","OK","MD","IA","NM","UT",
 "OR","MO","IL","MI","GA","TX"]
-# states = ["NE","ND","OK","MD","IA","NM","UT",
-# "OR","MO","IL","MI","GA","TX"]
+states = ["TX"]
 for st in states
     run_st_equil(st)
     #Check_Margin(st)

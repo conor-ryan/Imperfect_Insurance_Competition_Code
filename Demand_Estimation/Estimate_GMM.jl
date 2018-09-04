@@ -125,9 +125,9 @@ function estimate_GMM!(d::InsuranceLogit, p0::Vector{Float64},W::Matrix{Float64}
     # minf, minx, ret= optimize(opt_stage1, p0)
 
     maxeval!(opt_stage1,25000)
-    lb = repeat([-Inf],inner=length(p0))
+    #lb = repeat([-Inf],inner=length(p0))
     # lb[14] = 0.0
-    ub = repeat([Inf],inner=length(p0))
+    #ub = repeat([Inf],inner=length(p0))
     # ub[14] = .99
     lower_bounds!(opt_stage1, lb)
     upper_bounds!(opt_stage1, ub)
