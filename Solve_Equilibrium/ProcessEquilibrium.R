@@ -11,11 +11,14 @@ run = "2018-08-17"
 predFile = paste("Simulation_Risk_Output/predData_",run,".rData",sep="")
 load(predFile)
 
+full_predict[,names(full_predict)[grepl("(FE_|PriceDiff|MedDeduct|MedOOP|Product_Name|Big|HCC_age|Any_HCC|HCC_Silver|HHincomeFPL|Family|Age|LowIncome|AGE|Rtype|WTP)",
+                                        names(full_predict))]:=NULL]
+gc()
 ## Cost Function 
 costFile = paste("Simulation_Risk_Output/costParameters_MSM_Stage2_",run,".rData",sep="")
 load(costFile)
 
-cost_par = CostRes$coefficients[grep("(Age|WTP)",names(CostRes$coefficients))]
+#cost_par = CostRes$coefficients[grep("(Age|WTP)",names(CostRes$coefficients))]
 
 #### Load Equilibrium Solutions ####
 eqFiles = list.files("Estimation_Output")[grep("solvedEquil",list.files("Estimation_Output"))]
@@ -31,6 +34,11 @@ for (file in eqFiles){
   prod_data[Product%in%temp$Products,prem_pred_noT:= temp$Price_non]
   prod_data[Product%in%temp$Products,prem_pred:= temp$Price_base]
   prod_data[Product%in%temp$Products,prem_pred_fixedT:= temp$Price_fix]
+  
+  
+  full_predict[Product%in%temp$Products,prem_pred_noT:= temp$Price_non]
+  full_predict[Product%in%temp$Products,prem_pred:= temp$Price_base]
+  full_predict[Product%in%temp$Products,prem_pred_fixedT:= temp$Price_fix]
   
   # if(no_transfer){
   #   prod_data[Product%in%temp$Products,prem_pred_noT:= temp$Prices]
@@ -60,7 +68,6 @@ for (file in focFiles){
 full_predict[,alpha:=alpha*12/1000]
 
 ## Set Prices and Recalculate Shares
-full_predict = merge(full_predict,prod_data[,c("Product","prem_pred","prem_pred_noT","prem_pred_fixedT")],by="Product")
 setkey(full_predict,Person,d_ind,Product)
 full_predict[,s_Eq_pred:=vector(mode="double",nrow(full_predict))]
 full_predict[,s_Eq_pred_noT:=vector(mode="double",nrow(full_predict))]
@@ -86,11 +93,17 @@ for (var in c("","_noT","_fixedT")){
 
 prod_pred = full_predict[,list(S_Est = sum(s_pred*mkt_density),
                                dSdp = sum(alpha*ageRate_avg*s_pred*(1-s_pred)*mkt_density),
-                               Age_j = sum(AGE*s_pred*mkt_density)/sum(s_pred*mkt_density),
-                               dAge_j = sum(AGE*alpha*ageRate_avg*s_pred*(1-s_pred)*mkt_density),
-                               WTP_j = sum(WTP*s_pred*mkt_density)/sum(s_pred*mkt_density),
-                               dWTP_j = sum(WTP*alpha*ageRate_avg*s_pred*(1-s_pred)*mkt_density),
+                               C_j = sum(C*s_pred*mkt_density)/sum(s_pred*mkt_density),
+                               AMC_j = sum(C*alpha*ageRate_avg*s_pred*(1-s_pred)*mkt_density)/
+                                 sum(alpha*ageRate_avg*s_pred*(1-s_pred)*mkt_density),
+                               # Age_j = sum(AGE*s_pred*mkt_density)/sum(s_pred*mkt_density),
+                               # dAge_j = sum(AGE*alpha*ageRate_avg*s_pred*(1-s_pred)*mkt_density),
+                               # WTP_j = sum(WTP*s_pred*mkt_density)/sum(s_pred*mkt_density),
+                               # dWTP_j = sum(WTP*alpha*ageRate_avg*s_pred*(1-s_pred)*mkt_density),
                                S_Eq = sum(s_Eq_pred*mkt_density),
+                               C_Eq_j = sum(C*s_Eq_pred*mkt_density)/sum(s_Eq_pred*mkt_density),
+                               AMC_Eq_j = sum(C*alpha*ageRate_avg*s_Eq_pred*(1-s_Eq_pred)*mkt_density)/
+                                 sum(alpha*ageRate_avg*s_Eq_pred*(1-s_Eq_pred)*mkt_density),
                                R_Eq = sum(s_Eq_pred*R*mkt_density)/sum(s_Eq_pred*mkt_density),
                                AV_Eq = sum(s_Eq_pred*AV*mkt_density)/sum(s_Eq_pred*mkt_density),
                                S_Eq_noT = sum(s_Eq_pred_noT*mkt_density),
@@ -103,14 +116,14 @@ prod_pred[,R_Eq:=R_Eq/R_bench]
 
 #### Illustrative Points ####
 ## Product Costs
-prod_pred[,C_j:=exp(predict(CostRes,newdata=prod_pred))]
-
-prod_pred[,dAge_j:=  dAge_j/S_Est - dSdp/S_Est*Age_j]
-prod_pred[,dWTP_j:=  dWTP_j/S_Est - dSdp/S_Est*WTP_j]
-
-prod_pred[,dC_j:= (dAge_j*cost_par[1] + dWTP_j*cost_par[2])*C_j]
-
-prod_pred[,own_marg_cost:=(dSdp*C_j + dC_j*S_Est)/dSdp]
+# prod_pred[,C_j:=exp(predict(CostRes,newdata=prod_pred))]
+# 
+# prod_pred[,dAge_j:=  dAge_j/S_Est - dSdp/S_Est*Age_j]
+# prod_pred[,dWTP_j:=  dWTP_j/S_Est - dSdp/S_Est*WTP_j]
+# 
+# prod_pred[,dC_j:= (dAge_j*cost_par[1] + dWTP_j*cost_par[2])*C_j]
+#
+# prod_pred[,own_marg_cost:=(dSdp*C_j + dC_j*S_Est)/dSdp]
 
 
 ## Markup 

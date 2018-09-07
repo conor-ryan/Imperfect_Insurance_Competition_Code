@@ -85,22 +85,33 @@ file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimati
 save(file,"spec4",spec4)
 
 #
-# #### Load Results ####
-# rundate = "2018-08-25"
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_fe_rc_$rundate.jld"
-# flag, fval, p_est = load(file)["est_res"]
+#### Load Results ####
+rundate = "2018-08-25"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_fe_rc_$rundate.jld"
+flag, fval, p_est = load(file)["est_res"]
+
+rundate = "_2018-09-01"
+spec = "spec4"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_$spec$rundate.jld"
+p_est, m, fval = load(file)["$spec"]
+println(p_est[1:15])
+
+
+# p_est = [-3.13731, -3.66356, -4.17707, 1.28711, -4.07659, -2.71348, 6.95234, 1.62123, 1.38525, 1.76242, 2.19671, -0.262142, -0.0726661, 0.436289, -0.00440429, -1.05899, -1.26554, -2.03655, -1.29205, -2.45016, -4.87626, -2.82076, -1.98936, -1.08366, -7.1579, 1.47115, -1.50611, 0.45754, -1.24011, -2.79319, -0.826092, -0.365338, -1.93863, -0.208294, -0.889068, -2.43939, -0.482924, -3.27541, -0.0832024, 5.04283, 1.18866, -5.64587, -1.4914, -4.14378, 0.0746764, -4.63658, -1.09026, -0.0150545, -0.959422, -2.73396, 0.244816, 1.08502, -0.997056, 0.850759, -7.69697, 1.36272, -2.83583, -2.97174, -7.16544, -0.510894, 1.07375, -2.01001, -1.86915, -2.39802, -0.105112, -2.45296, -3.23003, -4.05812, -1.39944, 3.05908]
+
+# # Structre the data
+c = ChoiceData(df,df_mkt,df_risk,
+                    demoRaw=spec_demoRaw,
+                    prodchars=spec_prodchars,
+                    prodchars_0=spec_prodchars_0,
+                    fixedEffects=[:Firm])
 #
-# # p_est = [-3.13731, -3.66356, -4.17707, 1.28711, -4.07659, -2.71348, 6.95234, 1.62123, 1.38525, 1.76242, 2.19671, -0.262142, -0.0726661, 0.436289, -0.00440429, -1.05899, -1.26554, -2.03655, -1.29205, -2.45016, -4.87626, -2.82076, -1.98936, -1.08366, -7.1579, 1.47115, -1.50611, 0.45754, -1.24011, -2.79319, -0.826092, -0.365338, -1.93863, -0.208294, -0.889068, -2.43939, -0.482924, -3.27541, -0.0832024, 5.04283, 1.18866, -5.64587, -1.4914, -4.14378, 0.0746764, -4.63658, -1.09026, -0.0150545, -0.959422, -2.73396, 0.244816, 1.08502, -0.997056, 0.850759, -7.69697, 1.36272, -2.83583, -2.97174, -7.16544, -0.510894, 1.07375, -2.01001, -1.86915, -2.39802, -0.105112, -2.45296, -3.23003, -4.05812, -1.39944, 3.05908]
-#
-# # # Structre the data
-# c = ChoiceData(df,df_mkt,df_risk,
-#                     demoRaw=spec_demoRaw,
-#                     prodchars=spec_prodchars,
-#                     prodchars_0=spec_prodchars_0,
-#                     fixedEffects=[:Firm])
-# #
-# # # Fit into model
-# m = InsuranceLogit(c,1000)
+# # Fit into model
+m = InsuranceLogit(c,1000)
+par0 = parDict(m,p_est)
+individual_values!(m,par0)
+individual_shares(m,par0)
+
 #
 # AsVar, stdErr,t_stat, stars = res_process(m,p_est)
 #

@@ -29,10 +29,10 @@ c = ChoiceData(df,df_mkt,df_risk;
             :LowIncome],
     prodchars=[:Price,:AV,:Big],
     prodchars_0=[:Price,:AV,:Big],
-    fixedEffects=[:Firm_Market_Cat])
+    fixedEffects=[:Firm])
 
 # Fit into model
-m = InsuranceLogit(c,100)
+m = InsuranceLogit(c,20)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
@@ -44,6 +44,11 @@ FEstart = rand(m.parLength[:FE])/100-.005
 
 p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 par0 = parDict(m,p0)
+#
+W = eye(length(p0)+length(m.data.tMoments))
+# est = newton_raphson(m,p0,W)
+
+
 #
 # println("Gradient Test")
 # grad_2 = Vector{Float64}(length(p0))
@@ -95,8 +100,8 @@ println("#################")
 # W = eye(length(p0)+length(m.data.tMoments))
 # est_res = estimate_GMM!(m,p_est,W)
 
-rundate = "2018-08-28"
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld"
+rundate = "2018-08-25"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_fe_rc_$rundate.jld"
 #save(file,"est_res",est_res)
 est_res = load(file)["est_res"]
 
@@ -109,8 +114,11 @@ println("#################")
 println("###### Estimation 3 #######")
 println("#################")
 println("#################")
-m = InsuranceLogit(c,500)
-W2 = calc_gmm_Avar(m,p_est)
+m = InsuranceLogit(c,1000)
+S = calc_gmm_Avar(m,p_est)
+W2 = inv(S)
+#est_pre = newton_raphson(m,p_est,W2)
+
 est_res = estimate_GMM!(m,p_est,W2)
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_stage3_$rundate.jld"
 save(file,"est_res",est_res)

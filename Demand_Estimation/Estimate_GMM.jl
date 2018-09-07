@@ -139,3 +139,81 @@ function estimate_GMM!(d::InsuranceLogit, p0::Vector{Float64},W::Matrix{Float64}
     # Return the object
     return ret, minf, minx
 end
+
+
+
+function newton_raphson(d::InsuranceLogit,p0::Vector{Float64},W::Matrix{Float64};f_tol=1e-2,step_tol=1e-8,max_itr=10)
+    ## Initialize Parameter Vector
+    p_vec = p0
+    N = length(p0)
+
+    count = 0
+    fval = 10000
+    f_eval_old = 1.0
+    # # Initialize δ
+    param_dict = parDict(d,p_vec)
+
+    # Initialize Gradient
+    grad_new = similar(p0)
+    f_final_val = 0.0
+    max_trial_cnt = 0
+    # Maximize by Newtons Method
+    while (fval>f_tol) & (count<max_itr) & (max_trial_cnt<20)
+        count+=1
+
+        # Compute Gradient, holding δ fixed
+        fval = GMM_objective!(grad_new,d,p_vec,W)
+
+        if (fval<1e-2) & (count>10)
+            println("Got to Break Point...?")
+            break
+        end
+
+        # ForwardDiff.gradient!(grad_new, ll, p_vec)
+        # println("Gradient is $grad_new")
+        #
+        #
+        # hess_new = Matrix{Float64}(N,N)
+        # ForwardDiff.hessian!(hess_new, ll, p_vec)
+        # println("Hessian is $hess_new")
+        grad_size = sqrt(vecdot(grad_new,grad_new))
+
+        step = -fval./grad_new
+
+        p_test = p_vec .+ step
+        f_test = GMM_objective(d,p_test,W)
+        trial_cnt = 0
+        while ((f_test>fval) | isnan(f_test)) & (trial_cnt<10)
+            p_test_disp = p_test[1:20]
+            println("Trial: Got $f_test at parameters $p_test_disp")
+            println("Previous Iteration at $fval")
+            step/= 10
+            p_test = p_vec .+ step
+            f_test = GMM_objective(d,p_test,W)
+            trial_cnt+=1
+            if (trial_cnt==10) & (fval>100)
+                println("Algorithm Stalled: Random Step")
+                max_trial_cnt+=1
+                step = rand(length(step))/1000-.005
+            elseif (trial_cnt==10) & (fval<=100)
+                println("Algorithm Stalled: Random Step")
+                max_trial_cnt+=1
+                step = rand(length(step))/10000-.005
+            end
+        end
+        p_vec+= step
+        p_vec_disp = p_vec[1:20]
+        f_final_val = f_test
+        println("Update Parameters to $p_vec_disp")
+
+
+        println("Gradient Size: $grad_size")
+        println("Function Value is $f_test at iteration $count")
+    end
+    # if (grad_size>grad_tol)
+    #     println("Estimate Instead")
+    #     ret, f_final_val, p_vec = estimate!(d,p0)
+
+
+    return p_vec,f_final_val
+end

@@ -212,6 +212,11 @@ for (p in people){
 }
 Sys.time() - start
 
+
+
+
+
+
 rm(beta_zi,chars_int,deltas,demos,expsum,FE,pars,perData,price_val,r_mom,shares,util,util_non_price,
    beta_vec,FE_pars,firm_list,first_inds,ind_draw,ind_temp,index,log_norm,people,repl,randCoeffs)
 gc()
