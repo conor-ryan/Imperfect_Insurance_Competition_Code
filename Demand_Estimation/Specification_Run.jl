@@ -36,7 +36,7 @@ function run_specification(df::DataFrame,
     ## Estimate
     p_est, fval = newton_raphson(m,p0)
     return p_est, m, fval
-    
+
     # flag, fval, p_est = estimate!(m, p0)
     # return p_est , m, (flag,fval)
 
@@ -51,7 +51,12 @@ function res_process(model::InsuranceLogit,p_est::Vector{Float64})
     paramFinal = parDict(model,p_est)
 
     AsVar = calc_Avar(model,paramFinal)
-    stdErr = sqrt.(diag(AsVar))
+    if any(diag(AsVar.<0))
+        println("Some negative variances")
+        stdErr = sqrt.(abs.(diag(AsVar)))
+    else
+        stdErr = sqrt.(diag(AsVar))
+    end
     t_stat = p_est./stdErr
 
     stars = Vector{String}(length(t_stat))

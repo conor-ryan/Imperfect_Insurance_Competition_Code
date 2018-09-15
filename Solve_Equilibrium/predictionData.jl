@@ -173,6 +173,7 @@ type EqData
 
     #Ownership Matrix
     ownMat::Matrix{Float64}
+    ownMat_merge::Matrix{Float64}
 
     #Market Index
     mkt_index::Dict{Real,Array{Int64,1}}
@@ -257,6 +258,18 @@ function EqData(cdata::ChoiceData,mkt::DataFrame)#,cpars::DataFrame)
             end
         end
     end
+    firms_merge = sort(unique(firms))[1:2]
+    ownMat_merge = Matrix{Float64}(J,J)
+    for j in 1:J
+        f = firms[j]
+        for i in 1:J
+            if (f in firms_merge) & (firms[i] in firms_merge)
+                ownMat_merge[j,i]=1
+            else
+                ownMat_merge[j,i]=ownMat[j,i]
+            end
+        end
+    end
 
     # Initialize Fixed RA Properties
     ST_R_fix  = 0.0
@@ -264,7 +277,7 @@ function EqData(cdata::ChoiceData,mkt::DataFrame)#,cpars::DataFrame)
     avgPrem_fix = 0.0
 
     return EqData(cdata,pmat,index,prods, #cpars,
-    premBase,costBase,cost,ownMat,
+    premBase,costBase,cost,ownMat,ownMat_merge,
     mkt_index,mkt_map,
     s_pred,s_pred_byperson,price_ij,
     R_bench,RA_share,Other_R,
@@ -680,13 +693,13 @@ function eval_FOC(e::EqData)
                             dA_Gamma_j./e.ST_A_fix).*e.avgPrem_fix.*(1-Catas_j)
 
 
-        davgCost[:,n] = ((dR_Gamma_j./ST_R).*avgPrem).*(1-Catas_j)
-        dPool_dA[:,n] = ((dA_Gamma_j./ST_A).*avgPrem).*(1-Catas_j)
-        dPool_dNorm[:,n] = (A_norm_j.*sum(ds_tilde_dp.*A_Gamma_j + share_tilde.*dA_Gamma_j)/ST_A -
-                    R_norm_j.*sum(ds_tilde_dp.*R_Gamma_j + share_tilde.*dR_Gamma_j)/ST_R).*avgPrem.*(1-Catas_j)
-
-        avgCost_est[n] = R_norm_j[n]*avgPrem.*(1-Catas_j[n])
-        pooledCost[n] = A_norm_j[n]*avgPrem.*(1-Catas_j[n])
+        # davgCost[:,n] = ((dR_Gamma_j./ST_R).*avgPrem).*(1-Catas_j)
+        # dPool_dA[:,n] = ((dA_Gamma_j./ST_A).*avgPrem).*(1-Catas_j)
+        # dPool_dNorm[:,n] = (A_norm_j.*sum(ds_tilde_dp.*A_Gamma_j + share_tilde.*dA_Gamma_j)/ST_A -
+        #             R_norm_j.*sum(ds_tilde_dp.*R_Gamma_j + share_tilde.*dR_Gamma_j)/ST_R).*avgPrem.*(1-Catas_j)
+        #
+        # avgCost_est[n] = R_norm_j[n]*avgPrem.*(1-Catas_j[n])
+        # pooledCost[n] = A_norm_j[n]*avgPrem.*(1-Catas_j[n])
 
     end
 
@@ -702,7 +715,7 @@ function eval_FOC(e::EqData)
     foc_Std = Vector{Float64}(J)
     foc_RA = Vector{Float64}(J)
     foc_RA_fix = Vector{Float64}(J)
-
+    foc_merge = Vector{Float64}(J)
 
     RA_term1 = Vector{Float64}(J)
     RA_term2 = Vector{Float64}(J)
@@ -734,6 +747,12 @@ function eval_FOC(e::EqData)
         m_dCost = dCost[m_idx,m_idx].*e.ownMat[m_idx,m_idx]
         m_dCost = sum(m_dCost,1)'
 
+        m_dCost_mgd = dCost[m_idx,m_idx].*e.ownMat_merge[m_idx,m_idx]
+        m_dCost_mgd = sum(m_dCost_mgd,1)'
+
+        m_dsdp_mgd = dsdp[m_idx,m_idx].*e.ownMat_merge[m_idx,m_idx]
+        m_dTdp_mgd = dTdp[:,m_idx].*e.ownMat_merge[:,m_idx]
+
         #rev = inv(m_dsdp_rev)*(m_dsdp_rev*P + S.*A)
         # markup = inv(m_dsdp_rev)*S.*A
         # tran = inv(L_m*m_dsdp_rev)*(L_m*m_dsdp*T + m_dTdp'*(S_m.*S_j))
@@ -745,6 +764,7 @@ function eval_FOC(e::EqData)
         foc_Std[m_idx] = L_m*( S.*A - m_dCost)
         foc_RA[m_idx] = L_m*m_dsdp*T + m_dTdp'*(S_m.*S_j)
         foc_RA_fix[m_idx] = L_m*m_dsdp*T_fix + m_dTdp_fix'*(S_m.*S_j)
+        foc_merge[m_idx] =  L_m*( S.*A - m_dCost_mgd) + L_m*m_dsdp_mgd*T + m_dTdp_mgd'*(S_m.*S_j)
 
         # P_new[m_idx] = -inv(L_m*m_dsdp_rev)*(L_m*( S.*A - (m_dsdp*C + m_dCost*S) ) +
         #                         L_m*m_dsdp*T + m_dTdp'*(S_m.*S_j) )
@@ -753,49 +773,50 @@ function eval_FOC(e::EqData)
         # P_new[m_idx] = -inv(L_m*m_dsdp_rev)*(L_m*( S.*A - (m_dsdp*C + m_dCost*S) ) )
         # foc_err[m_idx] = (rev-cost)./100
 
-        markup[m_idx] = -inv(m_dsdp_rev)*(S.*A)
-        margCost[m_idx] = inv(m_dsdp_rev)*(m_dCost)
-        RA_term1[m_idx] = -inv(m_dsdp_rev)*(m_dsdp*T)
-        RA_term2[m_idx] = -inv(m_dsdp_rev)*(m_dAC'*S)
-        RA_term3[m_idx] =  inv(m_dsdp_rev)*(m_dP_A'*S)
-        RA_term4[m_idx] = -inv(L_m*m_dsdp_rev)*(m_dP_Norm'*(S_m.*S_j))
-        RA_term5[m_idx] = -inv(L_m*m_dsdp_rev)*(m_dTdp_Price'*(S_m.*S_j))
+        # markup[m_idx] = -inv(m_dsdp_rev)*(S.*A)
+        # margCost[m_idx] = inv(m_dsdp_rev)*(m_dCost)
+        # RA_term1[m_idx] = -inv(m_dsdp_rev)*(m_dsdp*T)
+        # RA_term2[m_idx] = -inv(m_dsdp_rev)*(m_dAC'*S)
+        # RA_term3[m_idx] =  inv(m_dsdp_rev)*(m_dP_A'*S)
+        # RA_term4[m_idx] = -inv(L_m*m_dsdp_rev)*(m_dP_Norm'*(S_m.*S_j))
+        # RA_term5[m_idx] = -inv(L_m*m_dsdp_rev)*(m_dTdp_Price'*(S_m.*S_j))
 
         #margCost_est[m_idx] = inv(m_dsdp_rev)*(m_dAC'*S) + avgCost_est[m_idx]
     end
 
-    P_foc = -inv(S_m.*dsdp_rev.*e.ownMat)*(foc_Std + foc_RA)
-    P_test = markup + margCost + RA_term1 + RA_term2 + RA_term3 + RA_term4 + RA_term5
-    ## Decomposition
-    # Estimated Marginal Cost - Pooled Cost + Pooled Cost
-    PC = (avgPrem/ST_A)./A_Gamma_j
-    margCost_est = -(RA_term1 + RA_term2 + RA_term3) + PC
-    margCost_est_2 = -(RA_term1 + RA_term2) + avgPrem.*A_Gamma_j/ST_A
-
-    Pooled_Cost = inv(dsdp_rev.*e.ownMat)*(dsdp_rev_0.*PC).*(A_Gamma_j/ST_A)
-    share_weights = e.ownMat*(S_j.*S_m)/sum(S_j.*S_m)
-    PC_wtd = PC.*share_weights
-
-    mkt_MargCost = (RA_term4 + PC_wtd)./share_weights
-
-    efficiency = margCost - margCost_est
-
-    P_decomp = markup +
-                efficiency + PC +
-                share_weights.*mkt_MargCost +
-                - share_weights.*PC +
-                RA_term5
-
-    P_marg = markup + efficiency + mkt_MargCost + RA_term5
-    P_pool = markup + efficiency + PC + RA_term5
+    # P_foc = -inv(S_m.*dsdp_rev.*e.ownMat)*(foc_Std + foc_RA)
+    # P_test = markup + margCost + RA_term1 + RA_term2 + RA_term3 + RA_term4 + RA_term5
+    # ## Decomposition
+    # # Estimated Marginal Cost - Pooled Cost + Pooled Cost
+    # PC = (avgPrem/ST_A)./A_Gamma_j
+    # margCost_est = -(RA_term1 + RA_term2 + RA_term3) + PC
+    # margCost_est_2 = -(RA_term1 + RA_term2) + avgPrem.*A_Gamma_j/ST_A
+    #
+    # Pooled_Cost = inv(dsdp_rev.*e.ownMat)*(dsdp_rev_0.*PC).*(A_Gamma_j/ST_A)
+    # share_weights = e.ownMat*(S_j.*S_m)/sum(S_j.*S_m)
+    # PC_wtd = PC.*share_weights
+    #
+    # mkt_MargCost = (RA_term4 + PC_wtd)./share_weights
+    #
+    # efficiency = margCost - margCost_est
+    #
+    # P_decomp = markup +
+    #             efficiency + PC +
+    #             share_weights.*mkt_MargCost +
+    #             - share_weights.*PC +
+    #             RA_term5
+    #
+    # P_marg = markup + efficiency + mkt_MargCost + RA_term5
+    # P_pool = markup + efficiency + PC + RA_term5
 
     # Average Error, for consistency across product numebers
-    return foc_Std, foc_RA, foc_RA_fix, S_m, dsdp_rev
+    return foc_Std, foc_RA, foc_RA_fix, foc_merge, S_m, dsdp_rev
 end
 
 function predict_price(foc_Std::Vector{Float64},
                         foc_RA::Vector{Float64},
                         foc_RA_fix::Vector{Float64},
+                        foc_merge::Vector{Float64},
                         S_m::Vector{Float64},
                         dsdp_rev::Matrix{Float64},
                         e::EqData;sim="Base")
@@ -804,12 +825,15 @@ function predict_price(foc_Std::Vector{Float64},
 
     if sim=="Base"
         foc = foc_Std + foc_RA
+
     elseif sim=="No Transfer"
         foc = foc_Std
     elseif sim=="Half Transfer"
         foc = foc_Std + 0.5.*foc_RA
     elseif sim=="Fixed Transfer"
         foc = foc_Std + foc_RA_fix
+    elseif sim=="Merger"
+        foc = foc_merge
     else
         error("Missspecified First Order Condition")
     end
@@ -817,11 +841,13 @@ function predict_price(foc_Std::Vector{Float64},
 
     for (m,m_idx) in e.mkt_index
         L_m = S_m[m_idx][1]
-        m_dsdp_rev = dsdp_rev[m_idx,m_idx].*e.ownMat[m_idx,m_idx]
-
+        if sim=="Merger"
+            m_dsdp_rev = dsdp_rev[m_idx,m_idx].*e.ownMat_merge[m_idx,m_idx]
+        else
+            m_dsdp_rev = dsdp_rev[m_idx,m_idx].*e.ownMat[m_idx,m_idx]
+        end
         P_new[m_idx] = -inv(L_m*m_dsdp_rev)*(foc[m_idx])
     end
-
     return P_new
 end
 
@@ -881,8 +907,8 @@ function solve_model!(e::EqData,tol::Float64=.5;sim="Base")
         evaluate_model!(e)
         #foc_err, P_new = eval_FOC(e)
         #foc_err = update_Prices!(foc_err,P_new,e)
-        foc_Std, foc_RA, foc_RA_fix, S_m, dsdp_rev = eval_FOC(e)
-        P_new = predict_price(foc_Std,foc_RA,foc_RA_fix,S_m,dsdp_rev,
+        foc_Std, foc_RA, foc_RA_fix, foc_merge,S_m, dsdp_rev = eval_FOC(e)
+        P_new = predict_price(foc_Std,foc_RA,foc_RA_fix,foc_merge,S_m,dsdp_rev,
                                 e,sim=sim)
         foc_err = update_Prices!(P_new,e)
 
@@ -928,32 +954,33 @@ function run_st_equil(st::String)
 
 
     println("Estimate Base Model")
-    solve_model!(model,1e-10)
+    solve_model!(model,1e-8)
     P_base[:] = model.premBase_j[:]
 
-    println("Estimate Fixed Transfers")
-    solve_model!(model,1e-5,sim="Fixed Transfer")
+    println("Estimate Merger Model")
+    solve_model!(model,1e-8,sim="Merger")
     P_fix[:] = model.premBase_j[:]
 
-    println("Estimate No Transfers")
-    solve_model!(model,1e-3,sim="No Transfer")
-    P_non[:] = model.premBase_j[:]
-
-    println("Estimate Half Transfers")
-    solve_model!(model,1e-3,sim="Half Transfer")
-    P_half[:] = model.premBase_j[:]
-
+    # println("Estimate No Transfers")
+    # solve_model!(model,1e-3,sim="No Transfer")
+    # P_non[:] = model.premBase_j[:]
+    #
+    # println("Estimate Half Transfers")
+    # solve_model!(model,1e-3,sim="Half Transfer")
+    # P_half[:] = model.premBase_j[:]
+    #
 
     println("Solved: $st")
 
     output =  DataFrame(Products=model.prods,
                         Price_base=P_base,
-                        Price_fix =P_fix,
-                        Price_non =P_non,
-                        Price_half=P_half)
+                        Price_merger =P_fix)
+                        # ,
+                        # Price_non =P_non,
+                        # Price_half=P_half)
 
 
-    file3 = "Estimation_Output/solvedEquilibrium_$st.csv"
+    file3 = "Estimation_Output/solvedEquilibrium_merger_$st.csv"
     CSV.write(file3,output)
     return Void
 end

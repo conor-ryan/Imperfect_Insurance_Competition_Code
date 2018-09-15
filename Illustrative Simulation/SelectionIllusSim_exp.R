@@ -953,556 +953,17 @@ acs[,C_high:=max(C_high,na.rm=TRUE),by="Person"]
 acs_firm1 = as.data.frame(acs)
 acs_firm2 = as.data.frame(acs)
 acs_firm3 = as.data.frame(acs)
-acs_firm1$Firm = 1
-acs_firm2$Firm = 2
-acs_firm3$Firm = 3
+acs_firm1$Firm = "L"
+acs_firm2$Firm = "S"
 acs = as.data.table(rbind(acs_firm1,acs_firm2))#,acs_firm3))
-setkey(acs,Person,Firm,AV)
-#rm(acs_firm1,acs_firm2,acs_firm3)
-# 
-# # #### Large Competitor ####
-# 
-# output = NULL
-# demos = as.matrix(acs[,c("AgeFE_31_39",
-#                          "AgeFE_40_51",
-#                          "AgeFE_52_64",
-#                          "Family",
-#                          "LowIncome")])
-# chars_risk = as.matrix(acs[,c("AV","Big")])
-# 
-# J = 1
-# pref_int = 2
-# inside_pref = exp(2)
-# f1_share = 1/3
-# f2_share = .10
-# f3_share = (1-f2_share-f1_share)/J
-# M = 0
-# 
-# for (p_l in seq(4,5.5,.25)){
-#   err = rep(10,4)
-#   acs[AV==.6&Firm==1,P_base:=p_l]
-#   p_sm_h = p_l + 3
-#   p_lg_h = p_l + 3
-#   p_sm_l = p_l
-#   while (sum(abs(err[2:4]))>.01){
-#     acs[AV==.6&Firm>1,P_base:=p_sm_l]
-#     acs[AV==.8&Firm>1,P_base:=p_sm_h]
-#     acs[AV==.8&Firm==1,P_base:=p_lg_h]
-#     
-#     #acs[,Price:= pmax(P_base*ageRate-subsidy,0)]
-#     acs[,Price:=P_base]
-#     
-#     intercept = demos%*%gamma
-#     
-#     # Only Price Coefficient
-#     beta_z = (demos%*%t(beta))
-#     beta_r = matrix(acs$HCC_Silver,nrow=nrow(acs),ncol=length(sigma),byrow=FALSE)*sigma
-#     
-#     chars = as.matrix(acs[,c("Price","AV","Big")])
-#     chars_val = chars%*%beta0 +
-#       beta_z[,1]*chars[,1] + #Demographic Effect on Price
-#       beta_r[,1]*chars[,2] + #Risk Effect on AV
-#       beta_r[,2]*chars[,3] +  #Risk Effect on Big
-#       pref_int # mean(FE_pars)
-#     # alpha = beta0[1] + beta_z[,1]
-#     # price_val = chars[,1]*alpha
-#     acs[,util:=exp(chars_val)]
-#     # acs[Firm=="L",util:=util*large_share*inside_pref]
-#     # acs[Firm=="S",util:=util*small_share*inside_pref]
-#     
-#     
-#     acs[,alpha:=beta0[1] + beta_z[,1]]
-#     acs[,expsum:=util]
-#     
-#     acs[Firm==1,expsum:=(M+1)*expsum]
-#     acs[Firm==2,expsum:=(J-1-M)*expsum]
-#     acs[,expsum:=sum(expsum),by=c("Person")]
-#     acs[,shares:=util/(1+expsum)]
-#     acs[,insured:=expsum/(1+expsum)]
-#     
-#     acs[AV==0.6,share_low:=shares]
-#     acs[,share_low:=max(share_low,na.rm=TRUE),by="Person"]
-#     acs[AV==0.8,share_high:=shares]
-#     acs[,share_high:=max(share_high,na.rm=TRUE),by="Person"]
-#     
-#     acs[,dsdp:=alpha*shares*(1-shares)]
-#     acs[AV==0.6,dsdp_low:=alpha*share_low*(1-shares)]
-#     acs[AV==0.8,dsdp_low:=-alpha*share_low*(shares)]
-#     acs[AV==0.6,dsdp_low_m:=-alpha*share_low*shares]
-#     acs[AV==0.8,dsdp_low_m:=-alpha*share_low*shares]
-#     acs[Firm>1,dsdp_low_m:=0]
-#     
-#     acs[AV==0.6,dsdp_high:=-alpha*share_high*(shares)]
-#     acs[AV==0.8,dsdp_high:=alpha*share_high*(1-shares)]
-#     acs[AV==0.6,dsdp_high_m:=-alpha*share_high*shares]
-#     acs[AV==0.8,dsdp_high_m:=-alpha*share_high*shares]
-#     acs[Firm>1,dsdp_high_m:=0]
-#     #
-#     #
-#     acs[,CW:=log(1+expsum)]
-#     acs[,lowrisk:=as.numeric(HCC_Silver==0)]
-#     acs[,midrisk:=as.numeric(HCC_Silver>0&HCC_Silver<2.18)]
-#     acs[,highrisk:=as.numeric(HCC_Silver>2.18)]
-#     
-#     res_temp = acs[,list(total_insured=sum(insured*PERWT)/sum(PERWT),
-#                          share = sum(shares*PERWT)/sum(PERWT),
-#                          AC = 12*sum(C*shares*PERWT)/sum(shares*PERWT),
-#                          MC = 12*sum(C*dsdp*PERWT)/sum(dsdp*PERWT),
-#                          MC_low = 12*sum(C*dsdp_low*PERWT)/sum(PERWT),
-#                          MC_high = 12*sum(C*dsdp_high*PERWT)/sum(PERWT),
-#                          MC_low_m = 12*sum(C*dsdp_low_m*PERWT)/sum(PERWT),
-#                          MC_high_m = 12*sum(C*dsdp_high_m*PERWT)/sum(PERWT),
-#                          dSdp_low = sum(dsdp_low*PERWT)/sum(PERWT),
-#                          dSdp_high = sum(dsdp_high*PERWT)/sum(PERWT),
-#                          dSdp_low_m = sum(dsdp_low_m*PERWT)/sum(PERWT),
-#                          dSdp_high_m = sum(dsdp_high_m*PERWT)/sum(PERWT),
-#                          Markup = -1000*sum(shares*PERWT)/sum(dsdp*PERWT),
-#                          ConsWelfare = sum(CW*PERWT),
-#                          CW_low = sum(CW*PERWT*lowrisk)/sum(lowrisk*PERWT),
-#                          CW_mid = sum(CW*PERWT*midrisk)/sum(midrisk*PERWT),
-#                          CW_high = sum(CW*PERWT*highrisk)/sum(highrisk*PERWT)
-#                          
-#     ),by=c("AV","P_base","Firm")]
-#     setkey(res_temp,Firm,AV)
-#     
-#     res_temp[Firm==2,P_new:=solve(as.matrix(res_temp[Firm==2,c("dSdp_low","dSdp_high")]))%*%(-as.matrix(res_temp$share[res_temp$Firm==2]) + as.matrix(res_temp[Firm==2,(MC_low+MC_high)/1000]))]
-#     res_temp[Firm==2,MC_all:=solve(as.matrix(res_temp[Firm==2,c("dSdp_low","dSdp_high")]))%*%(as.matrix(res_temp[Firm==2,(MC_low+MC_high)/1000]))]
-#     res_temp[Firm==2,Mkup_all:=solve(as.matrix(res_temp[Firm==2,c("dSdp_low","dSdp_high")]))%*%(-as.matrix(res_temp$share[res_temp$Firm==2]))]
-#     
-#     if(M>0){
-#       dSdp_r = as.matrix(res_temp[Firm==1,c("dSdp_low_m","dSdp_high_m")])
-#       S_r = as.matrix(res_temp$share[res_temp$Firm==1])
-#       MC_r = as.matrix(res_temp[Firm==1,(MC_low+MC_high+M*(MC_low_m+MC_high_m))/1000])
-#       
-#       
-#       dSdp_c = dSdp_r
-#       S_merge = S_r
-#       MC_merge = MC_r
-#       for (i in 1:M){
-#         dSdp_c = cbind(dSdp_c,dSdp_r)
-#       }
-#       dSdp_merge = dSdp_c
-#       for (i in 1:M){
-#         dSdp_merge = rbind(dSdp_merge,dSdp_c)
-#         S_merge = rbind(S_merge,S_r)
-#         MC_merge = rbind(MC_merge,MC_r)
-#       }
-#       for (i in 0:M){
-#         dSdp_merge[i*2+1:2,i*2+1:2] = as.matrix(res_temp[Firm==1,c("dSdp_low","dSdp_high")])
-#       }
-#       P_m = (solve(dSdp_merge)%*%(-S_merge+MC_merge))[1:2]
-#       rm(dSdp_r,dSdp_c,S_r,MC_r)
-#       
-#       # dSdp_merge = rbind(as.matrix(res_temp[Firm==1,c("dSdp_low","dSdp_high","dSdp_low_m","dSdp_high_m")]),
-#       #                    as.matrix(res_temp[Firm==1,c("dSdp_low_m","dSdp_high_m","dSdp_low","dSdp_high")]))
-#       # 
-#       # S_merge = rbind(as.matrix(res_temp$share[res_temp$Firm==1]),as.matrix(res_temp$share[res_temp$Firm==1]))
-#       # MC_merge = rbind(as.matrix(res_temp[Firm==1,(MC_low+MC_high+MC_low_m+MC_high_m)/1000]),as.matrix(res_temp[Firm==1,(MC_low+MC_high+MC_low_m+MC_high_m)/1000]))
-#       # P_m = (solve(dSdp_merge)%*%(-S_merge+MC_merge))[1:2]
-#       
-#       res_temp[Firm==1,P_new:=P_m]      
-#       res_temp[Firm==1,MC_all:=(solve(dSdp_merge)%*%(MC_merge))[1:2]]
-#       res_temp[Firm==1,Mkup_all:=(solve(dSdp_merge)%*%(-S_merge))[1:2]]
-#       
-#     }else{
-#       res_temp[Firm==1,P_new:=solve(as.matrix(res_temp[Firm==1,c("dSdp_low","dSdp_high")]))%*%(-as.matrix(res_temp$share[res_temp$Firm==1]) + as.matrix(res_temp[Firm==1,(MC_low+MC_high)/1000]))]
-#       res_temp[Firm==1,MC_all:=solve(as.matrix(res_temp[Firm==1,c("dSdp_low","dSdp_high")]))%*%(as.matrix(res_temp[Firm==1,(MC_low+MC_high)/1000]))]
-#       res_temp[Firm==1,Mkup_all:=solve(as.matrix(res_temp[Firm==1,c("dSdp_low","dSdp_high")]))%*%(-as.matrix(res_temp$share[res_temp$Firm==1]))]
-#     }
-#     
-#     #res_temp[,P_new2:=(MC+Markup)/1000]
-#     err = with(res_temp,P_new-P_base)
-#     p_lg_h = p_lg_h + .25*err[2]
-#     p_sm_l = p_sm_l + .25*err[3]
-#     p_sm_h = p_sm_h + .25*err[4]
-#     print(err)
-#     #print(res_temp$P_new[res_temp$AV==.8])
-#     print(c(p_lg_h,p_sm_l,p_sm_h))
-#     acs[,c("share_low","share_high","dsdp_low","dsdp_high","dsdp_low_m","dsdp_high_m"):=NULL]
-#   }
-#   print(c(p_lg_h,p_sm_h))
-#   #res_temp[,total_insured:=sum(insured)]
-#   #print(p_h)
-#   res_temp[,P_low:= p_l]
-#   res_temp[,MergedFirms:=M]
-#   output = rbind(output,res_temp)
-# }
-# output[,firm_share:=sum(share),by=c("P_low","Firm")]
-# output[Firm==1,firm_share:=(1+M)*firm_share]
-# output[,firm_share:=firm_share/total_insured]
-# 
-# output_wide_MP = reshape(output,timevar=c("AV"),
-#                          idvar=c("P_low","total_insured","Firm"),
-#                          direction="wide")
-# output_wide_MP[Firm==1,Eq:=abs(P_low-P_new.0.6)]
-# output_wide_MP[,Eq:=max(Eq,na.rm=TRUE),by="P_low"]
-# output_wide_MP[,P_diff:=1000*(P_new.0.8-P_low)]
-# 
-# output_wide_MP[Eq<.25,]
-# output_wide_L = output_wide_MP[Firm=="L",]
-# 
-# ggplot() +
-#   geom_line(data=output_wide_L,aes(x=total_insured,y=AC.0.6,color="red"))+
-#   geom_line(data=output_wide_L,aes(x=total_insured,y=AC.0.8,color="red"))+
-#   geom_line(data=output_wide_L,aes(x=total_insured,y=MC.0.6,color="blue"))+
-#   geom_line(data=output_wide_L,aes(x=total_insured,y=MC.0.8,color="blue"))+
-#   geom_line(data=output_wide_L,aes(x=total_insured,y=1000*P_low,color="black")) +
-#   geom_line(data=output_wide_L,aes(x=total_insured,y=1000*P_new.0.6,color="green")) +
-#   geom_line(data=output_wide_L,aes(x=total_insured,y=1000*P_new.0.8,color="green")) +
-#   xlab(expression(Q(P[l],P[h](P[l])))) +
-#   scale_y_continuous(label=dollar) +
-#   scale_colour_manual(values = c('red' = 'red','blue' = 'blue','green'='green','black'='black'),
-#                       name = '',
-#                       labels = expression(AC,MC,MC+Mkup,P[l])) +
-#   ylab("") +
-#   coord_cartesian(xlim=c(.65,.8),ylim=c(2500,8500))+
-#   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
-#     strip.background = element_blank(),
-#     #panel.grid.major = element_line(color=grey(.8)),
-#     legend.background = element_blank(),
-#     legend.title=element_blank(),
-#     legend.text = element_text(size=14),
-#     legend.key.width = unit(.05,units="npc"),
-#     legend.key = element_rect(color="transparent",fill="transparent"),
-#     legend.position = "bottom",
-#     axis.title=element_text(size=14),
-#     axis.text = element_text(size=14))
-# 
-
-#### Comparative Statics on Competition - Big/Small ####
-
-output = NULL
-demos = as.matrix(acs[,c("AgeFE_31_39",
-                         "AgeFE_40_51",
-                         "AgeFE_52_64",
-                         "Family",
-                         "LowIncome")])
-chars_risk = as.matrix(acs[,c("AV","Big")])
-
-J = 3
-pref_int = 2
-inside_pref = J*exp(pref_int)
-# f1_share = 1/3
-# f2_share = (1-f1_share)/(J-1)
-# f3_share = (1-f1_share)/(J-1)
-
-p_1_l = 4.5
-p_2_l = 4.5
-p_3_l = 4.5
-p_1_h = p_1_l + 3.5
-p_2_h = p_2_l + 3.5
-p_3_h = p_3_l + 3.5
-#for (M_idx in 1:8){
-for (f1_share in c(1/J,.4,.5,.6,.7,.8,.9,.99)){
-  #large_share = 1/J
-  #M = (2^(M_idx)-2)/2
-  M = 0
-  print("Number of Merged Firms")
-  #print(M)
-  print(f1_share)
-  f2_share = (1-f1_share)/(J-1)
-  # f3_share = (1-f1_share)/(J-1)
-  err_l = 10 
-  while(abs(sum(err_l))>.001){
-    err_h = 10
-    acs[AV==.6&Firm==1,P_base:=p_1_l]
-    acs[AV==.6&Firm==2,P_base:=p_2_l]
-    # acs[AV==.6&Firm==3,P_base:=p_3_l]
-    while (sum(abs(err_h))>.001){
-      acs[AV==.8&Firm==1,P_base:=p_1_h]
-      acs[AV==.8&Firm==2,P_base:=p_2_h]
-      # acs[AV==.8&Firm==3,P_base:=p_3_h]
-      
-      #acs[,Price:= pmax(P_base*ageRate-subsidy,0)]
-      acs[,Price:=P_base]
-      
-      intercept = demos%*%gamma
-      
-      # Only Price Coefficient
-      beta_z = (demos%*%t(beta))
-      beta_r = matrix(acs$HCC_Silver,nrow=nrow(acs),ncol=length(sigma),byrow=FALSE)*sigma
-      
-      chars = as.matrix(acs[,c("Price","AV","Big")])
-      chars_val = chars%*%beta0 +
-        beta_z[,1]*chars[,1] + #Demographic Effect on Price
-        beta_r[,1]*chars[,2] + #Risk Effect on AV
-        beta_r[,2]*chars[,3] #+ pref_int #Risk Effect on Big
-      # mean(FE_pars)
-      # alpha = beta0[1] + beta_z[,1]
-      # price_val = chars[,1]*alpha
-      
-      
-      acs[,util:=exp(chars_val)]
-      acs[Firm==1,util:=util*f1_share*inside_pref]
-      acs[Firm==2,util:=util*f2_share*inside_pref]
-      # acs[Firm==3,util:=util*f3_share*inside_pref]
-      
-      
-      acs[,alpha:=beta0[1] + beta_z[,1]]
-      acs[,expsum:=util]
-      
-      # acs[Firm==1,expsum:=(M+1)*expsum]
-      acs[Firm==2,expsum:=(J-1)*expsum]
-      #acs[Firm==2,expsum:=expsum]
-      #acs[Firm==3,expsum:=(J-2)*expsum]
-      #acs[,expsum:=J*expsum]
-      
-      acs[,expsum:=sum(expsum),by=c("Person")]
-      acs[,shares:=util/(1+expsum)]
-      acs[,insured:=expsum/(1+expsum)]
-      
-      acs[AV==0.6,share_own_low:=shares]
-      acs[,share_own_low:=max(share_own_low,na.rm=TRUE),by=c("Person")]#,"Firm")]
-      acs[AV==0.8,share_own_high:=shares]
-      acs[,share_own_high:=max(share_own_high,na.rm=TRUE),by=c("Person")]#,"Firm")]
-      
-      
-      # acs[AV==0.6&Firm==2,share_2_low:=shares]
-      # acs[,share_2_low:=max(share_2_low,na.rm=TRUE),by=c("Person")]
-      # acs[AV==0.8&Firm==2,share_2_high:=shares]
-      # acs[,share_2_high:=max(share_2_high,na.rm=TRUE),by=c("Person")]
-      # acs[AV==0.6&Firm==1,share_2_low:=shares]
-      # acs[,share_2_low:=max(share_2_low,na.rm=TRUE),by=c("Person")]
-      # acs[AV==0.8&Firm==1,share_2_high:=shares]
-      # acs[,share_2_high:=max(share_2_high,na.rm=TRUE),by=c("Person")]
-
-      acs[,dsdp:=alpha*shares*(1-shares)]
-      acs[AV==0.6,dsdp_low:=alpha*share_own_low*(1-shares)]
-      acs[AV==0.8,dsdp_low:=-alpha*share_own_low*(shares)]
-      # acs[,dsdp_low_m:=-alpha*share_2_low*shares]
-      # 
-      # acs[Firm>1,dsdp_low_m:=NA]
-      # acs[,dsdp_low_m:=max(dsdp_low_m,na.rm=TRUE),by=c("Person","AV")]
-      # acs[Firm>2,dsdp_low_m:=NA]
-      
-      acs[AV==0.6,dsdp_high:=-alpha*share_own_high*(shares)]
-      acs[AV==0.8,dsdp_high:=alpha*share_own_high*(1-shares)]
-      # acs[,dsdp_high_m:=-alpha*share_2_high*shares]
-      # 
-      # acs[Firm>1,dsdp_high_m:=NA]
-      # acs[,dsdp_high_m:=max(dsdp_high_m,na.rm=TRUE),by=c("Person","AV")]
-      # acs[Firm>2,dsdp_high_m:=NA]
-
-      
-      
-      acs[,CW:=log(1+expsum)]
-      acs[,lowrisk:=as.numeric(HCC_Silver==0)]
-      acs[,midrisk:=as.numeric(HCC_Silver>0&HCC_Silver<2.18)]
-      acs[,highrisk:=as.numeric(HCC_Silver>2.18)]
-      acs[,highestrisk:=as.numeric(HCC_Silver>4.27)]
-      
-      
-      res_temp = acs[,list(total_insured=sum(insured*PERWT)/sum(PERWT),
-                           share = sum(shares*PERWT)/sum(PERWT),
-                           AC = 12*sum(C*shares*PERWT)/sum(shares*PERWT),
-                           MC = 12*sum(C*dsdp*PERWT)/sum(dsdp*PERWT),
-                           MC_low = 12*sum(C*dsdp_low*PERWT)/sum(PERWT),
-                           MC_high = 12*sum(C*dsdp_high*PERWT)/sum(PERWT),
-                           # MC_low_m = 12*sum(C_low*dsdp_low_m*PERWT)/sum(PERWT),
-                           # MC_high_m = 12*sum(C_high*dsdp_high_m*PERWT)/sum(PERWT),
-                           dSdp_low = sum(dsdp_low*PERWT)/sum(PERWT),
-                           dSdp_high = sum(dsdp_high*PERWT)/sum(PERWT),
-                           # dSdp_low_m = sum(dsdp_low_m*PERWT)/sum(PERWT),
-                           # dSdp_high_m = sum(dsdp_high_m*PERWT)/sum(PERWT),
-                           Markup = -1000*sum(shares*PERWT)/sum(dsdp*PERWT),
-                           ConsWelfare = sum(CW*PERWT),
-                           CW_low = sum(CW*PERWT*lowrisk)/sum(lowrisk*PERWT),
-                           CW_mid = sum(CW*PERWT*midrisk)/sum(midrisk*PERWT),
-                           CW_high = sum(CW*PERWT*highrisk)/sum(highrisk*PERWT),
-                           CW_highest = sum(CW*PERWT*highestrisk)/sum(highestrisk*PERWT)
-      ),by=c("AV","P_base","Firm")]
-      setkey(res_temp,Firm,AV)
-
-      # res_temp[Firm==2,P_new:=solve(as.matrix(res_temp[Firm==2,c("dSdp_low","dSdp_high")]))%*%(-as.matrix(res_temp$share[res_temp$Firm==2]) + as.matrix(res_temp[Firm==2,(MC_low+MC_high)/1000]))]
-      # res_temp[Firm==2,MC_all:=solve(as.matrix(res_temp[Firm==2,c("dSdp_low","dSdp_high")]))%*%(as.matrix(res_temp[Firm==2,(MC_low+MC_high)/1000]))]
-      # res_temp[Firm==2,Mkup_all:=solve(as.matrix(res_temp[Firm==2,c("dSdp_low","dSdp_high")]))%*%(-as.matrix(res_temp$share[res_temp$Firm==2]))]
-
-      # res_temp[Firm==3,P_new:=solve(as.matrix(res_temp[Firm==3,c("dSdp_low","dSdp_high")]))%*%(-as.matrix(res_temp$share[res_temp$Firm==3]) + as.matrix(res_temp[Firm==3,(MC_low+MC_high)/1000]))]
-      # res_temp[Firm==3,MC_all:=solve(as.matrix(res_temp[Firm==3,c("dSdp_low","dSdp_high")]))%*%(as.matrix(res_temp[Firm==3,(MC_low+MC_high)/1000]))]
-      # res_temp[Firm==3,Mkup_all:=solve(as.matrix(res_temp[Firm==3,c("dSdp_low","dSdp_high")]))%*%(-as.matrix(res_temp$share[res_temp$Firm==3]))]
-
-      if(M>0){
-        dSdp_r = as.matrix(res_temp[Firm==1,c("dSdp_low_m","dSdp_high_m")])
-        S_r = as.matrix(res_temp$share[res_temp$Firm==1])
-        MC_r = as.matrix(res_temp[Firm==1,(MC_low+MC_high+M*(MC_low_m+MC_high_m))/1000])
-
-        dSdp_c = dSdp_r
-        S_merge = S_r
-        MC_merge = MC_r
-        for (i in 1:M){
-          dSdp_c = cbind(dSdp_c,dSdp_r)
-        }
-        dSdp_merge = dSdp_c
-        for (i in 1:M){
-          dSdp_merge = rbind(dSdp_merge,dSdp_c)
-          S_merge = rbind(S_merge,S_r)
-          MC_merge = rbind(MC_merge,MC_r)
-        }
-        for (i in 0:M){
-          dSdp_merge[i*2+1:2,i*2+1:2] = as.matrix(res_temp[Firm==1,c("dSdp_low","dSdp_high")])
-        }
-        P_m = (solve(dSdp_merge)%*%(-S_merge+MC_merge))[1:2]
-        rm(dSdp_r,dSdp_c,S_r,MC_r)
-        # # if(M==1){
-        # dSdp_merge = rbind(as.matrix(res_temp[Firm==1,c("dSdp_low","dSdp_high","dSdp_low_m","dSdp_high_m")]),
-        #                    as.matrix(res_temp[Firm==2,c("dSdp_low_m","dSdp_high_m","dSdp_low","dSdp_high")]))
-        # dSdp_merge[3:4,1:2] = dSdp_merge[1:2,3:4]
-        # 
-        # S_merge = as.matrix(res_temp$share[res_temp$Firm<3])
-        # MC_merge = as.matrix(res_temp[Firm<3,(MC_low+MC_high+MC_low_m+MC_high_m)/1000])
-        # P_m = (solve(dSdp_merge)%*%(-S_merge+MC_merge))
-        # # }
-        # 
-        res_temp[Firm<3,P_new:=P_m]
-        res_temp[Firm<3,MC_all:=(solve(dSdp_merge)%*%(MC_merge))[1:2]]
-        res_temp[Firm<3,Mkup_all:=(solve(dSdp_merge)%*%(-S_merge))[1:2]]
-        
-      }else{
-        res_temp[Firm==1,P_new:=solve(as.matrix(res_temp[Firm==1,c("dSdp_low","dSdp_high")]))%*%(-as.matrix(res_temp$share[res_temp$Firm==1]) + as.matrix(res_temp[Firm==1,(MC_low+MC_high)/1000]))]
-        res_temp[Firm==1,MC_all:=solve(as.matrix(res_temp[Firm==1,c("dSdp_low","dSdp_high")]))%*%(as.matrix(res_temp[Firm==1,(MC_low+MC_high)/1000]))]
-        res_temp[Firm==1,Mkup_all:=solve(as.matrix(res_temp[Firm==1,c("dSdp_low","dSdp_high")]))%*%(-as.matrix(res_temp$share[res_temp$Firm==1]))]
-        
-        res_temp[Firm==2,P_new:=solve(as.matrix(res_temp[Firm==2,c("dSdp_low","dSdp_high")]))%*%(-as.matrix(res_temp$share[res_temp$Firm==2]) + as.matrix(res_temp[Firm==2,(MC_low+MC_high)/1000]))]
-        res_temp[Firm==2,MC_all:=solve(as.matrix(res_temp[Firm==2,c("dSdp_low","dSdp_high")]))%*%(as.matrix(res_temp[Firm==2,(MC_low+MC_high)/1000]))]
-        res_temp[Firm==2,Mkup_all:=solve(as.matrix(res_temp[Firm==2,c("dSdp_low","dSdp_high")]))%*%(-as.matrix(res_temp$share[res_temp$Firm==2]))]
-      }
-      
-      err_h = with(res_temp[res_temp$AV==.8,],P_new-P_base)  
-      p_1_h = p_1_h + .5*err_h[1]
-      p_2_h = p_2_h + .5*err_h[2]
-      p_3_h = p_3_h + 1*err_h[3]
-      print(err_h)
-      #print(res_temp$P_new[res_temp$AV==.8])
-      print(c(p_1_h,p_2_h,p_3_h))
-      acs[,c("share_own_low","share_own_high","dsdp_low","dsdp_high"):=NULL]#"share_2_low","share_2_high","dsdp_low_m","dsdp_high_m"):=NULL]
-    }
-    print("UPDATE P_l")
-    err_l = with(res_temp[res_temp$AV==.6,],P_new-P_base)
-    p_1_l = p_1_l + .5*err_l[1]
-    p_2_l = p_2_l + .5*err_l[2]
-    p_3_l = p_3_l + .5*err_l[3]
-    #p_l = p_l +.5*err_l
-    print(c(p_1_l,p_2_l,p_3_l))
-  }
-  res_temp[,MergedFirms:=M]
-  res_temp[,FirmSize:=f1_share]
-  #res_temp[,c("P_base"):=NULL]
-  output = rbind(output,res_temp)
-}
-
-
-
-Pop = sum(acs$PERWT)/4
-#output[,total_insured:=sum(insured),by="FirmSize"]
-output[,total_AV:=sum(share),by=c("FirmSize","AV")]
-
-output[,firmShare:=sum(share),by=c("FirmSize","Firm")]
-output[,firmShare:=(1+MergedFirms)*firmShare]
-output[,firmShare:=firmShare/total_insured]
-
-# output[,firmShare:=sum(insured)/total_insured,by=c("FirmSize","Firm")]
-
-output_wide_J = reshape(output[Firm==1,],timevar=c("AV"),
-                        idvar=c("FirmSize","total_insured","firmShare"),
-                        direction="wide")
-output_wide_J[,ConsWelfare.0.6:=ConsWelfare.0.8/Pop]
-output_wide_J[,CW_low.0.8:=CW_low.0.8-output_wide_J$CW_low.0.8[nrow(output_wide_J)]]
-output_wide_J[,CW_mid.0.8:=CW_mid.0.8-output_wide_J$CW_mid.0.8[nrow(output_wide_J)]]
-output_wide_J[,CW_high.0.8:=CW_high.0.8-output_wide_J$CW_high.0.8[nrow(output_wide_J)]]
-output_wide_J[,ConsWelfare.0.6:=ConsWelfare.0.6-output_wide_J$ConsWelfare.0.6[nrow(output_wide_J)]]
-
-
-png("Writing/Images/MarketPower_Prices.png",width=2500,height=1500,res=275)
-ggplot() + 
-  geom_line(data=output_wide_J,aes(x=firmShare,y=AC.0.6,color="Average Cost"))+
-  geom_point(data=output_wide_J,aes(x=firmShare,y=AC.0.6,color="Average Cost",shape="Low Plan"),size=3)+ 
-  geom_line(data=output_wide_J,aes(x=firmShare,y=AC.0.8,color="Average Cost"))+ 
-  geom_point(data=output_wide_J,aes(x=firmShare,y=AC.0.8,color="Average Cost",shape="High Plan"),size=3)+ 
-  geom_line(data=output_wide_J,aes(x=firmShare,y=MC.0.6,color="Marginal Cost"))+ 
-  geom_point(data=output_wide_J,aes(x=firmShare,y=MC.0.6,color="Marginal Cost",shape="Low Plan"),size=3)+ 
-  geom_line(data=output_wide_J,aes(x=firmShare,y=MC.0.8,color="Marginal Cost"))+
-  geom_point(data=output_wide_J,aes(x=firmShare,y=MC.0.8,color="Marginal Cost",shape="High Plan"),size=3)+
-  geom_line(data=output_wide_J,aes(x=firmShare,y=1000*P_new.0.6,color="Price")) +
-  geom_point(data=output_wide_J,aes(x=firmShare,y=1000*P_new.0.6,color="Price",shape="Low Plan"),size=3) +
-  geom_line(data=output_wide_J,aes(x=firmShare,y=1000*P_new.0.8,color="Price"))  +
-  geom_point(data=output_wide_J,aes(x=firmShare,y=1000*P_new.0.8,color="Price",shape="High Plan"),size=3)  + 
-  scale_y_continuous(label=dollar) + 
-  scale_x_continuous(label=percent) + 
-  ylab("") +
-  xlab("Market Share of Large Firm")+
-  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
-    strip.background = element_blank(),
-    #panel.grid.major = element_line(color=grey(.8)),
-    legend.background = element_blank(),
-    legend.title=element_blank(),
-    legend.text = element_text(size=14),
-    legend.key.width = unit(.05,units="npc"),
-    legend.key = element_rect(color="transparent",fill="transparent"),
-    legend.position = "right",
-    axis.title=element_text(size=14),
-    axis.text = element_text(size=14))
-dev.off()
-
-png("Writing/Images/MarketPower_Shares.png",width=2500,height=1500,res=275)
-ggplot() + 
-  geom_line(data=output_wide_J,aes(x=firmShare,y=total_insured,color="Total Insured"))+
-  geom_line(data=output_wide_J,aes(x=firmShare,y=total_AV.0.6,color="Low Plan Share"))+
-  geom_line(data=output_wide_J,aes(x=firmShare,y=total_AV.0.8,color="High Plan Share"))+
-  scale_y_continuous(label=percent) + 
-  scale_x_continuous(label=percent) + 
-  coord_cartesian(ylim=c(0,.7)) + 
-  ylab("Enrolled Share") +
-  xlab("Total Market Share of Large Firm")+
-  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
-    strip.background = element_blank(),
-    #panel.grid.major = element_line(color=grey(.8)),
-    legend.background = element_blank(),
-    legend.title=element_blank(),
-    legend.text = element_text(size=14),
-    legend.key.width = unit(.05,units="npc"),
-    legend.key = element_rect(color="transparent",fill="transparent"),
-    legend.position = "right",
-    axis.title=element_text(size=14),
-    axis.text = element_text(size=14))
-dev.off()
-
-png("Writing/Images/MarketPower_Welfare.png",width=2500,height=1500,res=275)
-ggplot() + 
-  geom_line(data=output_wide_J,aes(x=firmShare,y=1000*CW_low.0.8,color="Low Risk"))+ 
-  geom_line(data=output_wide_J,aes(x=firmShare,y=1000*CW_mid.0.8,color="Medium Risk"))+ 
-  geom_line(data=output_wide_J,aes(x=firmShare,y=1000*CW_high.0.8,color="High Risk"))+ 
-  geom_line(data=output_wide_J,aes(x=firmShare,y=1000*ConsWelfare.0.6),color="black",size=1) + 
-  scale_y_continuous(label=dollar,breaks=c(-2000,-1500,-1000,-500,0,250)) + 
-  scale_x_continuous(label=percent) + 
-  ylab("") +
-  xlab("Market Share of Large Firm")+
-  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
-    strip.background = element_blank(),
-    #panel.grid.major = element_line(color=grey(.8)),
-    legend.background = element_blank(),
-    legend.title=element_blank(),
-    legend.text = element_text(size=14),
-    legend.key.width = unit(.05,units="npc"),
-    legend.key = element_rect(color="transparent",fill="transparent"),
-    legend.position = "right",
-    axis.title=element_text(size=14),
-    axis.text = element_text(size=14))
-dev.off()
-
-
+setkey(acs,Person)
+rm(acs_firm1,acs_firm2,acs_firm3)
 
 #### Risk Adjustment and Welfare ####
-# acs[Firm==1,Firm2:="L"]
-# acs[Firm==2,Firm2:="S"]
-# acs[,Firm:=NULL]
-# acs[,Firm:=Firm2]
-# acs[,Firm2:=NULL]
-
 J = 3
 output = NULL
 pref_int = 2
 inside_pref = J*exp(pref_int)
-
 p_l = 3
 p_sm_l = 3
 p_lg_l = 3
@@ -1660,7 +1121,7 @@ output_wide_RA[,CW_diff:=1000*(ConsWelfare.0.8-CW_MC)/sum(acs$PERWT/4)]
 output_wide_RA[,CW_High_diff:=1000*(CW_high.0.8-CW_High_MC)]
 output_wide_RA[,CW_Low_diff:=1000*(CW_low.0.8-CW_Low_MC)]
 
-png("Writing/Images/RiskAdj_Welfare.png",width=2500,height=1500,res=275)
+#png("Writing/Images/RiskAdj_Welfare.png",width=2500,height=1500,res=275)
 ggplot(output_wide_RA[!risk_tau%in%c(1,1/3),]) + 
   # geom_line(data=output_wide_RA,aes(x=firmShare,y=P_new.0.6,color=RA))+ 
   # geom_line(data=output_wide_RA,aes(x=firmShare,y=P_new.0.8,color=RA))+ 
@@ -1684,9 +1145,9 @@ ggplot(output_wide_RA[!risk_tau%in%c(1,1/3),]) +
     legend.position = "right",
     axis.title=element_text(size=14),
     axis.text = element_text(size=14))
-dev.off()
+#dev.off()
 
-png("Writing/Images/RiskAdj_Prices.png",width=2500,height=1500,res=275)
+#png("Writing/Images/RiskAdj_Prices.png",width=2500,height=1500,res=275)
 ggplot(output_wide_RA[risk_tau!=1/3,]) + 
   geom_line(aes(x=firmShare,y=1000*P_new.0.6,color=RA))+
   geom_point(aes(x=firmShare,y=1000*P_new.0.6,color=RA,shape="Low Plan"),size=3)+
@@ -1707,232 +1168,232 @@ ggplot(output_wide_RA[risk_tau!=1/3,]) +
     legend.position = "right",
     axis.title=element_text(size=14),
     axis.text = element_text(size=14))
-dev.off()
+#dev.off()
 
-
-
-#### Risk Adjustment and Welfare, and Mandate ####
-J = 3
-output = NULL
-pref_int = 2
-inside_pref = J*exp(pref_int)
-
-p_sm_l = 3
-p_lg_l = 3
-p_sm_h = p_sm_l + 3
-p_lg_h = p_lg_l + 3
-for  (large_share in c(.99,.95,seq(.9,1/J,-.1),1/J)) { 
-  
-  for (risk_tau in c(0,1/3,2/3,1)){
-    print(risk_tau)
-    #for (large_share in c(seq(.7,1/J,-.1),1/J)){
-    #large_share = 1/J
-    print("Size of Large Firm")
-    print(large_share)
-    
-    small_share = (1-large_share)/(J-1)
-    
-    err_l = 10 
-    while(abs(sum(err_l))>.01){
-      err_h = 10
-      acs[AV==.6&Firm=="S",P_base:=p_sm_l]
-      acs[AV==.6&Firm=="L",P_base:=p_lg_l]
-      cnt = 0
-      while (sum(abs(err_h))>.01){
-        acs[AV==.8&Firm=="S",P_base:=p_sm_h]
-        acs[AV==.8&Firm=="L",P_base:=p_lg_h]
-        
-        #acs[,Price:= pmax(P_base*ageRate-subsidy,0)]
-        acs[,Price:=P_base]
-        
-        demos = as.matrix(acs[,c("AgeFE_31_39",
-                                 "AgeFE_40_51",
-                                 "AgeFE_52_64",
-                                 "Family",
-                                 "LowIncome")])
-        chars_risk = as.matrix(acs[,c("AV","Big")])
-        chars = as.matrix(acs[,c("Price","AV","Big")])
-        
-        intercept = demos%*%gamma
-        
-        # Only Price Coefficient
-        beta_z = (demos%*%t(beta))
-        beta_r = matrix(acs$HCC_Silver,nrow=nrow(acs),ncol=length(sigma),byrow=FALSE)*sigma
-        
-        chars_val = chars%*%beta0 + 
-          beta_z[,1]*chars[,1] + #Demographic Effect on Price
-          beta_r[,1]*chars[,2] + #Risk Effect on AV
-          beta_r[,2]*chars[,3]   #Risk Effect on Big
-        #pref_int mean(FE_pars)
-        # alpha = beta0[1] + beta_z[,1]
-        # price_val = chars[,1]*alpha
-        acs[,util:=exp(chars_val)]
-        acs[Firm=="L",util:=util*large_share*inside_pref]
-        acs[Firm=="S",util:=util*small_share*inside_pref]
-        
-        acs[,alpha:=beta0[1] + beta_z[,1]]
-        acs[,expsum:=util]
-        acs[Firm=="S",expsum:=(J-1)*util]
-        acs[,expsum:=sum(expsum),by="Person"]
-        acs[,shares:=util/(expsum)]
-        
-        acs[,insured:=expsum/(expsum)]
-        
-        acs[AV==0.6,share_low:=shares]
-        acs[,share_low:=max(share_low,na.rm=TRUE),by="Person"]
-        acs[AV==0.8,share_high:=shares]
-        acs[,share_high:=max(share_high,na.rm=TRUE),by="Person"]
-        
-        acs[,dsdp:=alpha*shares*(1-shares)]
-        acs[AV==0.6,dsdp_low:=alpha*share_low*(1-shares)]
-        acs[AV==0.8,dsdp_low:=-alpha*share_low*(shares)]
-        
-        acs[AV==0.6,dsdp_high:=-alpha*share_high*(shares)]
-        acs[AV==0.8,dsdp_high:=alpha*share_high*(1-shares)]
-        
-        
-        acs[,CW:=log(1+expsum)]
-        acs[,CW:=CW/(-alpha)]
-        acs[,lowrisk:=as.numeric(HCC_Silver==0)]
-        acs[,midrisk:=as.numeric(HCC_Silver>0&HCC_Silver<2.18)]
-        acs[,highrisk:=as.numeric(HCC_Silver>2.18)]
-        
-        res_temp = acs[,list(insured=sum(shares*PERWT)/sum(PERWT),
-                             SA = sum(shares*PERWT)/sum(PERWT),
-                             AC = 12*sum(C*shares*PERWT)/sum(shares*PERWT),
-                             PC = 12*sum(C*insured*PERWT)/sum(insured*PERWT),
-                             MC = 12*sum(C*dsdp*PERWT)/sum(dsdp*PERWT),
-                             MC_low = 12*sum(C*dsdp_low*PERWT)/sum(PERWT),
-                             MC_high = 12*sum(C*dsdp_high*PERWT)/sum(PERWT),
-                             dSAdp_low = sum(dsdp_low*PERWT)/sum(PERWT),
-                             dSAdp_high = sum(dsdp_high*PERWT)/sum(PERWT),
-                             Markup = -1000*sum(shares*PERWT)/sum(dsdp*PERWT),
-                             ConsWelfare = sum(CW*PERWT),
-                             CW_low = sum(CW*PERWT*lowrisk)/sum(lowrisk*PERWT),
-                             CW_mid = sum(CW*PERWT*midrisk)/sum(midrisk*PERWT),
-                             CW_high = sum(CW*PERWT*highrisk)/sum(highrisk*PERWT),
-                             PlanWelfare = sum(shares*(AV*C*12/1000-Price))
-                             
-        ),by=c("AV","P_base","Firm")]
-        res_temp[Firm=="S",insured:=(J-1)*insured]
-        res_temp[Firm=="S",PlanWelfare:=(J-1)*PlanWelfare]
-        res_temp[,PlanWelfare:=sum(PlanWelfare)]
-        res_temp[,P_low:=p_l]
-        setkey(res_temp,Firm,AV)
-        
-        res_temp[Firm=="S",MC_RA:=(1-risk_tau)*PC+ risk_tau*1000*solve(as.matrix(res_temp[Firm=="S",c("dSAdp_low","dSAdp_high")]))%*%(as.matrix(res_temp[Firm=="S",(MC_low+MC_high)/1000]))]
-        res_temp[Firm=="L",MC_RA:=(1-risk_tau)*PC+ risk_tau*1000*solve(as.matrix(res_temp[Firm=="L",c("dSAdp_low","dSAdp_high")]))%*%(as.matrix(res_temp[Firm=="L",(MC_low+MC_high)/1000]))]
-        
-        
-        res_temp[Firm=="S",Markup_full:=1000*solve(as.matrix(res_temp[Firm=="S",c("dSAdp_low","dSAdp_high")]))%*%(-as.matrix(res_temp$SA[res_temp$Firm=="S"]))]
-        res_temp[Firm=="L",Markup_full:=1000*solve(as.matrix(res_temp[Firm=="L",c("dSAdp_low","dSAdp_high")]))%*%(-as.matrix(res_temp$SA[res_temp$Firm=="L"]))]
-        
-        
-        #res_temp[,P_new:=(MC+Markup)/1000]
-        res_temp[,P_new:=(MC_RA+Markup_full)/1000]
-        
-        err_h = with(res_temp[res_temp$AV==.8,],P_new-P_base)  
-        p_lg_h = p_lg_h + .25*err_h[1]
-        p_sm_h = p_sm_h + .25*err_h[2]
-        if(p_lg_h>40|p_lg_h<0){
-          p_lg_h = min(max(p_lg_h,0),40)
-          cnt = cnt+1
-        }
-        if(cnt>3){
-          err_h[1] = 0
-        }
-        print(err_h)
-        #print(res_temp$P_new[res_temp$AV==.8])
-        print(c(p_lg_h,p_sm_h))
-        
-        acs[,c("share_low","share_high","dsdp_low","dsdp_high"):=NULL]
-      }
-      print(c(p_lg_h,p_sm_h))
-      print("UPDATE P_l")
-      err_l = with(res_temp[res_temp$AV==.6,],P_new-P_base)
-      p_lg_l = p_lg_l + .25*err_l[1]
-      if((p_lg_l>40&err_l[1]>0)|(p_lg_l<0&err_l[1]<0)){
-        p_lg_l = min(max(p_lg_l,0),40)
-        err_l[1] = 0
-      }
-      p_sm_l = p_sm_l + .25*err_l[2]
-      #p_l = p_l +.5*err_l
-      print(c(p_lg_l,p_sm_l))
-    }
-    res_temp[,FirmSize:=large_share]
-    res_temp[,risk_tau:=risk_tau]
-    res_temp[,c("P_base"):=NULL]
-    output = rbind(output,res_temp)
-  }
-}
-
-
-
-output[,total_insured:=sum(insured),by=c("risk_tau","FirmSize")]
-output[,firmShare:=sum(insured)/total_insured,by=c("risk_tau","FirmSize","Firm")]
-output_wide_MRA = reshape(output[Firm=="L",],timevar=c("AV"),
-                          idvar=c("risk_tau","total_insured","firmShare","FirmSize"),
-                          direction="wide")
-
-output_wide_MRA[,RA:=factor(risk_tau,levels=sort(unique(output_wide_MRA$risk_tau)),labels=c("100% Adjustment","66%","33% Adjustment","0%"))]
-
-output_MC = output_wide_MRA[risk_tau==1,c("FirmSize","ConsWelfare.0.8","CW_high.0.8","CW_mid.0.8","CW_low.0.8")]
-names(output_MC) = c("FirmSize","CW_MC","CW_High_MC","CW_Mid_MC","CW_Low_MC")
-output_wide_MRA = merge(output_wide_MRA,output_MC,by="FirmSize")
-
-output_wide_MRA[,CW_diff:=1000*(ConsWelfare.0.8-CW_MC)/sum(acs$PERWT/4)]
-output_wide_MRA[,CW_High_diff:=1000*(CW_high.0.8-CW_High_MC)]
-output_wide_MRA[,CW_Low_diff:=1000*(CW_low.0.8-CW_Low_MC)]
-
-png("Writing/Images/RA_Mandate_Welfare.png",width=2500,height=1500,res=275)
-ggplot(output_wide_MRA[!risk_tau%in%c(1,1/3),]) + 
-  # geom_line(data=output_wide_MRA,aes(x=firmShare,y=P_new.0.6,color=RA))+ 
-  # geom_line(data=output_wide_MRA,aes(x=firmShare,y=P_new.0.8,color=RA))+ 
-  geom_line(aes(x=firmShare,y=CW_High_diff,color=RA))+
-  geom_point(aes(x=firmShare,y=CW_High_diff,color=RA,shape="High Risk"),size=3)+
-  geom_line(aes(x=firmShare,y=CW_diff,color=RA))+
-  geom_point(aes(x=firmShare,y=CW_diff,color=RA,shape="Average"),size=3)+
-  geom_abline(intercept=0,slope=0) + 
-  scale_y_continuous(label=dollar) + 
-  scale_x_continuous(label=percent) + 
-  ylab("CW Per Person") +
-  xlab("Market Share of Large Firm")+
-  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
-    strip.background = element_blank(),
-    #panel.grid.major = element_line(color=grey(.8)),
-    legend.background = element_blank(),
-    legend.title=element_blank(),
-    legend.text = element_text(size=14),
-    legend.key.width = unit(.05,units="npc"),
-    legend.key = element_rect(color="transparent",fill="transparent"),
-    legend.position = "right",
-    axis.title=element_text(size=14),
-    axis.text = element_text(size=14))
-dev.off()
-
-png("Writing/Images/RA_Mandate_Prices.png",width=2500,height=1500,res=275)
-ggplot(output_wide_MRA[risk_tau!=1/3,]) + 
-  geom_line(aes(x=firmShare,y=1000*P_new.0.6,color=RA))+
-  geom_point(aes(x=firmShare,y=1000*P_new.0.6,color=RA,shape="Low Plan"),size=3)+
-  geom_line(aes(x=firmShare,y=1000*P_new.0.8,color=RA))+
-  geom_point(aes(x=firmShare,y=1000*P_new.0.8,color=RA,shape="High Plan"),size=3)+
-  scale_y_continuous(label=dollar) + 
-  scale_x_continuous(label=percent) + 
-  ylab("") +
-  xlab("Market Share of Large Firm")+
-  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
-    strip.background = element_blank(),
-    #panel.grid.major = element_line(color=grey(.8)),
-    legend.background = element_blank(),
-    legend.title=element_blank(),
-    legend.text = element_text(size=14),
-    legend.key.width = unit(.05,units="npc"),
-    legend.key = element_rect(color="transparent",fill="transparent"),
-    legend.position = "right",
-    axis.title=element_text(size=14),
-    axis.text = element_text(size=14))
-dev.off()
-
-
-
-
+# 
+# 
+# #### Risk Adjustment and Welfare, and Mandate ####
+# J = 3
+# output = NULL
+# pref_int = 2
+# inside_pref = J*exp(pref_int)
+# 
+# p_sm_l = 3
+# p_lg_l = 3
+# p_sm_h = p_sm_l + 3
+# p_lg_h = p_lg_l + 3
+# for  (large_share in c(.99,.95,seq(.9,1/J,-.1),1/J)) { 
+#   
+#   for (risk_tau in c(0,1/3,2/3,1)){
+#     print(risk_tau)
+#     #for (large_share in c(seq(.7,1/J,-.1),1/J)){
+#     #large_share = 1/J
+#     print("Size of Large Firm")
+#     print(large_share)
+#     
+#     small_share = (1-large_share)/(J-1)
+#     
+#     err_l = 10 
+#     while(abs(sum(err_l))>.01){
+#       err_h = 10
+#       acs[AV==.6&Firm=="S",P_base:=p_sm_l]
+#       acs[AV==.6&Firm=="L",P_base:=p_lg_l]
+#       cnt = 0
+#       while (sum(abs(err_h))>.01){
+#         acs[AV==.8&Firm=="S",P_base:=p_sm_h]
+#         acs[AV==.8&Firm=="L",P_base:=p_lg_h]
+#         
+#         #acs[,Price:= pmax(P_base*ageRate-subsidy,0)]
+#         acs[,Price:=P_base]
+#         
+#         demos = as.matrix(acs[,c("AgeFE_31_39",
+#                                  "AgeFE_40_51",
+#                                  "AgeFE_52_64",
+#                                  "Family",
+#                                  "LowIncome")])
+#         chars_risk = as.matrix(acs[,c("AV","Big")])
+#         chars = as.matrix(acs[,c("Price","AV","Big")])
+#         
+#         intercept = demos%*%gamma
+#         
+#         # Only Price Coefficient
+#         beta_z = (demos%*%t(beta))
+#         beta_r = matrix(acs$HCC_Silver,nrow=nrow(acs),ncol=length(sigma),byrow=FALSE)*sigma
+#         
+#         chars_val = chars%*%beta0 + 
+#           beta_z[,1]*chars[,1] + #Demographic Effect on Price
+#           beta_r[,1]*chars[,2] + #Risk Effect on AV
+#           beta_r[,2]*chars[,3]   #Risk Effect on Big
+#         #pref_int mean(FE_pars)
+#         # alpha = beta0[1] + beta_z[,1]
+#         # price_val = chars[,1]*alpha
+#         acs[,util:=exp(chars_val)]
+#         acs[Firm=="L",util:=util*large_share*inside_pref]
+#         acs[Firm=="S",util:=util*small_share*inside_pref]
+#         
+#         acs[,alpha:=beta0[1] + beta_z[,1]]
+#         acs[,expsum:=util]
+#         acs[Firm=="S",expsum:=(J-1)*util]
+#         acs[,expsum:=sum(expsum),by="Person"]
+#         acs[,shares:=util/(expsum)]
+#         
+#         acs[,insured:=expsum/(expsum)]
+#         
+#         acs[AV==0.6,share_low:=shares]
+#         acs[,share_low:=max(share_low,na.rm=TRUE),by="Person"]
+#         acs[AV==0.8,share_high:=shares]
+#         acs[,share_high:=max(share_high,na.rm=TRUE),by="Person"]
+#         
+#         acs[,dsdp:=alpha*shares*(1-shares)]
+#         acs[AV==0.6,dsdp_low:=alpha*share_low*(1-shares)]
+#         acs[AV==0.8,dsdp_low:=-alpha*share_low*(shares)]
+#         
+#         acs[AV==0.6,dsdp_high:=-alpha*share_high*(shares)]
+#         acs[AV==0.8,dsdp_high:=alpha*share_high*(1-shares)]
+#         
+#         
+#         acs[,CW:=log(1+expsum)]
+#         acs[,CW:=CW/(-alpha)]
+#         acs[,lowrisk:=as.numeric(HCC_Silver==0)]
+#         acs[,midrisk:=as.numeric(HCC_Silver>0&HCC_Silver<2.18)]
+#         acs[,highrisk:=as.numeric(HCC_Silver>2.18)]
+#         
+#         res_temp = acs[,list(insured=sum(shares*PERWT)/sum(PERWT),
+#                              SA = sum(shares*PERWT)/sum(PERWT),
+#                              AC = 12*sum(C*shares*PERWT)/sum(shares*PERWT),
+#                              PC = 12*sum(C*insured*PERWT)/sum(insured*PERWT),
+#                              MC = 12*sum(C*dsdp*PERWT)/sum(dsdp*PERWT),
+#                              MC_low = 12*sum(C*dsdp_low*PERWT)/sum(PERWT),
+#                              MC_high = 12*sum(C*dsdp_high*PERWT)/sum(PERWT),
+#                              dSAdp_low = sum(dsdp_low*PERWT)/sum(PERWT),
+#                              dSAdp_high = sum(dsdp_high*PERWT)/sum(PERWT),
+#                              Markup = -1000*sum(shares*PERWT)/sum(dsdp*PERWT),
+#                              ConsWelfare = sum(CW*PERWT),
+#                              CW_low = sum(CW*PERWT*lowrisk)/sum(lowrisk*PERWT),
+#                              CW_mid = sum(CW*PERWT*midrisk)/sum(midrisk*PERWT),
+#                              CW_high = sum(CW*PERWT*highrisk)/sum(highrisk*PERWT),
+#                              PlanWelfare = sum(shares*(AV*C*12/1000-Price))
+#                              
+#         ),by=c("AV","P_base","Firm")]
+#         res_temp[Firm=="S",insured:=(J-1)*insured]
+#         res_temp[Firm=="S",PlanWelfare:=(J-1)*PlanWelfare]
+#         res_temp[,PlanWelfare:=sum(PlanWelfare)]
+#         res_temp[,P_low:=p_l]
+#         setkey(res_temp,Firm,AV)
+#         
+#         res_temp[Firm=="S",MC_RA:=(1-risk_tau)*PC+ risk_tau*1000*solve(as.matrix(res_temp[Firm=="S",c("dSAdp_low","dSAdp_high")]))%*%(as.matrix(res_temp[Firm=="S",(MC_low+MC_high)/1000]))]
+#         res_temp[Firm=="L",MC_RA:=(1-risk_tau)*PC+ risk_tau*1000*solve(as.matrix(res_temp[Firm=="L",c("dSAdp_low","dSAdp_high")]))%*%(as.matrix(res_temp[Firm=="L",(MC_low+MC_high)/1000]))]
+#         
+#         
+#         res_temp[Firm=="S",Markup_full:=1000*solve(as.matrix(res_temp[Firm=="S",c("dSAdp_low","dSAdp_high")]))%*%(-as.matrix(res_temp$SA[res_temp$Firm=="S"]))]
+#         res_temp[Firm=="L",Markup_full:=1000*solve(as.matrix(res_temp[Firm=="L",c("dSAdp_low","dSAdp_high")]))%*%(-as.matrix(res_temp$SA[res_temp$Firm=="L"]))]
+#         
+#         
+#         #res_temp[,P_new:=(MC+Markup)/1000]
+#         res_temp[,P_new:=(MC_RA+Markup_full)/1000]
+#         
+#         err_h = with(res_temp[res_temp$AV==.8,],P_new-P_base)  
+#         p_lg_h = p_lg_h + .25*err_h[1]
+#         p_sm_h = p_sm_h + .25*err_h[2]
+#         if(p_lg_h>40|p_lg_h<0){
+#           p_lg_h = min(max(p_lg_h,0),40)
+#           cnt = cnt+1
+#         }
+#         if(cnt>3){
+#           err_h[1] = 0
+#         }
+#         print(err_h)
+#         #print(res_temp$P_new[res_temp$AV==.8])
+#         print(c(p_lg_h,p_sm_h))
+#         
+#         acs[,c("share_low","share_high","dsdp_low","dsdp_high"):=NULL]
+#       }
+#       print(c(p_lg_h,p_sm_h))
+#       print("UPDATE P_l")
+#       err_l = with(res_temp[res_temp$AV==.6,],P_new-P_base)
+#       p_lg_l = p_lg_l + .25*err_l[1]
+#       if((p_lg_l>40&err_l[1]>0)|(p_lg_l<0&err_l[1]<0)){
+#         p_lg_l = min(max(p_lg_l,0),40)
+#         err_l[1] = 0
+#       }
+#       p_sm_l = p_sm_l + .25*err_l[2]
+#       #p_l = p_l +.5*err_l
+#       print(c(p_lg_l,p_sm_l))
+#     }
+#     res_temp[,FirmSize:=large_share]
+#     res_temp[,risk_tau:=risk_tau]
+#     res_temp[,c("P_base"):=NULL]
+#     output = rbind(output,res_temp)
+#   }
+# }
+# 
+# 
+# 
+# output[,total_insured:=sum(insured),by=c("risk_tau","FirmSize")]
+# output[,firmShare:=sum(insured)/total_insured,by=c("risk_tau","FirmSize","Firm")]
+# output_wide_MRA = reshape(output[Firm=="L",],timevar=c("AV"),
+#                           idvar=c("risk_tau","total_insured","firmShare","FirmSize"),
+#                           direction="wide")
+# 
+# output_wide_MRA[,RA:=factor(risk_tau,levels=sort(unique(output_wide_MRA$risk_tau)),labels=c("100% Adjustment","66%","33% Adjustment","0%"))]
+# 
+# output_MC = output_wide_MRA[risk_tau==1,c("FirmSize","ConsWelfare.0.8","CW_high.0.8","CW_mid.0.8","CW_low.0.8")]
+# names(output_MC) = c("FirmSize","CW_MC","CW_High_MC","CW_Mid_MC","CW_Low_MC")
+# output_wide_MRA = merge(output_wide_MRA,output_MC,by="FirmSize")
+# 
+# output_wide_MRA[,CW_diff:=1000*(ConsWelfare.0.8-CW_MC)/sum(acs$PERWT/4)]
+# output_wide_MRA[,CW_High_diff:=1000*(CW_high.0.8-CW_High_MC)]
+# output_wide_MRA[,CW_Low_diff:=1000*(CW_low.0.8-CW_Low_MC)]
+# 
+# png("Writing/Images/RA_Mandate_Welfare.png",width=2500,height=1500,res=275)
+# ggplot(output_wide_MRA[!risk_tau%in%c(1,1/3),]) + 
+#   # geom_line(data=output_wide_MRA,aes(x=firmShare,y=P_new.0.6,color=RA))+ 
+#   # geom_line(data=output_wide_MRA,aes(x=firmShare,y=P_new.0.8,color=RA))+ 
+#   geom_line(aes(x=firmShare,y=CW_High_diff,color=RA))+
+#   geom_point(aes(x=firmShare,y=CW_High_diff,color=RA,shape="High Risk"),size=3)+
+#   geom_line(aes(x=firmShare,y=CW_diff,color=RA))+
+#   geom_point(aes(x=firmShare,y=CW_diff,color=RA,shape="Average"),size=3)+
+#   geom_abline(intercept=0,slope=0) + 
+#   scale_y_continuous(label=dollar) + 
+#   scale_x_continuous(label=percent) + 
+#   ylab("CW Per Person") +
+#   xlab("Market Share of Large Firm")+
+#   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+#     strip.background = element_blank(),
+#     #panel.grid.major = element_line(color=grey(.8)),
+#     legend.background = element_blank(),
+#     legend.title=element_blank(),
+#     legend.text = element_text(size=14),
+#     legend.key.width = unit(.05,units="npc"),
+#     legend.key = element_rect(color="transparent",fill="transparent"),
+#     legend.position = "right",
+#     axis.title=element_text(size=14),
+#     axis.text = element_text(size=14))
+# dev.off()
+# 
+# png("Writing/Images/RA_Mandate_Prices.png",width=2500,height=1500,res=275)
+# ggplot(output_wide_MRA[risk_tau!=1/3,]) + 
+#   geom_line(aes(x=firmShare,y=1000*P_new.0.6,color=RA))+
+#   geom_point(aes(x=firmShare,y=1000*P_new.0.6,color=RA,shape="Low Plan"),size=3)+
+#   geom_line(aes(x=firmShare,y=1000*P_new.0.8,color=RA))+
+#   geom_point(aes(x=firmShare,y=1000*P_new.0.8,color=RA,shape="High Plan"),size=3)+
+#   scale_y_continuous(label=dollar) + 
+#   scale_x_continuous(label=percent) + 
+#   ylab("") +
+#   xlab("Market Share of Large Firm")+
+#   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+#     strip.background = element_blank(),
+#     #panel.grid.major = element_line(color=grey(.8)),
+#     legend.background = element_blank(),
+#     legend.title=element_blank(),
+#     legend.text = element_text(size=14),
+#     legend.key.width = unit(.05,units="npc"),
+#     legend.key = element_rect(color="transparent",fill="transparent"),
+#     legend.position = "right",
+#     axis.title=element_text(size=14),
+#     axis.text = element_text(size=14))
+# dev.off()
+# 
+# 
+# 
+# 

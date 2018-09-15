@@ -376,10 +376,12 @@ prod_Avgs = prod_Avgs[,list(Age = sum(10*Age_1*s_pred*PERWT)/sum(s_pred*PERWT),
                             AV = sum(AV_std*s_pred*PERWT)/sum(s_pred*PERWT)),
                          by=c("ST","Firm","M_num","logAvgCost")]
 
-res = lm(logAvgCost~-1+Age+HCC+AV+ST,data=prod_Avgs)
+res = lm(logAvgCost~-1+Age+HCC+AV + ST ,data=prod_Avgs)
 phi_start = res$coefficients
 rm(prod_Avgs,res)
 gc()
+
+
 #### Estimate GMM ####
 # Stage 1 
 print("GMM Stage 1")

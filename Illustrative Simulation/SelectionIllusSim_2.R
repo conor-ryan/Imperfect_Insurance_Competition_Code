@@ -1172,31 +1172,25 @@ setkey(acs,Person,Firm,AV)
 #### Comparative Statics on Competition - Big/Small ####
 
 output = NULL
-demos = as.matrix(acs[,c("AgeFE_31_39",
-                         "AgeFE_40_51",
-                         "AgeFE_52_64",
-                         "Family",
-                         "LowIncome")])
-chars_risk = as.matrix(acs[,c("AV","Big")])
 
-J = 3
-pref_int = 2
+J = 2^5
+pref_int = 1 +5.5
 inside_pref = J*exp(pref_int)
 # f1_share = 1/3
 # f2_share = (1-f1_share)/(J-1)
 # f3_share = (1-f1_share)/(J-1)
 
-p_1_l = 4.5
-p_2_l = 4.5
+p_1_l = 3
+p_2_l = 3
 p_3_l = 4.5
-p_1_h = p_1_l + 3.5
-p_2_h = p_2_l + 3.5
+p_1_h = p_1_l + 3
+p_2_h = p_2_l + 3
 p_3_h = p_3_l + 3.5
-#for (M_idx in 1:8){
-for (f1_share in c(1/J,.4,.5,.6,.7,.8,.9,.99)){
+for (M_idx in 2:5){
+#for (f1_share in c(1/J,.4,.5,.6,.7,.8,.9,.99)){
   #large_share = 1/J
-  #M = (2^(M_idx)-2)/2
-  M = 0
+  M = (2^(M_idx)-2)/2
+  f1_share = 1/J
   print("Number of Merged Firms")
   #print(M)
   print(f1_share)
@@ -1216,17 +1210,24 @@ for (f1_share in c(1/J,.4,.5,.6,.7,.8,.9,.99)){
       #acs[,Price:= pmax(P_base*ageRate-subsidy,0)]
       acs[,Price:=P_base]
       
+      demos = as.matrix(acs[,c("AgeFE_31_39",
+                               "AgeFE_40_51",
+                               "AgeFE_52_64",
+                               "Family",
+                               "LowIncome")])
+      chars_risk = as.matrix(acs[,c("AV","Big")])
+      chars = as.matrix(acs[,c("Price","AV","Big")])
+      
       intercept = demos%*%gamma
       
       # Only Price Coefficient
       beta_z = (demos%*%t(beta))
-      beta_r = matrix(acs$HCC_Silver,nrow=nrow(acs),ncol=length(sigma),byrow=FALSE)*sigma
-      
-      chars = as.matrix(acs[,c("Price","AV","Big")])
-      chars_val = chars%*%beta0 +
+      beta_r = matrix(acs$HCC_Silver,nrow=nrow(acs),ncol=1)
+
+      chars_val = intercept + chars%*%beta0 +
         beta_z[,1]*chars[,1] + #Demographic Effect on Price
-        beta_r[,1]*chars[,2] + #Risk Effect on AV
-        beta_r[,2]*chars[,3] #+ pref_int #Risk Effect on Big
+        beta_r*chars[,2]*sigma[1] + #Risk Effect on AV
+        beta_r*chars[,3]*sigma[2] #+ pref_int #Risk Effect on Big
       # mean(FE_pars)
       # alpha = beta0[1] + beta_z[,1]
       # price_val = chars[,1]*alpha
@@ -1252,40 +1253,41 @@ for (f1_share in c(1/J,.4,.5,.6,.7,.8,.9,.99)){
       acs[,insured:=expsum/(1+expsum)]
       
       acs[AV==0.6,share_own_low:=shares]
-      acs[,share_own_low:=max(share_own_low,na.rm=TRUE),by=c("Person")]#,"Firm")]
+      acs[,share_own_low:=max(share_own_low,na.rm=TRUE),by=c("Person","Firm")]
       acs[AV==0.8,share_own_high:=shares]
-      acs[,share_own_high:=max(share_own_high,na.rm=TRUE),by=c("Person")]#,"Firm")]
+      acs[,share_own_high:=max(share_own_high,na.rm=TRUE),by=c("Person","Firm")]
       
       
-      # acs[AV==0.6&Firm==2,share_2_low:=shares]
-      # acs[,share_2_low:=max(share_2_low,na.rm=TRUE),by=c("Person")]
-      # acs[AV==0.8&Firm==2,share_2_high:=shares]
-      # acs[,share_2_high:=max(share_2_high,na.rm=TRUE),by=c("Person")]
-      # acs[AV==0.6&Firm==1,share_2_low:=shares]
-      # acs[,share_2_low:=max(share_2_low,na.rm=TRUE),by=c("Person")]
-      # acs[AV==0.8&Firm==1,share_2_high:=shares]
-      # acs[,share_2_high:=max(share_2_high,na.rm=TRUE),by=c("Person")]
+      acs[AV==0.6&Firm==2,share_2_low:=shares]
+      acs[,share_2_low:=max(share_2_low,na.rm=TRUE),by=c("Person")]
+      acs[AV==0.8&Firm==2,share_2_high:=shares]
+      acs[,share_2_high:=max(share_2_high,na.rm=TRUE),by=c("Person")]
+      acs[AV==0.6&Firm==1,share_2_low:=shares]
+      acs[,share_2_low:=max(share_2_low,na.rm=TRUE),by=c("Person")]
+      acs[AV==0.8&Firm==1,share_2_high:=shares]
+      acs[,share_2_high:=max(share_2_high,na.rm=TRUE),by=c("Person")]
 
       acs[,dsdp:=alpha*shares*(1-shares)]
       acs[AV==0.6,dsdp_low:=alpha*share_own_low*(1-shares)]
       acs[AV==0.8,dsdp_low:=-alpha*share_own_low*(shares)]
-      # acs[,dsdp_low_m:=-alpha*share_2_low*shares]
-      # 
-      # acs[Firm>1,dsdp_low_m:=NA]
-      # acs[,dsdp_low_m:=max(dsdp_low_m,na.rm=TRUE),by=c("Person","AV")]
-      # acs[Firm>2,dsdp_low_m:=NA]
-      
+      acs[,dsdp_low_m:=-alpha*share_2_low*shares]
+
+      acs[Firm>1,dsdp_low_m:=NA]
+      acs[,dsdp_low_m:=max(dsdp_low_m,na.rm=TRUE),by=c("Person","AV")]
+      acs[Firm>2,dsdp_low_m:=NA]
+
       acs[AV==0.6,dsdp_high:=-alpha*share_own_high*(shares)]
       acs[AV==0.8,dsdp_high:=alpha*share_own_high*(1-shares)]
-      # acs[,dsdp_high_m:=-alpha*share_2_high*shares]
-      # 
-      # acs[Firm>1,dsdp_high_m:=NA]
-      # acs[,dsdp_high_m:=max(dsdp_high_m,na.rm=TRUE),by=c("Person","AV")]
-      # acs[Firm>2,dsdp_high_m:=NA]
+      acs[,dsdp_high_m:=-alpha*share_2_high*shares]
+
+      acs[Firm>1,dsdp_high_m:=NA]
+      acs[,dsdp_high_m:=max(dsdp_high_m,na.rm=TRUE),by=c("Person","AV")]
+      acs[Firm>2,dsdp_high_m:=NA]
 
       
       
       acs[,CW:=log(1+expsum)]
+      acs[,CW:=CW/(-alpha)]
       acs[,lowrisk:=as.numeric(HCC_Silver==0)]
       acs[,midrisk:=as.numeric(HCC_Silver>0&HCC_Silver<2.18)]
       acs[,highrisk:=as.numeric(HCC_Silver>2.18)]
@@ -1296,14 +1298,14 @@ for (f1_share in c(1/J,.4,.5,.6,.7,.8,.9,.99)){
                            share = sum(shares*PERWT)/sum(PERWT),
                            AC = 12*sum(C*shares*PERWT)/sum(shares*PERWT),
                            MC = 12*sum(C*dsdp*PERWT)/sum(dsdp*PERWT),
-                           MC_low = 12*sum(C*dsdp_low*PERWT)/sum(PERWT),
-                           MC_high = 12*sum(C*dsdp_high*PERWT)/sum(PERWT),
-                           # MC_low_m = 12*sum(C_low*dsdp_low_m*PERWT)/sum(PERWT),
-                           # MC_high_m = 12*sum(C_high*dsdp_high_m*PERWT)/sum(PERWT),
+                           MC_low = 12*sum(C_low*dsdp_low*PERWT)/sum(PERWT),
+                           MC_high = 12*sum(C_high*dsdp_high*PERWT)/sum(PERWT),
+                           MC_low_m = 12*sum(C_low*dsdp_low_m*PERWT)/sum(PERWT),
+                           MC_high_m = 12*sum(C_high*dsdp_high_m*PERWT)/sum(PERWT),
                            dSdp_low = sum(dsdp_low*PERWT)/sum(PERWT),
                            dSdp_high = sum(dsdp_high*PERWT)/sum(PERWT),
-                           # dSdp_low_m = sum(dsdp_low_m*PERWT)/sum(PERWT),
-                           # dSdp_high_m = sum(dsdp_high_m*PERWT)/sum(PERWT),
+                           dSdp_low_m = sum(dsdp_low_m*PERWT)/sum(PERWT),
+                           dSdp_high_m = sum(dsdp_high_m*PERWT)/sum(PERWT),
                            Markup = -1000*sum(shares*PERWT)/sum(dsdp*PERWT),
                            ConsWelfare = sum(CW*PERWT),
                            CW_low = sum(CW*PERWT*lowrisk)/sum(lowrisk*PERWT),

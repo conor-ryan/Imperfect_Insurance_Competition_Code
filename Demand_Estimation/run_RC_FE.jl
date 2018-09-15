@@ -32,7 +32,7 @@ c = ChoiceData(df,df_mkt,df_risk;
     fixedEffects=[:Firm])
 
 # Fit into model
-m = InsuranceLogit(c,20)
+m = InsuranceLogit(c,5)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
@@ -50,34 +50,34 @@ W = eye(length(p0)+length(m.data.tMoments))
 
 
 #
-# println("Gradient Test")
-# grad_2 = Vector{Float64}(length(p0))
-# hess_2 = Matrix{Float64}(length(p0),length(p0))
-# res = log_likelihood!(hess_2,grad_2,m,p0)
-#
-# f_ll(x) = log_likelihood(m,x)
-# grad_1 = Vector{Float64}(length(p0))
-# hess_1 = Matrix{Float64}(length(p0),length(p0))
-# fval_old = f_ll(p0)
-# ForwardDiff.gradient!(grad_1,f_ll, p0)
-# ForwardDiff.hessian!(hess_1,f_ll, p0)
-#
-# println(fval_old-res)
-# println(maximum(abs.(grad_1-grad_2)))
-# println(maximum(abs.(hess_1-hess_2)))
+println("Gradient Test")
+grad_2 = Vector{Float64}(length(p0))
+hess_2 = Matrix{Float64}(length(p0),length(p0))
+res = log_likelihood!(hess_2,grad_2,m,p0)
+
+f_ll(x) = log_likelihood(m,x)
+grad_1 = Vector{Float64}(length(p0))
+hess_1 = Matrix{Float64}(length(p0),length(p0))
+fval_old = f_ll(p0)
+ForwardDiff.gradient!(grad_1,f_ll, p0)
+ForwardDiff.hessian!(hess_1,f_ll, p0)
+
+println(fval_old-res)
+println(maximum(abs.(grad_1-grad_2)))
+println(maximum(abs.(hess_1-hess_2)))
 #
 
-# W = eye(length(p0)+length(m.data.tMoments))
-# res = GMM_objective!(grad_2,m,p0,W)
-# f_obj(x) = GMM_objective(m,x,W)
-# grad_1 = Vector{Float64}(length(p0))
-# fval_old = f_obj(p0)
-# println("ForwardDiff")
+W = eye(length(p0)+length(m.data.tMoments))
+res = GMM_objective!(grad_2,m,p0,W)
+f_obj(x) = GMM_objective(m,x,W)
+grad_1 = Vector{Float64}(length(p0))
+fval_old = f_obj(p0)
+println("ForwardDiff")
 # cfg = ForwardDiff.GradientConfig(f_obj, p0, ForwardDiff.Chunk{4}());
 #
-# ForwardDiff.gradient!(grad_1,f_obj, p0, cfg)
-# println(fval_old-res)
-# println(maximum(abs.(grad_1-grad_2)))
+ForwardDiff.gradient!(grad_1,f_obj, p0)#, cfg)
+println(fval_old-res)
+println(maximum(abs.(grad_1-grad_2)))
 #
 #p_ll = newton_raphson(m,p0)
 
