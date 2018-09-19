@@ -8,9 +8,9 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
 df = data.frame(x=seq(0,1,length.out=100),P=seq(8000,1000,length.out=100))
 df$AC = 5000 - 1000*df$x
 df$MC = 5000 - 2000*df$x
-df$Mkup = 5500 - 800*df$x
+df$Mkup = df$MC + 500 + 2000*df$x^2
 
-png("Writing/Images/SelectionExampleBasic.png",width=2500,height=1500,res=275)
+#png("Writing/Images/SelectionExampleBasic.png",width=2500,height=1500,res=275)
 ggplot(df) +
   geom_line(aes(x=x,y=P,color="Demand Curve")) +
   geom_line(aes(x=x,y=AC,color="Average Cost")) +
@@ -20,8 +20,8 @@ ggplot(df) +
   geom_text(aes(x=.6,y=3800),label="p^w",parse=TRUE,vjust=0,size=6) + 
   geom_point(aes(x=.5,y=4500),size=2) + 
   geom_text(aes(x=.5,y=4500),label="p^c",parse=TRUE,vjust=0,size=6) + 
-  geom_point(aes(x=.405,y=5175),size=2) + 
-  geom_text(aes(x=.4,y=5175),label="p^m",parse=TRUE,vjust=0,size=6) + 
+  geom_point(aes(x=.43,y=5000),size=2) + 
+  geom_text(aes(x=.43,y=5000),label="p^m",parse=TRUE,vjust=0,size=6) + 
   coord_cartesian(xlim=c(.1,.9),ylim=c(3000,8000)) +
   scale_y_continuous(label=dollar) + 
   xlab("Q(P)") + 
@@ -37,7 +37,7 @@ ggplot(df) +
     legend.position = "right",
     axis.title=element_text(size=12),
     axis.text = element_text(size=12))
-dev.off()
+#dev.off()
 
 png("Writing/Images/SelectionExampleBasic_Labeled.png",width=2500,height=1500,res=275)
 ggplot(df) +
