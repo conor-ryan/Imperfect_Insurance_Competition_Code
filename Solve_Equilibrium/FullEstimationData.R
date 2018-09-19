@@ -5,7 +5,7 @@ library(ggplot2)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 ## Run
-run = "2018-08-17"
+run = "2018-08-25"
 
 #### Read in Data ####
 
@@ -29,9 +29,9 @@ pars = read.csv(parFile)
 beta_vec = pars$pars
 
 ## Cost Function 
-costFile = paste("Simulation_Risk_Output/costParameters_MSM_Stage1_",run,".rData",sep="")
+costFile = paste("Simulation_Risk_Output/costParameters_MSM_Stage2_",run,".rData",sep="")
 load(costFile)
-phi = est_res_1$estimate
+phi = est_res$estimate
 
 #cost_par = CostRes$coefficients[grep("(Age|WTP)",names(CostRes$coefficients))]
 
@@ -51,20 +51,39 @@ for (fe in ST_list){
 full_predict[,C:=exp(phi[1]*AGE/10 + 
                        phi[2]*HCC_Silver + 
                        phi[3]*AV_std + 
-                       phi[4]*FE_AK + 
-                       phi[5]*FE_GA + 
-                       phi[6]*FE_IA + 
-                       phi[7]*FE_IL + 
-                       phi[8]*FE_MD + 
-                       phi[9]*FE_MI + 
-                       phi[10]*FE_MO + 
-                       phi[11]*FE_ND + 
-                       phi[12]*FE_NE + 
-                       phi[13]*FE_NM + 
-                       phi[14]*FE_OK + 
-                       phi[15]*FE_OR + 
-                       phi[16]*FE_TX + 
+                       phi[4]*FE_AK +
+                       phi[5]*FE_GA +
+                       phi[6]*FE_IA +
+                       phi[7]*FE_IL +
+                       phi[8]*FE_MD +
+                       phi[9]*FE_MI +
+                       phi[10]*FE_MO +
+                       phi[11]*FE_ND +
+                       phi[12]*FE_NE +
+                       phi[13]*FE_NM +
+                       phi[14]*FE_OK +
+                       phi[15]*FE_OR +
+                       phi[16]*FE_TX +
                        phi[17]*FE_UT)]
+full_predict[,C_nonAV:=exp(phi[1]*AGE/10 + 
+                             phi[2]*HCC_Silver + 
+                             #phi[3]*AV_std + 
+                             phi[4]*FE_AK +
+                             phi[5]*FE_GA +
+                             phi[6]*FE_IA +
+                             phi[7]*FE_IL +
+                             phi[8]*FE_MD +
+                             phi[9]*FE_MI +
+                             phi[10]*FE_MO +
+                             phi[11]*FE_ND +
+                             phi[12]*FE_NE +
+                             phi[13]*FE_NM +
+                             phi[14]*FE_OK +
+                             phi[15]*FE_OR +
+                             phi[16]*FE_TX +
+                             phi[17]*FE_UT)]
+
+full_predict[,insured:=sum(s_pred),by=c("Person")]
 
 
 
@@ -113,18 +132,20 @@ firm_RA[,T_est:=R_Gamma_f/ST_R - A_Gamma_f/ST_A]
 
 
 prod_data = unique(full_predict[,c("Product","Metal_std","ST","Market","Firm",
-                          "premBase","AV_std")])
+                                   "premBase","AV_std")])
 
 prod_data = merge(prod_data,firm_RA[,c("ST","Firm","RA_share","R_Gamma_f")],by=c("ST","Firm"),all=TRUE)
 names(prod_data) = c("ST","Firm","Product","Metal_std","Market","premBase","AV_std","RA_share","R_f")
+prod_data[,C_AV:=exp(phi[3]*AV_std)]
 
 #### Product Level Data ####
-prod_data = full_predict[,list(Age_j = sum(s_pred*AGE*mkt_density)/sum(s_pred*mkt_density),
-                               WTP_j = sum(s_pred*WTP*mkt_density)/sum(s_pred*mkt_density),
-                               Cost_j = sum(s_pred*C*mkt_density)/sum(s_pred*mkt_density),
-                               R_j = sum(s_pred*HCC_Silver*mkt_density)/sum(s_pred*mkt_density)),
-                         by=c("Product","Metal_std","ST","Market","Firm",
-                              "premBase","AV_std")]
+# prod_data = full_predict[,list(Age_j = sum(s_pred*AGE*mkt_density)/sum(s_pred*mkt_density),
+#                                WTP_j = sum(s_pred*WTP*mkt_density)/sum(s_pred*mkt_density),
+#                                Cost_j = sum(s_pred*C*mkt_density)/sum(s_pred*mkt_density),
+#                                dsdp = sum(alpha*s_pred*(1-s_pred)*mkt_density)/sum(mkt_density),
+#                                R_j = sum(s_pred*HCC_Silver*mkt_density)/sum(s_pred*mkt_density)),
+#                          by=c("Product","Metal_std","ST","Market","Firm",
+#                               "premBase","AV_std")]
 
 
 # prod_data = unique(full_predict[,c("Product","Metal_std","ST","Market","Firm",
@@ -179,19 +200,24 @@ full_predict[,Person:=Person*1000+d_ind]
 setkey(full_predict,Product,Person)
 setkey(prod_data,Product)
 
+### Fill out OTHER Missings
+prod_data[Firm=="OTHER",Product:=0]
+prod_data[Firm=="OTHER",premBase:=0]
+prod_data[Firm=="OTHER",AV_std:=0]
+prod_data[Firm=="OTHER",C_AV:=0]
 
 
 for (st in sort(unique(full_predict$ST))){
-
-write.csv(full_predict[ST==st,c("Person","Product","Catastrophic","AV","Gamma_j",
-                          "R","C","alpha","WTP","AGE","mkt_density","ageRate","ageRate_avg",
-                          "Mandate","subsidy","MEMBERS","non_price_util","PERWT")],
-          file=paste("Intermediate_Output/Equilibrium_Data/estimated_Data_",st,".csv",sep=""),
-                     row.names=FALSE)
-
-write.csv(prod_data[ST==st,],
-          file=paste("Intermediate_Output/Equilibrium_Data/estimated_prodData_",st,".csv",sep=""),
-          row.names=FALSE)
-
+  
+  write.csv(full_predict[ST==st,c("Person","Product","Catastrophic","AV","Gamma_j",
+                                  "R","C","C_nonAV","alpha","WTP","AGE","mkt_density","ageRate","ageRate_avg",
+                                  "Mandate","subsidy","IncomeCont","MEMBERS","non_price_util","PERWT")],
+            file=paste("Intermediate_Output/Equilibrium_Data/estimated_Data_",st,".csv",sep=""),
+            row.names=FALSE)
+  
+  write.csv(prod_data[ST==st,],
+            file=paste("Intermediate_Output/Equilibrium_Data/estimated_prodData_",st,".csv",sep=""),
+            row.names=FALSE)
+  
 }
 

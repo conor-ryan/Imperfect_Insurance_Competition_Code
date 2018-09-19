@@ -8,15 +8,19 @@ using BenchmarkTools
 
 # Load Cost
 include("predictionData.jl")
-
+include("SolveModel.jl")
+include("EquilibriumFunctions.jl")
+run_st_equil("NE")
+# Check_Margin("NE")
 # states = ["AK","NE","ND","OK","MD","IA","NM","UT",
 # "OR","MO","IL","MI","GA","TX"]
 #states = ["TX"]
-states = ["NE","ND","OK","MD","IA","NM","UT",
+states = ["AK","NE","ND","OK","MD","IA","NM","UT",
 "OR","MO","IL","MI","GA","TX"]
 for st in states
     run_st_equil(st)
-    #Check_Margin(st)
+    println("Check Margin")
+    Check_Margin(st)
 end
 
 
@@ -47,9 +51,9 @@ end
 # #
 # # @benchmark prod_data(model)
 # #
-# println("Profiler")
-# Profile.init()
-# Profile.clear()
-# Juno.@profile solve_model!(model)
-# Juno.profiletree()
-# Juno.profiler()
+println("Profiler")
+Profile.init()
+Profile.clear()
+Juno.@profile eval_FOC(model)
+Juno.profiletree()
+Juno.profiler()
