@@ -10,7 +10,7 @@ using BenchmarkTools
 include("predictionData.jl")
 include("SolveModel.jl")
 include("EquilibriumFunctions.jl")
-run_st_equil("NE")
+#run_st_equil("NE")
 # Check_Margin("NE")
 # states = ["AK","NE","ND","OK","MD","IA","NM","UT",
 # "OR","MO","IL","MI","GA","TX"]
@@ -51,9 +51,9 @@ end
 # #
 # # @benchmark prod_data(model)
 # #
-println("Profiler")
-Profile.init()
-Profile.clear()
-Juno.@profile eval_FOC(model)
-Juno.profiletree()
-Juno.profiler()
+# println("Profiler")
+# Profile.init()
+# Profile.clear()
+# Juno.@profile evaluate_model!(model)
+# Juno.profiletree()
+# Juno.profiler()

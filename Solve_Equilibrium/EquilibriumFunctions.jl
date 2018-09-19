@@ -193,8 +193,8 @@ end
 #     return deriv
 # end
 
-function calc_deriv!(deriv::Vector{Float64},deriv_bp::Vector{Float64},prod::Int64,
-                        crossprod_idx::Array{Int,1},
+function calc_deriv!{S,T,R}(deriv::Vector{Float64},deriv_bp::Vector{Float64},prod::Int64,
+                        crossprod_idx::SubArray{Int64,1,S,T,R},
                         alpha::Vector{Float64},ageRate::Vector{Float64},
                         e::EqData)
     idx_prod = e.data._prod_2_per_map
@@ -349,6 +349,7 @@ function eval_FOC(e::EqData)
     Cost_nonAV_long = e.data[:C_nonAV]
     weights = e.data[:mkt_density]
     full_weights = e.data[:PERWT]
+    ageRate_long_byproduct = e.data[:ageRate_avg]
     weights_byperson = weights[e.data._prod_2_per_map]
 
     vidx = e.data.index
@@ -427,7 +428,7 @@ function eval_FOC(e::EqData)
     (N,M) = size(e.data.data)
     deriv_long = Vector{Float64}(N)
     deriv_long_byperson = Vector{Float64}(N)
-    deriv_all_long = Vector{Float64}(N)
+    # deriv_all_long = Vector{Float64}(N)
 
     # margCost = Vector{Float64}(J)
     # markup = Vector{Float64}(J)
@@ -441,12 +442,12 @@ function eval_FOC(e::EqData)
     for (n,j) in enumerate(e.prods)
         #println(j)
         m_idx = e.mkt_index[e.mkt_map[n]]
-        cross_idx = e.data._crossprod_Dict[:,n]
+        @views cross_idx = e.data._crossprod_Dict[:,n]
         #deriv_long = calc_deriv!(deriv_long,j,e)
         calc_deriv!(deriv_long,deriv_long_byperson,j,cross_idx,
                                     alpha_long,ageRate_long,e)
         dsdp[:,n] = sum_by_prod(deriv_long,e,weights)
-        dsdp_rev[:,n] = sum_by_prod(deriv_long,e.data[:ageRate_avg],e,weights)
+        dsdp_rev[:,n] = sum_by_prod(deriv_long,ageRate_long_byproduct,e,weights)
 
         dsdp_0[n] = sum(dsdp[:,n])
         dsdp_rev_0[n] = sum(dsdp_rev[:,n])
