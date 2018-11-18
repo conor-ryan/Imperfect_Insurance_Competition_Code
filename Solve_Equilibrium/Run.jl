@@ -12,11 +12,10 @@ include("SolveModel.jl")
 include("EquilibriumFunctions.jl")
 #run_st_equil("NE")
 # Check_Margin("NE")
+
 # states = ["AK","NE","ND","OK","MD","IA","NM","UT",
 # "OR","MO","IL","MI","GA","TX"]
-#states = ["TX"]
-states = ["AK","NE","ND","OK","MD","IA","NM","UT",
-"OR","MO","IL","MI","GA","TX"]
+states = ["IL","MI","GA","TX"]
 for st in states
     run_st_equil(st)
     println("Check Margin")

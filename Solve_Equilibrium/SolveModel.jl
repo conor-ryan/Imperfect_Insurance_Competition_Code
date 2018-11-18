@@ -158,7 +158,9 @@ function run_st_equil(st::String)
     P_base = Vector{Float64}(length(model.prods))
     P_RA = Vector{Float64}(length(model.prods))
     P_RAτ = Vector{Float64}(length(model.prods))
-    P_mandate = Vector{Float64}(length(model.prods))
+    P_base_man = Vector{Float64}(length(model.prods))
+    P_RA_man = Vector{Float64}(length(model.prods))
+    P_RAτ_man = Vector{Float64}(length(model.prods))
 
 
     println("Estimate Base Model")
@@ -170,13 +172,25 @@ function run_st_equil(st::String)
     P_RA[:] = model.premBase_j[:]
 
     println("Risk Adjustment τ Model")
-    solve_model!(model,1e-8,sim="RAτ")
+    # solve_model!(model,1e-8,sim="RAτ")
     P_RAτ[:] = model.premBase_j[:]
 
+
+    model.data[:Mandate] = 0.0
+
     println("Estimate Increased Mandate")
-    model.data[:Mandate] = model.data[:Mandate] + 1000
+    println("Estimate Base Model w/out Mandate")
     solve_model!(model,1e-8)
-    P_mandate[:] = model.premBase_j[:]
+    P_base_man[:] = model.premBase_j[:]
+
+    println("Risk Adjustment Model w/out Mandate")
+    #solve_model!(model,1e-8,sim="RA")
+    P_RA_man[:] = model.premBase_j[:]
+
+    # println("Risk Adjustment τ Model w/Larger Mandate")
+    # #solve_model!(model,1e-8,sim="RAτ")
+    # P_RAτ_man[:] = model.premBase_j[:]
+
     #
     # println("Estimate Half Transfers")
     # solve_model!(model,1e-3,sim="Half Transfer")
@@ -189,13 +203,15 @@ function run_st_equil(st::String)
                         Price_base=P_base,
                         Price_RA =P_RA,
                         Price_RA_p = P_RAτ,
-                        Price_man = P_mandate)
+                        Price_base_man=P_base_man,
+                        Price_RA_man =P_RA_man,
+                        Price_RA_p_man = P_RAτ_man)
                         # ,
                         # Price_non =P_non,
                         # Price_half=P_half)
 
 
-    file3 = "Estimation_Output/solvedEquilibrium_RA_$st.csv"
+    file3 = "Estimation_Output/solvedEquilibrium_RA_Man2_$st.csv"
     CSV.write(file3,output)
     return Void
 end

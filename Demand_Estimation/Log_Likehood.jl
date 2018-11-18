@@ -186,12 +186,6 @@ function add_obs_mat!(hess::Matrix{Float64},grad::Vector{Float64},
     return Void
 end
 
-function test()
-    for i in 1:1000, j in 1:1000
-        x = 3.4 + 9.0
-    end
-end
-
 
 function log_likelihood!{T}(hess::Matrix{Float64},grad::Vector{Float64},
                             d::InsuranceLogit,p::Array{T})

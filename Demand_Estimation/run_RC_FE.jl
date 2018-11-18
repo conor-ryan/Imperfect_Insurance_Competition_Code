@@ -11,6 +11,7 @@ include("Halton.jl")
 # Random Coefficients MLE
 include("RandomCoefficients_nonzero.jl")
 include("RandomCoefficients_2der_nonzero.jl")
+# include("RandomCoefficients_3der.jl")
 include("Contraction.jl")
 include("Log_Likehood.jl")
 include("RiskMoments.jl")
@@ -32,7 +33,7 @@ c = ChoiceData(df,df_mkt,df_risk;
     fixedEffects=[:Firm])
 
 # Fit into model
-m = InsuranceLogit(c,5)
+m = InsuranceLogit(c,11)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
@@ -45,30 +46,39 @@ FEstart = rand(m.parLength[:FE])/100-.005
 p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 par0 = parDict(m,p0)
 #
-W = eye(length(p0)+length(m.data.tMoments))
+# W = eye(length(p0)+length(m.data.tMoments))
 # est = newton_raphson(m,p0,W)
 
-
+grad = Vector{Float64}(length(p0))
+hess = Matrix{Float64}(length(p0),length(p0))
+grad[:] = 0.0
+hess[:] = 0.0
 #
 # println("Gradient Test")
-# grad_2 = Vector{Float64}(length(p0))
-# hess_2 = Matrix{Float64}(length(p0),length(p0))
-# res = log_likelihood!(hess_2,grad_2,m,p0)
+grad_2 = Vector{Float64}(length(p0))
+hess_2 = Matrix{Float64}(length(p0),length(p0))
+res = log_likelihood!(hess_2,grad_2,m,p0)
+
+grad_3 = Vector{Float64}(length(p0))
+hess_3 = Matrix{Float64}(length(p0),length(p0))
+res = log_likelihood!(hess_3,grad_3,m,p0)
 #
-# f_ll(x) = log_likelihood(m,x)
-# grad_1 = Vector{Float64}(length(p0))
-# hess_1 = Matrix{Float64}(length(p0),length(p0))
-# fval_old = f_ll(p0)
-# ForwardDiff.gradient!(grad_1,f_ll, p0)
-# ForwardDiff.hessian!(hess_1,f_ll, p0)
+f_ll(x) = log_likelihood(m,x)
+grad_1 = Vector{Float64}(length(p0))
+hess_1 = Matrix{Float64}(length(p0),length(p0))
+fval_old = f_ll(p0)
+ForwardDiff.gradient!(grad_1,f_ll, p0)
+
+
+ForwardDiff.hessian!(hess_1,f_ll, p0)
 #
 # println(fval_old-res)
-# println(maximum(abs.(grad_1-grad_2)))
-# println(maximum(abs.(hess_1-hess_2)))
+println(maximum(abs.(grad_3-grad_2)))
+println(maximum(abs.(hess_3-hess_2)))
 # #
 #
-# W = eye(length(p0)+length(m.data.tMoments))
-# res = GMM_objective!(grad_2,m,p0,W)
+W = eye(length(p0)+length(m.data.tMoments))
+res = GMM_objective!(grad_2,m,p0,W)
 # f_obj(x) = GMM_objective(m,x,W)
 # grad_1 = Vector{Float64}(length(p0))
 # fval_old = f_obj(p0)
@@ -203,14 +213,14 @@ save(file,"est_res",est_res)
 # W = eye(length(p0)+6)
 # grad_2 = Vector{Float64}(length(p0)+6)
 # hess = Matrix{Float64}(length(p0),length(p0))
-# Profile.init(n=10^8,delay=.001)
-# Profile.clear()
-# #Juno.@profile add_obs_mat!(hess,grad,hess_obs,grad_obs,Pop)
-# #Juno.@profile log_likelihood!(hess,grad_2,m,par0)
-# Juno.@profile res = GMM_objective!(grad_2,m,p0,W)
-# #Juno.@profile calc_risk_moments!(grad,m,par0)
-# Juno.profiletree()
-# Juno.profiler()
+Profile.init(n=10^8,delay=.001)
+Profile.clear()
+#Juno.@profile add_obs_mat!(hess,grad,hess_obs,grad_obs,Pop)
+#Juno.@profile log_likelihood!(hess,grad_2,m,par0)
+Juno.@profile log_likelihood!(hess_2,grad_2,m,p0)
+#Juno.@profile calc_risk_moments!(grad,m,par0)
+Juno.profiletree()
+Juno.profiler()
 #
 # for (x,i) in enumerate([1,2,5])
 #     print(x)

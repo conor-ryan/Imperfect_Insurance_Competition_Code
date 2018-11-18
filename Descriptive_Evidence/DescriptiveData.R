@@ -4,6 +4,7 @@ library(scales)
 library(extrafont)
 library(grid)
 library(doBy)
+library(data.table)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
 
 #### Combine Data ####
@@ -228,6 +229,9 @@ STselection  = c("AK","AR","CA","CT","DE","GA","IL","IA","KS","MD","MI","MN","MO
 comb = merge(planData[planData$ST%in%STselection,],hixData[hixData$State%in%STselection,],
              by.x=c("ST","AREA","PLANID"),by.y=c("State","RatingArea","PlanID"),all=TRUE)
 comb = comb[order(comb$PLANID),]
+# comb = merge(planData,hixData,
+#              by.x=c("ST","AREA","PLANID"),by.y=c("State","RatingArea","PlanID"),all=TRUE)
+# comb = comb[order(comb$PLANID),]
 
 
 # Best of Both Datasets
@@ -268,6 +272,23 @@ names(planDesc) = c("State","RatingArea","Plan.ID","Metal","Firm","PLANNAME","Pr
 
 plans = merge(planDesc,plansAttr,by="Plan.ID")
 
+# #### Issuer Count ####
+# iss = unique(plans[,c("State","RatingArea","Firm")])
+# iss$count = 1
+# iss = summaryBy(count~State+RatingArea,FUN=sum,data=iss)
+# names(iss) = c("State","RatingArea","IssNum")
+# 
+# plans = merge(plans,iss,by=c("State","RatingArea"))
+# 
+# plans = as.data.table(plans)
+# plans = plans[plans$CSR=="",]
+# plans[,premrank:=rank(Prem27,ties.method="first"),by=c("State","RatingArea","Metal")]
+# 
+# ggplot(plans[Metal=="Gold"&premrank>=2,]) + 
+#   aes(x=IssNum,y=Prem27) + 
+#   geom_point(alpha=0.2) + 
+#   geom_smooth(method="lm")
+  
 
 
 #### Actuarial Value Plot ####

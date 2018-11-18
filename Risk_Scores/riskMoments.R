@@ -1,6 +1,7 @@
 rm(list = ls())
 library(data.table)
 library(nleqslv)
+library(doBy)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 #### Base Firm Risk Data ####
@@ -38,6 +39,7 @@ setkey(metal_moments,Metal_std)
 
 #### Metal Moments ####
 # Wakely Numbers
+# metal_moments[,R_adj:= c(0.8434997,1.445666,2.178068,2.973488)]
 metal_moments[,R_adj:= c(.814,1.503,1.889,2.675)]
 metal_moments[,R_adj_est:=(T_norm_data+1)*1.448]
 

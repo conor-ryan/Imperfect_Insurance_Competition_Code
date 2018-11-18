@@ -144,223 +144,223 @@ phi = est_res$estimate
 phi_st_avg = phi[5]
 
 
-# #### MEPS COMPARE ####
-# mepsFull = read.csv("Data/2015_MEPS/MEPS_Full_2015.csv")
-# meps = mepsFull[,c("HIEUIDX","DUPERSID","PID","PANEL","AGELAST","AGE15X","TTLP15X","POVLEV15","OFFER31X","OFFER42X","OFFER53X",
-#                    "TRIEV15","MCREV15","MCDEV15","OPAEV15","OPBEV15","ADSMOK42",
-#                    "INSCOV15","INSURC15","PERWT15F","TOTEXP15","UNINS15")]
-# ins = as.data.table(mepsFull[mepsFull$UNINS15==2,c("HIEUIDX","PID","AGELAST","SEX","TTLP15X","OFFER31X","OFFER42X","OFFER53X",
-#                                                    "TRIEV15","MCREV15","MCDEV15","OPAEV15","OPBEV15","ADSMOK42",
-#                                                    "INSCOV15","INSURC15","TOTEXP15","PERWT15F")])
-# 
-# meps_risk = read.csv("Intermediate_Output/MEPS_Moments/meps_risk_scores.csv")
-# mepsPers = read.csv("Data/2015_MEPS/MEPS_Person_2015.csv")
-# ## Non Group Coverage
-# mepsPers = mepsPers[mepsPers$PRIVCAT%in%c(2,3,5,6,99),]
-# # #Not Through Employer or Association
-# mepsPers = mepsPers[mepsPers$CMJINS!=1,]
-# mepsPers = mepsPers[mepsPers$TYPEFLAG%in%c(5,6,7,11,12,13,21),]
-# 
-# mepsPers = mepsPers[mepsPers$STEXCH!=-1,]
-# 
-# mepsPers = summaryBy(STEXCH~DUPERSID+PANEL,data=mepsPers,FUN=min,keep.names=TRUE)
-# 
-# meps = merge(meps,mepsPers,by=c("DUPERSID","PANEL"),all.x=TRUE)
-# meps = merge(meps,meps_risk,by=c("DUPERSID","PANEL"),all.x=TRUE)
-# 
-# ## Keep Non-Group Only
-# meps = meps[meps$AGE15X<66,]
-# meps = meps[!is.na(meps$STEXCH),]
-# 
-# meps$risk_positive="Zero"
-# meps$risk_positive[meps$HCC_Score_Silver>0]="Non-Zero"
-# 
-# acs[,risk_positive:="Zero"]
-# acs[HCC_Silver>0,risk_positive:="Non-Zero"]
-# 
-# 
-# bar_plot1 = summaryBy(PERWT15F~risk_positive,data=meps,FUN=sum,keep.names=TRUE)
-# bar_plot1$model="Data"
-# bar_plot1$dist = with(bar_plot1,PERWT15F/sum(PERWT15F))
-# 
-# 
-# bar_plot2 = summaryBy(PERWT~risk_positive,data=acs,FUN=sum,keep.names=TRUE)
-# bar_plot2$model="Model"
-# bar_plot2[,dist:=PERWT/sum(PERWT)]
-# barplot = rbind(bar_plot1[,c("risk_positive","model","dist")],
-#                 bar_plot2[,c("risk_positive","model","dist")])
-# barplot$risk_positive = factor(barplot$risk_positive,levels=c("Zero","Non-Zero"))
-# ### Risk Distribution
-# png("Writing/Images/RiskDist_Fit_Log.png",width=2500,height=1500,res=275)
-# ggplot() +
-#   geom_histogram(data=acs,aes(x=log(HCC_Silver+.001),weights=PERWT,y=..density..,fill="Data"),binwidth=.3,alpha=0.6)+
-#   geom_histogram(data=meps,aes(x=log(HCC_Score_Silver+.001),weights=PERWT15F,y=..density..,fill="Model"),binwidth=.3,alpha=0.6)+
-#   ylab("Density") +
-#   xlab("Log Risk Score") +
-#   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
-#     strip.background = element_blank(),
-#     #panel.grid.major = element_line(color=grey(.8)),
-#     legend.background = element_blank(),
-#     legend.title=element_blank(),
-#     legend.text = element_text(size=14),
-#     legend.key.width = unit(.05,units="npc"),
-#     legend.key = element_rect(color="transparent",fill="transparent"),
-#     legend.position = "right",
-#     axis.title=element_text(size=14),
-#     axis.text = element_text(size=14))
-# dev.off()
-# 
-# 
-# png("Writing/Images/RiskDist_Fit_Any.png",width=2500,height=1500,res=275)
-# ggplot(barplot) + aes(x=risk_positive,y=dist,fill=model) +
-#   geom_bar(position="dodge",stat="identity") +
-#   ylab("Probability") +
-#   xlab("Risk Score") +
-#   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
-#     strip.background = element_blank(),
-#     #panel.grid.major = element_line(color=grey(.8)),
-#     legend.background = element_blank(),
-#     legend.title=element_blank(),
-#     legend.text = element_text(size=14),
-#     legend.key.width = unit(.05,units="npc"),
-#     legend.key = element_rect(color="transparent",fill="transparent"),
-#     legend.position = "right",
-#     axis.title=element_text(size=16),
-#     axis.text = element_text(size=14))
-# dev.off()
-# 
-# 
-# 
-# png("Writing/Images/RiskDist_Fit_Positive.png",width=2500,height=1500,res=275)
-# ggplot() +
-#   geom_histogram(data=acs[HCC_Silver>0,],aes(x=HCC_Silver,weights=PERWT,y=..density..,fill="Data"),binwidth=.3,alpha=0.6)+
-#   geom_histogram(data=meps[meps$HCC_Score_Silver>0,],aes(x=HCC_Score_Silver,weights=PERWT15F,y=..density..,fill="Model"),binwidth=.3,alpha=0.6)+
-#   ylab("Density") +
-#   xlab("Risk Score") +
-#   coord_cartesian(xlim=c(0,20)) + 
-#   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
-#     strip.background = element_blank(),
-#     #panel.grid.major = element_line(color=grey(.8)),
-#     legend.background = element_blank(),
-#     legend.title=element_blank(),
-#     legend.text = element_text(size=14),
-#     legend.key.width = unit(.05,units="npc"),
-#     legend.key = element_rect(color="transparent",fill="transparent"),
-#     legend.position = "none",
-#     axis.title=element_text(size=16),
-#     axis.text = element_text(size=14))
-# dev.off()
-# 
-# ### Cost by Age
-# acs[,AV:=0.7]
-# ## Apply Cost Function
-# acs[,C:=exp(phi[1]*AGE/10 +
-#               phi[2]*HCC_Silver +
-#               phi[3]*AV +
-#               # phi[4]*FE_AK +
-#               # phi[5]*FE_GA +
-#               # phi[6]*FE_IA +
-#               # phi[7]*FE_IL +
-#               # phi[8]*FE_MD +
-#               # phi[9]*FE_MI +
-#               # phi[10]*FE_MO +
-#               # phi[11]*FE_ND +
-#               # phi[12]*FE_NE +
-#               # phi[13]*FE_NM +
-#               # phi[14]*FE_OK +
-#             # phi[15]*FE_OR +
-#             # phi[16]*FE_TX +
-#             # phi[17]*FE_UT +
-#             phi_st_avg)]
-# 
-# ageMeans = acs[,list(avgCost=sum(PERWT*C)/sum(PERWT),Pop=sum(PERWT)),by=c("AGE")]
-# ageMeans[AGE<=22,yngAvg:=sum(avgCost*Pop)/sum(Pop)]
-# ageMeans[,yngAvg:=max(yngAvg,na.rm=TRUE)]
-# ageMeans[,c_index:=avgCost/yngAvg]
-# setkey(ageMeans,AGE)
-# 
-# 
-# ageMeans_MEPS = ins[AGELAST>=18&AGELAST<65,list(avgCost=sum(PERWT15F*TOTEXP15)/sum(PERWT15F),Pop=sum(PERWT15F)),by=c("AGELAST")]
-# ageMeans_MEPS[AGELAST<=22,yngAvg:=sum(avgCost*Pop)/sum(Pop)]
-# ageMeans_MEPS[,yngAvg:=max(yngAvg,na.rm=TRUE)]
-# ageMeans_MEPS[,c_index:=avgCost/yngAvg]
-# setkey(ageMeans_MEPS,AGELAST)
-# 
-# ### Age- Cost Curve
-# png("Writing/Images/AgeCost_Fit.png",width=2500,height=1500,res=275)
-# ggplot() +
-#   geom_line(data=ageMeans,aes(x=AGE,y=c_index,color="Model"),size=1.5) +
-#   geom_point(data=ageMeans_MEPS,aes(x=AGELAST,y=c_index,color="Data",size=Pop/1e6))+
-#   xlab("Age") +
-#   ylab("Cost Index") +
-#   scale_size_continuous(guide="none") + 
-#   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
-#     strip.background = element_blank(),
-#     #panel.grid.major = element_line(color=grey(.8)),
-#     legend.background = element_blank(),
-#     legend.title=element_blank(),
-#     legend.text = element_text(size=14),
-#     legend.key.width = unit(.05,units="npc"),
-#     legend.key = element_rect(color="transparent",fill="transparent"),
-#     legend.position = "right",
-#     axis.title=element_text(size=14),
-#     axis.text = element_text(size=14))
-# dev.off()
-# 
-# meps = as.data.table(meps)
-# meps[,HCC_rnd:=ceiling(HCC_Score_Silver)]
-# 
-# hccMeans_MEPS = meps[!is.na(HCC_rnd),list(avgCost=sum(PERWT15F*TOTEXP15)/sum(PERWT15F),
-#                                           avgHCC=sum(PERWT15F*HCC_Score_Silver)/sum(PERWT15F),
-#                                           Pop = sum(PERWT15F)),by=c("HCC_rnd")]
-# setkey(hccMeans_MEPS,HCC_rnd)
-# hccMeans_MEPS[HCC_rnd==0,LowAvg:=avgCost]
-# hccMeans_MEPS[,LowAvg:=max(LowAvg,na.rm=TRUE)]
-# hccMeans_MEPS[,c_index:=avgCost/LowAvg]
-# 
-# acs[,HCC_rnd:=ceiling(HCC_Silver)]
-# hccMeans = acs[,list(avgCost=sum(PERWT*C)/sum(PERWT),
-#                                           avgHCC=sum(PERWT*HCC_Silver)/sum(PERWT),
-#                                           Pop = sum(PERWT)),by=c("HCC_rnd")]
-# setkey(hccMeans,HCC_rnd)
-# hccMeans[HCC_rnd==0,LowAvg:=avgCost]
-# hccMeans[,LowAvg:=max(LowAvg,na.rm=TRUE)]
-# hccMeans[,c_index:=avgCost/LowAvg]
-# 
-# ### Risk - Cost Curve
-# png("Writing/Images/RiskCost_Fit.png",width=2500,height=1500,res=275)
-# ggplot() +
-#   geom_line(data=hccMeans[HCC_rnd>0,],aes(x=HCC_rnd,y=c_index,color="Model"),size=1.2) +
-#   geom_point(data=hccMeans_MEPS[HCC_rnd>0&HCC_rnd<40,],aes(x=HCC_rnd,y=c_index,color="Data",size=Pop/1e6))+
-#   ylab("Cost Index") +
-#   xlab("Risk Score") +
-#   scale_size_continuous(guide="none") + 
-#   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
-#     strip.background = element_blank(),
-#     #panel.grid.major = element_line(color=grey(.8)),
-#     legend.background = element_blank(),
-#     legend.title=element_blank(),
-#     legend.text = element_text(size=14),
-#     legend.key.width = unit(.05,units="npc"),
-#     legend.key = element_rect(color="transparent",fill="transparent"),
-#     legend.position = "right",
-#     axis.title=element_text(size=14),
-#     axis.text = element_text(size=14))
-# dev.off()
-# 
-# 
-# 
-# 
-# acs[,c("HCC_rnd"):=NULL]
-# acs[,c("risk_positive"):=NULL]
-# 
-# 
-# rm(ageMeans,ageMeans_MEPS,HCC,hccMeans,hccMeans_MEPS,ins,meps,meps_risk,mepsFull,mepsPers,r_mom)
-# 
-# 
-# 
-# 
-# 
+#### MEPS COMPARE ####
+mepsFull = read.csv("Data/2015_MEPS/MEPS_Full_2015.csv")
+meps = mepsFull[,c("HIEUIDX","DUPERSID","PID","PANEL","AGELAST","AGE15X","TTLP15X","POVLEV15","OFFER31X","OFFER42X","OFFER53X",
+                   "TRIEV15","MCREV15","MCDEV15","OPAEV15","OPBEV15","ADSMOK42",
+                   "INSCOV15","INSURC15","PERWT15F","TOTEXP15","UNINS15")]
+ins = as.data.table(mepsFull[mepsFull$UNINS15==2,c("HIEUIDX","PID","AGELAST","SEX","TTLP15X","OFFER31X","OFFER42X","OFFER53X",
+                                                   "TRIEV15","MCREV15","MCDEV15","OPAEV15","OPBEV15","ADSMOK42",
+                                                   "INSCOV15","INSURC15","TOTEXP15","PERWT15F")])
+
+meps_risk = read.csv("Intermediate_Output/MEPS_Moments/meps_risk_scores.csv")
+mepsPers = read.csv("Data/2015_MEPS/MEPS_Person_2015.csv")
+## Non Group Coverage
+mepsPers = mepsPers[mepsPers$PRIVCAT%in%c(2,3,5,6,99),]
+# #Not Through Employer or Association
+mepsPers = mepsPers[mepsPers$CMJINS!=1,]
+mepsPers = mepsPers[mepsPers$TYPEFLAG%in%c(5,6,7,11,12,13,21),]
+
+mepsPers = mepsPers[mepsPers$STEXCH!=-1,]
+
+mepsPers = summaryBy(STEXCH~DUPERSID+PANEL,data=mepsPers,FUN=min,keep.names=TRUE)
+
+meps = merge(meps,mepsPers,by=c("DUPERSID","PANEL"),all.x=TRUE)
+meps = merge(meps,meps_risk,by=c("DUPERSID","PANEL"),all.x=TRUE)
+
+## Keep Non-Group Only
+meps = meps[meps$AGE15X<66,]
+meps = meps[!is.na(meps$STEXCH),]
+
+meps$risk_positive="Zero"
+meps$risk_positive[meps$HCC_Score_Silver>0]="Non-Zero"
+
+acs[,risk_positive:="Zero"]
+acs[HCC_Silver>0,risk_positive:="Non-Zero"]
+
+
+bar_plot1 = summaryBy(PERWT15F~risk_positive,data=meps,FUN=sum,keep.names=TRUE)
+bar_plot1$model="Data"
+bar_plot1$dist = with(bar_plot1,PERWT15F/sum(PERWT15F))
+
+
+bar_plot2 = summaryBy(PERWT~risk_positive,data=acs,FUN=sum,keep.names=TRUE)
+bar_plot2$model="Model"
+bar_plot2[,dist:=PERWT/sum(PERWT)]
+barplot = rbind(bar_plot1[,c("risk_positive","model","dist")],
+                bar_plot2[,c("risk_positive","model","dist")])
+barplot$risk_positive = factor(barplot$risk_positive,levels=c("Zero","Non-Zero"))
+### Risk Distribution
+png("Writing/Images/RiskDist_Fit_Log.png",width=2500,height=1500,res=275)
+ggplot() +
+  geom_histogram(data=acs,aes(x=log(HCC_Silver+.001),weights=PERWT,y=..density..,fill="Model"),binwidth=.3,alpha=0.6)+
+  geom_histogram(data=meps,aes(x=log(HCC_Score_Silver+.001),weights=PERWT15F,y=..density..,fill="Data"),binwidth=.3,alpha=0.6)+
+  ylab("Density") +
+  xlab("Log Risk Score") +
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    #panel.grid.major = element_line(color=grey(.8)),
+    legend.background = element_blank(),
+    legend.title=element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "right",
+    axis.title=element_text(size=14),
+    axis.text = element_text(size=14))
+dev.off()
+
+
+png("Writing/Images/RiskDist_Fit_Any.png",width=2500,height=1500,res=275)
+ggplot(barplot) + aes(x=risk_positive,y=dist,fill=model) +
+  geom_bar(position="dodge",stat="identity") +
+  ylab("Probability") +
+  xlab("Risk Score") +
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    #panel.grid.major = element_line(color=grey(.8)),
+    legend.background = element_blank(),
+    legend.title=element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "right",
+    axis.title=element_text(size=16),
+    axis.text = element_text(size=14))
+dev.off()
+
+
+
+png("Writing/Images/RiskDist_Fit_Positive.png",width=2500,height=1500,res=275)
+ggplot() +
+  geom_histogram(data=acs[HCC_Silver>0,],aes(x=HCC_Silver,weights=PERWT,y=..density..,fill="Model"),binwidth=.3,alpha=0.6)+
+  geom_histogram(data=meps[meps$HCC_Score_Silver>0,],aes(x=HCC_Score_Silver,weights=PERWT15F,y=..density..,fill="Data"),binwidth=.3,alpha=0.6)+
+  ylab("Density") +
+  xlab("Risk Score") +
+  coord_cartesian(xlim=c(0,20)) +
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    #panel.grid.major = element_line(color=grey(.8)),
+    legend.background = element_blank(),
+    legend.title=element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "none",
+    axis.title=element_text(size=16),
+    axis.text = element_text(size=14))
+dev.off()
+
+### Cost by Age
+acs[,AV:=0.7]
+## Apply Cost Function
+acs[,C:=exp(phi[1]*AGE/10 +
+              phi[2]*HCC_Silver +
+              phi[3]*AV +
+              # phi[4]*FE_AK +
+              # phi[5]*FE_GA +
+              # phi[6]*FE_IA +
+              # phi[7]*FE_IL +
+              # phi[8]*FE_MD +
+              # phi[9]*FE_MI +
+              # phi[10]*FE_MO +
+              # phi[11]*FE_ND +
+              # phi[12]*FE_NE +
+              # phi[13]*FE_NM +
+              # phi[14]*FE_OK +
+            # phi[15]*FE_OR +
+            # phi[16]*FE_TX +
+            # phi[17]*FE_UT +
+            phi_st_avg)]
+
+ageMeans = acs[,list(avgCost=sum(PERWT*C)/sum(PERWT),Pop=sum(PERWT)),by=c("AGE")]
+ageMeans[AGE<=22,yngAvg:=sum(avgCost*Pop)/sum(Pop)]
+ageMeans[,yngAvg:=max(yngAvg,na.rm=TRUE)]
+ageMeans[,c_index:=avgCost/yngAvg]
+setkey(ageMeans,AGE)
+
+
+ageMeans_MEPS = ins[AGELAST>=18&AGELAST<65,list(avgCost=sum(PERWT15F*TOTEXP15)/sum(PERWT15F),Pop=sum(PERWT15F)),by=c("AGELAST")]
+ageMeans_MEPS[AGELAST<=22,yngAvg:=sum(avgCost*Pop)/sum(Pop)]
+ageMeans_MEPS[,yngAvg:=max(yngAvg,na.rm=TRUE)]
+ageMeans_MEPS[,c_index:=avgCost/yngAvg]
+setkey(ageMeans_MEPS,AGELAST)
+
+### Age- Cost Curve
+png("Writing/Images/AgeCost_Fit.png",width=2500,height=1500,res=275)
+ggplot() +
+  geom_line(data=ageMeans,aes(x=AGE,y=c_index,color="Model"),size=1.5) +
+  geom_point(data=ageMeans_MEPS,aes(x=AGELAST,y=c_index,color="Data",size=Pop/1e6))+
+  xlab("Age") +
+  ylab("Cost Index") +
+  scale_size_continuous(guide="none") +
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    #panel.grid.major = element_line(color=grey(.8)),
+    legend.background = element_blank(),
+    legend.title=element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "right",
+    axis.title=element_text(size=14),
+    axis.text = element_text(size=14))
+dev.off()
+
+meps = as.data.table(meps)
+meps[,HCC_rnd:=ceiling(HCC_Score_Silver)]
+
+hccMeans_MEPS = meps[!is.na(HCC_rnd),list(avgCost=sum(PERWT15F*TOTEXP15)/sum(PERWT15F),
+                                          avgHCC=sum(PERWT15F*HCC_Score_Silver)/sum(PERWT15F),
+                                          Pop = sum(PERWT15F)),by=c("HCC_rnd")]
+setkey(hccMeans_MEPS,HCC_rnd)
+hccMeans_MEPS[HCC_rnd==0,LowAvg:=avgCost]
+hccMeans_MEPS[,LowAvg:=max(LowAvg,na.rm=TRUE)]
+hccMeans_MEPS[,c_index:=avgCost/LowAvg]
+
+acs[,HCC_rnd:=ceiling(HCC_Silver)]
+hccMeans = acs[,list(avgCost=sum(PERWT*C)/sum(PERWT),
+                                          avgHCC=sum(PERWT*HCC_Silver)/sum(PERWT),
+                                          Pop = sum(PERWT)),by=c("HCC_rnd")]
+setkey(hccMeans,HCC_rnd)
+hccMeans[HCC_rnd==0,LowAvg:=avgCost]
+hccMeans[,LowAvg:=max(LowAvg,na.rm=TRUE)]
+hccMeans[,c_index:=avgCost/LowAvg]
+
+### Risk - Cost Curve
+png("Writing/Images/RiskCost_Fit.png",width=2500,height=1500,res=275)
+ggplot() +
+  geom_line(data=hccMeans[HCC_rnd>0,],aes(x=HCC_rnd,y=c_index,color="Model"),size=1.2) +
+  geom_point(data=hccMeans_MEPS[HCC_rnd>0&HCC_rnd<40,],aes(x=HCC_rnd,y=c_index,color="Data",size=Pop/1e6))+
+  ylab("Cost Index") +
+  xlab("Risk Score") +
+  scale_size_continuous(guide="none") +
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    #panel.grid.major = element_line(color=grey(.8)),
+    legend.background = element_blank(),
+    legend.title=element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "right",
+    axis.title=element_text(size=14),
+    axis.text = element_text(size=14))
+dev.off()
+
+
+
+
+acs[,c("HCC_rnd"):=NULL]
+acs[,c("risk_positive"):=NULL]
+
+
+rm(ageMeans,ageMeans_MEPS,HCC,hccMeans,hccMeans_MEPS,ins,meps,meps_risk,mepsFull,mepsPers,r_mom)
+
+
+
+
+
 
 #### Read in Parameters ####
 parFile = paste("Estimation_Output/estimationresults_",run,".csv",sep="")
@@ -651,12 +651,17 @@ setkey(acs,Person)
 output = NULL
 
 J = 10
-pref_int = 5
+pref_int = 2
 
 p_1_l = 3
 p_2_l = 3
 p_1_h = p_1_l + 3
 p_2_h = p_2_l + 3
+
+p_1_l = 3.573859
+p_2_l = 3.070763
+p_1_h = 8.237890
+p_2_h = 8.412547
 demos = as.matrix(acs[,c("AgeFE_31_39",
                          "AgeFE_40_51",
                          "AgeFE_52_64",
@@ -664,7 +669,7 @@ demos = as.matrix(acs[,c("AgeFE_31_39",
                          "LowIncome")])
 chars_risk = as.matrix(acs[,c("AV","Big")])
 for (M in seq(0,8,1)){
-  for (mandate in c(0,.5,1,1.5,2,2.5,4)){
+  for (mandate in c(0,1.5)){
     print("Number of Merged Firms")
     print(M)
     print("Mandate")
@@ -843,11 +848,16 @@ Pop = sum(acs$PERWT)/4
 #output[,total_AV:=sum(share),by=c("FirmSize","AV")]
 
 save(output,file=paste("Estimation_Output/mergedFirmSimulation_",run,".rData"))
-
+load(paste("Estimation_Output/mergedFirmSimulation_",run,".rData"))
 output[,firmShare:=sum(share),by=c("MergedFirms","tau","Firm")]
 output[Firm=="L",firmShare:=(1+MergedFirms)*firmShare/total_insured]
 output[Firm=="S",firmShare:=NA]
 output[,firmShare:=max(firmShare,na.rm=TRUE),by=c("MergedFirms","tau")]
+
+output[Firm=="L",AV_share:=(MergedFirms+1)*share]
+output[Firm=="S",AV_share:=(J-MergedFirms-1)*share]
+output[,AV_share:=sum(AV_share),by=c("AV","MergedFirms","tau")]
+output[,AV_share:=AV_share]
 
 
 output[Firm=="L",Profit:=(MergedFirms+1)*Pop*share*(P_base-AC/1000)]
@@ -975,6 +985,30 @@ ggplot(output_wide_J[tau==1.5&Firm=="S",]) +
     legend.key.width = unit(.05,units="npc"),
     legend.key = element_rect(color="transparent",fill="transparent"),
     legend.position = "right",
+    axis.title=element_text(size=14),
+    axis.text = element_text(size=14))
+dev.off()
+
+png("Writing/Images/SimIllus_Composition.png",width=2000,height=1500,res=275)
+ggplot(output_wide_J[tau==0.0&Firm=="L",]) + 
+  geom_line(aes(x=firmShare,y=AV_share.0.8,color="Market Share of 80% AV")) +
+  geom_point(aes(x=firmShare,y=AV_share.0.8,color="Market Share of 80% AV"),size=3) +
+  geom_line(aes(x=firmShare,y=total_insured,color="Total Insurance Rate"))  +
+  geom_point(aes(x=firmShare,y=total_insured,color="Total Insurance Rate"),size=3)  + 
+  scale_y_continuous(label=percent) + 
+  scale_x_continuous(label=percent) + 
+  ylab("") +
+  xlab("Market Share of Large Firm")+
+  coord_cartesian(ylim=c(0,.5)) +
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    #panel.grid.major = element_line(color=grey(.8)),
+    legend.background = element_blank(),
+    legend.title=element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "bottom",
     axis.title=element_text(size=14),
     axis.text = element_text(size=14))
 dev.off()

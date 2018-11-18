@@ -589,8 +589,8 @@ function eval_FOC(e::EqData)
         # m_dTdp_fix = dTdp_fix[:,m_idx].*e.ownMat[:,m_idx]
         m_dCost = dCost[m_idx,m_idx].*e.ownMat[m_idx,m_idx]
         #all_dCost = dMCost[m_idx,m_idx].*e.ownMat[m_idx,m_idx]
-        # all_dCost = dAllCost[m_idx,m_idx]
-        all_dCost = dCost[m_idx,m_idx]
+        all_dCost = dAllCost[m_idx,m_idx]
+        #all_dCost = dCost[m_idx,m_idx]
         #m_dCost = sum(m_dCost,1)'
         #
         # m_dCost_mgd = dCost[m_idx,m_idx].*e.ownMat_merge[m_idx,m_idx]

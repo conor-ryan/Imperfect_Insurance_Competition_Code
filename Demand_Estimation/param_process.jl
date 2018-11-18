@@ -56,7 +56,7 @@ CSV.write(file_all,DataFrame(P_mat))
 
 
 
-rundate = "2018-08-28"
+rundate = "2018-09-19"
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage3_$rundate.jld"
 flag,fval,p_est = load(file)["est_res"]
 
@@ -70,12 +70,20 @@ c = ChoiceData(df,df_mkt,df_risk,
                         :LowIncome],
                 prodchars=[:Price,:AV,:Big],
                 prodchars_0=[:Price,:AV,:Big],
-                fixedEffects=[:Firm_Market_Cat])
+                fixedEffects=[:Firm])
 #
 # # Fit into model
-m = InsuranceLogit(c,500)
+m = InsuranceLogit(c,100)
 
 AsVar, stdErr,t_stat, stars = res_process(m,p_est)
+
+out1 = DataFrame(pars=p_est,se=stdErr,ts=t_stat,sig=stars)
+file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_$rundate.csv"
+CSV.write(file1,out1)
+
+out2 = DataFrame(delta=m.deltas,prods=m.prods)
+file2 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/deltaresults_$rundate.csv"
+CSV.write(file2,out2)
 
 out1 = DataFrame(pars=p_est,se=stdErr,ts=t_stat,sig=stars)
 file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_gmm_spec2_$rundate.csv"
