@@ -121,6 +121,7 @@ function ll_obs_hessian!{T}(hess::Matrix{Float64},grad::Vector{Float64},
 
         # Allocate Memory
         dS_xy = Vector{Float64}(K)
+
         dS_x = Vector{Float64}(K)
         dS_y = Vector{Float64}(K)
 
@@ -142,18 +143,31 @@ function ll_obs_hessian!{T}(hess::Matrix{Float64},grad::Vector{Float64},
                             γlen,β0len,βlen,σlen)
             @inbounds Y_mat[q_i] = X_mat[:,:]
 
+            dS_x_all = grad_calc!(dS_x,s_n,
+                        zero_draws,non_zero_draws,
+                        dR,risk,r_age,
+                        μ_ij,δ,X_mat,
+                        μ_ij_sums)
+
             for (r_i,r) in enumerate(pars_relevant)
                 if r>q
                     continue
                 end
                 Y = Y_mat[r_i]
 
-
-                dS_xy_all, dS_x_all, dS_y_all = hess_calc!(dS_xy,dS_x,dS_y,s_n,
+                dS_y_all = grad_calc!(dS_y,s_n,
                             zero_draws,non_zero_draws,
                             dR,risk,r_age,
+                            μ_ij,δ,Y,
+                            μ_ij_sums)
+
+
+                dS_xy_all  = hess_calc!(dS_xy,s_n,
+                            zero_draws,non_zero_draws,
                             μ_ij,δ,X_mat,Y,
                             μ_ij_sums)
+
+
 
                 hess_obs = combine_hess(N,gll_t1,gll_t2,gll_t3,gll_t4,
                             dS_xy,dS_x,dS_y,dS_xy_all,dS_x_all,dS_y_all)
@@ -231,11 +245,27 @@ function calc_derSums!(n::Int64,s_n::Vector{Float64},
     return dμ_ij_x_sums, dμ_ij_y_sums, dμ_ij_xy_sums
 end
 
+function calc_derSums_x!(n::Int64,s_n::Vector{Float64},
+                    X_mat::Matrix{Float64},
+                    μ_ij::Matrix{Float64},δ::Vector{Float64},
+                    μ_ij_sums_n::Float64)
+
+    dμ_ij_x_sums = 0.0
+
+    K = length(δ)
+    for k in 1:K
+        @inbounds @fastmath u = μ_ij[n,k]*δ[k]
+        @inbounds @fastmath x = X_mat[n,k]
+
+        @inbounds @fastmath s_n[k] = u/μ_ij_sums_n
+        @inbounds @fastmath dμ_ij_x_sums+= u*x
+    end
+
+    return dμ_ij_x_sums
+end
+
 
 function calc_prodTerms!(n::Int64,dS_xy::Vector{Float64},
-                        dS_x::Vector{Float64},dS_y::Vector{Float64},
-                        dR::Vector{Float64},risk::Matrix{Float64},
-                        risk_age::Vector{Float64},
                         X_mat::Matrix{Float64},Y::Matrix{Float64},
                         s_n::Vector{Float64},
                         Γ_x::Float64,Γ_y::Float64,Γ_xy::Float64)
@@ -243,18 +273,11 @@ function calc_prodTerms!(n::Int64,dS_xy::Vector{Float64},
     K = length(dS_xy)
     t_last = Γ_x*Γ_y -Γ_xy
     for k in 1:K
-        @inbounds @fastmath tx = s_n[k]*(X_mat[n,k] - Γ_x)
         @inbounds @fastmath dS_xy[k]+= s_n[k]*((X_mat[n,k] - Γ_x)*(Y[n,k] - Γ_y)+t_last)
-        @inbounds @fastmath dS_x[k]+= tx
-        @inbounds @fastmath dS_y[k]+= s_n[k]*(Y[n,k] - Γ_y)
-        @inbounds @fastmath dR[k]+= tx*(risk[n,k]+risk_age[k])
     end
 end
 
 function calc_prodTerms!(n::Int64,N::Int64,dS_xy::Vector{Float64},
-                        dS_x::Vector{Float64},dS_y::Vector{Float64},
-                        dR::Vector{Float64},risk::Matrix{Float64},
-                        risk_age::Vector{Float64},
                         X_mat::Matrix{Float64},Y::Matrix{Float64},
                         s_n::Vector{Float64},
                         Γ_x::Float64,Γ_y::Float64,Γ_xy::Float64)
@@ -262,29 +285,54 @@ function calc_prodTerms!(n::Int64,N::Int64,dS_xy::Vector{Float64},
     K = length(dS_xy)
     t_last = Γ_x*Γ_y -Γ_xy
     for k in 1:K
-        @inbounds @fastmath tx = s_n[k]*(X_mat[n,k] - Γ_x)
         @inbounds @fastmath dS_xy[k]+= N*s_n[k]*((X_mat[n,k] - Γ_x)*(Y[n,k] - Γ_y)+t_last)
+    end
+end
+
+function calc_prodTerms_x!(n::Int64,
+                        dS_x::Vector{Float64},
+                        dR::Vector{Float64},risk::Matrix{Float64},
+                        risk_age::Vector{Float64},
+                        X_mat::Matrix{Float64},
+                        s_n::Vector{Float64},
+                        Γ_x::Float64)
+
+    K = length(dS_x)
+    for k in 1:K
+        @inbounds @fastmath tx = s_n[k]*(X_mat[n,k] - Γ_x)
+        @inbounds @fastmath dS_x[k]+= tx
+        @inbounds @fastmath dR[k]+= tx*(risk[n,k]+risk_age[k])
+    end
+end
+
+function calc_prodTerms_x!(n::Int64,N::Int64,
+                        dS_x::Vector{Float64},
+                        dR::Vector{Float64},risk::Matrix{Float64},
+                        risk_age::Vector{Float64},
+                        X_mat::Matrix{Float64},
+                        s_n::Vector{Float64},
+                        Γ_x::Float64)
+
+    K = length(dS_x)
+    for k in 1:K
+        @inbounds @fastmath tx = s_n[k]*(X_mat[n,k] - Γ_x)
         @inbounds @fastmath dS_x[k]+= N*tx
-        @inbounds @fastmath dS_y[k]+= N*s_n[k]*(Y[n,k] - Γ_y)
         @inbounds @fastmath dR[k]+= N*tx*(risk[n,k]+risk_age[k])
     end
 end
 
-function hess_calc!(dS_xy::Vector{Float64},dS_x::Vector{Float64},
-                    dS_y::Vector{Float64},s_n::Vector{Float64},
+
+
+
+function hess_calc!(dS_xy::Vector{Float64},s_n::Vector{Float64},
                     zero_draws::Vector{Int},non_zero_draws::Vector{Int},
-                    dR::Vector{Float64},risk::Matrix{Float64},
-                    risk_age::Vector{Float64},
                     μ_ij::Matrix{Float64},δ::Vector{Float64},
                     X_mat::Matrix{Float64},Y::Matrix{Float64},
                     μ_ij_sums::Vector{Float64})
     dS_xy[:] = 0.0
-    dS_x[:] = 0.0
-    dS_y[:] = 0.0
+
     dS_xy_all = 0.0
-    dS_x_all = 0.0
-    dS_y_all = 0.0
-    dR[:] = 0.0
+
 
     (N,K) = size(μ_ij)
 
@@ -300,7 +348,7 @@ function hess_calc!(dS_xy::Vector{Float64},dS_x::Vector{Float64},
     @fastmath Γ_xy = dμ_ij_xy_sums/μ_ij_sums_n
     # s_n = s_n./μ_ij_sums_n
 
-    calc_prodTerms!(n,Num,dS_xy,dS_x,dS_y,dR,risk,risk_age,
+    calc_prodTerms!(n,Num,dS_xy,
                 X_mat,Y,s_n,Γ_x,Γ_y,Γ_xy)
 
     for n in non_zero_draws
@@ -313,17 +361,59 @@ function hess_calc!(dS_xy::Vector{Float64},dS_x::Vector{Float64},
         @fastmath Γ_xy = dμ_ij_xy_sums/μ_ij_sums_n
         # s_n = μ_ij[n,:].*δ/μ_ij_sums_n
 
-        calc_prodTerms!(n,dS_xy,dS_x,dS_y,dR,risk,risk_age,X_mat,Y,s_n,
+        calc_prodTerms!(n,dS_xy,X_mat,Y,s_n,
                     Γ_x,Γ_y,Γ_xy)
     end
     for k in 1:K
         @inbounds @fastmath dS_xy_all+= dS_xy[k]
-        @inbounds @fastmath dS_x_all+= dS_x[k]
-        @inbounds @fastmath dS_y_all+= dS_y[k]
     end
-    return dS_xy_all, dS_x_all, dS_y_all
+    return dS_xy_all
 end
 
+function grad_calc!(dS_x::Vector{Float64},
+                    s_n::Vector{Float64},
+                    zero_draws::Vector{Int},non_zero_draws::Vector{Int},
+                    dR::Vector{Float64},risk::Matrix{Float64},
+                    risk_age::Vector{Float64},
+                    μ_ij::Matrix{Float64},δ::Vector{Float64},
+                    X_mat::Matrix{Float64},
+                    μ_ij_sums::Vector{Float64})
+
+    dS_x[:] = 0.0
+    dS_x_all = 0.0
+    dR[:] = 0.0
+
+    (N,K) = size(μ_ij)
+
+    ### 0 Draw Calculation ###
+    n = zero_draws[1]
+    Num = length(zero_draws)
+    μ_ij_sums_n = μ_ij_sums[n]
+
+    dμ_ij_x_sums = calc_derSums_x!(n,s_n,X_mat,μ_ij,δ,μ_ij_sums_n)
+
+    @fastmath Γ_x = dμ_ij_x_sums/μ_ij_sums_n
+    # s_n = s_n./μ_ij_sums_n
+
+    calc_prodTerms_x!(n,Num,dS_x,dR,risk,risk_age,
+                X_mat,s_n,Γ_x)
+
+    for n in non_zero_draws
+        μ_ij_sums_n = μ_ij_sums[n]
+
+        dμ_ij_x_sums = calc_derSums_x!(n,s_n,X_mat,μ_ij,δ,μ_ij_sums_n)
+
+        @fastmath Γ_x = dμ_ij_x_sums/μ_ij_sums_n
+        # s_n = s_n./μ_ij_sums_n
+
+        calc_prodTerms_x!(n,dS_x,dR,risk,risk_age,
+                    X_mat,s_n,Γ_x)
+    end
+    for k in 1:K
+        @inbounds @fastmath dS_x_all+= dS_x[k]
+    end
+    return dS_x_all
+end
 
 function getIndex(A::Float64,n::Int64,k::Int64)
     return A

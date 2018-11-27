@@ -10,8 +10,8 @@ include("Halton.jl")
 
 # Random Coefficients MLE
 include("RandomCoefficients_nonzero.jl")
-include("RandomCoefficients_2der_nonzero.jl")
-# include("RandomCoefficients_3der.jl")
+# include("RandomCoefficients_2der_nonzero.jl")
+include("RandomCoefficients_3der.jl")
 include("Contraction.jl")
 include("Log_Likehood.jl")
 include("RiskMoments.jl")

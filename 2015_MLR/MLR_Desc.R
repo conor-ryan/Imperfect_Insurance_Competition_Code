@@ -42,13 +42,20 @@ indMarket = indMarket[with(indMarket,order(BUSINESS_STATE,-MARKET_SHARE2)),]
 stateShares = summaryBy(MARKET_SHARE1~BUSINESS_STATE+GROUP_AFFILIATION,data=indMarket,FUN=sum,keep.names=TRUE)
 maxShare = summaryBy(MARKET_SHARE1~BUSINESS_STATE,data=stateShares,FUN=max,keep.names=TRUE)
 maxShare = maxShare[!maxShare$BUSINESS_STATE%in%c("United States Virgin Islands","Puerto Rico","Northern Mariana Islands","Guam","Grand Total","American Samoa"),]
+maxShare = maxShare[order(maxShare$MARKET_SHARE1),]
 
 indMarket$rank = ave(-indMarket$MARKET_SHARE1,indMarket$BUSINESS_STATE,FUN=rank,na.rm=TRUE)
 big2 = indMarket[indMarket$rank<=2&
                    !indMarket$BUSINESS_STATE%in%c("United States Virgin Islands","Puerto Rico","Northern Mariana Islands","Guam","Grand Total","American Samoa"),]
 
 bigShare = summaryBy(MARKET_SHARE1~BUSINESS_STATE,data=big2,FUN=sum,keep.names=TRUE)
+bigShare = bigShare[order(bigShare$MARKET_SHARE1),]
 
+##HHI
+stateShares$HHI = (stateShares$MARKET_SHARE1*100)^2
+HHI = summaryBy(HHI~BUSINESS_STATE,data=stateShares,FUN=sum,keep.names=TRUE)
+HHI = HHI[!HHI$BUSINESS_STATE%in%c("United States Virgin Islands","Puerto Rico","Northern Mariana Islands","Guam","Grand Total","American Samoa"),]
+HHI = HHI[order(HHI$HHI),]
 
 ##### Risk Adjustment Analysis #####
 claims = read.csv("Data/2015_MLR/Part1_2_Summary_Data_Premium_Claims.csv")

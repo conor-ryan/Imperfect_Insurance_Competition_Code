@@ -194,3 +194,58 @@ function log_likelihood!{T}(hess::Matrix{Float64},grad::Vector{Float64},
     convert_δ!(d)
     return ll
 end
+
+
+
+function log_likelihood!{T}(thD::Array{Float64,3},
+                            hess::Matrix{Float64},grad::Vector{Float64},
+                            d::InsuranceLogit,p::parDict{T};cont_flag::Bool=false)
+    Q = d.parLength[:All]
+    N = size(d.draws,1)
+
+    thD[:] = 0.0
+    hess[:] = 0.0
+    grad[:] = 0.0
+    ll = 0.0
+    Pop =sum(weight(d.data).*choice(d.data))
+
+    thD_obs = Array{Float64,3}(Q,Q,Q)
+    hess_obs = Matrix{Float64}(Q,Q)
+    grad_obs = Vector{Float64}(Q)
+
+    if cont_flag
+        contraction!(d,p)
+    else
+        individual_values!(d,p)
+        individual_shares(d,p)
+    end
+
+    #shell_full = zeros(Q,N,38)
+    for app in eachperson(d.data)
+        K = length(person(app))
+        # if K>k_max
+        #     k_max = K
+        # end
+        #shell = shell_full[:,:,1:K]
+        ll_obs,pars_relevant = ll_obs_hessian!(thD_obs,hess,grad,app,d,p)
+
+        ll+=ll_obs
+
+        #add_obs_mat!(hess,grad,hess_obs,grad_obs,Pop,pars_relevant)
+
+    end
+    if isnan(ll)
+        ll = -1e20
+    end
+    for q in 1:Q
+        grad[q]=grad[q]/Pop
+        for r in 1:Q
+            hess[q,r]=hess[q,r]/Pop
+            for t in 1:Q
+                thD[q,r,t]=thD[q,r,t]/Pop
+            end
+        end
+    end
+
+    return ll/Pop
+end
