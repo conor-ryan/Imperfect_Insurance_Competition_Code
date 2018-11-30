@@ -28,6 +28,12 @@ type parDict{T}
     # Share Parameter Derivatives for (ij) pairs x Parameters
     dSdθ::Matrix{T}
     dRdθ::Matrix{T}
+    # Share Parameter Derivatives for Products x Parameters
+    dSdθ_j::Matrix{T}
+    dRdθ_j::Matrix{T}
+
+    d2Sdθ_j::Array{T,3}
+    d2Rdθ_j::Array{T,3}
 end
 
 function parDict{T}(m::InsuranceLogit,x::Array{T})
@@ -87,8 +93,13 @@ function parDict{T}(m::InsuranceLogit,x::Array{T})
     Q = m.parLength[:All]
     dSdθ = Matrix{T}(Q,M)
     dRdθ = Matrix{T}(Q,M)
-
-    return parDict{T}(γ_0,γ,β_0,β,σ,FE,randCoeffs,δ,μ_ij,s_hat,r_hat,dSdθ,dRdθ)
+    J = length(m.prods)
+    dSdθ_j = Matrix{T}(Q,J)
+    dRdθ_j = Matrix{T}(Q,J)
+    d2Sdθ_j = Array{T,3}(Q,Q,J)
+    d2Rdθ_j = Array{T,3}(Q,Q,J)
+    return parDict{T}(γ_0,γ,β_0,β,σ,FE,randCoeffs,δ,μ_ij,s_hat,r_hat,
+                            dSdθ,dRdθ,dSdθ_j,dRdθ_j,d2Sdθ_j,d2Rdθ_j)
 end
 
 function calcRC!{T,S}(randCoeffs::Array{S},σ::Array{T},draws::Array{Float64,2})

@@ -29,6 +29,7 @@ struct ChoiceData <: ModelData
     unins     # Outside Option Share
     # Precomputed Indices
     _person::Array{Int,1}
+    _product::Array{Int,1}
     _prodchars::Array{Int,1}
     _prodchars_0::Array{Int,1}
     _choice::Array{Int,1}
@@ -147,8 +148,8 @@ function ChoiceData(data_choice::DataFrame,
     # Create a data matrix, only including person id
     println("Put Together Data non FE data together")
     k = 0
-    for (d, var) in zip([i,X,X_0, y, Z,w,rm, s0,R_metal_index,R_index], [person,prodchars,
-        prodchars_0,choice, demoRaw,wgt,riskChars,unins,r_var,r_silv_var])
+    for (d, var) in zip([i,X,X_0, y, Z,w,rm, s0,R_metal_index,R_index,j], [person,prodchars,
+        prodchars_0,choice, demoRaw,wgt,riskChars,unins,r_var,r_silv_var,product])
         for l=1:size(d,2)
             k+=1
             dmat = hcat(dmat, d[:,l])
@@ -164,6 +165,7 @@ function ChoiceData(data_choice::DataFrame,
 
     # Precompute the row indices
     _person = getindex.(index,person)
+    _product = getindex.(index,product)
     _prodchars = getindex.(index, prodchars)
     _prodchars_0 = getindex.(index, prodchars_0)
     _choice = getindex.(index, choice)
@@ -233,7 +235,7 @@ function ChoiceData(data_choice::DataFrame,
     # Make the data object
     m = ChoiceData(dmat,data_market,rmat,tMoments,st_share,
             F, index, prodchars,prodchars_0,
-            choice, demoRaw,wgt, unins, _person, _prodchars,_prodchars_0,
+            choice, demoRaw,wgt, unins, _person,_product, _prodchars,_prodchars_0,
             _choice, _demoRaw, _wgt,_ageRate,_ageHCC,
              _unins,_rInd,_rIndS,
              uniqids,_personDict,_productDict,
@@ -336,6 +338,7 @@ getindex(m::ChoiceData, idx::Symbols, cols) = m.data[getindex.(m.index, idx),col
 
 # Define other retrieval methods on ChoiceData
 person(m::ChoiceData)      = m[m._person]
+product(m::ChoiceData)      = m[m._product]
 prodchars(m::ChoiceData)   = m[m._prodchars]
 prodchars0(m::ChoiceData)   = m[m._prodchars_0]
 choice(m::ChoiceData)      = m[m._choice]
@@ -377,6 +380,7 @@ function subset{T<:ModelData}(d::T, idx)
     d.unins,    # Outside Option Share
     # Precomputed Indices
     d._person,
+    d._product,
     d._prodchars,
     d._prodchars_0,
     d._choice,

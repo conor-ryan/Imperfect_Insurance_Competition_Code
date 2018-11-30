@@ -209,9 +209,15 @@ function log_likelihood!{T}(thD::Array{Float64,3},
     ll = 0.0
     Pop =sum(weight(d.data).*choice(d.data))
 
-    thD_obs = Array{Float64,3}(Q,Q,Q)
-    hess_obs = Matrix{Float64}(Q,Q)
-    grad_obs = Vector{Float64}(Q)
+    #Reset Derivatives
+    p.dSdθ_j[:] = 0.0
+    p.dRdθ_j[:] = 0.0
+    p.d2Sdθ_j[:] = 0.0
+    p.d2Rdθ_j[:] = 0.0
+
+    # thD_obs = Array{Float64,3}(Q,Q,Q)
+    # hess_obs = Matrix{Float64}(Q,Q)
+    # grad_obs = Vector{Float64}(Q)
 
     if cont_flag
         contraction!(d,p)
@@ -227,7 +233,7 @@ function log_likelihood!{T}(thD::Array{Float64,3},
         #     k_max = K
         # end
         #shell = shell_full[:,:,1:K]
-        ll_obs,pars_relevant = ll_obs_hessian!(thD_obs,hess,grad,app,d,p)
+        ll_obs,pars_relevant = ll_obs_hessian!(thD,hess,grad,app,d,p)
 
         ll+=ll_obs
 
@@ -248,4 +254,13 @@ function log_likelihood!{T}(thD::Array{Float64,3},
     end
 
     return ll/Pop
+end
+
+function log_likelihood!{T}(thD::Array{Float64,3},
+                            hess::Matrix{Float64},grad::Vector{Float64},
+                            d::InsuranceLogit,p::Array{T})
+    params = parDict(d,p)
+    ll = log_likelihood!(thD,hess,grad,d,params)
+    convert_δ!(d)
+    return ll
 end

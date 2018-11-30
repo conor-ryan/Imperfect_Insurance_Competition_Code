@@ -197,12 +197,12 @@ function  prodDerivatives!{T}(dAdθ::Matrix{Float64},
             # dA = sliceSum_wgt(q,ageRate_long,p.dSdθ,wgts,j_index_all)*d.Γ_j[j]*d.AV_j[j]
 
             dS_j = sliceSum_wgt(dSdθ_long,wgts,j_index_all)
-            dR_1 = sliceSum_wgt(p.r_hat,dSdθ_long,wgts,j_index_all)*d.Γ_j[j]
-            dR_2 = sliceSum_wgt(p.s_hat,dRdθ_long,wgts,j_index_all)*d.Γ_j[j]
+            dR_1 = sliceSum_wgt(p.r_hat,dSdθ_long,wgts,j_index_all)#*d.Γ_j[j]
+            dR_2 = sliceSum_wgt(p.s_hat,dRdθ_long,wgts,j_index_all)#*d.Γ_j[j]
             dA = sliceSum_wgt(ageRate_long,dSdθ_long,wgts,j_index_all)*d.Γ_j[j]*d.AV_j[j]
 
             @inbounds @fastmath dAdθ[q,j] = dA/S_unwt[j] - (dS_j/S_unwt[j])*a_hat_j[j]
-            @inbounds @fastmath dRdθ[q,j] = (dR_1+dR_2)/S_unwt[j] - (dS_j/S_unwt[j])*r_hat_j[j]
+            @inbounds @fastmath dRdθ[q,j] = (dR_1+dR_2) #/S_unwt[j] - (dS_j/S_unwt[j])*r_hat_j[j]
             #@inbounds @fastmath dSdθ_j[q,j] = (dS_j/d.lives[j])*d.data.st_share[j]
             @inbounds dSdθ_j[q,j] = dS_j
         end

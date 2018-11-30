@@ -51,41 +51,59 @@ par0 = parDict(m,p0)
 
 grad = Vector{Float64}(length(p0))
 hess = Matrix{Float64}(length(p0),length(p0))
+thD = Array{Float64,3}(length(p0),length(p0),length(p0))
 grad[:] = 0.0
 hess[:] = 0.0
 #
-# println("Gradient Test")
+println("Gradient Test")
 grad_2 = Vector{Float64}(length(p0))
 hess_2 = Matrix{Float64}(length(p0),length(p0))
-res = log_likelihood!(hess_2,grad_2,m,p0)
+thD_2 = Array{Float64,3}(length(p0),length(p0),length(p0))
+res = log_likelihood!(thD_2,hess_2,grad_2,m,par0)
+app = next(eachperson(m.data),100)[1]
+# f = test_thD(hess_2,grad_2,app,m,p0)
 
-grad_3 = Vector{Float64}(length(p0))
-hess_3 = Matrix{Float64}(length(p0),length(p0))
-res = log_likelihood!(hess_3,grad_3,m,p0)
+
+# grad_3 = Vector{Float64}(length(p0))
+# hess_3 = Matrix{Float64}(length(p0),length(p0))
+# res = log_likelihood!(hess_3,grad_3,m,p0)
 #
-f_ll(x) = log_likelihood(m,x)
-grad_1 = Vector{Float64}(length(p0))
-hess_1 = Matrix{Float64}(length(p0),length(p0))
-fval_old = f_ll(p0)
-ForwardDiff.gradient!(grad_1,f_ll, p0)
-
-
-ForwardDiff.hessian!(hess_1,f_ll, p0)
-#
-# println(fval_old-res)
-println(maximum(abs.(grad_3-grad_2)))
-println(maximum(abs.(hess_3-hess_2)))
+# f_ll(x) = log_likelihood(m,x)
+# f_app(x) = test_thD(app,m,x)
+# grad_1 = Vector{Float64}(length(p0))
+# hess_1 = Matrix{Float64}(length(p0),length(p0))
+# fval_old = f_app(p0)
+# println("Grad")
+# ForwardDiff.gradient!(grad_1,f_app, p0)
+# println("Hessian")
+# cfg = ForwardDiff.HessianConfig(f_app, p0, ForwardDiff.Chunk{8}())
+# ForwardDiff.hessian!(hess_1,f_app, p0,cfg)
+# #
+# println(fval_old-f)
+# println(maximum(abs.(grad_1-grad_2)))
+# println(maximum(abs.(hess_1-hess_2)))
 # #
 #
-W = eye(length(p0)+length(m.data.tMoments))
-res = GMM_objective!(grad_2,m,p0,W)
-# f_obj(x) = GMM_objective(m,x,W)
-# grad_1 = Vector{Float64}(length(p0))
-# fval_old = f_obj(p0)
+# W = eye(length(p0)+length(m.data.tMoments))
+res = GMM_objective!(hess_2,grad_2,m,p0)
+f_obj(x) = GMM_objective(m,x)
+grad_1 = Vector{Float64}(length(p0))
+fval_old = f_obj(p0)
 # println("ForwardDiff")
 # # cfg = ForwardDiff.GradientConfig(f_obj, p0, ForwardDiff.Chunk{4}());
 # #
+grad_1 = Vector{Float64}(length(p0))
+hess_1 = Matrix{Float64}(length(p0),length(p0))
+println("Grad")
 # ForwardDiff.gradient!(grad_1,f_obj, p0)#, cfg)
+println("Hessian")
+cfg = ForwardDiff.HessianConfig(f_obj, p0, ForwardDiff.Chunk{8}())
+ForwardDiff.hessian!(hess_1,f_obj, p0,cfg)
+
+println(fval_old-res)
+# println(maximum(abs.(grad_1-grad_2)))
+println(maximum(abs.(hess_1-hess_2)))
+
 # println(fval_old-res)
 # println(maximum(abs.(grad_1-grad_2)))
 #

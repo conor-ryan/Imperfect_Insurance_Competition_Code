@@ -41,12 +41,57 @@ function GMM_objective{T}(d::InsuranceLogit,p0::Array{T})
     par0 = parDict(d,p0)
     grad = Vector{T}(length(p0))
     ll = log_likelihood!(grad,d,par0)
-    mom = calc_risk_moments(d,par0)
+    #mom = calc_risk_moments(d,par0)
 
-    moments = vcat(grad,mom)
-    W = eye(length(d.data.tMoments)+length(p0))
+    # moments = vcat(grad,mom)
+    # W = eye(length(d.data.tMoments)+length(p0))
+
+    moments = grad
+    W = eye(length(p0))
 
     obj = moments'*W*moments
+    return obj
+end
+
+function GMM_objective!{T}(obj_hess::Matrix{Float64},obj_grad::Vector{Float64},d::InsuranceLogit,p0::Array{T})
+    grad = Vector{Float64}(length(p0))
+    hess = Matrix{Float64}(length(p0),length(p0))
+    thD = Array{Float64,3}(length(p0),length(p0),length(p0))
+    par0 = parDict(d,p0)
+    ll = log_likelihood!(thD,hess,grad,d,par0)
+
+    moments = grad
+    moments_grad = hess
+    moments_hess = thD
+
+
+    W = eye(length(p0))
+
+    obj = 0.0
+    for i in 1:length(moments), j in 1:length(moments)
+        obj+= W[i,j]*moments[j]*moments[i]
+    end
+
+    obj_grad[:] = 0.0
+    for k in 1:length(p0),i in 1:length(moments), j in 1:length(moments)
+        obj_grad[k]+= W[i,j]*(moments[j]*moments_grad[k,i] + moments[i]*moments_grad[k,j])
+    end
+
+    obj_hess[:] = 0.0
+    for k in 1:length(p0)
+        for l in 1:k
+            for i in 1:length(moments), j in 1:length(moments)
+                obj_hess[k,l]+= W[i,j]*(moments[i]*moments_hess[k,l,j] +
+                                        moments[j]*moments_hess[k,l,i] +
+                                        moments_grad[k,i]*moments_grad[l,j] +
+                                        moments_grad[l,i]*moments_grad[k,j])
+            end
+            if l<k
+                obj_hess[l,k]=obj_hess[k,l]
+            end
+        end
+    end
+
     return obj
 end
 
