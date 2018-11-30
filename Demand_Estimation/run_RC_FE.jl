@@ -85,6 +85,8 @@ app = next(eachperson(m.data),100)[1]
 # #
 #
 # W = eye(length(p0)+length(m.data.tMoments))
+grad_2 = Vector{Float64}(length(p0))
+hess_2 = Matrix{Float64}(length(p0),length(p0))
 res = GMM_objective!(hess_2,grad_2,m,p0)
 f_obj(x) = GMM_objective(m,x)
 grad_1 = Vector{Float64}(length(p0))
@@ -95,13 +97,13 @@ fval_old = f_obj(p0)
 grad_1 = Vector{Float64}(length(p0))
 hess_1 = Matrix{Float64}(length(p0),length(p0))
 println("Grad")
-# ForwardDiff.gradient!(grad_1,f_obj, p0)#, cfg)
+ForwardDiff.gradient!(grad_1,f_obj, p0)#, cfg)
 println("Hessian")
 cfg = ForwardDiff.HessianConfig(f_obj, p0, ForwardDiff.Chunk{8}())
 ForwardDiff.hessian!(hess_1,f_obj, p0,cfg)
 
 println(fval_old-res)
-# println(maximum(abs.(grad_1-grad_2)))
+println(maximum(abs.(grad_1-grad_2)))
 println(maximum(abs.(hess_1-hess_2)))
 
 # println(fval_old-res)
