@@ -448,7 +448,7 @@ type InsuranceLogit <: LogitModel
 
     # Product Level Data
     # Separate vectors, all sorted by product
-    prods
+    prods::Vector{Int64}
     shares::Vector{Float64}
     lives::Vector{Float64}
     Γ_j::Vector{Float64}

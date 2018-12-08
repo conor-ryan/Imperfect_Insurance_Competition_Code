@@ -48,113 +48,125 @@ end
     return tot
 end
 
-function calc_risk_moments!{T}(grad::Matrix{Float64},d::InsuranceLogit,p::parDict{T})
+function calc_risk_moments!{T}(hess::Array{Float64,3},grad::Matrix{Float64},d::InsuranceLogit,p::parDict{T})
     wgts = weight(d.data)[1,:]
     wgts_share = wgts.*p.s_hat
     num_prods = length(d.prods)
-    S_unwt = Vector{Float64}(num_prods)
     s_hat_j = Vector{Float64}(num_prods)
     r_hat_j = Vector{Float64}(num_prods)
-    # a_hat_j = Vector{Float64}(num_prods)
 
-    Q = d.parLength[:All]
-    # dAdθ = Matrix{Float64}(Q,num_prods)
-    # dTdθ = zeros(Q,num_prods)
-    # ageRate_long = ageRate(d.data)[1,:]
+    # Q = d.parLength[:All]
 
     dSdθ_j = p.dSdθ_j
-    dRdθ = p.dRdθ_j
-
     d2Sdθ_j = p.d2Sdθ_j
-    d2Rdθ = p.d2Rdθ_j
 
-    prodAvgs!(S_unwt,s_hat_j,r_hat_j,wgts,wgts_share,d,p)
-
-
-    prodDerivatives!(dRdθ,dSdθ_j,S_unwt,r_hat_j,wgts,d,p)
-
-
-    # out=0.0
-
-
-    # t_norm_j = calc_Transfers!(dTdθ,s_hat_j,r_hat_j,a_hat_j,
-    #                         dSdθ_j,dRdθ,dAdθ,d)
-
-    R_unwt = similar(r_hat_j)
-    dR_unwt = similar(dRdθ)
-    (Θ,J) = size(dR_unwt)
-    for θ in 1:Θ, j in 1:J
-        dR_unwt[θ,j] = dRdθ[θ,j]/d.Γ_j[j]
-    end
-
-    for j in 1:J
-        R_unwt[j] = r_hat_j[j]/d.Γ_j[j]
-    end
+    prodAvgs!(s_hat_j,r_hat_j,wgts,wgts_share,d,p)
 
     mom_value = Vector{Float64}(length(d.data.tMoments))
 
-    for (m,idx_mom) in d.data._tMomentDict
-        if true
-            t_est = sliceMean_wgt(R_unwt,s_hat_j,idx_mom)
-            #mom_value[m] = d.data.tMoments[m] - t_est
-            mom_value[m] = t_est
-        else
-            # t_est = sliceMean_wgt(t_norm_j,s_hat_j,idx_mom)
-            # #mom_value[m] = d.data.tMoments[m] - t_est
-            # mom_value[m] = t_est
-        end
+    calc_Mom!(mom_value,s_hat_j,r_hat_j,d,p)
+    
+    calc_Mom_Der!(grad,hess,dSdθ_j,d2Sdθ_j,mom_value,s_hat_j,r_hat_j,d,p)
 
-    end
 
-    for q in 1:Q
-        for (m,idx_mom) in d.data._tMomentDict
-            if true
-                t1 = 0.0
-                s_mom = sum(s_hat_j[idx_mom])
-                dS_mom = sum(dSdθ_j[q,idx_mom])
-                @inbounds @fastmath @simd for j in idx_mom
-                    t1+= dSdθ_j[q,j]*R_unwt[j] + s_hat_j[j]*dR_unwt[q,j]
-                end
-                grad[q,m] = t1/s_mom - (dS_mom/s_mom)*mom_value[m]
-            else
-                # t1 = 0.0
-                # s_mom = sum(s_hat_j[idx_mom])
-                # dS_mom = sum(dSdθ_j[q,idx_mom])
-                # @inbounds @fastmath @simd for j in idx_mom
-                #     t1+= dSdθ_j[q,j]*t_norm_j[j] + s_hat_j[j]*dTdθ[q,j]
-                # end
-                # grad[q,m] = t1/s_mom - (dS_mom/s_mom)*mom_value[m]
-            end
-        end
-    end
     mom_disp = mom_value[1:6]
     println("Risk moments are $mom_disp")
 
     return mom_value .- d.data.tMoments
 end
 
-
-function prodAvgs!{T}(S_unwt::Vector{Float64},
+function calc_Mom!{T}(mom_value::Vector{Float64},
                     s_hat_j::Vector{Float64},
                     r_hat_j::Vector{Float64},
-                    # a_hat_j::Vector{Float64},
-                    # ageRate_long::Vector{Float64},
+                    d::InsuranceLogit,p::parDict{T})
+    for (m,idx_mom) in d.data._tMomentDict
+        mom_value[m]  = sliceMean_wgt(r_hat_j,s_hat_j,idx_mom)
+    end
+end
+
+function calc_Mom_Der!{T}(grad::Matrix{Float64},
+                    hess::Array{Float64,3},
+                    dSdθ_j::Matrix{Float64},
+                    d2Sdθ_j::Array{Float64,3},
+                    mom_value::Vector{Float64},
+                    s_hat_j::Vector{Float64},
+                    r_hat_j::Vector{Float64},
+                    d::InsuranceLogit,p::parDict{T})
+    Q = d.parLength[:All]
+    for (m,idx_mom) in d.data._tMomentDict
+        for q in 1:Q
+            t1 = 0.0
+            s_mom = sum(s_hat_j[idx_mom])
+            dS_q_mom = sum(dSdθ_j[q,idx_mom])
+            @inbounds @fastmath @simd for j in idx_mom
+                t1+= p.dRdθ_j[q,j]
+            end
+            grad[q,m] = t1/s_mom - (dS_q_mom)/s_mom*mom_value[m]
+            for l in 1:q
+                dS_l_mom = sum(dSdθ_j[l,idx_mom])
+                d2S_mom = sum(d2Sdθ_j[q,l,idx_mom])
+                t2 = 0.0
+                @inbounds @fastmath @simd for j in idx_mom
+                    t2+= p.d2Rdθ_j[q,l,j]
+                end
+                h_term = t2/s_mom - (dS_q_mom/s_mom)*grad[l,m] - (dS_l_mom/s_mom)*grad[q,m] - d2S_mom/s_mom*mom_value[m]
+                hess[q,l,m] = h_term
+                hess[l,q,m] = h_term
+            end
+        end
+    end
+end
+
+
+
+function prodAvgs!{T}(s_hat_j::Vector{Float64},
+                    r_hat_j::Vector{Float64},
                     wgts::Vector{Float64},
                     wgts_share::Vector{Float64},
                     d::InsuranceLogit,p::parDict{T})
     for j in d.prods
         j_index_all = d.data._productDict[j]
-        S_unwt[j] = sliceSum_wgt(p.s_hat,wgts,j_index_all)
-        #@inbounds @fastmath s_hat_j[j]= (S_unwt[j]/d.lives[j])*d.data.st_share[j]
-        @inbounds s_hat_j[j]= S_unwt[j]
-        r_hat_j[j] = sliceMean_wgt(p.r_hat,wgts_share,j_index_all)*d.Γ_j[j]
-        # a_hat_j[j] = sliceMean_wgt(ageRate_long,wgts_share,j_index_all)*d.AV_j[j]*d.Γ_j[j]
+        s_hat_j[j] = sliceSum_wgt(p.s_hat,wgts,j_index_all)
+        r_hat_j[j] = sliceMean_wgt(p.r_hat,wgts_share,j_index_all)#*d.Γ_j[j]
     end
     return Void
 end
 
 
 function  prodDerivatives!{T}(#dAdθ::Matrix{Float64},
+                            dRdθ::Matrix{Float64},
+                            dSdθ_j::Matrix{Float64},
+                            d2Rdθ::Array{Float64,3},
+                            d2Sdθ_j::Array{Float64,3},
+                            S_unwt::Vector{Float64},
+                            r_hat_j::Vector{Float64},
+                            # a_hat_j::Vector{Float64},
+                            # ageRate_long::Vector{Float64},
+                            wgts::Vector{Float64},
+                            d::InsuranceLogit,p::parDict{T})
+    Q = d.parLength[:All]
+
+    t_q_list = Vector{Float64}(Q)
+    for j in d.prods
+        Γ = d.Γ_j[j]
+        S_j = S_unwt[j]
+        R_j = r_hat_j[j]
+        for q in 1:Q
+            dS_q = dSdθ_j[q,j]
+            dR_q = p.dRdθ_j[q,j]
+            @inbounds @fastmath dRdθ[q,j] = dR_q*Γ/S_j - (dS_q/S_j)*R_j
+            for m in 1:q
+                dS_m = dSdθ_j[m,j]
+                dR_m = p.dRdθ_j[m,j]
+                @inbounds @fastmath d2Rdθ[q,m,j] = Γ*(p.d2Rdθ_j[q,m,j]/S_j - dR_q*(dS_m/S_j^2) - dR_m*(dS_q/S_j^2)) + 2*dS_m*dS_q*R_j/(S_j^2) - d2Sdθ_j[q,m,j]*R_j/S_j
+            end
+        end
+    end
+
+    return Void
+end
+
+function  prodDer!{T}(#dAdθ::Matrix{Float64},
                             dRdθ::Matrix{Float64},
                             dSdθ_j::Matrix{Float64},
                             S_unwt::Vector{Float64},
@@ -164,11 +176,53 @@ function  prodDerivatives!{T}(#dAdθ::Matrix{Float64},
                             wgts::Vector{Float64},
                             d::InsuranceLogit,p::parDict{T})
     Q = d.parLength[:All]
+
+    t_q_list = Vector{Float64}(Q)
+
     for q in 1:Q
         for j in d.prods
-            dS_j = dSdθ_j[q,j]
-            @inbounds @fastmath dRdθ[q,j] = dRdθ[q,j]*d.Γ_j[j]/S_unwt[j] - (dS_j/S_unwt[j])*r_hat_j[j]
-            #@inbounds @fastmath dSdθ_j[q,j] = (dS_j/d.lives[j])*d.data.st_share[j]
+            # Γ = d.Γ_j[j]
+            S_j = S_unwt[j]
+            R_j = r_hat_j[j]
+            dS_q = dSdθ_j[q,j]
+            dR_q = p.dRdθ_j[q,j]
+            @inbounds @fastmath dRdθ[q,j] = dR_q/S_j - (dS_q/S_j)*R_j
+        end
+    end
+
+    return Void
+end
+
+function  prodDer!{T}(d2Rdθ::Array{Float64,3},
+                        d2Sdθ_j::Array{Float64,3},
+                        S_unwt::Vector{Float64},
+                        r_hat_j::Vector{Float64},
+                        # a_hat_j::Vector{Float64},
+                        # ageRate_long::Vector{Float64},
+                        wgts::Vector{Float64},
+                        d::InsuranceLogit,p::parDict{T})
+    Q = d.parLength[:All]
+
+    t_q_list = Vector{Float64}(Q)
+
+    for j in d.prods
+        # Γ = d.Γ_j[j]
+        S_j = S_unwt[j]
+        R_j = r_hat_j[j]
+        for q in 1:Q
+            dS_q = p.dSdθ_j[q,j]
+            dR_q = p.dRdθ_j[q,j]
+            if (abs(dS_q)<1e-14)
+                continue
+            end
+            for m in 1:q
+                dS_m = p.dSdθ_j[m,j]
+                dR_m = p.dRdθ_j[m,j]
+                if (abs(dS_m)<1e-14)
+                    continue
+                end
+                @inbounds @fastmath d2Rdθ[q,m,j] = (p.d2Rdθ_j[q,m,j]/S_j - dR_q*(dS_m/S_j^2) - dR_m*(dS_q/S_j^2)) + 2*dS_m*dS_q*R_j/(S_j^2) - d2Sdθ_j[q,m,j]*R_j/S_j
+            end
         end
     end
 
@@ -236,6 +290,7 @@ function calc_risk_moments{T}(d::InsuranceLogit,p::Array{T})
     res = calc_risk_moments(d,params)
     return res
 end
+
 
 function calc_Transfers!(dTdθ::Matrix{Float64},
                         s_hat_j::Vector{Float64},

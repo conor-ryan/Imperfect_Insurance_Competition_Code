@@ -53,7 +53,7 @@ function GMM_objective{T}(d::InsuranceLogit,p0::Array{T})
     return obj
 end
 
-function GMM_objective!{T}(obj_hess::Matrix{Float64},obj_grad::Vector{Float64},d::InsuranceLogit,p0::Array{T})
+function GMM_objective!{T}(obj_hess::Matrix{Float64},obj_grad::Vector{Float64},d::InsuranceLogit,p0::Array{T},W::Matrix{Float64})
     grad = Vector{Float64}(length(p0))
     hess = Matrix{Float64}(length(p0),length(p0))
     thD = Array{Float64,3}(length(p0),length(p0),length(p0))
@@ -63,40 +63,57 @@ function GMM_objective!{T}(obj_hess::Matrix{Float64},obj_grad::Vector{Float64},d
 
 
     mom_grad = Matrix{Float64}(length(p0),length(d.data.tMoments))
-    mom = calc_risk_moments!(mom_grad,d,par0)
+    mom_hess = Array{Float64,3}(length(p0),length(p0),length(d.data.tMoments))
+    mom = calc_risk_moments!(mom_hess,mom_grad,d,par0)
 
     moments = vcat(mom,grad)
     moments_grad = hcat(mom_grad,hess)
-    moments_hess = thD
+    moments_hess = cat(3,thD,mom_hess)
 
-    W = eye(length(p0)+length(d.data.tMoments))
+    obj = calc_GMM_Obj(moments,W)
 
+    calc_GMM_Grad!(obj_grad,moments,moments_grad,W)
+    calc_GMM_Hess!(obj_hess,moments,moments_grad,moments_hess,W)
+
+    return obj
+end
+
+function calc_GMM_Obj(moments::Vector{Float64},W::Matrix{Float64})
     obj = 0.0
     for i in 1:length(moments), j in 1:length(moments)
         obj+= W[i,j]*moments[j]*moments[i]
     end
+    return obj
+end
 
+function calc_GMM_Grad!(obj_grad::Vector{Float64},
+                    moments::Vector{Float64},
+                    moments_grad::Matrix{Float64},
+                    W::Matrix{Float64})
+    Q = length(obj_grad)
     obj_grad[:] = 0.0
-    for k in 1:length(p0),i in 1:length(moments), j in 1:length(moments)
+    for k in 1:Q,i in 1:length(moments), j in 1:length(moments)
         obj_grad[k]+= W[i,j]*(moments[j]*moments_grad[k,i] + moments[i]*moments_grad[k,j])
     end
+end
 
-    # obj_hess[:] = 0.0
-    # for k in 1:length(p0)
-    #     for l in 1:k
-    #         for i in 1:length(moments), j in 1:length(moments)
-    #             obj_hess[k,l]+= W[i,j]*(moments[i]*moments_hess[k,l,j] +
-    #                                     moments[j]*moments_hess[k,l,i] +
-    #                                     moments_grad[k,i]*moments_grad[l,j] +
-    #                                     moments_grad[l,i]*moments_grad[k,j])
-    #         end
-    #         if l<k
-    #             obj_hess[l,k]=obj_hess[k,l]
-    #         end
-    #     end
-    # end
-
-    return obj
+function calc_GMM_Hess!(obj_hess::Matrix{Float64},
+                    moments::Vector{Float64},
+                    moments_grad::Matrix{Float64},
+                    moments_hess::Array{Float64,3},
+                    W::Matrix{Float64})
+    obj_hess[:] = 0.0
+    Q,K = size(obj_hess)
+    for k in 1:Q
+        for l in 1:k
+            for i in 1:length(moments), j in 1:length(moments)
+                @inbounds @fastmath obj_hess[k,l]+= W[i,j]*(moments[i]*moments_hess[k,l,j] + moments[j]*moments_hess[k,l,i] + moments_grad[k,i]*moments_grad[l,j] + moments_grad[l,i]*moments_grad[k,j])
+            end
+            if l<k
+                obj_hess[l,k]=obj_hess[k,l]
+            end
+        end
+    end
 end
 
 function GMM_objective{T}(d::InsuranceLogit,p0::Array{T},W::Matrix{Float64})

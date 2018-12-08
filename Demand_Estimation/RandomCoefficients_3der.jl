@@ -180,13 +180,14 @@ function ll_obs_hessian!{T}(thD::Array{Float64,3},hess::Matrix{Float64},grad::Ve
                 @inbounds @fastmath p.dSdθ[q,ij] = dS_x[k]/N
                 @inbounds @fastmath p.dRdθ[q,ij] = dR_x[k]/(s_hat[k]*N) - (dS_x[k]/N)/s_hat[k] * r_avg[k]
             end
-            @inbounds @fastmath @simd for k in 1:K
-                dR_x[k] = (dR_x[k]/(s_hat[k]*N) - (dS_x[k]/N)/s_hat[k] * r_avg[k])
-            end
+            # @inbounds @fastmath @simd for k in 1:K
+            #     dR_x[k] = (dR_x[k]/(s_hat[k]*N) - (dS_x[k]/N)/s_hat[k] * r_avg[k])
+            # end
             dR_x_list[:,q_i] = dR_x[:]
             for k in 1:K
                 @inbounds @fastmath p.dSdθ_j[q,prodidx[k]]+= wgt[k]*dS_x[k]/N
-                @inbounds @fastmath p.dRdθ_j[q,prodidx[k]]+= wgt[k]*(dR_x[k]*s_hat[k] + (dS_x[k]/N) * r_avg[k] )
+                # @inbounds @fastmath p.dRdθ_j[q,prodidx[k]]+= wgt[k]*(dR_x[k]*s_hat[k] + (dS_x[k]/N) * r_avg[k] )
+                @inbounds @fastmath p.dRdθ_j[q,prodidx[k]]+= wgt[k]*(dR_x[k]/N)
             end
 
 
@@ -220,13 +221,21 @@ function ll_obs_hessian!{T}(thD::Array{Float64,3},hess::Matrix{Float64},grad::Ve
 
                 for k in 1:K
                     @inbounds @fastmath p.d2Sdθ_j[q,r,prodidx[k]]+= wgt[k]*dS_xy[k]/N
-                    @inbounds @fastmath p.d2Rdθ_j[q,r,prodidx[k]]+= wgt[k]*(
-                    (dR_xy[k]/(s_hat[k]*N) -
-                    (dS_y[k]/N)*(dR_x[k]/N)/(s_hat[k]^2) -
-                    (dS_x[k]/N)*(dR_y[k]/N)/(s_hat[k]^2) + 2*(dS_x[k]/N)*(dS_y[k]/N)*r_avg[k]/(s_hat[k]^2) -
-                    r_avg[k]*(dS_xy[k]/N)/s_hat[k])*s_hat[k] +
-                    (dS_xy[k]/N)*r_avg[k] + (dS_x[k]/N)*(dR_y[k]/N) + (dS_y[k]/N)*(dR_x[k]/N)
-                    )
+                    # @inbounds @fastmath p.d2Rdθ_j[q,r,prodidx[k]]+= wgt[k]*(
+                    # (dR_xy[k]/(s_hat[k]*N) -
+                    # (dS_y[k]/N)*(dR_x[k])/(s_hat[k]^2) -
+                    # (dS_x[k]/N)*(dR_y[k])/(s_hat[k]^2) + 2*(dS_x[k]/N)*(dS_y[k]/N)*r_avg[k]/(s_hat[k]^2) -
+                    # r_avg[k]*(dS_xy[k]/N)/s_hat[k])*s_hat[k] +
+                    # (dS_xy[k]/N)*r_avg[k] + (dS_x[k]/N)*(dR_y[k]) + (dS_y[k]/N)*(dR_x[k])
+                    # )
+                    # @inbounds @fastmath p.d2Rdθ_j[q,r,prodidx[k]]+= wgt[k]*(
+                    # (dR_xy[k]/(s_hat[k]*N) -
+                    # (dS_y[k]/N)*(dR_x[k])/(s_hat[k]) -
+                    # (dS_x[k]/N)*(dR_y[k])/(s_hat[k]) -
+                    # r_avg[k]*(dS_xy[k]/N)/s_hat[k])*s_hat[k] +
+                    # (dS_xy[k]/N)*r_avg[k] + (dS_x[k]/N)*(dR_y[k]) + (dS_y[k]/N)*(dR_x[k])
+                    # )
+                    @inbounds @fastmath p.d2Rdθ_j[q,r,prodidx[k]]+= wgt[k]*(dR_xy[k]/N)
                 end
 
 
