@@ -136,17 +136,19 @@ function ll_obs_hessian!{T}(thD::Array{Float64,3},hess::Matrix{Float64},grad::Ve
         # dS_y = Vector{Float64}(K)
         # dS_z = Vector{Float64}(K)
 
-        dS_x_list = Matrix{Float64}(K,length(pars_relevant))
+        # dS_x_list = Matrix{Float64}(K,length(pars_relevant))
+        dS_x_list = Vector{Vector{Float64}}(length(pars_relevant))
         dS_x_all_list = Vector{Float64}(length(pars_relevant))
 
         # dS_xy_list = Array{Array{Float64,1},2}(length(pars_relevant),length(pars_relevant))
-        dS_xy_list = Array{Float64,3}(K,length(pars_relevant),length(pars_relevant))
+        # dS_xy_list = Array{Float64,3}(K,length(pars_relevant),length(pars_relevant))
+        dS_xy_list = Array{Vector{Float64},2}(length(pars_relevant),length(pars_relevant))
         dS_xy_all_list = Matrix{Float64}(length(pars_relevant),length(pars_relevant))
 
         s_n = Vector{Float64}(K)
 
         dR_x = Vector{Float64}(K)
-        dR_x_list = Matrix{Float64}(K,length(pars_relevant))
+        dR_x_list = Vector{Vector{Float64}}(length(pars_relevant))
         dR_xy = Vector{Float64}(K)
 
         #γlen = 1 + d.parLength[:γ]
@@ -170,23 +172,20 @@ function ll_obs_hessian!{T}(thD::Array{Float64,3},hess::Matrix{Float64},grad::Ve
                         μ_ij_sums)
 
             # Save Answers
-            dS_x_list[:,q_i] = dS_x[:]
+            dS_x_list[q_i] = dS_x[:]
             dS_x_all_list[q_i] = dS_x_all
 
             ## Calculate Gradient
             grad[q]+= combine_grad(N,gll_t1,gll_t4,dS_x,dS_x_all)
 
-            for (k,ij) in enumerate(idxitr)
-                @inbounds @fastmath p.dSdθ[q,ij] = dS_x[k]/N
-                @inbounds @fastmath p.dRdθ[q,ij] = dR_x[k]/(s_hat[k]*N) - (dS_x[k]/N)/s_hat[k] * r_avg[k]
-            end
-            # @inbounds @fastmath @simd for k in 1:K
-            #     dR_x[k] = (dR_x[k]/(s_hat[k]*N) - (dS_x[k]/N)/s_hat[k] * r_avg[k])
+            # for (k,ij) in enumerate(idxitr)
+            #     @inbounds @fastmath p.dSdθ[q,ij] = dS_x[k]/N
+            #     @inbounds @fastmath p.dRdθ[q,ij] = dR_x[k]/(s_hat[k]*N) - (dS_x[k]/N)/s_hat[k] * r_avg[k]
             # end
-            dR_x_list[:,q_i] = dR_x[:]
+
+            dR_x_list[q_i] = dR_x[:]
             for k in 1:K
                 @inbounds @fastmath p.dSdθ_j[q,prodidx[k]]+= wgt[k]*dS_x[k]/N
-                # @inbounds @fastmath p.dRdθ_j[q,prodidx[k]]+= wgt[k]*(dR_x[k]*s_hat[k] + (dS_x[k]/N) * r_avg[k] )
                 @inbounds @fastmath p.dRdθ_j[q,prodidx[k]]+= wgt[k]*(dR_x[k]/N)
             end
 
@@ -198,8 +197,8 @@ function ll_obs_hessian!{T}(thD::Array{Float64,3},hess::Matrix{Float64},grad::Ve
                 Y_mat = Y_list[r_i]
 
 
-                dS_y = dS_x_list[:,r_i]
-                dR_y = dR_x_list[:,r_i]
+                dS_y = dS_x_list[r_i]
+                dR_y = dR_x_list[r_i]
                 dS_y_all = dS_x_all_list[r_i]
 
                 dS_xy_all  = hess_calc!(dS_xy,s_n,
@@ -208,7 +207,7 @@ function ll_obs_hessian!{T}(thD::Array{Float64,3},hess::Matrix{Float64},grad::Ve
                             μ_ij,δ,X_mat,Y_mat,
                             μ_ij_sums)
 
-                dS_xy_list[:,q_i,r_i] = dS_xy[:]
+                dS_xy_list[q_i,r_i] = dS_xy[:]
                 dS_xy_all_list[q_i,r_i] = dS_xy_all
 
                 hess_obs = combine_hess(N,gll_t1,gll_t2,gll_t4,gll_t5,
@@ -221,20 +220,6 @@ function ll_obs_hessian!{T}(thD::Array{Float64,3},hess::Matrix{Float64},grad::Ve
 
                 for k in 1:K
                     @inbounds @fastmath p.d2Sdθ_j[q,r,prodidx[k]]+= wgt[k]*dS_xy[k]/N
-                    # @inbounds @fastmath p.d2Rdθ_j[q,r,prodidx[k]]+= wgt[k]*(
-                    # (dR_xy[k]/(s_hat[k]*N) -
-                    # (dS_y[k]/N)*(dR_x[k])/(s_hat[k]^2) -
-                    # (dS_x[k]/N)*(dR_y[k])/(s_hat[k]^2) + 2*(dS_x[k]/N)*(dS_y[k]/N)*r_avg[k]/(s_hat[k]^2) -
-                    # r_avg[k]*(dS_xy[k]/N)/s_hat[k])*s_hat[k] +
-                    # (dS_xy[k]/N)*r_avg[k] + (dS_x[k]/N)*(dR_y[k]) + (dS_y[k]/N)*(dR_x[k])
-                    # )
-                    # @inbounds @fastmath p.d2Rdθ_j[q,r,prodidx[k]]+= wgt[k]*(
-                    # (dR_xy[k]/(s_hat[k]*N) -
-                    # (dS_y[k]/N)*(dR_x[k])/(s_hat[k]) -
-                    # (dS_x[k]/N)*(dR_y[k])/(s_hat[k]) -
-                    # r_avg[k]*(dS_xy[k]/N)/s_hat[k])*s_hat[k] +
-                    # (dS_xy[k]/N)*r_avg[k] + (dS_x[k]/N)*(dR_y[k]) + (dS_y[k]/N)*(dR_x[k])
-                    # )
                     @inbounds @fastmath p.d2Rdθ_j[q,r,prodidx[k]]+= wgt[k]*(dR_xy[k]/N)
                 end
 
@@ -246,13 +231,13 @@ function ll_obs_hessian!{T}(thD::Array{Float64,3},hess::Matrix{Float64},grad::Ve
                     end
                     Z_mat = Y_list[t_i]
 
-                    dS_z = dS_x_list[:,t_i]
+                    dS_z = dS_x_list[t_i]
                     dS_z_all = dS_x_all_list[t_i]
 
-                    dS_xz = dS_xy_list[:,q_i,t_i]
+                    dS_xz = dS_xy_list[q_i,t_i]
                     dS_xz_all = dS_xy_all_list[q_i,t_i]
 
-                    dS_yz = dS_xy_list[:,r_i,t_i]
+                    dS_yz = dS_xy_list[r_i,t_i]
                     dS_yz_all = dS_xy_all_list[r_i,t_i]
 
 
@@ -730,231 +715,142 @@ function returnParameter!(q::Int64,X_mat::Matrix{Float64},
     return Void
 end
 
-# function test_thD{T}(app::ChoiceData,d::InsuranceLogit,p::parDict{T})
-#     ind, r_ind, r_ind_metal, S_ij, wgt, urate, idxitr, X_t, X_0_t, Z, F_t, r_age = unPackChars(app,d)
-#
-#     draws = d.draws
-#     non_zero_draws = find(d.draws[:,r_ind].>0)
-#     zero_draws = find(d.draws[:,r_ind].==0)
-#     risk = draws[:,r_ind_metal]
-#     r_avg = p.r_hat[idxitr]
-#
-#     # Get Utility and derivative of Utility
-#     μ_ij,δ,s_hat = unPackParChars(p,idxitr)
-#
-#     s_insured = sumShares!(s_hat,ind)
-#
-#     (N,K) = size(μ_ij)
-#
-#     # Initialize Gradient
-#     #(Q,N,K) = size(dμ_ij)
-#     pars_relevant = relPar(app,d,F_t,ind)
-#
-#     # Pre-Calculate Squares
-#     μ_ij_sums = preCalcμ(μ_ij,δ)
-#
-#     # Pre-Calculate Log-Likelihood Terms for Gradient
-#     # Also Calculate Log-Likelihood itself
-#     gll_t1, gll_t2, gll_t3, gll_t4,gll_t5,gll_t6, ll_obs = ll_Terms(wgt,S_ij,urate,s_hat,s_insured)
-#
-#     #hess = zeros(Q,Q)
-#     #hess[:] = 0.0
-#     #grad[:] = 0.0
-#     X_mat = Array{Float64}(N,K)
-#     Y_list = Array{Array{Float64,2},1}(length(pars_relevant))
-#     #Y_mat = Array{Float64}(N,K)
-#
-#     # dS_yz = Vector{Float64}(K)
-#     # dS_xz = Vector{Float64}(K)
-#
-#     dS_x = Vector{T}(K)
-#     # dS_y = Vector{Float64}(K)
-#     # dS_z = Vector{Float64}(K)
-#
-#
-#     s_n = Vector{T}(K)
-#
-#     dR = Vector{T}(K)
-#
-#     #γlen = 1 + d.parLength[:γ]
-#     γlen = d.parLength[:γ]
-#     β0len = γlen + d.parLength[:β0]
-#     βlen = β0len + d.parLength[:γ]
-#     σlen = βlen + d.parLength[:σ]
-#     FElen = σlen + d.parLength[:FE]
-#
-#     q_i = 1
-#     q = 1
-#     returnParameter!(q,X_mat,
-#                     Z,X_0_t,X_t,draws,F_t,r_ind,
-#                     γlen,β0len,βlen,σlen)
-#
-#     dS_x_all = grad_calc!(dS_x,s_n,
-#                 zero_draws,non_zero_draws,
-#                 dR,risk,r_age,
-#                 μ_ij,δ,X_mat,
-#                 μ_ij_sums)
-#     ## Calculate Gradient
-#     grad = combine_grad(N,gll_t1,gll_t4,dS_x,dS_x_all)
-#
-#     return grad
-# end
-#
-#
-# function test_thD{T}(app::ChoiceData,d::InsuranceLogit,p0::Vector{T})
-#     params = parDict(d,p0)
-#     individual_values!(d,params)
-#     individual_shares(d,params)
-#     obj = test_thD(app,d,params)
-#     return obj
-# end
-#
-# function test_thD{T}(hess::Matrix{Float64},grad::Vector{Float64},
-#             app::ChoiceData,d::InsuranceLogit,p0::Vector{T})
-#     params = parDict(d,p0)
-#     individual_values!(d,params)
-#     individual_shares(d,params)
-#     obj = test_thD(hess,grad,app,d,params)
-#     return obj
-# end
-#
-# function test_thD{T}(hess::Matrix{Float64},grad::Vector{Float64},
-#                         app::ChoiceData,d::InsuranceLogit,p::parDict{T})
-#     hess[:] = 0.0
-#     grad[:] = 0.0
-#     ind, r_ind, r_ind_metal, S_ij, wgt, urate, idxitr, X_t, X_0_t, Z, F_t, r_age = unPackChars(app,d)
-#
-#     draws = d.draws
-#     non_zero_draws = find(d.draws[:,r_ind].>0)
-#     zero_draws = find(d.draws[:,r_ind].==0)
-#     risk = draws[:,r_ind_metal]
-#     r_avg = p.r_hat[idxitr]
-#
-#     # Get Utility and derivative of Utility
-#     μ_ij,δ,s_hat = unPackParChars(p,idxitr)
-#
-#     s_insured = sumShares!(s_hat,ind)
-#
-#     (N,K) = size(μ_ij)
-#
-#     # Initialize Gradient
-#     #(Q,N,K) = size(dμ_ij)
-#     pars_relevant = relPar(app,d,F_t,ind)
-#
-#     # Pre-Calculate Squares
-#     μ_ij_sums = preCalcμ(μ_ij,δ)
-#
-#     # Pre-Calculate Log-Likelihood Terms for Gradient
-#     # Also Calculate Log-Likelihood itself
-#     gll_t1, gll_t2, gll_t3, gll_t4,gll_t5,gll_t6, ll_obs = ll_Terms(wgt,S_ij,urate,s_hat,s_insured)
-#
-#     #hess = zeros(Q,Q)
-#     #hess[:] = 0.0
-#     #grad[:] = 0.0
-#     X_mat = Array{Float64}(N,K)
-#     Y_list = Array{Array{Float64,2},1}(length(pars_relevant))
-#     #Y_mat = Array{Float64}(N,K)
-#
-#     # Allocate Memory
-#     dS_xyz = Vector{Float64}(K)
-#     dS_xy = Vector{Float64}(K)
-#     # dS_yz = Vector{Float64}(K)
-#     # dS_xz = Vector{Float64}(K)
-#
-#     dS_x = Vector{Float64}(K)
-#     # dS_y = Vector{Float64}(K)
-#     # dS_z = Vector{Float64}(K)
-#
-#     dS_x_list = Matrix{Float64}(K,length(pars_relevant))
-#     dS_x_all_list = Vector{Float64}(length(pars_relevant))
-#
-#     dS_xy_list = Array{Array{Float64,1},2}(length(pars_relevant),length(pars_relevant))
-#     dS_xy_all_list = Matrix{Float64}(length(pars_relevant),length(pars_relevant))
-#     # dS_xy_all_list[:] = 0.0
-#
-#     s_n = Vector{Float64}(K)
-#
-#     dR = Vector{Float64}(K)
-#
-#     #γlen = 1 + d.parLength[:γ]
-#     γlen = d.parLength[:γ]
-#     β0len = γlen + d.parLength[:β0]
-#     βlen = β0len + d.parLength[:γ]
-#     σlen = βlen + d.parLength[:σ]
-#     FElen = σlen + d.parLength[:FE]
-#     obj=0.0
-#     for (q_i,q) in enumerate(pars_relevant)
-#         returnParameter!(q,X_mat,
-#                         Z,X_0_t,X_t,draws,F_t,r_ind,
-#                         γlen,β0len,βlen,σlen)
-#         @inbounds Y_list[q_i] = X_mat[:,:]
-#
-#         dS_x_all = grad_calc!(dS_x,s_n,
-#                     zero_draws,non_zero_draws,
-#                     dR,risk,r_age,
-#                     μ_ij,δ,X_mat,
-#                     μ_ij_sums)
-#
-#         # Save Answers
-#         dS_x_list[:,q_i] = dS_x[:]
-#         dS_x_all_list[q_i] = dS_x_all
-#
-#         for (r_i,r) in enumerate(pars_relevant)
-#             if r>q
-#                 continue
-#             end
-#             Y_mat = Y_list[r_i]
-#
-#
-#             dS_y = dS_x_list[:,r_i]
-#             dS_y_all = dS_x_all_list[r_i]
-#
-#
-#             dS_xy_all  = hess_calc!(dS_xy,s_n,
-#                         zero_draws,non_zero_draws,
-#                         μ_ij,δ,X_mat,Y_mat,
-#                         μ_ij_sums)
-#
-#             dS_xy_list[q_i,r_i] = dS_xy[:]
-#             dS_xy_all_list[q_i,r_i] = dS_xy_all
-#
-#             ## Last Loop, fixed to 1
-#             t_i = 1
-#             t = 1
-#
-#             Z_mat = Y_list[t_i]
-#
-#             dS_z = dS_x_list[:,t_i]
-#             dS_z_all = dS_x_all_list[t_i]
-#
-#             dS_xz = dS_xy_list[q_i,t_i]
-#             dS_xz_all = dS_xy_all_list[q_i,t_i]
-#
-#             dS_yz = dS_xy_list[r_i,t_i]
-#             dS_yz_all = dS_xy_all_list[r_i,t_i]
-#
-#             dS_xyz_all  = thD_calc!(dS_xyz,s_n,
-#                         zero_draws,non_zero_draws,
-#                         μ_ij,δ,X_mat,Y_mat,Z_mat,
-#                         μ_ij_sums)
-#
-#             obj = dS_z[1]
-#             if q_i==r_i
-#                 obj = combine_grad(N,gll_t1,gll_t4,dS_z,dS_z_all)
-#                 hess_obs = combine_hess(N,gll_t1,gll_t2,gll_t4,gll_t5,
-#                             dS_xz,dS_x,dS_z,dS_xz_all,dS_x_all,dS_z_all)
-#                 grad[q] = hess_obs
-#             end
-#             thD_obs = combine_thD(N,gll_t1,gll_t2,gll_t3,gll_t4,gll_t5,gll_t6,
-#                         dS_xyz,dS_xy,dS_xz,dS_yz,
-#                         dS_x,dS_y,dS_z,
-#                         dS_xyz_all,dS_xy_all,dS_xz_all,dS_yz_all,
-#                         dS_x_all,dS_y_all,dS_z_all)
-#
-#             hess[q,r] = thD_obs
-#             hess[r,q] = thD_obs
-#         end
-#     end
-#
-#     return obj
-# end
+function ll_obs_hessian!{T}(hess::Matrix{Float64},grad::Vector{Float64},
+                            app::ChoiceData,d::InsuranceLogit,p::parDict{T})
+
+        ind, r_ind, r_ind_metal, S_ij, wgt, urate, idxitr, X_t, X_0_t, Z, F_t, r_age = unPackChars(app,d)
+
+        prodidx = Int.(product(app))
+
+        draws = d.draws
+        non_zero_draws = find(d.draws[:,r_ind].>0)
+        zero_draws = find(d.draws[:,r_ind].==0)
+        risk = draws[:,r_ind_metal]
+        r_avg = p.r_hat[idxitr]
+
+        # Get Utility and derivative of Utility
+        μ_ij,δ,s_hat = unPackParChars(p,idxitr)
+
+        s_insured = sumShares!(s_hat,ind)
+
+        (N,K) = size(μ_ij)
+
+        # Initialize Gradient
+        #(Q,N,K) = size(dμ_ij)
+        pars_relevant = relPar(app,d,F_t,ind)
+
+        # Pre-Calculate Squares
+        μ_ij_sums = preCalcμ(μ_ij,δ)
+
+        # Pre-Calculate Log-Likelihood Terms for Gradient
+        # Also Calculate Log-Likelihood itself
+        gll_t1, gll_t2, gll_t3, gll_t4,gll_t5,gll_t6, ll_obs = ll_Terms(wgt,S_ij,urate,s_hat,s_insured)
+
+        #hess = zeros(Q,Q)
+        #hess[:] = 0.0
+        #grad[:] = 0.0
+        X_mat = Array{Float64}(N,K)
+        Y_list = Array{Array{Float64,2},1}(length(pars_relevant))
+        #Y_mat = Array{Float64}(N,K)
+
+        # Allocate Memory
+        dS_xyz = Vector{Float64}(K)
+        dS_xy = Vector{Float64}(K)
+        # dS_yz = Vector{Float64}(K)
+        # dS_xz = Vector{Float64}(K)
+
+        dS_x = Vector{Float64}(K)
+        # dS_y = Vector{Float64}(K)
+        # dS_z = Vector{Float64}(K)
+
+        # dS_x_list = Matrix{Float64}(K,length(pars_relevant))
+        dS_x_list = Vector{Vector{Float64}}(length(pars_relevant))
+        dS_x_all_list = Vector{Float64}(length(pars_relevant))
+
+        # dS_xy_list = Array{Array{Float64,1},2}(length(pars_relevant),length(pars_relevant))
+        # dS_xy_list = Array{Float64,3}(K,length(pars_relevant),length(pars_relevant))
+        dS_xy_list = Array{Vector{Float64},2}(length(pars_relevant),length(pars_relevant))
+        dS_xy_all_list = Matrix{Float64}(length(pars_relevant),length(pars_relevant))
+
+        s_n = Vector{Float64}(K)
+
+        dR_x = Vector{Float64}(K)
+        dR_x_list = Vector{Vector{Float64}}(length(pars_relevant))
+        dR_xy = Vector{Float64}(K)
+
+        #γlen = 1 + d.parLength[:γ]
+        γlen = d.parLength[:γ]
+        β0len = γlen + d.parLength[:β0]
+        βlen = β0len + d.parLength[:γ]
+        σlen = βlen + d.parLength[:σ]
+        FElen = σlen + d.parLength[:FE]
+
+
+        for (q_i,q) in enumerate(pars_relevant)
+            returnParameter!(q,X_mat,
+                            Z,X_0_t,X_t,draws,F_t,r_ind,
+                            γlen,β0len,βlen,σlen)
+            @inbounds Y_list[q_i] = X_mat[:,:]
+
+            dS_x_all = grad_calc!(dS_x,s_n,
+                        zero_draws,non_zero_draws,
+                        dR_x,risk,r_age,
+                        μ_ij,δ,X_mat,
+                        μ_ij_sums)
+
+            # Save Answers
+            dS_x_list[q_i] = dS_x[:]
+            dS_x_all_list[q_i] = dS_x_all
+
+            ## Calculate Gradient
+            grad[q]+= combine_grad(N,gll_t1,gll_t4,dS_x,dS_x_all)
+
+            # for (k,ij) in enumerate(idxitr)
+            #     @inbounds @fastmath p.dSdθ[q,ij] = dS_x[k]/N
+            #     @inbounds @fastmath p.dRdθ[q,ij] = dR_x[k]/(s_hat[k]*N) - (dS_x[k]/N)/s_hat[k] * r_avg[k]
+            # end
+
+            dR_x_list[q_i] = dR_x[:]
+            for k in 1:K
+                @inbounds @fastmath p.dSdθ_j[q,prodidx[k]]+= wgt[k]*dS_x[k]/N
+                @inbounds @fastmath p.dRdθ_j[q,prodidx[k]]+= wgt[k]*(dR_x[k]/N)
+            end
+
+
+            for (r_i,r) in enumerate(pars_relevant)
+                if r>q
+                    continue
+                end
+                Y_mat = Y_list[r_i]
+
+
+                dS_y = dS_x_list[r_i]
+                dR_y = dR_x_list[r_i]
+                dS_y_all = dS_x_all_list[r_i]
+
+                dS_xy_all  = hess_calc!(dS_xy,s_n,
+                            zero_draws,non_zero_draws,
+                            dR_xy,risk,r_age,
+                            μ_ij,δ,X_mat,Y_mat,
+                            μ_ij_sums)
+
+                dS_xy_list[q_i,r_i] = dS_xy[:]
+                dS_xy_all_list[q_i,r_i] = dS_xy_all
+
+                hess_obs = combine_hess(N,gll_t1,gll_t2,gll_t4,gll_t5,
+                            dS_xy,dS_x,dS_y,dS_xy_all,dS_x_all,dS_y_all)
+
+                hess[q,r]+= hess_obs
+                if (q!=r)
+                    hess[r,q]+= hess_obs
+                end
+
+                for k in 1:K
+                    @inbounds @fastmath p.d2Sdθ_j[q,r,prodidx[k]]+= wgt[k]*dS_xy[k]/N
+                    @inbounds @fastmath p.d2Rdθ_j[q,r,prodidx[k]]+= wgt[k]*(dR_xy[k]/N)
+                end
+            end
+        end
+
+    return ll_obs,pars_relevant
+end

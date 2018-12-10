@@ -65,8 +65,35 @@ function calc_risk_moments!{T}(hess::Array{Float64,3},grad::Matrix{Float64},d::I
     mom_value = Vector{Float64}(length(d.data.tMoments))
 
     calc_Mom!(mom_value,s_hat_j,r_hat_j,d,p)
-    
+
     calc_Mom_Der!(grad,hess,dSdθ_j,d2Sdθ_j,mom_value,s_hat_j,r_hat_j,d,p)
+
+
+    mom_disp = mom_value[1:6]
+    println("Risk moments are $mom_disp")
+
+    return mom_value .- d.data.tMoments
+end
+
+
+function calc_risk_moments!{T}(grad::Matrix{Float64},d::InsuranceLogit,p::parDict{T})
+    wgts = weight(d.data)[1,:]
+    wgts_share = wgts.*p.s_hat
+    num_prods = length(d.prods)
+    s_hat_j = Vector{Float64}(num_prods)
+    r_hat_j = Vector{Float64}(num_prods)
+
+    # Q = d.parLength[:All]
+
+    dSdθ_j = p.dSdθ_j
+
+    prodAvgs!(s_hat_j,r_hat_j,wgts,wgts_share,d,p)
+
+    mom_value = Vector{Float64}(length(d.data.tMoments))
+
+    calc_Mom!(mom_value,s_hat_j,r_hat_j,d,p)
+
+    calc_Mom_Der!(grad,dSdθ_j,mom_value,s_hat_j,r_hat_j,d,p)
 
 
     mom_disp = mom_value[1:6]
@@ -113,6 +140,26 @@ function calc_Mom_Der!{T}(grad::Matrix{Float64},
                 hess[q,l,m] = h_term
                 hess[l,q,m] = h_term
             end
+        end
+    end
+end
+
+function calc_Mom_Der!{T}(grad::Matrix{Float64},
+                    dSdθ_j::Matrix{Float64},
+                    mom_value::Vector{Float64},
+                    s_hat_j::Vector{Float64},
+                    r_hat_j::Vector{Float64},
+                    d::InsuranceLogit,p::parDict{T})
+    Q = d.parLength[:All]
+    for (m,idx_mom) in d.data._tMomentDict
+        for q in 1:Q
+            t1 = 0.0
+            s_mom = sum(s_hat_j[idx_mom])
+            dS_q_mom = sum(dSdθ_j[q,idx_mom])
+            @inbounds @fastmath @simd for j in idx_mom
+                t1+= p.dRdθ_j[q,j]
+            end
+            grad[q,m] = t1/s_mom - (dS_q_mom)/s_mom*mom_value[m]
         end
     end
 end

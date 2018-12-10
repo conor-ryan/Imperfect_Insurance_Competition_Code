@@ -159,7 +159,7 @@ function gradient_ascent(d,p0;max_step=1e-3,init_step=1e-9,max_itr=2000,grad_tol
 end
 
 
-function newton_raphson(d,p0;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
+function newton_raphson_ll(d,p0;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
     ## Initialize Parameter Vector
     p_vec = p0
     N = length(p0)

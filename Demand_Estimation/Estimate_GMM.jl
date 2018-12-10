@@ -61,14 +61,17 @@ function GMM_objective!{T}(obj_hess::Matrix{Float64},obj_grad::Vector{Float64},d
     ll = log_likelihood!(thD,hess,grad,d,par0)
 
 
-
+#
     mom_grad = Matrix{Float64}(length(p0),length(d.data.tMoments))
     mom_hess = Array{Float64,3}(length(p0),length(p0),length(d.data.tMoments))
     mom = calc_risk_moments!(mom_hess,mom_grad,d,par0)
 
     moments = vcat(mom,grad)
     moments_grad = hcat(mom_grad,hess)
-    moments_hess = cat(3,thD,mom_hess)
+    moments_hess = cat(3,mom_hess,thD)
+    # moments = grad
+    # moments_grad = hess
+    # moments_hess = thD
 
     obj = calc_GMM_Obj(moments,W)
 
@@ -78,7 +81,7 @@ function GMM_objective!{T}(obj_hess::Matrix{Float64},obj_grad::Vector{Float64},d
     return obj
 end
 
-function calc_GMM_Obj(moments::Vector{Float64},W::Matrix{Float64})
+function calc_GMM_Obj{T}(moments::Vector{T},W::Matrix{Float64})
     obj = 0.0
     for i in 1:length(moments), j in 1:length(moments)
         obj+= W[i,j]*moments[j]*moments[i]
@@ -120,14 +123,29 @@ function GMM_objective{T}(d::InsuranceLogit,p0::Array{T},W::Matrix{Float64})
     par0 = parDict(d,p0)
     grad = Vector{T}(length(p0))
     ll = log_likelihood!(grad,d,par0)
+    # individual_values!(d,par0)
+    # individual_shares(d,par0)
     mom = calc_risk_moments(d,par0)
 
-    moments = vcat(grad,mom)
-
-    obj = moments'*W*moments
+    moments = vcat(mom,grad)
+    # moments = grad
+    obj = calc_GMM_Obj(moments,W)
     return obj
 end
 
+function GMM_objective{T}(d::InsuranceLogit,
+                    p_small::Array{T,1},p0::Array{Float64},
+                    W::Matrix{Float64})
+    L = length(p_small)
+    p_vec = Vector{T}(length(p0))
+    # p_vec[(length(p0)-L+1):length(p0)] = p_small[:]
+    # p_vec[1:(length(p0)-L)] = p0[1:(length(p0)-L)]
+    p_vec[1:L] = p_small[:]
+    p_vec[(L+1):length(p0)] = p0[(L+1):length(p0)]
+
+    obj = GMM_objective(d,p_vec,W)
+    return obj
+end
 
 function estimate_GMM!(d::InsuranceLogit, p0::Vector{Float64},W::Matrix{Float64};method=:LN_NELDERMEAD)
     # Set up the optimization
@@ -208,32 +226,41 @@ end
 
 
 
-function newton_raphson(d::InsuranceLogit,p0::Vector{Float64},W::Matrix{Float64};f_tol=1e-2,step_tol=1e-8,max_itr=10)
+
+function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
     ## Initialize Parameter Vector
     p_vec = p0
     N = length(p0)
 
     count = 0
-    fval = 10000
+    grad_size = 10000
     f_eval_old = 1.0
     # # Initialize δ
     param_dict = parDict(d,p_vec)
 
     # Initialize Gradient
     grad_new = similar(p0)
+    hess_new = Matrix{Float64}(length(p0),length(p0))
     f_final_val = 0.0
     max_trial_cnt = 0
+    ga_cnt = 0
+    p_last = p_vec
     # Maximize by Newtons Method
-    while (fval>f_tol) & (count<max_itr) & (max_trial_cnt<20)
+    while (grad_size>grad_tol) & (count<max_itr) & (max_trial_cnt<20)
         count+=1
-
         # Compute Gradient, holding δ fixed
-        fval = GMM_objective!(grad_new,d,p_vec,W)
 
-        if (fval<1e-2) & (count>10)
+        fval = GMM_objective!(hess_new,grad_new,d,p_vec,W)
+
+
+        grad_size = sqrt(vecdot(grad_new,grad_new))
+        if (grad_size<1e-8) & (count>10)
             println("Got to Break Point...?")
+            println(grad_size)
             break
         end
+
+        step_size = 1/grad_size
 
         # ForwardDiff.gradient!(grad_new, ll, p_vec)
         # println("Gradient is $grad_new")
@@ -242,31 +269,69 @@ function newton_raphson(d::InsuranceLogit,p0::Vector{Float64},W::Matrix{Float64}
         # hess_new = Matrix{Float64}(N,N)
         # ForwardDiff.hessian!(hess_new, ll, p_vec)
         # println("Hessian is $hess_new")
-        grad_size = sqrt(vecdot(grad_new,grad_new))
 
-        step = -fval./grad_new
+        step = -inv(hess_new)*grad_new
+
+        if any(isnan.(step))
+            p_vec = p_last.*(1+rand(length(step))/100 -.005)
+            println("Algorithm Went to Undefined Area: Random Step")
+            grad_size = 1
+            continue
+        end
+
 
         p_test = p_vec .+ step
         f_test = GMM_objective(d,p_test,W)
         trial_cnt = 0
-        while ((f_test>fval) | isnan(f_test)) & (trial_cnt<10)
-            p_test_disp = p_test[1:20]
-            println("Trial: Got $f_test at parameters $p_test_disp")
-            println("Previous Iteration at $fval")
-            step/= 10
-            p_test = p_vec .+ step
-            f_test = GMM_objective(d,p_test,W)
-            trial_cnt+=1
-            if (trial_cnt==10) & (fval>100)
+        while ((f_test>fval) | isnan(f_test)) & (trial_cnt<=5)
+            if trial_cnt==0
+                p_test_disp = p_test[1:20]
+                println("Trial (Init): Got $f_test at parameters $p_test_disp")
+                println("Previous Iteration at $fval")
+            end
+            if trial_cnt<(4)
+                step/= 10
+                p_test = p_vec .+ step
+                f_test = GMM_objective(d,p_test,W)
+                p_test_disp = p_test[1:20]
+                println("Trial (NR): Got $f_test at parameters $p_test_disp")
+                println("Previous Iteration at $fval")
+                trial_cnt+=1
+            elseif trial_cnt==4
+                ga_cnt+=1
+                if ga_cnt<2
+                    println("RUN ROUND OF GRADIENT ASCENT")
+                    p_test, f_test = gradient_ascent_GMM(d,p_vec,W,max_itr=5)
+                end
+
+                trial_cnt+=1
+            # elseif trial_cnt<15
+            #     p_test = p_vec .- step_size.*grad_new
+            #     p_test_disp = p_test[1:20]
+            #     f_test = GMM_objective(d,p_test,W)
+            #     println("Trial (GA): Got $f_test at parameters $p_test_disp")
+            #     println("Previous Iteration at $fval")
+            #     step_size/=10
+            #     trial_cnt+=1
+            elseif (trial_cnt==5) & (grad_size>1e-5)
                 println("Algorithm Stalled: Random Step")
                 max_trial_cnt+=1
                 step = rand(length(step))/1000-.005
-            elseif (trial_cnt==10) & (fval<=100)
+                p_test = p_vec.+step
+                trial_cnt+=1
+            elseif (trial_cnt==5) & (grad_size<=1e-5)
                 println("Algorithm Stalled: Random Step")
                 max_trial_cnt+=1
                 step = rand(length(step))/10000-.005
+                p_test = p_vec.+step
+                trial_cnt+=1
             end
         end
+        if trial_cnt<=4
+            ga_cnt = 0
+        end
+        step = p_test - p_vec
+        p_last = copy(p_vec)
         p_vec+= step
         p_vec_disp = p_vec[1:20]
         f_final_val = f_test
@@ -274,6 +339,98 @@ function newton_raphson(d::InsuranceLogit,p0::Vector{Float64},W::Matrix{Float64}
 
 
         println("Gradient Size: $grad_size")
+        println("Function Value is $f_test at iteration $count")
+    end
+    # if (grad_size>grad_tol)
+    #     println("Estimate Instead")
+    #     ret, f_final_val, p_vec = estimate!(d,p0)
+
+
+    return p_vec,f_final_val
+end
+
+function gradient_ascent_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
+    ## Initialize Parameter Vector
+    p_vec = p0
+    N = length(p0)
+
+    count = 0
+    grad_size = 10000
+    f_eval_old = 1.0
+    # # Initialize δ
+    param_dict = parDict(d,p_vec)
+
+    # Initialize Gradient
+    grad_new = similar(p0)
+    hess_new = Matrix{Float64}(length(p0),length(p0))
+    f_final_val = 0.0
+    max_trial_cnt = 0
+    p_last = p_vec
+    # Maximize by Newtons Method
+    while (grad_size>grad_tol) & (count<max_itr) & (max_trial_cnt<20)
+        count+=1
+
+
+        # Compute Gradient, holding δ fixed
+
+        fval = GMM_objective!(grad_new,d,p_vec,W)
+
+
+        grad_size = sqrt(vecdot(grad_new,grad_new))
+        if (grad_size<1e-8) & (count>10)
+            println("Got to Break Point...?")
+            println(grad_size)
+            break
+        end
+        step = 1/grad_size
+        # ForwardDiff.gradient!(grad_new, ll, p_vec)
+        # println("Gradient is $grad_new")
+        #
+        #
+        # hess_new = Matrix{Float64}(N,N)
+        # ForwardDiff.hessian!(hess_new, ll, p_vec)
+        # println("Hessian is $hess_new")
+
+
+
+        p_test = p_vec .- step.*grad_new
+        f_test = GMM_objective(d,p_test,W)
+        trial_cnt = 0
+        while ((f_test>fval) | isnan(f_test)) & (trial_cnt<10)
+            if trial_cnt==0
+                p_test_disp = p_test[1:20]
+                println("Trial (Init): Got $f_test at parameters $p_test_disp")
+                println("Previous Iteration at $fval")
+                println("Reduce Step size....")
+            end
+            if trial_cnt<10
+                step/= 10
+                p_test_disp = p_test[1:20]
+                p_test = p_vec .- step.*grad_new
+                f_test = GMM_objective(d,p_test,W)
+                # println("Trial (GA): Got $f_test at parameters $p_test_disp")
+                # println("Previous Iteration at $fval")
+                trial_cnt+=1
+            elseif (trial_cnt==10) & (grad_size>1e-5)
+                println("Algorithm Stalled: Random Step")
+                max_trial_cnt+=1
+                step = rand(length(step))/1000-.005
+            elseif (trial_cnt==10) & (grad_size<=1e-5)
+                println("Algorithm Stalled: Random Step")
+                max_trial_cnt+=1
+                step = rand(length(step))/10000-.005
+            end
+        end
+        par_step = p_test - p_vec
+        p_last = copy(p_vec)
+        p_vec+= par_step
+        p_vec_disp = p_vec[1:20]
+        f_final_val = f_test
+        println("Update Parameters to $p_vec_disp")
+
+
+        println("Gradient Size: $grad_size")
+        println("Step Size: $step")
         println("Function Value is $f_test at iteration $count")
     end
     # if (grad_size>grad_tol)
