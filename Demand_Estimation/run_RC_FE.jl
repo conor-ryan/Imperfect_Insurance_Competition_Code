@@ -28,8 +28,8 @@ c = ChoiceData(df,df_mkt,df_risk;
             :AgeFE_52_64,
             :Family,
             :LowIncome],
-    prodchars=[:Price,:AV,:Big],
-    prodchars_0=[:Price,:AV,:Big],
+    prodchars=[:Price,:AV,
+    prodchars_0=[:Price,:AV],
     fixedEffects=[:Firm])
 
 # Fit into model
