@@ -79,7 +79,7 @@ par0 = parDict(m,p0)
 rundate = Dates.today()
 
 # Estimate
-p_ll,ll = newton_raphson_ll(m,p0,max_itr=30)
+# p_ll,ll = newton_raphson_ll(m,p0,max_itr=30)
 
 
 
@@ -91,9 +91,9 @@ println("#################")
 
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_stage1_$rundate.jld"
 # save(file,"p_ll",p_ll)
-S = calc_gmm_Avar(m,p_ll)
-W = inv(S)./100
-# W = eye(length(p0)+length(m.data.tMoments))
+# S = calc_gmm_Avar(m,p_ll)
+# W = inv(S)./100
+W = eye(length(p0)+length(m.data.tMoments))
 
 p_stg2, obj_1 = newton_raphson_GMM(m,p_ll,W)
 
