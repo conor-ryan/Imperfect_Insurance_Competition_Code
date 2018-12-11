@@ -95,7 +95,7 @@ println("#################")
 # W = inv(S)./100
 W = eye(length(p0)+length(m.data.tMoments))
 
-p_stg2, obj_1 = newton_raphson_GMM(m,p_ll,W)
+p_stg2, obj_1 = newton_raphson_GMM(m,p0,W)
 
 # # rundate = "2018-08-25"
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage3_2018-08-25_NEWEIGHT.jld"
