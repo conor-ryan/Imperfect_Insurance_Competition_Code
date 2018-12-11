@@ -62,16 +62,16 @@ function GMM_objective!{T}(obj_hess::Matrix{Float64},obj_grad::Vector{Float64},d
 
 
 #
-    mom_grad = Matrix{Float64}(length(p0),length(d.data.tMoments))
-    mom_hess = Array{Float64,3}(length(p0),length(p0),length(d.data.tMoments))
-    mom = calc_risk_moments!(mom_hess,mom_grad,d,par0)
-
-    moments = vcat(mom,grad)
-    moments_grad = hcat(mom_grad,hess)
-    moments_hess = cat(3,mom_hess,thD)
-    # moments = grad
-    # moments_grad = hess
-    # moments_hess = thD
+    # mom_grad = Matrix{Float64}(length(p0),length(d.data.tMoments))
+    # mom_hess = Array{Float64,3}(length(p0),length(p0),length(d.data.tMoments))
+    # mom = calc_risk_moments!(mom_hess,mom_grad,d,par0)
+    #
+    # moments = vcat(mom,grad)
+    # moments_grad = hcat(mom_grad,hess)
+    # moments_hess = cat(3,mom_hess,thD)
+    moments = grad
+    moments_grad = hess
+    moments_hess = thD
 
     obj = calc_GMM_Obj(moments,W)
 
