@@ -54,7 +54,7 @@ function estimate!(d::InsuranceLogit, p0;method=:LD_TNEWTON_PRECOND_RESTART)
         #obj = ll(x)
         obj = ll_grad!(grad,x)
 
-        grad_size = sqrt(vecdot(grad,grad))
+        grad_size = sqrt(dot(grad,grad))
         println("Gradient size equals $grad_size")
         if count % 50 ==0
             grad_displ = round.(grad,4)
@@ -143,13 +143,13 @@ function gradient_ascent(d,p0;max_step=1e-3,init_step=1e-9,max_itr=2000,grad_tol
         # New Step Size
         if count>1
             grad_diff = (grad_new-grad_old)
-            step = abs(vecdot(step.*grad_new,grad_diff)/vecdot(grad_diff,grad_diff))
+            step = abs(dot(step.*grad_new,grad_diff)/dot(grad_diff,grad_diff))
             println("New optimal step size: $step")
         end
         # Save Gradient
         grad_old = copy(grad_new)
 
-        grad_size = sqrt(vecdot(grad_new,grad_new))
+        grad_size = sqrt(dot(grad_new,grad_new))
         println("Gradient Size: $grad_size")
 
         #Update step size
@@ -172,7 +172,7 @@ function newton_raphson_ll(d,p0;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
 
     # Initialize Gradient
     grad_new = similar(p0)
-    hess_new = Matrix{Float64}(length(p0),length(p0))
+    hess_new = Matrix{Float64}(undef,length(p0),length(p0))
     f_final_val = 0.0
     max_trial_cnt = 0
     # Maximize by Newtons Method
@@ -183,7 +183,7 @@ function newton_raphson_ll(d,p0;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
 
         fval = log_likelihood!(hess_new,grad_new,d,p_vec)
 
-        grad_size = sqrt(vecdot(grad_new,grad_new))
+        grad_size = sqrt(dot(grad_new,grad_new))
         if (grad_size<1e-8) & (count>10)
             println("Got to Break Point...?")
             break
@@ -213,11 +213,11 @@ function newton_raphson_ll(d,p0;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
             if (trial_cnt==10) & (grad_size>1e-5)
                 println("Algorithm Stalled: Random Step")
                 max_trial_cnt+=1
-                step = rand(length(step))/1000-.005
+                step = rand(length(step))/1000 .-.005
             elseif (trial_cnt==10) & (grad_size<=1e-5)
                 println("Algorithm Stalled: Random Step")
                 max_trial_cnt+=1
-                step = rand(length(step))/10000-.005
+                step = rand(length(step))/10000 .-.005
             end
         end
         p_vec+= step

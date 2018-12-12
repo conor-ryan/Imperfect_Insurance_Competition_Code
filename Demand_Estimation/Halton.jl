@@ -15,7 +15,7 @@ function Halton(g, r)
 end
 
 function Halton(g, r, σ)
-    b = digits(g, r)
+    b = digits(g, base=r)
 
     ϕ = 0.0
     for (l, d) in enumerate(b)

@@ -1,6 +1,11 @@
 using BenchmarkTools
 using JLD
 using CSV
+using Random
+using Dates
+using LinearAlgebra
+using Statistics
+
 
 # Data Structure
 include("InsChoiceData.jl")
@@ -28,7 +33,7 @@ c = ChoiceData(df,df_mkt,df_risk;
             :AgeFE_52_64,
             :Family,
             :LowIncome],
-    prodchars=[:Price,:AV,],
+    prodchars=[:Price,:AV],
     prodchars_0=[:Price,:AV],
     fixedEffects=[:Firm])
 
@@ -37,11 +42,11 @@ m = InsuranceLogit(c,100)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
-γstart = rand(m.parLength[:γ])/10 -.05
-β0start = rand(m.parLength[:β])/10-.05
-βstart = rand(m.parLength[:γ])/10 - .05
-σstart = rand(m.parLength[:σ])/10 - .05
-FEstart = rand(m.parLength[:FE])/100-.005
+γstart = rand(m.parLength[:γ])/10 .-.05
+β0start = rand(m.parLength[:β])/10 .-.05
+βstart = rand(m.parLength[:γ])/10 .- .05
+σstart = rand(m.parLength[:σ])/10 .- .05
+FEstart = rand(m.parLength[:FE])/100 .-.005
 
 p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 par0 = parDict(m,p0)
@@ -50,11 +55,13 @@ par0 = parDict(m,p0)
 
 # #
 # #
-# W = eye(length(p0)+length(m.data.tMoments))
+W = Matrix{Float64}(I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
 # # W = eye(length(p0))
-# grad_2 = Vector{Float64}(length(p0))
-# hess_2 = Matrix{Float64}(length(p0),length(p0))
-# res = GMM_objective!(hess_2,grad_2,m,p0,W)
+grad_2 = Vector{Float64}(undef,length(p0))
+hess_2 = Matrix{Float64}(undef,length(p0),length(p0))
+W = Matrix{Float64}(I,length(m.prods),length(m.prods))
+res = GMM_objective_exp!(hess_2,grad_2,m,p0,W)
+res = GMM_objective!(hess_2,grad_2,m,p_ll,W)
 # f_obj(x) = GMM_objective(m,x,p0,W)
 # p_test = p0[1:20]
 # grad_1 = Vector{Float64}(length(p_test))
@@ -77,11 +84,13 @@ par0 = parDict(m,p0)
 #p_ll = newton_raphson(m,p0)
 
 rundate = Dates.today()
-
+println("#################")
+println("#################")
+println("###### Estimation 1 #######")
+println("#################")
+println("#################")
 # Estimate
 p_ll,ll = newton_raphson_ll(m,p0,max_itr=30)
-
-
 
 println("#################")
 println("#################")
@@ -91,11 +100,14 @@ println("#################")
 
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_stage1_$rundate.jld"
 # save(file,"p_ll",p_ll)
-# S = calc_gmm_Avar(m,p_ll)
-# W = inv(S)./100
-W = eye(length(p0)+length(m.data.tMoments))
-
-p_stg2, obj_1 = newton_raphson_GMM(m,p_ll,W)
+S = calc_gmm_Avar(m,p_ll)
+W = inv(S)./100
+# W = eye(length(p0)+length(m.data.tMoments))
+W = Matrix(1.0I,length(m.prods),length(m.prods))
+p0 = p_ll + rand(length(p_ll))/10 .- .05
+ll = log_likelihood!(hess_2,grad_2,m,p0)
+res = GMM_objective!(hess_2,grad_2,m,p0,W)
+p_stg2, obj_1 = newton_raphson_GMM(m,p0,W)
 
 # # rundate = "2018-08-25"
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage3_2018-08-25_NEWEIGHT.jld"
@@ -155,86 +167,87 @@ p_stg2, obj_1 = newton_raphson_GMM(m,p_ll,W)
 # # llg =  log_likelihood!(grad_2,m,p0)
 # # llh =  log_likelihood!(hess_3,grad_3,m,par0)
 # #
-# # # llh3 =  log_likelihood!(hess_3,m,p0)
-# # #
-# # #
-# # # @benchmark log_likelihood!(grad_2,m,p0)
-# # # #
-# # #@benchmark log_likelihood!(hess_3,grad_3,m,p0)
-# # #
-# # # @time log_likelihood!(grad_2,m,p0)
-# # # @time log_likelihood!(hess_2,m,p0)
-# # #
-# # println("Gradient Test")
-# # # f_ll(x) = log_likelihood(m,x)
-# # # #f_ll(x) = calc_risk_moments(m,x)
-# # # grad_1 = Vector{Float64}(length(p0))
-# # # hess_1 = Matrix{Float64}(length(p0),length(p0))
-# # # fval_old = f_ll(p0)
-# # # ForwardDiff.gradient!(grad_1,f_ll, p0)
-# # # ForwardDiff.hessian!(hess_1,f_ll, p0)
-# # #
-# # #
-# # # println(fval_old-llh)
-# # # println(maximum(abs.(grad_1-grad_3)))
-# # # println(maximum(abs.(hess_1-hess_3)))
+# # llh3 =  log_likelihood!(hess_3,m,p0)
 # #
-# #grad = Matrix{Float64}(length(p0),length(m.data.tMoments))
-# # @benchmark res = calc_risk_moments!(grad,m,par0)
 # #
-# # res,grad_2 = calc_risk_moments!(grad,m,par0)
-# # f_ll(x) = calc_risk_moments(m,x)
+# # @benchmark log_likelihood!(grad_2,m,p0)
+# # #
+# #@benchmark log_likelihood!(hess_3,grad_3,m,p0)
+# #
+# # @time log_likelihood!(grad_2,m,p0)
+# # @time log_likelihood!(hess_2,m,p0)
+# #
+# println("Gradient Test")
+# # f_ll(x) = log_likelihood(m,x)
+# # #f_ll(x) = calc_risk_moments(m,x)
 # # grad_1 = Vector{Float64}(length(p0))
+# # hess_1 = Matrix{Float64}(length(p0),length(p0))
 # # fval_old = f_ll(p0)
 # # ForwardDiff.gradient!(grad_1,f_ll, p0)
-# # println(fval_old-res)
-# # println(maximum(abs.(grad_1-grad_2)))
+# # ForwardDiff.hessian!(hess_1,f_ll, p0)
+# #
+# #
+# # println(fval_old-llh)
+# # println(maximum(abs.(grad_1-grad_3)))
+# # println(maximum(abs.(hess_1-hess_3)))
+#
+#grad = Matrix{Float64}(length(p0),length(m.data.tMoments))
+# @benchmark res = calc_risk_moments!(grad,m,par0)
+#
+# res,grad_2 = calc_risk_moments!(grad,m,par0)
+# f_ll(x) = calc_risk_moments(m,x)
+# grad_1 = Vector{Float64}(length(p0))
+# fval_old = f_ll(p0)
+# ForwardDiff.gradient!(grad_1,f_ll, p0)
+# println(fval_old-res)
+# println(maximum(abs.(grad_1-grad_2)))
+#
+
+#
+#
+#
+# #
+# #
+# p0 = p_est
+# W = eye(length(p0)+6)
+# grad_2 = Vector{Float64}(length(p0)+6)
+# hess = Matrix{Float64}(length(p0),length(p0))
+using Profile
+Profile.init(n=10^8,delay=.001)
+Profile.clear()
+#Juno.@profile add_obs_mat!(hess,grad,hess_obs,grad_obs,Pop)
+# Juno.@profile log_likelihood!(thD_2,hess_2,grad_2,m,par0)
+Juno.@profile res = GMM_objective_exp!(hess_2,grad_2,m,p0,W)
+Juno.profiletree()
+Juno.profiler()
+#
+# for (x,i) in enumerate([1,2,5])
+#     print(x)
+# end
+
+
+
+# flag, fval, p_est = est_res
+#
+#
+#
+# # #parStart1 = parDict(m,p1)
+#
+# #
+#
+#
+# #ll_gradient!(grad_2,m,p0)
 # #
 #
 # #
 # #
+#  individual_values!(m,parStart0)
+# individual_shares(m,parStart0)
+# app = next(eachperson(m.data),200)[1]
+# # @benchmark util_gradient(m,app,parStart0)
 # #
-# # #
-# # #
-# # p0 = p_est
-# # W = eye(length(p0)+6)
-# # grad_2 = Vector{Float64}(length(p0)+6)
-# # hess = Matrix{Float64}(length(p0),length(p0))
-# Profile.init(n=10^8,delay=.001)
-# Profile.clear()
-# #Juno.@profile add_obs_mat!(hess,grad,hess_obs,grad_obs,Pop)
-# # Juno.@profile log_likelihood!(thD_2,hess_2,grad_2,m,par0)
-# Juno.@profile GMM_objective(m,p0,W)
-# Juno.profiletree()
-# Juno.profiler()
+# # grad = util_gradient(m,app,parStart0)
 # #
-# # for (x,i) in enumerate([1,2,5])
-# #     print(x)
-# # end
+# println("Profiler")
 #
-#
-#
-# # flag, fval, p_est = est_res
 # #
-# #
-# #
-# # # #parStart1 = parDict(m,p1)
-# #
-# # #
-# #
-# #
-# # #ll_gradient!(grad_2,m,p0)
-# # #
-# #
-# # #
-# # #
-# #  individual_values!(m,parStart0)
-# # individual_shares(m,parStart0)
-# # app = next(eachperson(m.data),200)[1]
-# # # @benchmark util_gradient(m,app,parStart0)
-# # #
-# # # grad = util_gradient(m,app,parStart0)
-# # #
-# # println("Profiler")
-# #
-# # #

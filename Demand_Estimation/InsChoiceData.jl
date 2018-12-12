@@ -64,7 +64,7 @@ function ChoiceData(data_choice::DataFrame,
         #          :F0_Y1_LI0,:F0_Y1_LI1,
         #          :F1_Y0_LI0,:F1_Y0_LI1,
         #          :F1_Y1_LI0,:F1_Y1_LI1],
-        fixedEffects=Vector{Symbol}(0),
+        fixedEffects=Vector{Symbol}(undef,0),
         wgt=[:N],
         unins=[:unins_rate],
         riskscores=true)
@@ -73,17 +73,17 @@ function ChoiceData(data_choice::DataFrame,
     n, k = size(data_choice)
 
     # Convert everything to an array once for performance
-    i = hcat(Array{Float64}(data_choice[person]))
-    j = hcat(Array(data_choice[product]))
-    X = hcat(Array{Float64}(data_choice[prodchars]))
-    X_0 = hcat(Array{Float64}(data_choice[prodchars_0]))
-    y = hcat(Array{Float64}(data_choice[choice]))
-    Z = hcat(Array{Float64}(data_choice[demoRaw]))
-    w = hcat(Array{Float64}(data_choice[wgt]))
-    s0= hcat(Array{Float64}(data_choice[unins]))
+    i = convert(Array{Float64},data_choice[person])
+    j = convert(Array{Float64},data_choice[product])
+    X = convert(Array{Float64},data_choice[prodchars])
+    X_0 = convert(Array{Float64},data_choice[prodchars_0])
+    y = convert(Array{Float64},data_choice[choice])
+    Z = convert(Array{Float64},data_choice[demoRaw])
+    w = convert(Array{Float64},data_choice[wgt])
+    s0= convert(Array{Float64},data_choice[unins])
 
     riskChars=[:ageRate_avg,:HCC_age]
-    rm = hcat(Array{Float64}(data_choice[riskChars]))
+    rm = convert(Array{Float64},data_choice[riskChars])
 
     println("Create Fixed Effects")
     bigFirm = :Big in prodchars_0
@@ -93,7 +93,7 @@ function ChoiceData(data_choice::DataFrame,
 
 
     index = Dict{Symbol, Int}()
-    dmat = Matrix{Float64}(n,0)
+    dmat = Matrix{Float64}(undef,n,0)
 
     #### Risk Score Moments ####
     if riskscores
@@ -104,9 +104,10 @@ function ChoiceData(data_choice::DataFrame,
                                 :mean_HCC_Gold,:var_HCC_Gold,
                                 :mean_HCC_Platinum,:var_HCC_Platinum]])
         r_types = sort(unique(data_choice[:Rtype]))
-        rmat = Matrix{Float64}(length(r_types)*5,4)
+        rmat = Matrix{Float64}(undef,length(r_types)*5,4)
         for r in r_types
-            r_temp = r_df[find(r_df[:Rtype].==r)[1],:]
+            row_ind = findall(r_df[:Rtype].==r)[1]
+            r_temp = r_df[row_ind:row_ind,:]
             for m in 1:5
                 rmat[(r-1)*5+m,1] = (r-1)*5+m
                 rmat[(r-1)*5+m,2] = r_temp[1,2]
@@ -115,10 +116,10 @@ function ChoiceData(data_choice::DataFrame,
             end
         end
 
-        R_index = Vector{Float64}(n)
-        R_metal_index = Vector{Float64}(n)
+        R_index = Vector{Float64}(undef,n)
+        R_metal_index = Vector{Float64}(undef,n)
         for ind in eachindex(R_index)
-            r =  findin(rmat[:,1],df[ind,:Rtype])[1]
+            r =  findall((in)(df[ind,:Rtype]),rmat[:,1])[1]
             R_index[ind] = (r-1)*5 + 3
             AV = df[ind,:AV]
             if AV==.57
@@ -140,9 +141,9 @@ function ChoiceData(data_choice::DataFrame,
     else
         r_silv_var = [:riskIndex_Silver]
         r_var = [:riskIndex]
-        R_index = Vector{Float64}(n)
-        R_metal_index = Vector{Float64}(n)
-        rmat =  Matrix{Float64}(0,0)
+        R_index = Vector{Float64}(undef,n)
+        R_metal_index = Vector{Float64}(undef,n)
+        rmat =  Matrix{Float64}(undef,0,0)
     end
 
     # Create a data matrix, only including person id
@@ -192,7 +193,8 @@ function ChoiceData(data_choice::DataFrame,
 
     #Create Product Dictionary
     println("Product Dictionary")
-    _productDict = build_ProdDict(j)
+    prod_vec = j[1,:]
+    _productDict = build_ProdDict(prod_vec)
     # allprods = sort(unique(j))
     # _productDict = Dict{Real, Array{Int}}()
     # for id in allprods
@@ -203,7 +205,8 @@ function ChoiceData(data_choice::DataFrame,
     rel_fe_Dict = Dict{Real,Array{Int64,1}}()
     for (id,idxitr) in _personDict
         F_t = view(F,:,idxitr)
-        pars_relevant = find(maximum(F_t,2))
+        any_positive = maximum(F_t,dims=2)[:,1]
+        pars_relevant = findall(any_positive .>0)
         rel_fe_Dict[id] = pars_relevant
     end
 
@@ -211,24 +214,25 @@ function ChoiceData(data_choice::DataFrame,
     println("Construct Risk Moments")
     _tMomentDict = Dict{Int,Array{Int64,1}}()
     moments = sort(unique(data_risk[:momentID]))
-    tMoments = Vector{Float64}(length(moments))
+    tMoments = Vector{Float64}(undef,length(moments))
     st_share = zeros(length(keys(_productDict)))
     for m in moments
-        _tMomentDict[m] = data_risk[:Product][find(data_risk[:momentID].==m)]
-        tMoments[m] = data_risk[:T_moment][find(data_risk[:momentID].==m)][1]
+        _tMomentDict[m] = data_risk[:Product][findall(data_risk[:momentID].==m)]
+        tMoments[m] = data_risk[:T_moment][findall(data_risk[:momentID].==m)][1]
     end
 
 
     _stDict = Dict{Int,Array{Int64,1}}()
     states = unique(data_risk[:ST])
     for s in states
-        _stDict[s] = unique(data_risk[:Product][find(data_risk[:ST].==s)])
+        _stDict[s] = unique(data_risk[:Product][findall(data_risk[:ST].==s)])
     end
 
-    for j in keys(_productDict)
-        idx = find(data_risk[:Product].==j)
+    for prod in keys(_productDict)
+        ind = Int(prod)
+        idx = findall(data_risk[:Product].==prod)
         if length(idx)>0
-            st_share[j] = data_risk[:st_share][idx[1]]
+            st_share[ind] = data_risk[:st_share][idx[1]]
         end
     end
 
@@ -243,18 +247,17 @@ function ChoiceData(data_choice::DataFrame,
     return m
 end
 
-function build_ProdDict{T,N}(j::Array{T,N})
+function build_ProdDict(j::Array{T,N}) where {T,N}
     allprods = unique(j)
     sort!(allprods)
     _productDict = Dict{Real, Array{Int64,1}}()
-
     for id in allprods
-        _productDict[id] = find(j.==id)
+        _productDict[id] = findall(j.==id)
     end
     return _productDict
 end
 
-function build_FE{T}(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false)
+function build_FE(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false) where T
     # Create Fixed Effects
     n, k = size(data_choice)
     L = 0
@@ -262,8 +265,8 @@ function build_FE{T}(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false)
     # No Fixed effects for empty lists
     if typeof(fe_list)!=Vector{Symbol}
         println("No Fixed Effects")
-        F = Matrix{Float64}(n,L)
-        feNames = Vector{Symbol}(0)
+        F = Matrix{Float64}(undef,n,L)
+        feNames = Vector{Symbol}(undef,0)
         return F,feNames
     end
 
@@ -290,7 +293,7 @@ function build_FE{T}(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false)
     end
 
     F = zeros(n,L)
-    feNames = Vector{Symbol}(0)
+    feNames = Vector{Symbol}(undef,0)
     ind = 1
     for fe in fe_list
         if fe==:constant
@@ -317,7 +320,7 @@ function build_FE{T}(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false)
                 continue
             end
 
-            F[fac_variables.==fac,ind] = 1
+            F[fac_variables.==fac,ind] .= 1
             ind+= 1
 
             feNames = vcat(feNames,Symbol(fac))
@@ -359,7 +362,7 @@ fixedEffects(m::ChoiceData,idx)= view(m.fixedEffects,:,idx)
 ########################################################################
 
 # Quickly Generate Subsets on People
-function subset{T<:ModelData}(d::T, idx)
+function subset(d::T, idx) where T<:ModelData
 
     data = d.data[:,idx]
     fixedEf = d.fixedEffects
@@ -401,7 +404,7 @@ end
 
 ########## People Iterator ###############
 # Define an Iterator Type
-type PersonIterator
+mutable struct PersonIterator
     data
     id
 end
@@ -413,21 +416,39 @@ function eachperson(m::ChoiceData)
     return PersonIterator(m, ids)
 end
 
-# Make it actually iterable
-start(itr::PersonIterator) = 1
-function next(itr::PersonIterator, state)
+# Iterate Code in 0.6
+# start(itr::PersonIterator) = 1
+# function next(itr::PersonIterator, state)
+#     # Get the current market
+#     id = itr.id[state]
+#
+#     # Find which indices to use
+#     idx = itr.data._personDict[id]
+#
+#     # Subset the data to just look at the current market
+#     submod = subset(itr.data, idx)
+#
+#     return submod, state + 1
+# end
+# done(itr::PersonIterator, state) = state > length(itr.id)
+
+function Base.iterate(iter::PersonIterator, state=1)
+
+    if state> length(iter.id)
+        return nothing
+    end
+
     # Get the current market
-    id = itr.id[state]
+    id = iter.id[state]
 
     # Find which indices to use
-    idx = itr.data._personDict[id]
+    idx = iter.data._personDict[id]
 
     # Subset the data to just look at the current market
-    submod = subset(itr.data, idx)
+    submod = subset(iter.data, idx)
 
-    return submod, state + 1
+    return (submod, state + 1)
 end
-done(itr::PersonIterator, state) = state > length(itr.id)
 
 
 ###########################################################
@@ -436,7 +457,7 @@ done(itr::PersonIterator, state) = state > length(itr.id)
 
 abstract type LogitModel end
 
-type InsuranceLogit <: LogitModel
+mutable struct InsuranceLogit <: LogitModel
     # Dictionary of Parameters and implied lengths
     parLength::Dict{Symbol, Int64}
     # ChoiceData struct
@@ -491,7 +512,7 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
 
     draws = MVHalton(haltonDim,1;scrambled=false)
     if riskscores
-        risk_draws = Matrix{Float64}(haltonDim,size(c_data.rMoments,1))
+        risk_draws = Matrix{Float64}(undef,haltonDim,size(c_data.rMoments,1))
         for mom in 1:size(c_data.rMoments,1)
             any = 1 - c_data.rMoments[mom,2]
             μ_risk = c_data.rMoments[mom,3]

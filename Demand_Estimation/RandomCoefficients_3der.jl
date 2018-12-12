@@ -17,7 +17,7 @@ function unPackChars(app::ChoiceData,d::InsuranceLogit)
     return ind, r_ind, r_ind_metal, S_ij, wgt, urate, idxitr, X_t, X_0_t, Z, F_t,risk_age
 end
 
-function unPackParChars{T}(p::parDict{T},idxitr::UnitRange{Int})
+function unPackParChars(p::parDict{T},idxitr::UnitRange{Int}) where T
     μ_ij = p.μ_ij[:,idxitr]
     δ    = p.δ[idxitr]
 
@@ -27,7 +27,7 @@ function unPackParChars{T}(p::parDict{T},idxitr::UnitRange{Int})
     return μ_ij,δ,s_hat
 end
 
-function sumShares!{T}(s_hat::Vector{T},ind::Float64)
+function sumShares!(s_hat::Vector{T},ind::Float64) where T
     # Fix possible computational error
     for k in eachindex(s_hat)
         if abs(s_hat[k])<=1e-300
@@ -48,29 +48,29 @@ function relPar(app::ChoiceData,d::InsuranceLogit,F_t::SubArray,ind::Float64)
     Q = d.parLength[:All]
     Q_0 = Q - size(F_t,1)
     ## Relevant Parameters for this observation
-    pars_relevant = vcat(1:Q_0,Q_0+app._rel_fe_Dict[ind])
+    pars_relevant = vcat(1:Q_0,Q_0 .+ app._rel_fe_Dict[ind])
 
     return pars_relevant
 end
 
-function preCalcμ{T}(μ_ij::Matrix{T},δ::Vector{T})
-    μ_ij_sums = 1.+μ_ij*δ
+function preCalcμ(μ_ij::Matrix{T},δ::Vector{T}) where T
+    μ_ij_sums = 1 .+μ_ij*δ
     # μ_ij_sums_sq = (μ_ij_sums).^2
     # μ_ij_sums_cu = (μ_ij_sums).^3
 
     return μ_ij_sums
 end
 
-function ll_Terms{N,T}(wgt::Array{Float64,N},S_ij::Array{Float64,N},urate::Array{Float64,N},
-                    s_hat::Vector{T},s_insured::T)
+function ll_Terms(wgt::Array{Float64,N},S_ij::Array{Float64,N},urate::Array{Float64,N},
+                    s_hat::Vector{T},s_insured::T) where {N,T}
     K = length(S_ij)
     ll_obs = 0.0
-    gll_t1 = Vector{T}(K)
-    gll_t2 = Vector{T}(K)
-    gll_t3 = Vector{T}(K)
-    gll_t4 = Vector{T}(K)
-    gll_t5 = Vector{T}(K)
-    gll_t6 = Vector{T}(K)
+    gll_t1 = Vector{T}(undef,K)
+    gll_t2 = Vector{T}(undef,K)
+    gll_t3 = Vector{T}(undef,K)
+    gll_t4 = Vector{T}(undef,K)
+    gll_t5 = Vector{T}(undef,K)
+    gll_t6 = Vector{T}(undef,K)
     for k in 1:K
         #Gradient Terms
         gll_t1[k] = wgt[k]*S_ij[k]*(1/s_hat[k])
@@ -88,16 +88,19 @@ function ll_Terms{N,T}(wgt::Array{Float64,N},S_ij::Array{Float64,N},urate::Array
 end
 
 
-function ll_obs_hessian!{T}(thD::Array{Float64,3},hess::Matrix{Float64},grad::Vector{Float64},
-                            app::ChoiceData,d::InsuranceLogit,p::parDict{T})
+function ll_obs_hessian!(thD::Array{Float64,3},hess::Matrix{Float64},grad::Vector{Float64},
+                            app::ChoiceData,d::InsuranceLogit,p::parDict{T}) where T
 
         ind, r_ind, r_ind_metal, S_ij, wgt, urate, idxitr, X_t, X_0_t, Z, F_t, r_age = unPackChars(app,d)
+        wgt = convert(Array{Float64,2},wgt)
+        S_ij = convert(Array{Float64,2},S_ij)
+        urate = convert(Array{Float64,2},urate)
 
         prodidx = Int.(product(app))
 
         draws = d.draws
-        non_zero_draws = find(d.draws[:,r_ind].>0)
-        zero_draws = find(d.draws[:,r_ind].==0)
+        non_zero_draws = findall(d.draws[:,r_ind].>0)
+        zero_draws = findall(d.draws[:,r_ind].==0)
         risk = draws[:,r_ind_metal]
         r_avg = p.r_hat[idxitr]
 
@@ -122,34 +125,34 @@ function ll_obs_hessian!{T}(thD::Array{Float64,3},hess::Matrix{Float64},grad::Ve
         #hess = zeros(Q,Q)
         #hess[:] = 0.0
         #grad[:] = 0.0
-        X_mat = Array{Float64}(N,K)
-        Y_list = Array{Array{Float64,2},1}(length(pars_relevant))
+        X_mat = Array{Float64}(undef,N,K)
+        Y_list = Array{Array{Float64,2},1}(undef,length(pars_relevant))
         #Y_mat = Array{Float64}(N,K)
 
         # Allocate Memory
-        dS_xyz = Vector{Float64}(K)
-        dS_xy = Vector{Float64}(K)
+        dS_xyz = Vector{Float64}(undef,K)
+        dS_xy = Vector{Float64}(undef,K)
         # dS_yz = Vector{Float64}(K)
         # dS_xz = Vector{Float64}(K)
 
-        dS_x = Vector{Float64}(K)
+        dS_x = Vector{Float64}(undef,K)
         # dS_y = Vector{Float64}(K)
         # dS_z = Vector{Float64}(K)
 
         # dS_x_list = Matrix{Float64}(K,length(pars_relevant))
-        dS_x_list = Vector{Vector{Float64}}(length(pars_relevant))
-        dS_x_all_list = Vector{Float64}(length(pars_relevant))
+        dS_x_list = Vector{Vector{Float64}}(undef,length(pars_relevant))
+        dS_x_all_list = Vector{Float64}(undef,length(pars_relevant))
 
         # dS_xy_list = Array{Array{Float64,1},2}(length(pars_relevant),length(pars_relevant))
         # dS_xy_list = Array{Float64,3}(K,length(pars_relevant),length(pars_relevant))
-        dS_xy_list = Array{Vector{Float64},2}(length(pars_relevant),length(pars_relevant))
-        dS_xy_all_list = Matrix{Float64}(length(pars_relevant),length(pars_relevant))
+        dS_xy_list = Array{Vector{Float64},2}(undef,length(pars_relevant),length(pars_relevant))
+        dS_xy_all_list = Matrix{Float64}(undef,length(pars_relevant),length(pars_relevant))
 
-        s_n = Vector{Float64}(K)
+        s_n = Vector{Float64}(undef,K)
 
-        dR_x = Vector{Float64}(K)
-        dR_x_list = Vector{Vector{Float64}}(length(pars_relevant))
-        dR_xy = Vector{Float64}(K)
+        dR_x = Vector{Float64}(undef,K)
+        dR_x_list = Vector{Vector{Float64}}(undef,length(pars_relevant))
+        dR_xy = Vector{Float64}(undef,K)
 
         #γlen = 1 + d.parLength[:γ]
         γlen = d.parLength[:γ]
@@ -274,7 +277,7 @@ function ll_obs_hessian!{T}(thD::Array{Float64,3},hess::Matrix{Float64},grad::Ve
     return ll_obs,pars_relevant
 end
 
-function combine_thD{T}(N::Int64,
+function combine_thD(N::Int64,
                     gll_t1::Vector{T},gll_t2::Vector{T},
                     gll_t3::Vector{T},gll_t4::Vector{T},
                     gll_t5::Vector{T},gll_t6::Vector{T},
@@ -283,7 +286,7 @@ function combine_thD{T}(N::Int64,
                     dS_x::Vector{T},dS_y::Vector{T},dS_z::Vector{T},
                     dS_xyz_all::T,
                     dS_xy_all::T,dS_xz_all::T,dS_yz_all::T,
-                    dS_x_all::T,dS_y_all::T,dS_z_all::T)
+                    dS_x_all::T,dS_y_all::T,dS_z_all::T) where T
     thD_obs = 0.0
     K = length(dS_xyz)
 
@@ -299,12 +302,12 @@ function combine_thD{T}(N::Int64,
 end
 
 
-function combine_hess{T}(N::Int64,
+function combine_hess(N::Int64,
                     gll_t1::Vector{T},gll_t2::Vector{T},
                     gll_t3::Vector{T},gll_t4::Vector{T},
                     dS_xy::Vector{T},dS_x::Vector{T},
                     dS_y::Vector{T},dS_xy_all::T,
-                    dS_x_all::T,dS_y_all::T)
+                    dS_x_all::T,dS_y_all::T) where T
     hess_obs = 0.0
     K = length(dS_xy)
 
@@ -315,11 +318,11 @@ function combine_hess{T}(N::Int64,
 end
 
 
-function combine_grad{T}(N::Int64,
+function combine_grad(N::Int64,
                     gll_t1::Vector{T},
                     gll_t3::Vector{T},
                     dS_x::Vector{T},
-                    dS_x_all::T)
+                    dS_x_all::T) where T
     grad_obs = 0.0
     K = length(dS_x)
 
@@ -328,11 +331,11 @@ function combine_grad{T}(N::Int64,
     end
     return grad_obs/N
 end
-function calc_derSums_xyz!{T}(n::Int64,s_n::Vector{T},
+function calc_derSums_xyz!(n::Int64,s_n::Vector{T},
                     X_mat::Matrix{Float64},Y::Matrix{Float64},
                     Z::Matrix{Float64},
                     μ_ij::Matrix{T},δ::Vector{T},
-                    μ_ij_sums_n::T)
+                    μ_ij_sums_n::T) where T
 
     dμ_ij_x_sums = 0.0
     dμ_ij_y_sums = 0.0
@@ -364,10 +367,10 @@ function calc_derSums_xyz!{T}(n::Int64,s_n::Vector{T},
     return dμ_ij_x_sums, dμ_ij_y_sums, dμ_ij_z_sums,dμ_ij_xy_sums,dμ_ij_xz_sums,dμ_ij_yz_sums,dμ_ij_xyz_sums
 end
 
-function calc_derSums_xy!{T}(n::Int64,s_n::Vector{T},
+function calc_derSums_xy!(n::Int64,s_n::Vector{T},
                     X_mat::Matrix{Float64},Y::Matrix{Float64},
                     μ_ij::Matrix{T},δ::Vector{T},
-                    μ_ij_sums_n::T)
+                    μ_ij_sums_n::T) where T
 
     dμ_ij_x_sums = 0.0
     dμ_ij_y_sums = 0.0
@@ -388,10 +391,10 @@ function calc_derSums_xy!{T}(n::Int64,s_n::Vector{T},
     return dμ_ij_x_sums, dμ_ij_y_sums, dμ_ij_xy_sums
 end
 
-function calc_derSums_x!{T}(n::Int64,s_n::Vector{T},
+function calc_derSums_x!(n::Int64,s_n::Vector{T},
                     X_mat::Matrix{Float64},
                     μ_ij::Matrix{T},δ::Vector{T},
-                    μ_ij_sums_n::T)
+                    μ_ij_sums_n::T) where T
 
     dμ_ij_x_sums = 0.0
 
@@ -482,13 +485,13 @@ function calc_prodTerms_xy!(n::Int64,N::Int64,dS_xy::Vector{Float64},
     end
 end
 
-function calc_prodTerms_x!{T}(n::Int64,
+function calc_prodTerms_x!(n::Int64,
                         dS_x::Vector{T},
                         dR::Vector{T},risk::Matrix{Float64},
                         risk_age::Vector{Float64},
                         X_mat::Matrix{Float64},
                         s_n::Vector{T},
-                        Γ_x::T)
+                        Γ_x::T) where T
 
     K = length(dS_x)
     for k in 1:K
@@ -498,13 +501,13 @@ function calc_prodTerms_x!{T}(n::Int64,
     end
 end
 
-function calc_prodTerms_x!{T}(n::Int64,N::Int64,
+function calc_prodTerms_x!(n::Int64,N::Int64,
                         dS_x::Vector{T},
                         dR::Vector{T},risk::Matrix{Float64},
                         risk_age::Vector{Float64},
                         X_mat::Matrix{Float64},
                         s_n::Vector{T},
-                        Γ_x::T)
+                        Γ_x::T) where T
 
     K = length(dS_x)
     for k in 1:K
@@ -524,8 +527,8 @@ function hess_calc!(dS_xy::Vector{Float64},s_n::Vector{Float64},
                     μ_ij::Matrix{Float64},δ::Vector{Float64},
                     X_mat::Matrix{Float64},Y::Matrix{Float64},
                     μ_ij_sums::Vector{Float64})
-    dS_xy[:] = 0.0
-    dR[:] = 0.0
+    dS_xy[:] .= 0.0
+    dR[:] .= 0.0
 
     dS_xy_all = 0.0
 
@@ -573,7 +576,7 @@ function thD_calc!(dS_xyz::Vector{Float64},s_n::Vector{Float64},
                     μ_ij::Matrix{Float64},δ::Vector{Float64},
                     X_mat::Matrix{Float64},Y::Matrix{Float64},Z::Matrix{Float64},
                     μ_ij_sums::Vector{Float64})
-    dS_xyz[:] = 0.0
+    dS_xyz[:] .= 0.0
 
     dS_xyz_all = 0.0
 
@@ -625,18 +628,18 @@ function thD_calc!(dS_xyz::Vector{Float64},s_n::Vector{Float64},
 end
 
 
-function grad_calc!{T}(dS_x::Vector{T},
+function grad_calc!(dS_x::Vector{T},
                     s_n::Vector{T},
                     zero_draws::Vector{Int},non_zero_draws::Vector{Int},
                     dR::Vector{T},risk::Matrix{Float64},
                     risk_age::Vector{Float64},
                     μ_ij::Matrix{T},δ::Vector{T},
                     X_mat::Matrix{Float64},
-                    μ_ij_sums::Vector{T})
+                    μ_ij_sums::Vector{T}) where T
 
-    dS_x[:] = 0.0
+    dS_x[:] .= 0.0
     dS_x_all = 0.0
-    dR[:] = 0.0
+    dR[:] .= 0.0
 
     (N,K) = size(μ_ij)
 
@@ -689,9 +692,9 @@ function returnParameter!(q::Int64,X_mat::Matrix{Float64},
                         γlen::Int64,β0len::Int64,βlen::Int64,σlen::Int64)
     (N,K) = size(X_mat)
     if q<0
-        X_mat[:] = 1.0
+        X_mat[:] .= 1.0
     elseif q<=γlen
-        X_mat[:] = Z[q]
+        X_mat[:] .= Z[q]
     elseif q<=β0len
         for n in 1:N
             @inbounds X_mat[n,:] = X_0_t[q-γlen,:]
@@ -712,19 +715,22 @@ function returnParameter!(q::Int64,X_mat::Matrix{Float64},
             @inbounds X_mat[n,:] = F_t[q-σlen,:]
         end
     end
-    return Void
+    return Nothing
 end
 
-function ll_obs_hessian!{T}(hess::Matrix{Float64},grad::Vector{Float64},
-                            app::ChoiceData,d::InsuranceLogit,p::parDict{T})
+function ll_obs_hessian!(hess::Matrix{Float64},grad::Vector{Float64},
+                            app::ChoiceData,d::InsuranceLogit,p::parDict{T}) where T
 
         ind, r_ind, r_ind_metal, S_ij, wgt, urate, idxitr, X_t, X_0_t, Z, F_t, r_age = unPackChars(app,d)
+        wgt = convert(Array{Float64,2},wgt)
+        S_ij = convert(Array{Float64,2},S_ij)
+        urate = convert(Array{Float64,2},urate)
 
         prodidx = Int.(product(app))
 
         draws = d.draws
-        non_zero_draws = find(d.draws[:,r_ind].>0)
-        zero_draws = find(d.draws[:,r_ind].==0)
+        non_zero_draws = findall(d.draws[:,r_ind].>0)
+        zero_draws = findall(d.draws[:,r_ind].==0)
         risk = draws[:,r_ind_metal]
         r_avg = p.r_hat[idxitr]
 
@@ -749,34 +755,34 @@ function ll_obs_hessian!{T}(hess::Matrix{Float64},grad::Vector{Float64},
         #hess = zeros(Q,Q)
         #hess[:] = 0.0
         #grad[:] = 0.0
-        X_mat = Array{Float64}(N,K)
-        Y_list = Array{Array{Float64,2},1}(length(pars_relevant))
+        X_mat = Array{Float64}(undef,N,K)
+        Y_list = Array{Array{Float64,2},1}(undef,length(pars_relevant))
         #Y_mat = Array{Float64}(N,K)
 
         # Allocate Memory
-        dS_xyz = Vector{Float64}(K)
-        dS_xy = Vector{Float64}(K)
+        dS_xyz = Vector{Float64}(undef,K)
+        dS_xy = Vector{Float64}(undef,K)
         # dS_yz = Vector{Float64}(K)
         # dS_xz = Vector{Float64}(K)
 
-        dS_x = Vector{Float64}(K)
+        dS_x = Vector{Float64}(undef,K)
         # dS_y = Vector{Float64}(K)
         # dS_z = Vector{Float64}(K)
 
         # dS_x_list = Matrix{Float64}(K,length(pars_relevant))
-        dS_x_list = Vector{Vector{Float64}}(length(pars_relevant))
-        dS_x_all_list = Vector{Float64}(length(pars_relevant))
+        dS_x_list = Vector{Vector{Float64}}(undef,length(pars_relevant))
+        dS_x_all_list = Vector{Float64}(undef,length(pars_relevant))
 
         # dS_xy_list = Array{Array{Float64,1},2}(length(pars_relevant),length(pars_relevant))
         # dS_xy_list = Array{Float64,3}(K,length(pars_relevant),length(pars_relevant))
-        dS_xy_list = Array{Vector{Float64},2}(length(pars_relevant),length(pars_relevant))
-        dS_xy_all_list = Matrix{Float64}(length(pars_relevant),length(pars_relevant))
+        dS_xy_list = Array{Vector{Float64},2}(undef,length(pars_relevant),length(pars_relevant))
+        dS_xy_all_list = Matrix{Float64}(undef,length(pars_relevant),length(pars_relevant))
 
-        s_n = Vector{Float64}(K)
+        s_n = Vector{Float64}(undef,K)
 
-        dR_x = Vector{Float64}(K)
-        dR_x_list = Vector{Vector{Float64}}(length(pars_relevant))
-        dR_xy = Vector{Float64}(K)
+        dR_x = Vector{Float64}(undef,K)
+        dR_x_list = Vector{Vector{Float64}}(undef,length(pars_relevant))
+        dR_xy = Vector{Float64}(undef,K)
 
         #γlen = 1 + d.parLength[:γ]
         γlen = d.parLength[:γ]

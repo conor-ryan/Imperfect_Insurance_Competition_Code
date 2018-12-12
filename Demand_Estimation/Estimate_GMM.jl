@@ -1,22 +1,22 @@
 using NLopt
 using ForwardDiff
 
-function GMM_objective!{T}(obj_grad::Vector{Float64},d::InsuranceLogit,p0::Array{T},W::Matrix{Float64})
-    grad = Vector{Float64}(length(p0))
-    hess = Matrix{Float64}(length(p0),length(p0))
+function GMM_objective!(obj_grad::Vector{Float64},d::InsuranceLogit,p0::Array{T},W::Matrix{Float64}) where T
+    grad = Vector{Float64}(undef,length(p0))
+    hess = Matrix{Float64}(undef,length(p0),length(p0))
     par0 = parDict(d,p0)
     ll = log_likelihood!(hess,grad,d,par0)
 
-    mom_grad = Matrix{Float64}(length(p0),length(d.data.tMoments))
+    mom_grad = Matrix{Float64}(undef,length(p0),length(d.data.tMoments))
     mom = calc_risk_moments!(mom_grad,d,par0)
 
-    moments = vcat(mom,grad)
-    moments_grad = hcat(mom_grad,hess)
+    # moments = vcat(mom,grad)
+    # moments_grad = hcat(mom_grad,hess)
 
     #W = eye(length(d.data.tMoments)+length(p0))
 
-    # moments = grad
-    # moments_grad = hess
+    moments = grad
+    moments_grad = hess
     #
     # W = eye(length(p0))
     obj = 0.0
@@ -24,7 +24,7 @@ function GMM_objective!{T}(obj_grad::Vector{Float64},d::InsuranceLogit,p0::Array
         obj+= W[i,j]*moments[j]*moments[i]
     end
 
-    obj_grad[:] = 0.0
+    obj_grad[:] .= 0.0
     for k in 1:length(p0),i in 1:length(moments), j in 1:length(moments)
         obj_grad[k]+= W[i,j]*(moments[j]*moments_grad[k,i] + moments[i]*moments_grad[k,j])
     end
@@ -37,38 +37,22 @@ function GMM_objective!{T}(obj_grad::Vector{Float64},d::InsuranceLogit,p0::Array
     return obj
 end
 
-function GMM_objective{T}(d::InsuranceLogit,p0::Array{T})
-    par0 = parDict(d,p0)
-    grad = Vector{T}(length(p0))
-    ll = log_likelihood!(grad,d,par0)
-    mom = calc_risk_moments(d,par0)
 
-    moments = vcat(grad,mom)
-    W = eye(length(d.data.tMoments)+length(p0))
-
-    # moments = grad
-    # W = eye(length(p0))
-
-    obj = moments'*W*moments
-    return obj
-end
-
-function GMM_objective!{T}(obj_hess::Matrix{Float64},obj_grad::Vector{Float64},d::InsuranceLogit,p0::Array{T},W::Matrix{Float64})
-    grad = Vector{Float64}(length(p0))
-    hess = Matrix{Float64}(length(p0),length(p0))
-    thD = Array{Float64,3}(length(p0),length(p0),length(p0))
+function GMM_objective!(obj_hess::Matrix{Float64},obj_grad::Vector{Float64},d::InsuranceLogit,p0::Array{T},W::Matrix{Float64}) where T
+    grad = Vector{Float64}(undef,length(p0))
+    hess = Matrix{Float64}(undef,length(p0),length(p0))
+    thD = Array{Float64,3}(undef,length(p0),length(p0),length(p0))
     par0 = parDict(d,p0)
     ll = log_likelihood!(thD,hess,grad,d,par0)
 
 
-#
-    # mom_grad = Matrix{Float64}(length(p0),length(d.data.tMoments))
-    # mom_hess = Array{Float64,3}(length(p0),length(p0),length(d.data.tMoments))
+    # mom_grad = Matrix{Float64}(undef,length(p0),length(d.data.tMoments))
+    # mom_hess = Array{Float64,3}(undef,length(p0),length(p0),length(d.data.tMoments))
     # mom = calc_risk_moments!(mom_hess,mom_grad,d,par0)
     #
     # moments = vcat(mom,grad)
     # moments_grad = hcat(mom_grad,hess)
-    # moments_hess = cat(3,mom_hess,thD)
+    # moments_hess = cat(mom_hess,thD,dims=3)
     moments = grad
     moments_grad = hess
     moments_hess = thD
@@ -81,7 +65,35 @@ function GMM_objective!{T}(obj_hess::Matrix{Float64},obj_grad::Vector{Float64},d
     return obj
 end
 
-function calc_GMM_Obj{T}(moments::Vector{T},W::Matrix{Float64})
+function GMM_objective(d::InsuranceLogit,p0::Array{T},W::Matrix{Float64}) where T
+    par0 = parDict(d,p0)
+    grad = Vector{T}(undef,length(p0))
+    ll = log_likelihood!(grad,d,par0)
+    # individual_values!(d,par0)
+    # individual_shares(d,par0)
+    mom = calc_risk_moments(d,par0)
+
+    # moments = vcat(mom,grad)
+    moments = grad
+    obj = calc_GMM_Obj(moments,W)
+    return obj
+end
+
+function GMM_objective(d::InsuranceLogit,
+                    p_small::Array{T,1},p0::Array{Float64},
+                    W::Matrix{Float64}) where T
+    L = length(p_small)
+    p_vec = Vector{T}(undef,length(p0))
+    # p_vec[(length(p0)-L+1):length(p0)] = p_small[:]
+    # p_vec[1:(length(p0)-L)] = p0[1:(length(p0)-L)]
+    p_vec[1:L] = p_small[:]
+    p_vec[(L+1):length(p0)] = p0[(L+1):length(p0)]
+
+    obj = GMM_objective(d,p_vec,W)
+    return obj
+end
+
+function calc_GMM_Obj(moments::Vector{T},W::Matrix{Float64}) where T
     obj = 0.0
     for i in 1:length(moments), j in 1:length(moments)
         obj+= W[i,j]*moments[j]*moments[i]
@@ -94,7 +106,7 @@ function calc_GMM_Grad!(obj_grad::Vector{Float64},
                     moments_grad::Matrix{Float64},
                     W::Matrix{Float64})
     Q = length(obj_grad)
-    obj_grad[:] = 0.0
+    obj_grad[:] .= 0.0
     for k in 1:Q,i in 1:length(moments), j in 1:length(moments)
         obj_grad[k]+= W[i,j]*(moments[j]*moments_grad[k,i] + moments[i]*moments_grad[k,j])
     end
@@ -105,12 +117,17 @@ function calc_GMM_Hess!(obj_hess::Matrix{Float64},
                     moments_grad::Matrix{Float64},
                     moments_hess::Array{Float64,3},
                     W::Matrix{Float64})
-    obj_hess[:] = 0.0
+    obj_hess[:] .= 0.0
     Q,K = size(obj_hess)
-    for k in 1:Q
+    for k in 1:30
+        println(k)
         for l in 1:k
-            for i in 1:length(moments), j in 1:length(moments)
-                @inbounds @fastmath obj_hess[k,l]+= W[i,j]*(moments[i]*moments_hess[k,l,j] + moments[j]*moments_hess[k,l,i] + moments_grad[k,i]*moments_grad[l,j] + moments_grad[l,i]*moments_grad[k,j])
+            for i in 1:length(moments)
+                # @inbounds @fastmath @simd
+                for j in 1:length(moments)
+                    # obj_hess[k,l]+= W[i,j]*(moments[i]*moments_hess[k,l,j] + moments[j]*moments_hess[k,l,i] + moments_grad[k,i]*moments_grad[l,j] + moments_grad[l,i]*moments_grad[k,j])
+                    obj_hess[k,l]+= 2*W[i,j]*(moments[i]*moments_hess[k,l,j])
+                end
             end
             if l<k
                 obj_hess[l,k]=obj_hess[k,l]
@@ -119,32 +136,29 @@ function calc_GMM_Hess!(obj_hess::Matrix{Float64},
     end
 end
 
-function GMM_objective{T}(d::InsuranceLogit,p0::Array{T},W::Matrix{Float64})
-    par0 = parDict(d,p0)
-    grad = Vector{T}(length(p0))
-    ll = log_likelihood!(grad,d,par0)
-    # individual_values!(d,par0)
-    # individual_shares(d,par0)
-    mom = calc_risk_moments(d,par0)
-
-    moments = vcat(mom,grad)
-    # moments = grad
-    obj = calc_GMM_Obj(moments,W)
-    return obj
-end
-
-function GMM_objective{T}(d::InsuranceLogit,
-                    p_small::Array{T,1},p0::Array{Float64},
+function calc_GMM_Hess_Large!(obj_hess::Matrix{Float64},
+                    moments::Vector{Float64},
+                    moments_grad::Matrix{Float64},
+                    moments_hess::Array{Float64,3},
                     W::Matrix{Float64})
-    L = length(p_small)
-    p_vec = Vector{T}(length(p0))
-    # p_vec[(length(p0)-L+1):length(p0)] = p_small[:]
-    # p_vec[1:(length(p0)-L)] = p0[1:(length(p0)-L)]
-    p_vec[1:L] = p_small[:]
-    p_vec[(L+1):length(p0)] = p0[(L+1):length(p0)]
-
-    obj = GMM_objective(d,p_vec,W)
-    return obj
+    hess_vec = W*moments
+    obj_hess[:] .= 0.0
+    Q,K = size(obj_hess)
+    for k in 1:30
+        println(k)
+        for l in 1:k
+            for i in 1:length(moments)
+                # @inbounds @fastmath @simd
+                for j in 1:length(moments)
+                    # obj_hess[k,l]+= W[i,j]*(moments[i]*moments_hess[k,l,j] + moments[j]*moments_hess[k,l,i] + moments_grad[k,i]*moments_grad[l,j] + moments_grad[l,i]*moments_grad[k,j])
+                    obj_hess[k,l]+= 2*W[i,j]*(moments[i]*moments_hess[k,l,j])
+                end
+            end
+            if l<k
+                obj_hess[l,k]=obj_hess[k,l]
+            end
+        end
+    end
 end
 
 function estimate_GMM!(d::InsuranceLogit, p0::Vector{Float64},W::Matrix{Float64};method=:LN_NELDERMEAD)
@@ -186,7 +200,7 @@ function estimate_GMM!(d::InsuranceLogit, p0::Vector{Float64},W::Matrix{Float64}
         println("Iteration $count at $x_displ")
         #obj = ll(x)
         obj = gmm_grad!(grad,x)
-        grad_size = sqrt(vecdot(grad,grad))
+        grad_size = sqrt(dot(grad,grad))
         println("Gradient size equals $grad_size")
         #ForwardDiff.gradient!(grad, gmm, x)
 
@@ -240,7 +254,7 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
 
     # Initialize Gradient
     grad_new = similar(p0)
-    hess_new = Matrix{Float64}(length(p0),length(p0))
+    hess_new = Matrix{Float64}(undef,length(p0),length(p0))
     f_final_val = 0.0
     max_trial_cnt = 0
     ga_cnt = 0
@@ -253,7 +267,7 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
         fval = GMM_objective!(hess_new,grad_new,d,p_vec,W)
 
 
-        grad_size = sqrt(vecdot(grad_new,grad_new))
+        grad_size = sqrt(dot(grad_new,grad_new))
         if (grad_size<1e-8) & (count>10)
             println("Got to Break Point...?")
             println(grad_size)
@@ -278,6 +292,11 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
             grad_size = 1
             continue
         end
+
+        evals = eigvals(hess_new)
+        min_e = minimum(evals)
+        max_e = maximum(evals)
+        println("Eiganvalues range from $min_e to $max_e")
 
 
         p_test = p_vec .+ step
@@ -362,7 +381,7 @@ function gradient_ascent_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
 
     # Initialize Gradient
     grad_new = similar(p0)
-    hess_new = Matrix{Float64}(length(p0),length(p0))
+    hess_new = Matrix{Float64}(undef,length(p0),length(p0))
     f_final_val = 0.0
     max_trial_cnt = 0
     p_last = p_vec
@@ -376,7 +395,7 @@ function gradient_ascent_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
         fval = GMM_objective!(grad_new,d,p_vec,W)
 
 
-        grad_size = sqrt(vecdot(grad_new,grad_new))
+        grad_size = sqrt(dot(grad_new,grad_new))
         if (grad_size<1e-8) & (count>10)
             println("Got to Break Point...?")
             println(grad_size)

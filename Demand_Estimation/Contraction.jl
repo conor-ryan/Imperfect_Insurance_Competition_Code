@@ -1,4 +1,4 @@
-function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
+function contraction!(d::InsuranceLogit,p::parDict{T};update::Bool=true) where T
     # Contraction...
     rnd = 0
     eps0 = 1
@@ -25,8 +25,8 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
         αn = vecdot(r0,r0)/vecdot(r0,vn)
         #αn3 = -vecdot(r0,r0)/vecdot(vn,vn)
 
-        chg = - 2*αn.*r0 + αn^2.*vn
-        δ_new = δ_init.*exp.(chg)
+        chg = - 2*αn .*r0 + αn^2 .*vn
+        δ_new = δ_init .*exp.(chg)
         #δ_new = δ_init - αn.*r0
         if rnd % 2==0
             #println(eps0)
@@ -59,7 +59,7 @@ function contraction!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
     individual_shares(d,p)
 end
 
-function contraction!{T}(d::InsuranceLogit,p_vec::Array{T,1};update::Bool=true)
+function contraction!(d::InsuranceLogit,p_vec::Array{T,1};update::Bool=true) where T
     p = parDict(d,p_vec)
     return contraction!(d,p,update=update)
 end
@@ -80,7 +80,7 @@ end
 
 function convert_δ!(d::InsuranceLogit)
     J = length(d.deltas)
-    deltas_new = Array{Float64}(J)
+    deltas_new = Array{Float64}(undef,J)
     for j in d.prods
         if isnan(d.deltas[j])
             deltas_new[j] = 1.0
@@ -89,18 +89,18 @@ function convert_δ!(d::InsuranceLogit)
         end
     end
     d.deltas = deltas_new
-    return Void
+    return Nothing
 end
 
 
 # Update δ
-@views sliceMean{T}(x::Vector{T},idx::Array{Int64,1}) = mean(x[idx])
-@views function sliceMean_wgt{T,S}(x::Vector{T},w::Vector{S},idx::Array{Int64,1})
+@views sliceMean(x::Vector{T},idx::Array{Int64,1}) where T = mean(x[idx])
+@views function sliceMean_wgt(x::Vector{T},w::Vector{S},idx::Array{Int64,1}) where {T,S}
     wgts = w[idx]
     return sum(x[idx].*wgts)/sum(wgts)
 end
 
-function δ_update!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
+function δ_update!(d::InsuranceLogit,p::parDict{T};update::Bool=true) where T
     # Calculate overall marketshares and update δ_j
     eps = 0.0
     J = length(d.deltas)
@@ -126,7 +126,7 @@ function δ_update!{T}(d::InsuranceLogit,p::parDict{T};update::Bool=true)
 end
 
 
-function unpack_δ!{T}(δ::Vector{T},d::InsuranceLogit)
+function unpack_δ!(δ::Vector{T},d::InsuranceLogit) where T
     for j in d.prods
         idx_j = d.data._productDict[j]
         for idx in idx_j
@@ -137,5 +137,5 @@ function unpack_δ!{T}(δ::Vector{T},d::InsuranceLogit)
             end
         end
     end
-    return Void
+    return Nothing
 end

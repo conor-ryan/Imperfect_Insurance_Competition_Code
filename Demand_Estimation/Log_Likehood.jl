@@ -2,7 +2,7 @@ using NLopt
 using ForwardDiff
 
 # Calculate Log Likelihood
-function log_likelihood{T}(d::InsuranceLogit,p::parDict{T};cont_flag=false)
+function log_likelihood(d::InsuranceLogit,p::parDict{T};cont_flag=false) where T
     ll = 0.0
     Pop = 0.0
     #α = p.α[1]
@@ -50,10 +50,10 @@ function log_likelihood{T}(d::InsuranceLogit,p::parDict{T};cont_flag=false)
     return ll/Pop
 end
 
-function log_likelihood!{T}(grad::Vector{T},d::InsuranceLogit,p::parDict{T};cont_flag = false)
+function log_likelihood!(grad::Vector{T},d::InsuranceLogit,p::parDict{T};cont_flag = false) where T
     Q = d.parLength[:All]
     N = size(d.draws,1)
-    grad[:] = 0.0
+    grad[:] .= 0.0
     ll = 0.0
     Pop =sum(weight(d.data).*choice(d.data))
 
@@ -88,14 +88,14 @@ end
 
 
 
-function log_likelihood{T}(d::InsuranceLogit,p::Array{T};cont_flag=false)
+function log_likelihood(d::InsuranceLogit,p::Array{T};cont_flag=false) where T
     params = parDict(d,p)
     ll = log_likelihood(d,params,cont_flag = cont_flag)
     convert_δ!(d)
     return ll
 end
 
-function log_likelihood!{T}(grad::Vector{Float64},d::InsuranceLogit,p::Array{T};cont_flag=false)
+function log_likelihood!(grad::Vector{Float64},d::InsuranceLogit,p::Array{T};cont_flag=false) where T
     params = parDict(d,p)
     ll = log_likelihood!(grad,d,params,cont_flag = cont_flag)
     convert_δ!(d)
@@ -105,7 +105,7 @@ end
 
 # Calculate Standard Errors
 # Hiyashi, p. 491
-function calc_Avar{T}(d::InsuranceLogit,p::parDict{T})
+function calc_Avar(d::InsuranceLogit,p::parDict{T}) where T
     # Calculate μ_ij, which depends only on parameters
     individual_values!(d,p)
     individual_shares(d,p)
@@ -128,16 +128,16 @@ end
 
 
 
-function log_likelihood!{T}(hess::Matrix{Float64},grad::Vector{Float64},
-                            d::InsuranceLogit,p::parDict{T};cont_flag::Bool=false)
+function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
+                            d::InsuranceLogit,p::parDict{T};cont_flag::Bool=false) where T
     Q = d.parLength[:All]
     N = size(d.draws,1)
-    hess[:] = 0.0
-    grad[:] = 0.0
+    hess[:] .= 0.0
+    grad[:] .= 0.0
     ll = 0.0
     Pop =sum(weight(d.data).*choice(d.data))
-    hess_obs = Matrix{Float64}(Q,Q)
-    grad_obs = Vector{Float64}(Q)
+    hess_obs = Matrix{Float64}(undef,Q,Q)
+    grad_obs = Vector{Float64}(undef,Q)
 
     if cont_flag
         contraction!(d,p)
@@ -187,8 +187,8 @@ function add_obs_mat!(hess::Matrix{Float64},grad::Vector{Float64},
 end
 
 
-function log_likelihood!{T}(hess::Matrix{Float64},grad::Vector{Float64},
-                            d::InsuranceLogit,p::Array{T})
+function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
+                            d::InsuranceLogit,p::Array{T}) where T
     params = parDict(d,p)
     ll = log_likelihood!(hess,grad,d,params)
     convert_δ!(d)
@@ -197,23 +197,23 @@ end
 
 
 
-function log_likelihood!{T}(thD::Array{Float64,3},
+function log_likelihood!(thD::Array{Float64,3},
                             hess::Matrix{Float64},grad::Vector{Float64},
-                            d::InsuranceLogit,p::parDict{T};cont_flag::Bool=false)
+                            d::InsuranceLogit,p::parDict{T};cont_flag::Bool=false) where T
     Q = d.parLength[:All]
     N = size(d.draws,1)
 
-    thD[:] = 0.0
-    hess[:] = 0.0
-    grad[:] = 0.0
+    thD[:] .= 0.0
+    hess[:] .= 0.0
+    grad[:] .= 0.0
     ll = 0.0
     Pop =sum(weight(d.data).*choice(d.data))
 
     #Reset Derivatives
-    p.dSdθ_j[:] = 0.0
-    p.dRdθ_j[:] = 0.0
-    p.d2Sdθ_j[:] = 0.0
-    p.d2Rdθ_j[:] = 0.0
+    p.dSdθ_j[:] .= 0.0
+    p.dRdθ_j[:] .= 0.0
+    p.d2Sdθ_j[:] .= 0.0
+    p.d2Rdθ_j[:] .= 0.0
 
     # thD_obs = Array{Float64,3}(Q,Q,Q)
     # hess_obs = Matrix{Float64}(Q,Q)
@@ -256,9 +256,9 @@ function log_likelihood!{T}(thD::Array{Float64,3},
     return ll/Pop
 end
 
-function log_likelihood!{T}(thD::Array{Float64,3},
+function log_likelihood!(thD::Array{Float64,3},
                             hess::Matrix{Float64},grad::Vector{Float64},
-                            d::InsuranceLogit,p::Array{T})
+                            d::InsuranceLogit,p::Array{T}) where T
     params = parDict(d,p)
     ll = log_likelihood!(thD,hess,grad,d,params)
     convert_δ!(d)
