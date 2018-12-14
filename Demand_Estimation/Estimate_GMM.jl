@@ -10,25 +10,27 @@ function GMM_objective!(obj_grad::Vector{Float64},d::InsuranceLogit,p0::Array{T}
     mom_grad = Matrix{Float64}(undef,length(p0),length(d.data.tMoments))
     mom = calc_risk_moments!(mom_grad,d,par0)
 
-    # moments = vcat(mom,grad)
-    # moments_grad = hcat(mom_grad,hess)
+    moments = vcat(mom,grad)
+    moments_grad = hcat(mom_grad,hess)
 
     #W = eye(length(d.data.tMoments)+length(p0))
 
-    moments = grad
-    moments_grad = hess
+    # moments = grad
+    # moments_grad = hess
     #
     # W = eye(length(p0))
-    obj = 0.0
-    for i in 1:length(moments), j in 1:length(moments)
-        obj+= W[i,j]*moments[j]*moments[i]
-    end
+    # obj = 0.0
+    # for i in 1:length(moments), j in 1:length(moments)
+    #     obj+= W[i,j]*moments[j]*moments[i]
+    # end
+    #
+    # obj_grad[:] .= 0.0
+    # for k in 1:length(p0),i in 1:length(moments), j in 1:length(moments)
+    #     obj_grad[k]+= W[i,j]*(moments[j]*moments_grad[k,i] + moments[i]*moments_grad[k,j])
+    # end
+    obj = calc_GMM_Obj(moments,W)
 
-    obj_grad[:] .= 0.0
-    for k in 1:length(p0),i in 1:length(moments), j in 1:length(moments)
-        obj_grad[k]+= W[i,j]*(moments[j]*moments_grad[k,i] + moments[i]*moments_grad[k,j])
-    end
-
+    calc_GMM_Grad!(obj_grad,moments,moments_grad,W)
 
     # obj = moments'*W*moments
     #
@@ -46,16 +48,16 @@ function GMM_objective!(obj_hess::Matrix{Float64},obj_grad::Vector{Float64},d::I
     ll = log_likelihood!(thD,hess,grad,d,par0)
 
 
-    # mom_grad = Matrix{Float64}(undef,length(p0),length(d.data.tMoments))
-    # mom_hess = Array{Float64,3}(undef,length(p0),length(p0),length(d.data.tMoments))
-    # mom = calc_risk_moments!(mom_hess,mom_grad,d,par0)
-    #
-    # moments = vcat(mom,grad)
-    # moments_grad = hcat(mom_grad,hess)
-    # moments_hess = cat(mom_hess,thD,dims=3)
-    moments = grad
-    moments_grad = hess
-    moments_hess = thD
+    mom_grad = Matrix{Float64}(undef,length(p0),length(d.data.tMoments))
+    mom_hess = Array{Float64,3}(undef,length(p0),length(p0),length(d.data.tMoments))
+    mom = calc_risk_moments!(mom_hess,mom_grad,d,par0)
+
+    moments = vcat(mom,grad)
+    moments_grad = hcat(mom_grad,hess)
+    moments_hess = cat(mom_hess,thD,dims=3)
+    # moments = grad
+    # moments_grad = hess
+    # moments_hess = thD
 
     obj = calc_GMM_Obj(moments,W)
 
@@ -73,8 +75,8 @@ function GMM_objective(d::InsuranceLogit,p0::Array{T},W::Matrix{Float64}) where 
     # individual_shares(d,par0)
     mom = calc_risk_moments(d,par0)
 
-    # moments = vcat(mom,grad)
-    moments = grad
+    moments = vcat(mom,grad)
+    # moments = grad
     obj = calc_GMM_Obj(moments,W)
     return obj
 end
@@ -119,14 +121,11 @@ function calc_GMM_Hess!(obj_hess::Matrix{Float64},
                     W::Matrix{Float64})
     obj_hess[:] .= 0.0
     Q,K = size(obj_hess)
-    for k in 1:30
-        println(k)
+    for k in 1:Q
         for l in 1:k
             for i in 1:length(moments)
-                # @inbounds @fastmath @simd
-                for j in 1:length(moments)
-                    # obj_hess[k,l]+= W[i,j]*(moments[i]*moments_hess[k,l,j] + moments[j]*moments_hess[k,l,i] + moments_grad[k,i]*moments_grad[l,j] + moments_grad[l,i]*moments_grad[k,j])
-                    obj_hess[k,l]+= 2*W[i,j]*(moments[i]*moments_hess[k,l,j])
+                @inbounds @fastmath @simd for j in 1:length(moments)
+                    obj_hess[k,l]+= W[i,j]*(moments[i]*moments_hess[k,l,j] + moments[j]*moments_hess[k,l,i] + moments_grad[k,i]*moments_grad[l,j] + moments_grad[l,i]*moments_grad[k,j])
                 end
             end
             if l<k
@@ -142,18 +141,15 @@ function calc_GMM_Hess_Large!(obj_hess::Matrix{Float64},
                     moments_hess::Array{Float64,3},
                     W::Matrix{Float64})
     hess_vec = W*moments
+    grad_mat = moments_grad*W*transpose(moments_grad)
     obj_hess[:] .= 0.0
     Q,K = size(obj_hess)
-    for k in 1:30
-        println(k)
+    for k in 1:Q
         for l in 1:k
             for i in 1:length(moments)
-                # @inbounds @fastmath @simd
-                for j in 1:length(moments)
-                    # obj_hess[k,l]+= W[i,j]*(moments[i]*moments_hess[k,l,j] + moments[j]*moments_hess[k,l,i] + moments_grad[k,i]*moments_grad[l,j] + moments_grad[l,i]*moments_grad[k,j])
-                    obj_hess[k,l]+= 2*W[i,j]*(moments[i]*moments_hess[k,l,j])
-                end
+                obj_hess[k,l]+= 2*(hess_vec[i]*moments_hess[k,l,i])
             end
+            obj_hess[k,l]+= 2*grad_mat[k,l]
             if l<k
                 obj_hess[l,k]=obj_hess[k,l]
             end
@@ -246,7 +242,7 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
     p_vec = p0
     N = length(p0)
 
-    count = 0
+
     grad_size = 10000
     f_eval_old = 1.0
     # # Initialize δ
@@ -255,22 +251,37 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
     # Initialize Gradient
     grad_new = similar(p0)
     hess_new = Matrix{Float64}(undef,length(p0),length(p0))
-    f_final_val = 0.0
-    max_trial_cnt = 0
+
+    cnt = 0
     ga_cnt = 0
-    p_last = p_vec
+    stall_cnt = 0
+
+    # Save Minimizing Function Value and Parameter Vector
+    f_min=0.0
+    p_min = Vector{Float64}(undef,length(p0))
+    p_last = copy(p_vec)
+
     # Maximize by Newtons Method
-    while (grad_size>grad_tol) & (count<max_itr) & (max_trial_cnt<20)
-        count+=1
+    while (grad_size>grad_tol) & (cnt<max_itr)
+        cnt+=1
         # Compute Gradient, holding δ fixed
+
 
         fval = GMM_objective!(hess_new,grad_new,d,p_vec,W)
 
 
         grad_size = sqrt(dot(grad_new,grad_new))
-        if (grad_size<1e-8) & (count>10)
-            println("Got to Break Point...?")
-            println(grad_size)
+        if (grad_size<1e-8) & (cnt>10)
+            println("Gradient Near Zero, Local Minimum Found")
+            println("Gradient Size: $grad_size")
+            println("Function Value is $f_min at iteration $p_min")
+            break
+        end
+
+        if (stall_cnt>5)
+            println("No Better Point Found")
+            println("Nearby Gradient Size: $grad_size")
+            println("Function Value is $f_min at $p_min")
             break
         end
 
@@ -284,10 +295,10 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
         # ForwardDiff.hessian!(hess_new, ll, p_vec)
         # println("Hessian is $hess_new")
 
-        step = -inv(hess_new)*grad_new
+        update = -inv(hess_new)*grad_new
 
-        if any(isnan.(step))
-            p_vec = p_last.*(1+rand(length(step))/100 -.005)
+        if any(isnan.(update))
+            p_vec = p_last.*(1+rand(length(update))/100 -.005)
             println("Algorithm Went to Undefined Area: Random Step")
             grad_size = 1
             continue
@@ -298,74 +309,75 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
         max_e = maximum(evals)
         println("Eiganvalues range from $min_e to $max_e")
 
-
-        p_test = p_vec .+ step
+        p_test = p_vec .+ update
         f_test = GMM_objective(d,p_test,W)
         trial_cnt = 0
-        while ((f_test>fval) | isnan(f_test)) & (trial_cnt<=5)
+        while ((f_test>fval) | isnan(f_test)) & (trial_cnt<=9)
             if trial_cnt==0
                 p_test_disp = p_test[1:20]
                 println("Trial (Init): Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
             end
-            if trial_cnt<(4)
-                step/= 10
-                p_test = p_vec .+ step
+            if trial_cnt<(8)
+                update/= 10
+                p_test = p_vec .+ update
                 f_test = GMM_objective(d,p_test,W)
                 p_test_disp = p_test[1:20]
                 println("Trial (NR): Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
                 trial_cnt+=1
-            elseif trial_cnt==4
+            elseif trial_cnt==8
                 ga_cnt+=1
                 if ga_cnt<2
                     println("RUN ROUND OF GRADIENT ASCENT")
                     p_test, f_test = gradient_ascent_GMM(d,p_vec,W,max_itr=5)
                 end
-
                 trial_cnt+=1
-            # elseif trial_cnt<15
-            #     p_test = p_vec .- step_size.*grad_new
-            #     p_test_disp = p_test[1:20]
-            #     f_test = GMM_objective(d,p_test,W)
-            #     println("Trial (GA): Got $f_test at parameters $p_test_disp")
-            #     println("Previous Iteration at $fval")
-            #     step_size/=10
-            #     trial_cnt+=1
-            elseif (trial_cnt==5) & (grad_size>1e-5)
+            elseif (trial_cnt==9) & (grad_size>1e-5)
+                ga_cnt = 0
                 println("Algorithm Stalled: Random Step")
-                max_trial_cnt+=1
-                step = rand(length(step))/1000-.005
-                p_test = p_vec.+step
+                update = rand(length(update))/1000 .-.005
+                p_test = p_vec.+update
                 trial_cnt+=1
-            elseif (trial_cnt==5) & (grad_size<=1e-5)
+            elseif (trial_cnt==9) & (grad_size<=1e-5)
+                ga_cnt = 0
                 println("Algorithm Stalled: Random Step")
-                max_trial_cnt+=1
-                step = rand(length(step))/10000-.005
-                p_test = p_vec.+step
+                update = rand(length(update))/10000 .-.005
+                p_test = p_vec.+update
                 trial_cnt+=1
             end
         end
-        if trial_cnt<=4
+        if trial_cnt<=8
             ga_cnt = 0
         end
-        step = p_test - p_vec
+
+        ### Update Minimum Vector Value
+        if (f_test<f_min) | (cnt<3)
+            stall_cnt = 0
+            f_min = f_test
+            p_min[:] = p_test[:]
+        else
+            stall_cnt+=1
+        end
+
+
+
+        # update = p_test - p_vec
         p_last = copy(p_vec)
-        p_vec+= step
+        p_vec = copy(p_test)
         p_vec_disp = p_vec[1:20]
-        f_final_val = f_test
         println("Update Parameters to $p_vec_disp")
 
 
         println("Gradient Size: $grad_size")
-        println("Function Value is $f_test at iteration $count")
+        println("Function Value is $f_test at iteration $cnt")
     end
     # if (grad_size>grad_tol)
     #     println("Estimate Instead")
     #     ret, f_final_val, p_vec = estimate!(d,p0)
 
 
-    return p_vec,f_final_val
+    return p_min,f_min
 end
 
 function gradient_ascent_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
@@ -392,7 +404,7 @@ function gradient_ascent_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
 
         # Compute Gradient, holding δ fixed
 
-        fval = GMM_objective!(grad_new,d,p_vec,W)
+        fval = GMM_objective!(hess_new,grad_new,d,p_vec,W)
 
 
         grad_size = sqrt(dot(grad_new,grad_new))
@@ -442,7 +454,7 @@ function gradient_ascent_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
         end
         par_step = p_test - p_vec
         p_last = copy(p_vec)
-        p_vec+= par_step
+        p_vec = copy(p_test)
         p_vec_disp = p_vec[1:20]
         f_final_val = f_test
         println("Update Parameters to $p_vec_disp")

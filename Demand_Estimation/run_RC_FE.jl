@@ -20,6 +20,7 @@ include("RandomCoefficients_3der.jl")
 include("Contraction.jl")
 include("Log_Likehood.jl")
 include("RiskMoments.jl")
+include("Expectation_Moments.jl")
 include("Estimate_Basic.jl")
 include("Estimate_GMM.jl")
 println("Code Loaded")
@@ -33,12 +34,12 @@ c = ChoiceData(df,df_mkt,df_risk;
             :AgeFE_52_64,
             :Family,
             :LowIncome],
-    prodchars=[:Price,:AV],
-    prodchars_0=[:Price,:AV],
+    prodchars=[:Price,:AV,:Big],
+    prodchars_0=[:Price,:AV,:Big],
     fixedEffects=[:Firm])
 
 # Fit into model
-m = InsuranceLogit(c,100)
+m = InsuranceLogit(c,25)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
@@ -55,13 +56,13 @@ par0 = parDict(m,p0)
 
 # #
 # #
-W = Matrix{Float64}(I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
-# # W = eye(length(p0))
-grad_2 = Vector{Float64}(undef,length(p0))
-hess_2 = Matrix{Float64}(undef,length(p0),length(p0))
-W = Matrix{Float64}(I,length(m.prods),length(m.prods))
-res = GMM_objective_exp!(hess_2,grad_2,m,p0,W)
-res = GMM_objective!(hess_2,grad_2,m,p_ll,W)
+# W = Matrix{Float64}(I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
+# # # W = eye(length(p0))
+# grad_2 = Vector{Float64}(undef,length(p0))
+# hess_2 = Matrix{Float64}(undef,length(p0),length(p0))
+# W = Matrix{Float64}(I,length(m.prods),length(m.prods))
+# res = GMM_objective_exp!(hess_2,grad_2,m,p_ll,W)
+# res = GMM_objective!(hess_2,grad_2,m,p_ll,W)
 # f_obj(x) = GMM_objective(m,x,p0,W)
 # p_test = p0[1:20]
 # grad_1 = Vector{Float64}(length(p_test))
@@ -100,14 +101,16 @@ println("#################")
 
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_stage1_$rundate.jld"
 # save(file,"p_ll",p_ll)
-S = calc_gmm_Avar(m,p_ll)
-W = inv(S)./100
+# S = calc_gmm_Avar(m,p_ll)
+# W = inv(S)./100
 # W = eye(length(p0)+length(m.data.tMoments))
-W = Matrix(1.0I,length(m.prods),length(m.prods))
-p0 = p_ll + rand(length(p_ll))/10 .- .05
-ll = log_likelihood!(hess_2,grad_2,m,p0)
-res = GMM_objective!(hess_2,grad_2,m,p0,W)
-p_stg2, obj_1 = newton_raphson_GMM(m,p0,W)
+W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
+# W = Matrix(1.0I,length(p_ll),length(p_ll))
+# p0 = p_ll + rand(length(p_ll))/10 .- .05
+# ll = log_likelihood!(hess_2,grad_2,m,p0)
+# res = GMM_objective_exp!(hess_new,grad_new,m,p0,W)
+# p_ga, obj_1 = gradient_ascent_GMM(m,p0,W,max_itr=30)
+p_stg2, obj_1 = newton_raphson_GMM(m,p_ll,W)
 
 # # rundate = "2018-08-25"
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage3_2018-08-25_NEWEIGHT.jld"
