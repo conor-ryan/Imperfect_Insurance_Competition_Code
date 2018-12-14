@@ -10,7 +10,7 @@ using BenchmarkTools
 include("predictionData.jl")
 include("SolveModel.jl")
 include("EquilibriumFunctions.jl")
-#run_st_equil("NE")
+run_st_equil("NE")
 # Check_Margin("NE")
 
 # states = ["AK","NE","ND","OK","MD","IA","NM","UT",

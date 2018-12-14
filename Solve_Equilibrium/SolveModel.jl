@@ -6,7 +6,7 @@ function predict_price(foc_Std::Vector{Float64},
                         dsdp_rev::Matrix{Float64},
                         e::EqData;sim="Base")
     J = length(foc_Std)
-    P_new = Vector{Float64}(J)
+    P_new = Vector{Float64}(undef,J)
 
     if sim=="Base"
         foc = foc_Std + foc_RA
@@ -135,7 +135,7 @@ function solve_model!(e::EqData,tol::Float64=.5;sim="Base")
     end
 
     println("Model solved with error $err after $cnt iterations")
-    return Void
+    return nothing
 end
 
 
@@ -143,7 +143,7 @@ function run_st_equil(st::String)
     cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/")
     println("Read in Data for $st")
     file1 = "Intermediate_Output/Equilibrium_Data/estimated_Data_$st.csv"
-    df = CSV.read(file1,types=Dict("AGE"=>Float64,"Mandate"=>Float64,"MEMBERS"=>Float64,"Gamma_j"=>Union{Missing,Float64}),null="NA")
+    df = CSV.read(file1,types=Dict("AGE"=>Float64,"Mandate"=>Float64,"MEMBERS"=>Float64), missingstring="NA")
     file2 = "Intermediate_Output/Equilibrium_Data/estimated_prodData_$st.csv"
     df_mkt = CSV.read(file2)#,null="NA")
     #cost_pars = CSV.read("Intermediate_Output/Equilibrium_Data/cost_pars.csv",null="NA")
@@ -155,12 +155,12 @@ function run_st_equil(st::String)
     model = EqData(c,df_mkt)
 
     # Initialize Price Vectors
-    P_base = Vector{Float64}(length(model.prods))
-    P_RA = Vector{Float64}(length(model.prods))
-    P_RAτ = Vector{Float64}(length(model.prods))
-    P_base_man = Vector{Float64}(length(model.prods))
-    P_RA_man = Vector{Float64}(length(model.prods))
-    P_RAτ_man = Vector{Float64}(length(model.prods))
+    P_base = Vector{Float64}(undef,length(model.prods))
+    P_RA = Vector{Float64}(undef,length(model.prods))
+    P_RAτ = Vector{Float64}(undef,length(model.prods))
+    P_base_man = Vector{Float64}(undef,length(model.prods))
+    P_RA_man = Vector{Float64}(undef,length(model.prods))
+    P_RAτ_man = Vector{Float64}(undef,length(model.prods))
 
 
     println("Estimate Base Model")
@@ -213,7 +213,7 @@ function run_st_equil(st::String)
 
     file3 = "Estimation_Output/solvedEquilibrium_RA_Man2_$st.csv"
     CSV.write(file3,output)
-    return Void
+    return nothing
 end
 
 
@@ -254,5 +254,5 @@ function Check_Margin(st::String)
 
     file3 = "Estimation_Output/focMargin_$st.csv"
     CSV.write(file3,output)
-    return Void
+    return nothing
 end

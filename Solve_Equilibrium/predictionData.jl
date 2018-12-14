@@ -34,10 +34,10 @@ function ChoiceData(data_est::DataFrame,df_mkt::DataFrame)
     n, k = size(data_est)
 
     index = Dict{Symbol, Int}()
-    dmat = Matrix{Float64}(n,0)
+    dmat = Matrix{Float64}(undef,n,0)
 
     ## Set Catastrophic Gamma_j Values to -100
-    data_est[:Gamma_j][find(ismissing.(data_est[:Gamma_j]))] = -100
+    data_est[:Gamma_j][findall(ismissing.(data_est[:Gamma_j]))] .= -100
     ## Get Benchmark
     #R_bench = df_mkt[:R_bench][df_mkt[:Firm].=="OTHER"][1]
 
@@ -96,9 +96,9 @@ function ChoiceData(data_est::DataFrame,df_mkt::DataFrame)
     # _productDict = build_ProdDict(data_est[:Product])
 
     #Build Cross Product Dict
-    _crossprod_Dict = Array{Int64,2}(n,length(prodids))
+    _crossprod_Dict = Array{Int64,2}(undef,n,length(prodids))
     for (q,j) in enumerate(sort(prodids))
-        idx = Vector{Int64}(n)
+        idx = Vector{Int64}(undef,n)
         _crossprod_Dict[:,q] = crossprod_index!(idx,j,
                                 uniqids,
                                 _personDict,
@@ -126,9 +126,9 @@ function crossprod_index!(cross_idx::Vector{Int64},
         idxitr = _personDict[i]
         k = get(_person_prod_Dict[i],prod,-1)
         if k>0
-            cross_idx[idxitr] = idxitr[k]
+            cross_idx[idxitr] .= idxitr[k]
         else
-            cross_idx[idxitr] = -1
+            cross_idx[idxitr] .= -1
         end
     end
     return cross_idx
@@ -136,30 +136,30 @@ end
 
 
 
-function build_IdxDict{T,N}(j::Array{T,N})
+function build_IdxDict(j::Array{T,N}) where {T,N}
     ids = unique(j)
     dict = build_IdxDict(j,ids)
     return dict
 end
 
-function build_IdxDict{T,N}(j::Array{T,N},ids::Vector{T})
+function build_IdxDict(j::Array{T,N},ids::Vector{T}) where {T,N}
     sort!(ids)
     _productDict = Dict{Real,Int64}()
 
     for id in ids
-        _productDict[id] = find(j.==id)[1]
+        _productDict[id] = findall(j.==id)[1]
     end
     return _productDict
 end
 
 getindex(m::ChoiceData, idx::Symbol) = m.data[:,m.index[idx]]
 
-function setindex!{T}(m::ChoiceData,x::T,idx::Symbol)
+function setindex!(m::ChoiceData,x::T,idx::Symbol) where T
     m.data[:,m.index[idx]] = x
 end
 
 
-type EqData
+mutable struct EqData
     # Choice Data
     data::ChoiceData
     # Product Data
@@ -206,22 +206,22 @@ end
 
 function EqData(cdata::ChoiceData,mkt::DataFrame)#,cpars::DataFrame)
     J = sum([mkt[:Firm].!="OTHER"][1])
-    premBase = Vector{Float64}(J)
+    premBase = Vector{Float64}(undef,J)
     premBase[:] = mkt[:premBase][mkt[:Firm].!="OTHER"]
 
 
-    costBase = Vector{Float64}(J)
+    costBase = Vector{Float64}(undef,J)
     #cost = Vector{Float64}(J)
     cost = mkt[:C_AV][mkt[:Firm].!="OTHER"]
     #costBase[:] = mkt[:Cost_prod][mkt[:Firm].!="OTHER"]
 
-    prods = Vector{Int64}(J)
+    prods = Vector{Int64}(undef,J)
     prods[:] = sort(mkt[:Product][mkt[:Firm].!="OTHER"])
     (N,L) = size(cdata.data)
-    s_pred = Vector{Float64}(N)
-    s_pred_byperson = Vector{Float64}(N)
-    price_ij = Vector{Float64}(N)
-    subsidy = Vector{Float64}(N)
+    s_pred = Vector{Float64}(undef,N)
+    s_pred_byperson = Vector{Float64}(undef,N)
+    price_ij = Vector{Float64}(undef,N)
+    subsidy = Vector{Float64}(undef,N)
 
     #R_bench = mkt[:R_bench][1]
     R_bench = 1.0
@@ -233,8 +233,8 @@ function EqData(cdata::ChoiceData,mkt::DataFrame)#,cpars::DataFrame)
     metals = mkt[:Metal_std][mkt[:Firm].!="OTHER"]
     uniq_mkts = sort(unique(markets))
     for (n,m) in enumerate(uniq_mkts)
-        mkt_index[n] = find(markets.==m)
-        silv_index[n] = find(metals[mkt_index[n]].=="SILVER")
+        mkt_index[n] = findall(markets.==m)
+        silv_index[n] = findall(metals[mkt_index[n]].=="SILVER")
     end
 
     mkt_map = Dict{Real,Int64}()
@@ -244,9 +244,9 @@ function EqData(cdata::ChoiceData,mkt::DataFrame)#,cpars::DataFrame)
         end
     end
 
-    mkt_index_long = Vector{Int64}(length(cdata[:Product]))
+    mkt_index_long = Vector{Int64}(undef,length(cdata[:Product]))
     for (n,prod) in enumerate(cdata[:Product])
-        j = find(prods.==prod)[1]
+        j = findall(prods.==prod)[1]
         mkt_index_long[n] = mkt_map[j]
     end
 
@@ -259,14 +259,14 @@ function EqData(cdata::ChoiceData,mkt::DataFrame)#,cpars::DataFrame)
         index[var]=l
     end
 
-    pmat = Matrix{Float64}(length(prods),length(varNames))
+    pmat = Matrix{Float64}(undef,length(prods),length(varNames))
 
     prod_data = 0
     Other_R = mkt[:R_f][mkt[:Firm].=="OTHER"][1]
 
     ## Build Ownership Matrix
     firms = mkt[:Firm][mkt[:Firm].!="OTHER"]
-    ownMat = Matrix{Float64}(J,J)
+    ownMat = Matrix{Float64}(undef,J,J)
     for j in 1:J
         f = firms[j]
         for i in 1:J
@@ -278,7 +278,7 @@ function EqData(cdata::ChoiceData,mkt::DataFrame)#,cpars::DataFrame)
         end
     end
     firms_merge = sort(unique(firms))[1:2]
-    ownMat_merge = Matrix{Float64}(J,J)
+    ownMat_merge = Matrix{Float64}(undef,J,J)
     for j in 1:J
         f = firms[j]
         for i in 1:J

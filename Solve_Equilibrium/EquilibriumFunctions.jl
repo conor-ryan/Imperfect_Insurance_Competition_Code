@@ -25,7 +25,7 @@ function evaluate_model!(e::EqData;init=false)
         calc_RA_fix!(e)
     end
 
-    return Void
+    return nothing
 end
 
 
@@ -38,12 +38,12 @@ function unpack_P!(e::EqData)
         end
         n+=1
     end
-    return Void
+    return nothing
 end
 
 function calcBenchmark(e::EqData)
     mkts = keys(e.mkt_index)
-    benchmarkPrem = Vector{Float64}(length(mkts))
+    benchmarkPrem = Vector{Float64}(undef,length(mkts))
     for m in mkts
         prems = sort(e.premBase_j[e.silver_index[m]])
         bench_index = min(2,length(prems))
@@ -61,7 +61,7 @@ function calcSubsidy!(e::EqData)
     for n in 1:N
         e.subsidy_ij[n] = max(benchmarks[n]*ageRate[n]-incCont[n],0)
     end
-    return Void
+    return nothing
 end
 
 
@@ -81,7 +81,7 @@ function premPaid!(e::EqData)
         price = ((price/Mems[n]) - Mandate[n]/12)
         e.price_ij[n] = price
     end
-    return Void
+    return nothing
 end
 
 function calcShares!(e::EqData)
@@ -94,7 +94,7 @@ function calcShares!(e::EqData)
     for i in people
         idxitr = e.data._personDict[i]
         exp_sum = 1.0
-        util = Vector{Float64}(length(idxitr))
+        util = Vector{Float64}(undef,length(idxitr))
         for (n,k) in enumerate(idxitr)
             util[n] = other_util[k]*exp(alpha[k]*price[k])
             exp_sum+=util[n]
@@ -103,7 +103,7 @@ function calcShares!(e::EqData)
             e.s_pred_byperson[k] = util[n]/exp_sum
         end
     end
-    return Void
+    return nothing
 end
 
 function calcProd_Avg!(e::EqData)
@@ -126,12 +126,12 @@ function calcProd_Avg!(e::EqData)
     l = e.p_index[:lives]
     lives = sum_by_prod(e.s_pred,e,e.data[:PERWT])
     e.p_avg[:,l] = lives
-    return Void
+    return nothing
 end
 
 function calc_RA_fix!(e::EqData)
     Catas_j = e[:Catastrophic]
-    lives = e[:lives].*(1-Catas_j)
+    lives = e[:lives].*(1 .- Catas_j)
     A_Gamma_j = e[:A_Gamma_j]
     R_Gamma_j = e[:R_Gamma_j]
     A_j = e[:ageRate_avg]
@@ -147,8 +147,8 @@ function calc_RA_fix!(e::EqData)
             S_0_temp+=S_j[j]*(1-Catas_j[j])
             mkt_lives+=lives[j]
         end
-        S_0[prods] =  S_0_temp
-        S_m[prods] = mkt_lives/st_lives
+        S_0[prods] .=  S_0_temp
+        S_m[prods] .= mkt_lives/st_lives
     end
 
     share_tilde = zeros(length(S_j))
@@ -193,10 +193,10 @@ end
 #     return deriv
 # end
 
-function calc_deriv!{S,T,R}(deriv::Vector{Float64},deriv_bp::Vector{Float64},prod::Int64,
+function calc_deriv!(deriv::Vector{Float64},deriv_bp::Vector{Float64},prod::Int64,
                         crossprod_idx::SubArray{Int64,1,S,T,R},
                         alpha::Vector{Float64},ageRate::Vector{Float64},
-                        e::EqData)
+                        e::EqData) where {S,T,R}
     idx_prod = e.data._prod_2_per_map
 
     shares = e.s_pred_byperson
@@ -296,7 +296,7 @@ function chg_in_avg(deriv::Vector{Float64},v::Symbol,x_long::Vector{Float64},
                     weights::Vector{Float64})
     L = length(deriv)
     J = length(S)
-    dx_avg_dp = Vector{Float64}(J)
+    dx_avg_dp = Vector{Float64}(undef,J)
 
     x_avg = e[v]
     #x_long = e.data[v]
@@ -333,7 +333,7 @@ end
 
 function eval_FOC(e::EqData)
     Catas_j = e[:Catastrophic]
-    lives = e[:lives].*(1-Catas_j)
+    lives = e[:lives].*(1 .-Catas_j)
     # A_Gamma_j = e[:A_Gamma_j]
     # R_Gamma_j = e[:R_Gamma_j]
     A_j = e[:ageRate_avg]
@@ -367,8 +367,8 @@ function eval_FOC(e::EqData)
             S_0_temp+=S_j[j]*(1-Catas_j[j])
             mkt_lives+=lives[j]
         end
-        S_0[prods] =  S_0_temp
-        S_m[prods] = mkt_lives/st_lives
+        S_0[prods] .=  S_0_temp
+        S_m[prods] .= mkt_lives/st_lives
     end
 
     share_tilde = zeros(length(S_j))
@@ -410,12 +410,12 @@ function eval_FOC(e::EqData)
 
 
     #### Derivatives By Product ####
-    dsdp = Matrix{Float64}(J,J)
-    dsdp_rev = Matrix{Float64}(J,J)
+    dsdp = Matrix{Float64}(undef,J,J)
+    dsdp_rev = Matrix{Float64}(undef,J,J)
 
-    dCost = Matrix{Float64}(J,J)
-    dAllCost = Matrix{Float64}(J,J)
-    dsdp_rev_dτ = Matrix{Float64}(J,J)
+    dCost = Matrix{Float64}(undef,J,J)
+    dAllCost = Matrix{Float64}(undef,J,J)
+    dsdp_rev_dτ = Matrix{Float64}(undef,J,J)
 
     # dTdp = Matrix{Float64}(J,J)
     # dTdp_avgPrice = Matrix{Float64}(J,J)
@@ -426,8 +426,8 @@ function eval_FOC(e::EqData)
     # dTdp_fix = Matrix{Float64}(J,J)
 
     (N,M) = size(e.data.data)
-    deriv_long = Vector{Float64}(N)
-    deriv_long_byperson = Vector{Float64}(N)
+    deriv_long = Vector{Float64}(undef,N)
+    deriv_long_byperson = Vector{Float64}(undef,N)
     # deriv_all_long = Vector{Float64}(N)
 
     # margCost = Vector{Float64}(J)
@@ -436,8 +436,8 @@ function eval_FOC(e::EqData)
     # avgCost_est = Vector{Float64}(J)
     # pooledCost = Vector{Float64}(J)
 
-    dsdp_0 = Vector{Float64}(J)
-    dsdp_rev_0 = Vector{Float64}(J)
+    dsdp_0 = Vector{Float64}(undef,J)
+    dsdp_rev_0 = Vector{Float64}(undef,J)
 
     for (n,j) in enumerate(e.prods)
         #println(j)
@@ -481,11 +481,11 @@ function eval_FOC(e::EqData)
         #
 
         # PC = sum_over_all(e.s_pred,full_weights,Cost_nonAV_long)/All_Lives
-        dτ = sum_over_all(deriv_long,Cost_nonAV_long,full_weights)/All_Lives -
+        dτ = sum_over_all(deriv_long,Cost_nonAV_long,full_weights)/All_Lives .-
                         sum_over_all(deriv_long,full_weights)/All_Lives*PC
         dτ = e.C_AV_j[n].*dτ./all_age_avg
         #
-        dsdp_rev_dτ[:,n] = dsdp_rev[:,n].*(1+dτ)
+        dsdp_rev_dτ[:,n] = dsdp_rev[:,n].*(1 .+dτ)
 
         # ######### IGNORE ACTUAL POLICY ##########
         # ds_0_dp = -sum(dsdp[:,n].*(1-Catas_j))
@@ -555,9 +555,9 @@ function eval_FOC(e::EqData)
     # RA_term4 = Vector{Float64}(J)
     # RA_term5 = Vector{Float64}(J)
 
-    P_Std = Vector{Float64}(J)
-    P_RA= Vector{Float64}(J)
-    P_RAτ= Vector{Float64}(J)
+    P_Std = Vector{Float64}(undef,J)
+    P_RA= Vector{Float64}(undef,J)
+    P_RAτ= Vector{Float64}(undef,J)
 
     for (m,m_idx) in e.mkt_index
         L_m = S_m[m_idx][1]
@@ -612,9 +612,9 @@ function eval_FOC(e::EqData)
         # foc_RA_fix[m_idx] = L_m*m_dsdp*T_fix + m_dTdp_fix'*(S_m.*S_j)
         # foc_merge[m_idx] =  L_m*( S.*A - m_dCost_mgd) + L_m*m_dsdp_mgd*T + m_dTdp_mgd'*(S_m.*S_j)
 
-        P_Std[m_idx] = inv(m_dsdp_rev)*(-S.*A + sum(m_dCost,1)')
+        P_Std[m_idx] = inv(m_dsdp_rev)*(-S.*A + sum(m_dCost,dims=1)')
 
-        P_RA[m_idx] = inv(m_dsdp_rev)*(-S.*A + m_dsdp_rev*m_PC - all_dsdp_rev*m_PC.*Sf + sum(all_dCost,1)'.*Sf)
+        P_RA[m_idx] = inv(m_dsdp_rev)*(-S.*A + m_dsdp_rev*m_PC - all_dsdp_rev*m_PC.*Sf + sum(all_dCost,dims=1)'.*Sf)
 
         P_RAτ[m_idx] = inv(m_dsdp_rev_dτ)*(-S.*A) .+ m_Ec
 
