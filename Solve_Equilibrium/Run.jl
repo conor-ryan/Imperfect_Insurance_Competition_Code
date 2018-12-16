@@ -10,17 +10,20 @@ using BenchmarkTools
 include("predictionData.jl")
 include("SolveModel.jl")
 include("EquilibriumFunctions.jl")
-run_st_equil("NE")
+# run_st_equil("NE")
 # Check_Margin("NE")
 
 # states = ["AK","NE","ND","OK","MD","IA","NM","UT",
 # "OR","MO","IL","MI","GA","TX"]
-states = ["IL","MI","GA","TX"]
-for st in states
+# for st in states
+    st ="MI"
     run_st_equil(st)
+    if st in ["IL","MI","GA"]
+        run_st_equil(st,merger=true)
+    end
     println("Check Margin")
     Check_Margin(st)
-end
+# end
 
 
 # # Load the data

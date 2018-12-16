@@ -47,7 +47,7 @@ function update_Prices!(P_new::Vector{Float64},
 
 
     if any(ProdExit)
-        exited = find(ProdExit)
+        exited = findall(ProdExit)
         println("Product Exits for $exited")
     end
 
@@ -61,11 +61,11 @@ function update_Prices!(P_new::Vector{Float64},
     MLR_const = e[:C]./0.7
     constrained_bool = (P_new.>=MLR_const).& (e[:S_j].>=(1e-5))
     if any( constrained_bool )
-        constrained = find( constrained_bool )
+        constrained = findall( constrained_bool )
         println("Hit MLR Constraint at products $constrained")
         P_const = MLR_const[constrained]
         println("Constrained prices: $P_const")
-        foc_err[constrained] = 0.0
+        foc_err[constrained] .= 0.0
     end
     #P_new = min.(P_new,MLR_const)
 
@@ -139,7 +139,7 @@ function solve_model!(e::EqData,tol::Float64=.5;sim="Base")
 end
 
 
-function run_st_equil(st::String)
+function run_st_equil(st::String;merger=false)
     cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/")
     println("Read in Data for $st")
     file1 = "Intermediate_Output/Equilibrium_Data/estimated_Data_$st.csv"
@@ -153,14 +153,14 @@ function run_st_equil(st::String)
     c = ChoiceData(df,df_mkt)
 
     model = EqData(c,df_mkt)
+    if merger
+        model.ownMat = model.ownMat_merge
+    end
 
     # Initialize Price Vectors
     P_base = Vector{Float64}(undef,length(model.prods))
     P_RA = Vector{Float64}(undef,length(model.prods))
-    P_RAτ = Vector{Float64}(undef,length(model.prods))
     P_base_man = Vector{Float64}(undef,length(model.prods))
-    P_RA_man = Vector{Float64}(undef,length(model.prods))
-    P_RAτ_man = Vector{Float64}(undef,length(model.prods))
 
 
     println("Estimate Base Model")
@@ -168,50 +168,26 @@ function run_st_equil(st::String)
     P_base[:] = model.premBase_j[:]
 
     println("Risk Adjustment Model")
-    solve_model!(model,1e-8,sim="RA")
+    # solve_model!(model,1e-8,sim="RA")
     P_RA[:] = model.premBase_j[:]
 
-    println("Risk Adjustment τ Model")
-    # solve_model!(model,1e-8,sim="RAτ")
-    P_RAτ[:] = model.premBase_j[:]
-
-
-    model.data[:Mandate] = 0.0
-
-    println("Estimate Increased Mandate")
     println("Estimate Base Model w/out Mandate")
-    solve_model!(model,1e-8)
+    model.data[:Mandate] = 0.0
+    # solve_model!(model,1e-8)
     P_base_man[:] = model.premBase_j[:]
-
-    println("Risk Adjustment Model w/out Mandate")
-    #solve_model!(model,1e-8,sim="RA")
-    P_RA_man[:] = model.premBase_j[:]
-
-    # println("Risk Adjustment τ Model w/Larger Mandate")
-    # #solve_model!(model,1e-8,sim="RAτ")
-    # P_RAτ_man[:] = model.premBase_j[:]
-
-    #
-    # println("Estimate Half Transfers")
-    # solve_model!(model,1e-3,sim="Half Transfer")
-    # P_half[:] = model.premBase_j[:]
-    #
 
     println("Solved: $st")
 
     output =  DataFrame(Products=model.prods,
                         Price_base=P_base,
                         Price_RA =P_RA,
-                        Price_RA_p = P_RAτ,
-                        Price_base_man=P_base_man,
-                        Price_RA_man =P_RA_man,
-                        Price_RA_p_man = P_RAτ_man)
-                        # ,
-                        # Price_non =P_non,
-                        # Price_half=P_half)
+                        Price_man=P_base_man)
 
-
-    file3 = "Estimation_Output/solvedEquilibrium_RA_Man2_$st.csv"
+    if merger
+        file3 = "Estimation_Output/solvedEquilibrium_merger_$st.csv"
+    else
+        file3 = "Estimation_Output/solvedEquilibrium_$st.csv"
+    end
     CSV.write(file3,output)
     return nothing
 end

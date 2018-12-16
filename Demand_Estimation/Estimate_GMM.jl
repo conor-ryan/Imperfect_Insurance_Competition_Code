@@ -1,4 +1,4 @@
-using NLopt
+# using NLopt
 using ForwardDiff
 
 function GMM_objective!(obj_grad::Vector{Float64},d::InsuranceLogit,p0::Array{T},W::Matrix{Float64}) where T

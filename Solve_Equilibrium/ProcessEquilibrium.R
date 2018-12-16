@@ -134,7 +134,7 @@ for (var in c("base","man","RA","RAtau")){
 
 
 #### Preliminary Results ####
-Welfare = unique(full_predict[,c("Person","d_ind","PERWT","HCC_Silver","ST","CW_base","CW_man","CW_RA","CW_RAtau",
+Welfare = unique(full_predict[,c("Person","d_ind","PERWT","HCC_Silver","Market","CW_base","CW_man","CW_RA","CW_RAtau",
                                  "ins_base","ins_man","ins_RA","ins_RAtau")])
 
 
@@ -151,14 +151,28 @@ prod_pred[,ST_share:=lives/ST_insured,by="ST"]
 prod_pred[,Mkt_insured:=sum(lives),by="Market"]
 prod_pred[,Mkt_share:=lives/Mkt_insured,by="Market"]
 
-prod_pred[,FirmShare:=sum(ST_share),by=c("ST","Firm")]
-firms = unique(prod_pred[,c("ST","Firm","FirmShare")])
-firms[,HHI:= sum((FirmShare*100)^2),by="ST"]
-prod_pred = merge(prod_pred,firms,by=c("ST","Firm"))
+# prod_pred[,FirmShare:=sum(ST_share),by=c("ST","Firm")]
+# firms = unique(prod_pred[,c("ST","Firm","FirmShare")])
+# firms[,HHI:= sum((FirmShare*100)^2),by="ST"]
+# prod_pred = merge(prod_pred,firms,by=c("ST","Firm"))
+
+prod_pred[,FirmShare:=sum(Mkt_share),by=c("Market","Firm")]
+firms = unique(prod_pred[,c("Market","Firm","FirmShare")])
+firms[,HHI:= sum((FirmShare*100)^2),by="Market"]
+prod_pred = merge(prod_pred,firms,by=c("Market","Firm"))
+
+# firms[,mergeMarket:= 0]
+# firms[Firm%in%c("AETNA","HUMANA"),mergeMarket:= 1]
+# firms[,mergeMarket:=sum(mergeMarket),by="Market"]
+# firms[mergeMarket<2,mergeMarket:=0]
+# 
+# firms[Firm%in%c("AETNA","HUMANA"),mergerShare:=FirmShare*100]
+# firms[,dHHI:=2*prod(mergerShare,na.rm=TRUE),by="Market"]
+
 
 ### HHI Table
 prod_pred[,HHI_flag:=0]
-prod_pred[HHI>3000,HHI_flag:=1]
+prod_pred[HHI>4000,HHI_flag:=1]
 prod_pred[HHI>6000,HHI_flag:=2]
 
 table_prem = prod_pred[,list(prem_base = 12/1000*sum(lives*Age_Avg*prem_base)/sum(lives),
@@ -169,9 +183,9 @@ table_prem[,Metal_std:=factor(Metal_std,levels=c("CATASTROPHIC","BRONZE","SILVER
 setkey(table_prem,HHI_flag,Metal_std)
 table_prem = table_prem[!Metal_std%in%c("CATASTROPHIC","PLATINUM"),]
 
-Welfare = merge(Welfare,unique(firms[,c("ST","HHI")]),by="ST")
+Welfare = merge(Welfare,unique(firms[,c("Market","HHI")]),by="Market")
 Welfare[,HHI_flag:=0]
-Welfare[HHI>3000,HHI_flag:=1]
+Welfare[HHI>4000,HHI_flag:=1]
 Welfare[HHI>6000,HHI_flag:=2]
 
 Welfare[,HighRisk:=0]

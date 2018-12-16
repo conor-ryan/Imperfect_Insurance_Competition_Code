@@ -155,7 +155,7 @@ end
 getindex(m::ChoiceData, idx::Symbol) = m.data[:,m.index[idx]]
 
 function setindex!(m::ChoiceData,x::T,idx::Symbol) where T
-    m.data[:,m.index[idx]] = x
+    m.data[:,m.index[idx]] .= x
 end
 
 
@@ -277,7 +277,7 @@ function EqData(cdata::ChoiceData,mkt::DataFrame)#,cpars::DataFrame)
             end
         end
     end
-    firms_merge = sort(unique(firms))[1:2]
+    firms_merge = ["AETNA","HUMANA"]
     ownMat_merge = Matrix{Float64}(undef,J,J)
     for j in 1:J
         f = firms[j]

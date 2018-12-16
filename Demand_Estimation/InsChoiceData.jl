@@ -1,5 +1,5 @@
 using DataFrames
-import Base.start, Base.next, Base.done, Base.getindex, Base.setindex!
+import Base.getindex, Base.setindex!
 
 abstract type
     ModelData
@@ -165,18 +165,18 @@ function ChoiceData(data_choice::DataFrame,
     j = permutedims(j,(2,1))
 
     # Precompute the row indices
-    _person = getindex.(index,person)
-    _product = getindex.(index,product)
-    _prodchars = getindex.(index, prodchars)
-    _prodchars_0 = getindex.(index, prodchars_0)
-    _choice = getindex.(index, choice)
-    _demoRaw = getindex.(index, demoRaw)
-    _wgt = getindex.(index, wgt)
-    _ageRate = getindex.(index, [:ageRate_avg])
-    _ageHCC = getindex.(index, [:HCC_age])
-    _unins = getindex.(index, unins)
-    _rInd = getindex.(index, r_var)
-    _rIndS = getindex.(index, r_silv_var)
+    _person = getDictArray(index,person)
+    _product = getDictArray(index,product)
+    _prodchars = getDictArray(index, prodchars)
+    _prodchars_0 = getDictArray(index, prodchars_0)
+    _choice = getDictArray(index, choice)
+    _demoRaw = getDictArray(index, demoRaw)
+    _wgt = getDictArray(index, wgt)
+    _ageRate = getDictArray(index, [:ageRate_avg])
+    _ageHCC = getDictArray(index, [:HCC_age])
+    _unins = getDictArray(index, unins)
+    _rInd = getDictArray(index, r_var)
+    _rIndS = getDictArray(index, r_silv_var)
 
     # Get Person ID Dictionary Mapping for Easy Subsets
     println("Person ID Mapping")
@@ -245,6 +245,14 @@ function ChoiceData(data_choice::DataFrame,
              uniqids,_personDict,_productDict,
             rel_fe_Dict,_tMomentDict,_stDict)
     return m
+end
+
+function getDictArray(dict::Dict{T,S},labels::Vector{T}) where {T,S}
+    output = Vector{S}(undef,length(labels))
+    for (i,lab) in enumerate(labels)
+        output[i] = getindex(dict,lab)
+    end
+    return output
 end
 
 function build_ProdDict(j::Array{T,N}) where {T,N}

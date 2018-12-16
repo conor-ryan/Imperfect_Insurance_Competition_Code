@@ -1,4 +1,4 @@
-using NLopt
+# using NLopt
 using ForwardDiff
 
 # Calculate Log Likelihood

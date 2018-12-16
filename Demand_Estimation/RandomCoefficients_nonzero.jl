@@ -1,5 +1,5 @@
 import Base.getindex, Base.setindex!, Base.show
-using NLopt
+# using NLopt
 using ForwardDiff
 
 
