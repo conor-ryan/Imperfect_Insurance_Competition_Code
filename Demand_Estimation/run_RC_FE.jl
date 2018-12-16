@@ -39,7 +39,7 @@ c = ChoiceData(df,df_mkt,df_risk;
     fixedEffects=[:Firm])
 
 # Fit into model
-m = InsuranceLogit(c,25)
+m = InsuranceLogit(c,1000)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
@@ -110,30 +110,32 @@ W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMom
 # ll = log_likelihood!(hess_2,grad_2,m,p0)
 # res = GMM_objective_exp!(hess_new,grad_new,m,p0,W)
 # p_ga, obj_1 = gradient_ascent_GMM(m,p0,W,max_itr=30)
-p_stg2, obj_1 = newton_raphson_GMM(m,p_ll,W)
+p_stg1, obj_1 = newton_raphson_GMM(m,p_ll,W)
 
-# # rundate = "2018-08-25"
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage3_2018-08-25_NEWEIGHT.jld"
-# #save(file,"est_res",est_res)
+# rundate = "2018-08-25"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage1_$rundate.jld"
+save(file,"est_res",p_stg1)
 # est_res = load(file)["est_res"]
 #
 # p_est = est_res[3]
 #
 # # p_est = [-3.13731, -3.66356, -4.17707, 1.28711, -4.07659, -2.71348, 6.95234, 1.62123, 1.38525, 1.76242, 2.19671, -0.262142, -0.0726661, 0.436289, -0.00440429, -1.05899, -1.26554, -2.03655, -1.29205, -2.45016, -4.87626, -2.82076, -1.98936, -1.08366, -7.1579, 1.47115, -1.50611, 0.45754, -1.24011, -2.79319, -0.826092, -0.365338, -1.93863, -0.208294, -0.889068, -2.43939, -0.482924, -3.27541, -0.0832024, 5.04283, 1.18866, -5.64587, -1.4914, -4.14378, 0.0746764, -4.63658, -1.09026, -0.0150545, -0.959422, -2.73396, 0.244816, 1.08502, -0.997056, 0.850759, -7.69697, 1.36272, -2.83583, -2.97174, -7.16544, -0.510894, 1.07375, -2.01001, -1.86915, -2.39802, -0.105112, -2.45296, -3.23003, -4.05812, -1.39944, 3.05908]
 #
-# println("#################")
-# println("#################")
-# println("###### Estimation 3 #######")
-# println("#################")
-# println("#################")
-# m = InsuranceLogit(c,50)
-# S = calc_gmm_Avar(m,p_est)
-# W2 = inv(S)
+println("#################")
+println("#################")
+println("###### Estimation 3 #######")
+println("#################")
+println("#################")
+m = InsuranceLogit(c,1500)
+S = calc_gmm_Avar(m,p_stg1)
+W2 = inv(S)./100
+p_stg2, obj_2 = newton_raphson_GMM(m,p_stg1,W2)
+
 # #est_pre = newton_raphson(m,p_est,W2)
 #
 # est_res = estimate_GMM!(m,p_est,W2)
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_stage3_$rundate.jld"
-# save(file,"est_res",est_res)
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_stage2_$rundate.jld"
+save(file,"est_res",p_stg2)
 #
 #
 # ##### TEST ######
@@ -213,14 +215,14 @@ p_stg2, obj_1 = newton_raphson_GMM(m,p_ll,W)
 # #
 # p0 = p_est
 # W = eye(length(p0)+6)
-# grad_2 = Vector{Float64}(length(p0)+6)
-# hess = Matrix{Float64}(length(p0),length(p0))
+grad_2 = Vector{Float64}(undef,length(p0))
+hess_2 = Matrix{Float64}(undef,length(p0),length(p0))
 using Profile
 Profile.init(n=10^8,delay=.001)
 Profile.clear()
 #Juno.@profile add_obs_mat!(hess,grad,hess_obs,grad_obs,Pop)
 # Juno.@profile log_likelihood!(thD_2,hess_2,grad_2,m,par0)
-Juno.@profile res = GMM_objective_exp!(hess_2,grad_2,m,p0,W)
+Juno.@profile res = GMM_objective!(hess_2,grad_2,m,p0,W)
 Juno.profiletree()
 Juno.profiler()
 #

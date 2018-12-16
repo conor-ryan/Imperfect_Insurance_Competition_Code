@@ -358,6 +358,7 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
             p_min[:] = p_test[:]
         else
             stall_cnt+=1
+            println("STALL COUNT: $stall_cnt")
         end
 
 
