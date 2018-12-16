@@ -298,7 +298,7 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
         update = -inv(hess_new)*grad_new
 
         if any(isnan.(update))
-            p_vec = p_last.*(1+rand(length(update))/100 -.005)
+            p_vec = p_last.*(1 .+ rand(length(update))/100 .-.005)
             println("Algorithm Went to Undefined Area: Random Step")
             grad_size = 1
             continue
@@ -405,7 +405,7 @@ function gradient_ascent_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
 
         # Compute Gradient, holding δ fixed
 
-        fval = GMM_objective!(hess_new,grad_new,d,p_vec,W)
+        fval = GMM_objective!(grad_new,d,p_vec,W)
 
 
         grad_size = sqrt(dot(grad_new,grad_new))
@@ -446,11 +446,11 @@ function gradient_ascent_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
             elseif (trial_cnt==10) & (grad_size>1e-5)
                 println("Algorithm Stalled: Random Step")
                 max_trial_cnt+=1
-                step = rand(length(step))/1000-.005
+                step = rand(length(step))/1000 .-.005
             elseif (trial_cnt==10) & (grad_size<=1e-5)
                 println("Algorithm Stalled: Random Step")
                 max_trial_cnt+=1
-                step = rand(length(step))/10000-.005
+                step = rand(length(step))/10000 .-.005
             end
         end
         par_step = p_test - p_vec
