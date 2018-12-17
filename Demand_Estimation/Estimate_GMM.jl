@@ -312,13 +312,13 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
         p_test = p_vec .+ update
         f_test = GMM_objective(d,p_test,W)
         trial_cnt = 0
-        while ((f_test>fval) | isnan(f_test)) & (trial_cnt<=9)
+        while ((f_test>fval) | isnan(f_test)) & (trial_cnt<=5)
             if trial_cnt==0
                 p_test_disp = p_test[1:20]
                 println("Trial (Init): Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
             end
-            if trial_cnt<(8)
+            if trial_cnt<(4)
                 update/= 10
                 p_test = p_vec .+ update
                 f_test = GMM_objective(d,p_test,W)
@@ -326,28 +326,28 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
                 println("Trial (NR): Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
                 trial_cnt+=1
-            elseif trial_cnt==8
+            elseif trial_cnt==4
                 ga_cnt+=1
                 if ga_cnt<2
                     println("RUN ROUND OF GRADIENT ASCENT")
                     p_test, f_test = gradient_ascent_GMM(d,p_vec,W,max_itr=5)
                 end
                 trial_cnt+=1
-            elseif (trial_cnt==9) & (grad_size>1e-5)
+            elseif (trial_cnt==5) & (grad_size>1e-5)
                 ga_cnt = 0
                 println("Algorithm Stalled: Random Step")
                 update = rand(length(update))/1000 .-.005
                 p_test = p_vec.+update
                 trial_cnt+=1
-            elseif (trial_cnt==9) & (grad_size<=1e-5)
+            elseif (trial_cnt==5) & (grad_size<=1e-5)
                 ga_cnt = 0
                 println("Algorithm Stalled: Random Step")
-                update = rand(length(update))/10000 .-.005
+                update = rand(length(update))/10000 .-.0005
                 p_test = p_vec.+update
                 trial_cnt+=1
             end
         end
-        if trial_cnt<=8
+        if trial_cnt<=4
             ga_cnt = 0
         end
 
@@ -436,7 +436,7 @@ function gradient_ascent_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
                 println("Reduce Step size....")
             end
             if trial_cnt<10
-                step/= 10
+                step/= 100
                 p_test_disp = p_test[1:20]
                 p_test = p_vec .- step.*grad_new
                 f_test = GMM_objective(d,p_test,W)

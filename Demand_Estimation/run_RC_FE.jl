@@ -91,7 +91,8 @@ println("###### Estimation 1 #######")
 println("#################")
 println("#################")
 # Estimate
-p_ll,ll = newton_raphson_ll(m,p0,max_itr=30)
+# p_ll,ll = newton_raphson_ll(m,p0)
+println("Skip MLE")
 
 println("#################")
 println("#################")
@@ -110,7 +111,7 @@ W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMom
 # ll = log_likelihood!(hess_2,grad_2,m,p0)
 # res = GMM_objective_exp!(hess_new,grad_new,m,p0,W)
 # p_ga, obj_1 = gradient_ascent_GMM(m,p0,W,max_itr=30)
-p_stg1, obj_1 = newton_raphson_GMM(m,p_ll,W)
+p_stg1, obj_1 = newton_raphson_GMM(m,p0,W)
 
 # rundate = "2018-08-25"
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage1_$rundate.jld"
@@ -215,16 +216,16 @@ save(file,"est_res",p_stg2)
 # #
 # p0 = p_est
 # W = eye(length(p0)+6)
-grad_2 = Vector{Float64}(undef,length(p0))
-hess_2 = Matrix{Float64}(undef,length(p0),length(p0))
-using Profile
-Profile.init(n=10^8,delay=.001)
-Profile.clear()
-#Juno.@profile add_obs_mat!(hess,grad,hess_obs,grad_obs,Pop)
-# Juno.@profile log_likelihood!(thD_2,hess_2,grad_2,m,par0)
-Juno.@profile res = GMM_objective!(hess_2,grad_2,m,p0,W)
-Juno.profiletree()
-Juno.profiler()
+# grad_2 = Vector{Float64}(undef,length(p0))
+# hess_2 = Matrix{Float64}(undef,length(p0),length(p0))
+# using Profile
+# Profile.init(n=10^8,delay=.001)
+# Profile.clear()
+# #Juno.@profile add_obs_mat!(hess,grad,hess_obs,grad_obs,Pop)
+# # Juno.@profile log_likelihood!(thD_2,hess_2,grad_2,m,par0)
+# Juno.@profile res = GMM_objective(m,p0,W)
+# Juno.profiletree()
+# Juno.profiler()
 #
 # for (x,i) in enumerate([1,2,5])
 #     print(x)
