@@ -112,9 +112,11 @@ println("#################")
 println("#################")
 # Estimate
 # p_ll,ll = newton_raphson_ll(m,p0)
+println("Load MLE")
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_ll_$rundate.jld2"
 # @save file p_ll
-println("Skip MLE")
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_ll_2018-12-17.jld2"
+@load file p_ll
 
 println("#################")
 println("#################")
@@ -122,8 +124,7 @@ println("###### Estimation 2 #######")
 println("#################")
 println("#################")
 
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_ll_2018-12-17.jld2"
-@load file p_ll
+
 # S = calc_gmm_Avar(m,p_ll)
 # W = inv(S)./100
 # W = eye(length(p0)+length(m.data.tMoments))
@@ -133,8 +134,7 @@ W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMom
 # ll = log_likelihood!(hess_2,grad_2,m,p0)
 # res = GMM_objective_exp!(hess_new,grad_new,m,p0,W)
 # p_ga, obj_1 = gradient_ascent_GMM(m,p0,W,max_itr=30)
-p_stg1, obj_1 = newton_raphson_GMM(m,p_ll,W,max_itr=1)
-p_stg1, obj_1 = gradient_ascent_GMM(m,p_stg1,W,max_itr=5)
+p_stg1, obj_1 = newton_raphson_GMM(m,p_ll,W)
 # p_ga2, obj_1 = gradient_ascent_GMM(m,p_ga,W,max_itr=1)
 # rundate = "2018-08-25"
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage1_$rundate.jld2"
