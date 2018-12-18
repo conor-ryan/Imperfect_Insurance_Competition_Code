@@ -115,7 +115,7 @@ W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMom
 # res = GMM_objective_exp!(hess_new,grad_new,m,p0,W)
 # p_ga, obj_1 = gradient_ascent_GMM(m,p0,W,max_itr=30)
 p_stg1, obj_1 = newton_raphson_GMM(m,p_ll,W,max_itr=1)
-p_ga, obj_1 = gradient_ascent_GMM(m,p_stg1,W,max_itr=5)
+p_stg1, obj_1 = gradient_ascent_GMM(m,p_stg1,W,max_itr=1)
 # p_ga2, obj_1 = gradient_ascent_GMM(m,p_ga,W,max_itr=1)
 # rundate = "2018-08-25"
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage1_$rundate.jld2"
