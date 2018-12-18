@@ -49,6 +49,8 @@ end
 end
 
 function calc_risk_moments!(hess::Array{Float64,3},grad::Matrix{Float64},d::InsuranceLogit,p::parDict{T}) where T
+    grad[:] .= 0.0
+    hess[:] .= 0.0
     wgts = weight(d.data)[1,:]
     wgts_share = wgts.*p.s_hat
     num_prods = length(d.prods)
@@ -77,6 +79,7 @@ end
 
 
 function calc_risk_moments!(grad::Matrix{Float64},d::InsuranceLogit,p::parDict{T}) where T
+    grad[:] .= 0.0
     wgts = weight(d.data)[1,:]
     wgts_share = wgts.*p.s_hat
     num_prods = length(d.prods)

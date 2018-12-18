@@ -53,7 +53,8 @@ p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 par0 = parDict(m,p0)
 #
 
-
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_ll_2018-12-17.jld2"
+@load file p_ll
 # #
 # #
 W = Matrix{Float64}(I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
@@ -61,9 +62,25 @@ W = Matrix{Float64}(I,length(p0)+length(m.data.tMoments),length(p0)+length(m.dat
 grad_2 = Vector{Float64}(undef,length(p0))
 grad_3 = Vector{Float64}(undef,length(p0))
 hess_2 = Matrix{Float64}(undef,length(p0),length(p0))
+
+
+obj_grad = Vector{Float64}(undef,length(p0))
+grad = Vector{Float64}(undef,length(p0))
+hess = Matrix{Float64}(undef,length(p0),length(p0))
+par0 = parDict(m,p_ll)
+ll = log_likelihood!(hess,grad,m,par0)
+
+mom_grad = Matrix{Float64}(undef,length(p0),length(m.data.tMoments))
+mom = calc_risk_moments!(mom_grad,m,par0)
+
+moments = vcat(mom,grad)
+moments_grad = hcat(mom_grad,hess)
+
+calc_GMM_Grad!(obj_grad,moments,moments_grad,W)
+
 # W = Matrix{Float64}(I,length(m.prods),length(m.prods))
-# res = GMM_objective_exp!(hess_2,grad_2,m,p_ll,W)
-res = GMM_objective!(grad_3,m,p0,W)
+# res = GMM_objective!(hess_2,grad_2,m,p_stg1,W)
+res = GMM_objective!(grad_3,m,p_ll,W)
 # f_obj(x) = GMM_objective(m,x,p0,W)
 # p_test = p0[1:20]
 # grad_1 = Vector{Float64}(length(p_test))
