@@ -56,13 +56,14 @@ par0 = parDict(m,p0)
 
 # #
 # #
-# W = Matrix{Float64}(I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
+W = Matrix{Float64}(I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
 # # # W = eye(length(p0))
-# grad_2 = Vector{Float64}(undef,length(p0))
-# hess_2 = Matrix{Float64}(undef,length(p0),length(p0))
+grad_2 = Vector{Float64}(undef,length(p0))
+grad_3 = Vector{Float64}(undef,length(p0))
+hess_2 = Matrix{Float64}(undef,length(p0),length(p0))
 # W = Matrix{Float64}(I,length(m.prods),length(m.prods))
 # res = GMM_objective_exp!(hess_2,grad_2,m,p_ll,W)
-# res = GMM_objective!(hess_2,grad_2,m,p_ll,W)
+res = GMM_objective!(grad_3,m,p0,W)
 # f_obj(x) = GMM_objective(m,x,p0,W)
 # p_test = p0[1:20]
 # grad_1 = Vector{Float64}(length(p_test))
@@ -102,7 +103,8 @@ println("###### Estimation 2 #######")
 println("#################")
 println("#################")
 
-
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_ll_2018-12-17.jld2"
+@load file p_ll
 # S = calc_gmm_Avar(m,p_ll)
 # W = inv(S)./100
 # W = eye(length(p0)+length(m.data.tMoments))
@@ -112,8 +114,9 @@ W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMom
 # ll = log_likelihood!(hess_2,grad_2,m,p0)
 # res = GMM_objective_exp!(hess_new,grad_new,m,p0,W)
 # p_ga, obj_1 = gradient_ascent_GMM(m,p0,W,max_itr=30)
-p_stg1, obj_1 = newton_raphson_GMM(m,p_ll,W)
-
+p_stg1, obj_1 = newton_raphson_GMM(m,p_ll,W,max_itr=1)
+p_ga, obj_1 = gradient_ascent_GMM(m,p_stg1,W,max_itr=5)
+# p_ga2, obj_1 = gradient_ascent_GMM(m,p_ga,W,max_itr=1)
 # rundate = "2018-08-25"
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage1_$rundate.jld2"
 @save file p_stg1
