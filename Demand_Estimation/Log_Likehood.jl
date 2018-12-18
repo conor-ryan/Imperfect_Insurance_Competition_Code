@@ -139,6 +139,12 @@ function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
     hess_obs = Matrix{Float64}(undef,Q,Q)
     grad_obs = Vector{Float64}(undef,Q)
 
+    #Reset Derivatives
+    p.dSdθ_j[:] .= 0.0
+    p.dRdθ_j[:] .= 0.0
+    p.d2Sdθ_j[:] .= 0.0
+    p.d2Rdθ_j[:] .= 0.0
+
     if cont_flag
         contraction!(d,p)
     else

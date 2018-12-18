@@ -71,6 +71,8 @@ par0 = parDict(m,p_ll)
 ll = log_likelihood!(hess,grad,m,par0)
 
 mom_grad = Matrix{Float64}(undef,length(p0),length(m.data.tMoments))
+# mom_hess = Array{Float64,3}(undef,length(p0),length(p0),length(m.data.tMoments))
+# mom = calc_risk_moments!(mom_hess,mom_grad,m,par0)
 mom = calc_risk_moments!(mom_grad,m,par0)
 
 moments = vcat(mom,grad)
