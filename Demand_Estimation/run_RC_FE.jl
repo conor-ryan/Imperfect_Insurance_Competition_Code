@@ -92,10 +92,10 @@ println("###### Estimation 1 #######")
 println("#################")
 println("#################")
 # Estimate
-p_ll,ll = newton_raphson_ll(m,p0)
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_ll_$rundate.jld2"
-@save file p_ll
-# println("Skip MLE")
+# p_ll,ll = newton_raphson_ll(m,p0)
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_ll_$rundate.jld2"
+# @save file p_ll
+println("Skip MLE")
 
 println("#################")
 println("#################")
