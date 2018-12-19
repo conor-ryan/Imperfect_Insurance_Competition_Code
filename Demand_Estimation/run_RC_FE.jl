@@ -39,7 +39,7 @@ c = ChoiceData(df,df_mkt,df_risk;
     fixedEffects=[:Firm])
 
 # Fit into model
-m = InsuranceLogit(c,500)
+m = InsuranceLogit(c,20)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5

@@ -860,3 +860,82 @@ function ll_obs_hessian!(hess::Matrix{Float64},grad::Vector{Float64},
 
     return ll_obs,pars_relevant
 end
+
+
+
+function ll_obs_gradient!(grad::Vector{Float64},
+                            app::ChoiceData,d::InsuranceLogit,p::parDict{T}) where T
+
+        ind, r_ind, r_ind_metal, S_ij, wgt, urate, idxitr, X_t, X_0_t, Z, F_t, r_age = unPackChars(app,d)
+        wgt = convert(Array{Float64,2},wgt)
+        S_ij = convert(Array{Float64,2},S_ij)
+        urate = convert(Array{Float64,2},urate)
+
+        prodidx = Int.(product(app))
+
+        draws = d.draws
+        non_zero_draws = findall(d.draws[:,r_ind].>0)
+        zero_draws = findall(d.draws[:,r_ind].==0)
+        risk = draws[:,r_ind_metal]
+        r_avg = p.r_hat[idxitr]
+
+        # Get Utility and derivative of Utility
+        μ_ij,δ,s_hat = unPackParChars(p,idxitr)
+
+        s_insured = sumShares!(s_hat,ind)
+
+        (N,K) = size(μ_ij)
+
+        # Initialize Gradient
+        #(Q,N,K) = size(dμ_ij)
+        pars_relevant = relPar(app,d,F_t,ind)
+
+        # Pre-Calculate Squares
+        μ_ij_sums = preCalcμ(μ_ij,δ)
+
+        # Pre-Calculate Log-Likelihood Terms for Gradient
+        # Also Calculate Log-Likelihood itself
+        gll_t1, gll_t2, gll_t3, gll_t4,gll_t5,gll_t6, ll_obs = ll_Terms(wgt,S_ij,urate,s_hat,s_insured)
+
+        #hess = zeros(Q,Q)
+        #hess[:] = 0.0
+        #grad[:] = 0.0
+        X_mat = Array{Float64}(undef,N,K)
+        #Y_mat = Array{Float64}(N,K)
+
+        # Allocate Memory
+
+        dS_x = Vector{Float64}(undef,K)
+        # dS_y = Vector{Float64}(K)
+        # dS_z = Vector{Float64}(K)
+
+        s_n = Vector{Float64}(undef,K)
+
+        dR_x = Vector{Float64}(undef,K)
+
+        #γlen = 1 + d.parLength[:γ]
+        γlen = d.parLength[:γ]
+        β0len = γlen + d.parLength[:β0]
+        βlen = β0len + d.parLength[:γ]
+        σlen = βlen + d.parLength[:σ]
+        FElen = σlen + d.parLength[:FE]
+
+
+        for (q_i,q) in enumerate(pars_relevant)
+            returnParameter!(q,X_mat,
+                            Z,X_0_t,X_t,draws,F_t,r_ind,
+                            γlen,β0len,βlen,σlen)
+
+            dS_x_all = grad_calc!(dS_x,s_n,
+                        zero_draws,non_zero_draws,
+                        dR_x,risk,r_age,
+                        μ_ij,δ,X_mat,
+                        μ_ij_sums)
+
+            ## Calculate Gradient
+            grad[q]+= combine_grad(N,gll_t1,gll_t4,dS_x,dS_x_all)
+
+        end
+
+    return ll_obs,pars_relevant
+end

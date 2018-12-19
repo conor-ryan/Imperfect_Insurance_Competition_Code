@@ -126,6 +126,43 @@ function calc_Avar(d::InsuranceLogit,p::parDict{T}) where T
 end
 
 
+function log_likelihood!(grad::Vector{Float64},
+                            d::InsuranceLogit,p::parDict{T};cont_flag::Bool=false) where T
+    Q = d.parLength[:All]
+    N = size(d.draws,1)
+    grad[:] .= 0.0
+    ll = 0.0
+    Pop =sum(weight(d.data).*choice(d.data))
+    grad_obs = Vector{Float64}(undef,Q)
+
+    #Reset Derivatives
+    p.dSdθ_j[:] .= 0.0
+    p.dRdθ_j[:] .= 0.0
+    p.d2Sdθ_j[:] .= 0.0
+    p.d2Rdθ_j[:] .= 0.0
+
+    if cont_flag
+        contraction!(d,p)
+    else
+        individual_values!(d,p)
+        individual_shares(d,p)
+    end
+
+    #shell_full = zeros(Q,N,38)
+    for app in eachperson(d.data)
+        ll_obs,pars_relevant = ll_obs_gradient!(grad,app,d,p)
+        ll+=ll_obs
+    end
+    if isnan(ll)
+        ll = -1e20
+    end
+    for q in 1:Q
+        grad[q]=grad[q]/Pop
+    end
+
+    return ll/Pop
+end
+
 
 
 function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
@@ -178,20 +215,6 @@ function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
 
     return ll/Pop
 end
-
-function add_obs_mat!(hess::Matrix{Float64},grad::Vector{Float64},
-                        hess_obs::Matrix{Float64},grad_obs::Vector{Float64},
-                        Pop::Float64,pars_relevant::Vector{Int})
-    Q = length(grad)
-    for q in pars_relevant
-        grad[q]+=grad_obs[q]/Pop
-        for r in pars_relevant
-        hess[q,r]+=hess_obs[q,r]/Pop
-        end
-    end
-    return Void
-end
-
 
 function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
                             d::InsuranceLogit,p::Array{T}) where T
