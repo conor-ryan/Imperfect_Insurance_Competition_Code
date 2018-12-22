@@ -173,8 +173,6 @@ function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
     grad[:] .= 0.0
     ll = 0.0
     Pop =sum(weight(d.data).*choice(d.data))
-    hess_obs = Matrix{Float64}(undef,Q,Q)
-    grad_obs = Vector{Float64}(undef,Q)
 
     #Reset Derivatives
     p.dSdθ_j[:] .= 0.0

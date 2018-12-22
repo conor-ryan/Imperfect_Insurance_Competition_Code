@@ -39,7 +39,7 @@ c = ChoiceData(df,df_mkt,df_risk;
     fixedEffects=[:Firm])
 
 # Fit into model
-m = InsuranceLogit(c,500)
+m = InsuranceLogit(c,20)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
@@ -134,11 +134,13 @@ W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMom
 # ll = log_likelihood!(hess_2,grad_2,m,p0)
 # res = GMM_objective_exp!(hess_new,grad_new,m,p0,W)
 # p_ga, obj_1 = gradient_ascent_GMM(m,p0,W,max_itr=30)
-p_stg1, obj_1 = newton_raphson_GMM(m,p_ll,W)
+# p_stg1, obj_1 = newton_raphson_GMM(m,p_ll,W)
 # p_ga2, obj_1 = gradient_ascent_GMM(m,p_ga,W,max_itr=1)
-# rundate = "2018-08-25"
+rundate = "2018-12-17"
+println("Load MLE")
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage1_$rundate.jld2"
-@save file p_stg1
+# @save file p_stg1
+@load file p_stg1
 # est_res = load(file)["est_res"]
 #
 # p_est = est_res[3]
@@ -150,9 +152,9 @@ println("#################")
 println("###### Estimation 3 #######")
 println("#################")
 println("#################")
-m = InsuranceLogit(c,1500)
+m = InsuranceLogit(c,1000)
 S = calc_gmm_Avar(m,p_stg1)
-W2 = inv(S)./100
+W2 = inv(S)
 p_stg2, obj_2 = newton_raphson_GMM(m,p_stg1,W2)
 
 # #est_pre = newton_raphson(m,p_est,W2)

@@ -561,9 +561,12 @@ function calc_gmm_Avar(d::InsuranceLogit,p0::Vector{Float64})
 
     risk_moments = Vector{Float64}(undef,num_prods*3)
     g_n = Vector{Float64}(undef,mom_length)
+    grad_obs = Vector{Float64}(undef,d.parLength[:All])
 
     for app in eachperson(d.data)
-        ll_obs,grad_obs = ll_obs_gradient(app,d,p)
+        grad_obs[:] .= 0.0
+        ll_obs,pars_relevant = ll_obs_gradient!(grad_obs,app,d,p)
+        # ll_obs,grad_obs = ll_obs_gradient(app,d,p)
 
         idx_prod = risk_obs_moments!(risk_moments,productIDs,app,d,p)
 
@@ -575,7 +578,7 @@ function calc_gmm_Avar(d::InsuranceLogit,p0::Vector{Float64})
         add_Σ(Σ,g_n,idx_nonEmpty)
     end
 
-    Σ = Σ./Pop
+    # Σ = Σ./(Pop^2)
 
     (N,M) = size(Σ)
     aVar = zeros(d.parLength[:All] + length(d.data.tMoments),M)
