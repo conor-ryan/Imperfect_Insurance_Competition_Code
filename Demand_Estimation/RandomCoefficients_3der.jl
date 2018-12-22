@@ -156,7 +156,7 @@ function ll_obs_hessian!(thD::Array{Float64,3},hess::Matrix{Float64},grad::Vecto
 
         #γlen = 1 + d.parLength[:γ]
         γlen = d.parLength[:γ]
-        β0len = γlen + d.parLength[:β0]
+        β0len = γlen + d.parLength[:β]
         βlen = β0len + d.parLength[:γ]
         σlen = βlen + d.parLength[:σ]
         FElen = σlen + d.parLength[:FE]
@@ -697,17 +697,17 @@ function returnParameter!(q::Int64,X_mat::Matrix{Float64},
         X_mat[:] .= Z[q]
     elseif q<=β0len
         for n in 1:N
-            @inbounds X_mat[n,:] = X_0_t[q-γlen,:]
+            @inbounds X_mat[n,:] = X_t[q-γlen,:]
         end
     elseif q<=βlen
         # Characteristic Interactions
         for n in 1:N
-            @inbounds X_mat[n,:] = X_0_t[1,:].*Z[q-β0len]
+            @inbounds X_mat[n,:] = X_t[1,:].*Z[q-β0len]
         end
     elseif q<=σlen
         #Quality Random Effect
         for n in 1:N,k in 1:K
-            @inbounds X_mat[n,k] = draws[n,r_ind]*X_t[1+q-(βlen),k]
+            @inbounds X_mat[n,k] = draws[n,r_ind]*X_0_t[q-(βlen),k]
         end
     else
         #Fixed Effect
@@ -786,7 +786,7 @@ function ll_obs_hessian!(hess::Matrix{Float64},grad::Vector{Float64},
 
         #γlen = 1 + d.parLength[:γ]
         γlen = d.parLength[:γ]
-        β0len = γlen + d.parLength[:β0]
+        β0len = γlen + d.parLength[:β]
         βlen = β0len + d.parLength[:γ]
         σlen = βlen + d.parLength[:σ]
         FElen = σlen + d.parLength[:FE]
@@ -915,7 +915,7 @@ function ll_obs_gradient!(grad::Vector{Float64},
 
         #γlen = 1 + d.parLength[:γ]
         γlen = d.parLength[:γ]
-        β0len = γlen + d.parLength[:β0]
+        β0len = γlen + d.parLength[:β]
         βlen = β0len + d.parLength[:γ]
         σlen = βlen + d.parLength[:σ]
         FElen = σlen + d.parLength[:FE]

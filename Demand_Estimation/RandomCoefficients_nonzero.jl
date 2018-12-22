@@ -40,9 +40,9 @@ function parDict(m::InsuranceLogit,x::Array{T}) where T
     # Parameter Lengths from model
     #γlen = 1 + m.parLength[:γ]
     γlen = m.parLength[:γ]
-    β0len = γlen + m.parLength[:β0]
+    β0len = γlen + m.parLength[:β]
     βlen = β0len + m.parLength[:γ]
-    σlen = βlen + (m.parLength[:σ])
+    σlen = βlen  + m.parLength[:σ]
     FElen = σlen + m.parLength[:FE]
 
     # Distribute Parameters
@@ -52,17 +52,23 @@ function parDict(m::InsuranceLogit,x::Array{T}) where T
     γ = x[1:γlen]
     β_0 = x[(γlen+1):β0len]
     β_vec = x[(β0len+1):βlen]
-    σ = x[(βlen+1):σlen]
+    σ_vec = x[(βlen+1):σlen]
     FE_vec = x[(σlen+1):FElen]
 
     # Store FE as row Vector
     FE = Matrix{T}(undef,1,length(FE_vec))
     FE[1,:] = FE_vec
 
+    # Fill in σ
+    σ = Vector{T}(undef,m.parLength[:β])
+    σ[:] .= 0.0
+    σ[m.data._randCoeffs] = σ_vec
+
     # Stack Beta into a matrix
     K = m.parLength[:β]
     N = m.parLength[:γ]
     β = Matrix{T}(undef,K,N)
+
 
     ind = 0
     for i in 1:N, j in 1:K
@@ -76,7 +82,7 @@ function parDict(m::InsuranceLogit,x::Array{T}) where T
 
     #Calculate Random Coefficients matrix
     (S,R) = size(m.draws)
-    randCoeffs = Array{T,3}(undef,S,m.parLength[:σ],size(m.data.rMoments,1))
+    randCoeffs = Array{T,3}(undef,S,m.parLength[:β],size(m.data.rMoments,1))
     calcRC!(randCoeffs,σ,m.draws)
 
     #Initialize (ij) pairs of deltas
@@ -141,8 +147,8 @@ function calc_indCoeffs(p::parDict{T},β::Array{T,1},d::T,r_ind::Int) where T
         β_i[n,1] = β[1]
     end
 
-    for k in 2:Q, n in 1:N
-        β_i[n,k] = β[k] + p.randCoeffs[n,k-1,r_ind]
+    for k in 1:K, n in 1:N
+        β_i[n,k] = β[k] + p.randCoeffs[n,k,r_ind]
     end
 
     β_i = permutedims(β_i,(2,1))
@@ -163,12 +169,12 @@ function util_value!(app::ChoiceData,p::parDict{T}) where T
     β_0= p.β_0
     β = p.β
     fe = p.FE
+    randIndex = app._randCoeffs
 
     ind = person(app)[1]
     r_ind = Int(rIndS(app)[1])
     idxitr = app._personDict[ind]
     X = permutedims(prodchars(app),(2,1))
-    X_0 = permutedims(prodchars0(app),(2,1))
     Z = demoRaw(app)[:,1]
     #F = fixedEffects(app)
     F = fixedEffects(app,idxitr)
@@ -178,7 +184,7 @@ function util_value!(app::ChoiceData,p::parDict{T}) where T
     β_i, γ_i = calc_indCoeffs(p,β_z,demos,r_ind)
 
     chars = X*β_i
-    chars_0 = X_0*β_0
+    chars_0 = X*β_0
 
     # FE is a row Vector
     if T== Float64

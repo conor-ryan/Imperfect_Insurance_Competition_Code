@@ -20,7 +20,6 @@ include("RandomCoefficients_3der.jl")
 include("Contraction.jl")
 include("Log_Likehood.jl")
 include("RiskMoments.jl")
-include("Expectation_Moments.jl")
 include("Estimate_Basic.jl")
 include("Estimate_GMM.jl")
 println("Code Loaded")
@@ -36,10 +35,10 @@ c = ChoiceData(df,df_mkt,df_risk;
             :LowIncome],
     prodchars=[:Price,:AV,:Big],
     prodchars_0=[:Price,:AV,:Big],
-    fixedEffects=[:Firm])
+    fixedEffects=[:Firm_Market_Cat_Age])
 
 # Fit into model
-m = InsuranceLogit(c,20)
+m = InsuranceLogit(c,50)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
@@ -53,22 +52,24 @@ p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 par0 = parDict(m,p0)
 #
 
+ll = log_likelihood(m,par0)
+
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_ll_2018-12-17.jld2"
 # @load file p_ll
 # # #
 # # #
 # W = Matrix{Float64}(I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
 # # # # W = eye(length(p0))
-# grad_2 = Vector{Float64}(undef,length(p0))
+grad_2 = Vector{Float64}(undef,length(p0))
 # grad_3 = Vector{Float64}(undef,length(p0))
-# hess_2 = Matrix{Float64}(undef,length(p0),length(p0))
+hess_2 = Matrix{Float64}(undef,length(p0),length(p0))
 #
 #
 # obj_grad = Vector{Float64}(undef,length(p0))
 # grad = Vector{Float64}(undef,length(p0))
 # hess = Matrix{Float64}(undef,length(p0),length(p0))
 # par0 = parDict(m,p_ll)
-# ll = log_likelihood!(hess,grad,m,par0)
+ll = log_likelihood!(hess_2,grad_2,m,par0)
 #
 # mom_grad = Matrix{Float64}(undef,length(p0),length(m.data.tMoments))
 # # mom_hess = Array{Float64,3}(undef,length(p0),length(p0),length(m.data.tMoments))
@@ -83,21 +84,21 @@ par0 = parDict(m,p0)
 # # W = Matrix{Float64}(I,length(m.prods),length(m.prods))
 # # res = GMM_objective!(hess_2,grad_2,m,p_stg1,W)
 # res = GMM_objective!(grad_3,m,p_ll,W)
-# f_obj(x) = GMM_objective(m,x,p0,W)
+f_obj(x) = log_likelihood(m,x)
 # p_test = p0[1:20]
-# grad_1 = Vector{Float64}(length(p_test))
-# hess_1 = Matrix{Float64}(length(p_test),length(p_test))
-# fval_old = f_obj(p_test)
+grad_1 = Vector{Float64}(undef,length(p0))
+hess_1 = Matrix{Float64}(undef,length(p0),length(p0))
+fval_old = f_obj(p0)
 # # #
-# println("Grad")
-# ForwardDiff.gradient!(grad_1,f_obj, p_test)#, cfg)
+println("Grad")
+ForwardDiff.gradient!(grad_1,f_obj, p0)#, cfg)
 # println("Hessian")
 # cfg = ForwardDiff.HessianConfig(f_obj, p0, ForwardDiff.Chunk{8}())
-# ForwardDiff.hessian!(hess_1,f_obj, p_test)#,cfg)
-# #
-# println(fval_old-res)
-# println(maximum(abs.(grad_1-grad_2)))
-# println(maximum(abs.(hess_1-hess_2)))
+# ForwardDiff.hessian!(hess_1,f_obj, p0)#,cfg)
+#
+println(fval_old-ll)
+println(maximum(abs.(grad_1-grad_2)))
+println(maximum(abs.(hess_1-hess_2)))
 
 # println(fval_old-res)
 # println(maximum(abs.(grad_1-grad_2)))
@@ -111,12 +112,12 @@ println("###### Estimation 1 #######")
 println("#################")
 println("#################")
 # Estimate
-# p_ll,ll = newton_raphson_ll(m,p0)
-println("Load MLE")
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_ll_$rundate.jld2"
-# @save file p_ll
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_ll_2018-12-17.jld2"
-@load file p_ll
+p_ll,ll = newton_raphson_ll(m,p0)
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_ll_$rundate.jld2"
+@save file p_ll
+# println("Load MLE")
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_ll_2018-12-17.jld2"
+# @load file p_ll
 
 println("#################")
 println("#################")
@@ -137,7 +138,7 @@ W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMom
 # p_stg1, obj_1 = newton_raphson_GMM(m,p_ll,W)
 # p_ga2, obj_1 = gradient_ascent_GMM(m,p_ga,W,max_itr=1)
 rundate = "2018-12-17"
-println("Load MLE")
+println("Load GMM - Stage 1")
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage1_$rundate.jld2"
 # @save file p_stg1
 @load file p_stg1

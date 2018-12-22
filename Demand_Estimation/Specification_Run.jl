@@ -21,11 +21,11 @@ function run_specification(df::DataFrame,
 
     ## Initialize Starting Parameters
     #γ0start = rand(1)-.5
-    γstart = rand(m.parLength[:γ])/10 -.05
-    β0start = rand(m.parLength[:β])/10-.05
-    βstart = rand(m.parLength[:γ])/10 - .05
-    σstart = rand(m.parLength[:σ])/10 - .05
-    FEstart = rand(m.parLength[:FE])/100-.005
+    γstart = rand(m.parLength[:γ])/10 .-.05
+    β0start = rand(m.parLength[:β])/10 .-.05
+    βstart = rand(m.parLength[:γ])/10 .- .05
+    σstart = rand(m.parLength[:σ])/10 .- .05
+    FEstart = rand(m.parLength[:FE])/100 .-.005
 
     #p0 = vcat(γ0start,γstart,β0start,βstart,σstart,FEstart)
     p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
@@ -34,7 +34,7 @@ function run_specification(df::DataFrame,
     println("Begin Estimation")
 
     ## Estimate
-    p_est, fval = newton_raphson(m,p0)
+    p_est, fval = newton_raphson_ll(m,p0)
     return p_est, m, fval
 
     # flag, fval, p_est = estimate!(m, p0)

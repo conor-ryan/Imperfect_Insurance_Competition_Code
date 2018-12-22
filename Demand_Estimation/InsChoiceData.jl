@@ -27,6 +27,7 @@ struct ChoiceData <: ModelData
     demoRaw    # Household Demographics - raw
     wgt     # Number of People in each type
     unins     # Outside Option Share
+
     # Precomputed Indices
     _person::Array{Int,1}
     _product::Array{Int,1}
@@ -40,6 +41,9 @@ struct ChoiceData <: ModelData
     _unins::Array{Int,1}
     _rInd::Array{Int,1}
     _rIndS::Array{Int,1}
+
+    # Random Coefficient Specification
+    _randCoeffs::Array{Int,1}
 
     # ID Lookup Mappings
     _personIDs::Array{Float64,1}
@@ -76,7 +80,7 @@ function ChoiceData(data_choice::DataFrame,
     i = convert(Array{Float64},data_choice[person])
     j = convert(Array{Float64},data_choice[product])
     X = convert(Array{Float64},data_choice[prodchars])
-    X_0 = convert(Array{Float64},data_choice[prodchars_0])
+    # X_0 = convert(Array{Float64},data_choice[prodchars_0])
     y = convert(Array{Float64},data_choice[choice])
     Z = convert(Array{Float64},data_choice[demoRaw])
     w = convert(Array{Float64},data_choice[wgt])
@@ -86,7 +90,7 @@ function ChoiceData(data_choice::DataFrame,
     rm = convert(Array{Float64},data_choice[riskChars])
 
     println("Create Fixed Effects")
-    bigFirm = :Big in prodchars_0
+    bigFirm = :Big in prodchars
     F, feNames = build_FE(data_choice,fixedEffects,bigFirm = bigFirm)
     F = permutedims(F,(2,1))
 
@@ -149,8 +153,8 @@ function ChoiceData(data_choice::DataFrame,
     # Create a data matrix, only including person id
     println("Put Together Data non FE data together")
     k = 0
-    for (d, var) in zip([i,X,X_0, y, Z,w,rm, s0,R_metal_index,R_index,j], [person,prodchars,
-        prodchars_0,choice, demoRaw,wgt,riskChars,unins,r_var,r_silv_var,product])
+    for (d, var) in zip([i,X, y, Z,w,rm, s0,R_metal_index,R_index,j], [person,prodchars,
+        choice, demoRaw,wgt,riskChars,unins,r_var,r_silv_var,product])
         for l=1:size(d,2)
             k+=1
             dmat = hcat(dmat, d[:,l])
@@ -177,6 +181,12 @@ function ChoiceData(data_choice::DataFrame,
     _unins = getDictArray(index, unins)
     _rInd = getDictArray(index, r_var)
     _rIndS = getDictArray(index, r_silv_var)
+
+    ## Rand Coefficient Index
+    _randCoeffs = Array{Int,1}(undef,length(prodchars_0))
+    for (i,var) in enumerate(prodchars_0)
+        _randCoeffs[i] = findall(var.==prodchars)[1]
+    end
 
     # Get Person ID Dictionary Mapping for Easy Subsets
     println("Person ID Mapping")
@@ -242,6 +252,7 @@ function ChoiceData(data_choice::DataFrame,
             choice, demoRaw,wgt, unins, _person,_product, _prodchars,_prodchars_0,
             _choice, _demoRaw, _wgt,_ageRate,_ageHCC,
              _unins,_rInd,_rIndS,
+             _randCoeffs,
              uniqids,_personDict,_productDict,
             rel_fe_Dict,_tMomentDict,_stDict)
     return m
@@ -402,6 +413,7 @@ function subset(d::T, idx) where T<:ModelData
     d._unins,
     d._rInd,
     d._rIndS,
+    d._randCoeffs,
     d._personIDs,
     d._personDict,
     d._productDict,
@@ -500,7 +512,8 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
     if haltonDim==1 & !nested
         σlen = 0
     elseif (haltonDim>1) & (!nested)
-        σlen = (size(prodchars(c_data),1)-1)
+        # σlen = (size(prodchars(c_data),1)-1)
+        σlen = β0len
     elseif (haltonDim==1) & nested
         σlen =1
     else
@@ -509,7 +522,7 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
     end
 
     #total = 1 + γlen + β0len + γlen + flen + σlen
-    total = γlen + β0len + γlen + flen + σlen
+    total = γlen + βlen + γlen + flen + σlen
     parLength = Dict(:γ=>γlen,:β0=>β0len,:β=>βlen,:FE=>flen,
     :σ => σlen, :All=>total)
 
