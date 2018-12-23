@@ -34,11 +34,11 @@ c = ChoiceData(df,df_mkt,df_risk;
             :Family,
             :LowIncome],
     prodchars=[:Price,:AV,:Big],
-    prodchars_0=[:Price,:AV,:Big],
-    fixedEffects=[:Firm_Market_Cat_Age])
+    prodchars_0=[:AV,:Big],
+    fixedEffects=[:Firm])
 
 # Fit into model
-m = InsuranceLogit(c,50)
+m = InsuranceLogit(c,500)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
@@ -52,7 +52,7 @@ p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 par0 = parDict(m,p0)
 #
 
-ll = log_likelihood(m,par0)
+# ll = log_likelihood(m,par0)
 
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_ll_2018-12-17.jld2"
 # @load file p_ll
@@ -60,16 +60,16 @@ ll = log_likelihood(m,par0)
 # # #
 # W = Matrix{Float64}(I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
 # # # # W = eye(length(p0))
-grad_2 = Vector{Float64}(undef,length(p0))
+# grad_2 = Vector{Float64}(undef,length(p0))
 # grad_3 = Vector{Float64}(undef,length(p0))
-hess_2 = Matrix{Float64}(undef,length(p0),length(p0))
+# hess_2 = Matrix{Float64}(undef,length(p0),length(p0))
 #
 #
 # obj_grad = Vector{Float64}(undef,length(p0))
 # grad = Vector{Float64}(undef,length(p0))
 # hess = Matrix{Float64}(undef,length(p0),length(p0))
 # par0 = parDict(m,p_ll)
-ll = log_likelihood!(hess_2,grad_2,m,par0)
+# ll = log_likelihood!(hess_2,grad_2,m,par0)
 #
 # mom_grad = Matrix{Float64}(undef,length(p0),length(m.data.tMoments))
 # # mom_hess = Array{Float64,3}(undef,length(p0),length(p0),length(m.data.tMoments))
@@ -84,21 +84,21 @@ ll = log_likelihood!(hess_2,grad_2,m,par0)
 # # W = Matrix{Float64}(I,length(m.prods),length(m.prods))
 # # res = GMM_objective!(hess_2,grad_2,m,p_stg1,W)
 # res = GMM_objective!(grad_3,m,p_ll,W)
-f_obj(x) = log_likelihood(m,x)
-# p_test = p0[1:20]
-grad_1 = Vector{Float64}(undef,length(p0))
-hess_1 = Matrix{Float64}(undef,length(p0),length(p0))
-fval_old = f_obj(p0)
-# # #
-println("Grad")
-ForwardDiff.gradient!(grad_1,f_obj, p0)#, cfg)
+# f_obj(x) = log_likelihood(m,x)
+# # p_test = p0[1:20]
+# grad_1 = Vector{Float64}(undef,length(p0))
+# hess_1 = Matrix{Float64}(undef,length(p0),length(p0))
+# fval_old = f_obj(p0)
+# # # #
+# println("Grad")
+# ForwardDiff.gradient!(grad_1,f_obj, p0)#, cfg)
 # println("Hessian")
 # cfg = ForwardDiff.HessianConfig(f_obj, p0, ForwardDiff.Chunk{8}())
 # ForwardDiff.hessian!(hess_1,f_obj, p0)#,cfg)
 #
-println(fval_old-ll)
-println(maximum(abs.(grad_1-grad_2)))
-println(maximum(abs.(hess_1-hess_2)))
+# println(fval_old-ll)
+# println(maximum(abs.(grad_1-grad_2)))
+# println(maximum(abs.(hess_1-hess_2)))
 
 # println(fval_old-res)
 # println(maximum(abs.(grad_1-grad_2)))
@@ -112,10 +112,10 @@ println("###### Estimation 1 #######")
 println("#################")
 println("#################")
 # Estimate
-p_ll,ll = newton_raphson_ll(m,p0)
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_ll_$rundate.jld2"
-@save file p_ll
-# println("Load MLE")
+# p_ll,ll = newton_raphson_ll(m,p0)
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_ll_$rundate.jld2"
+# @save file p_ll
+println("Load MLE")
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_ll_2018-12-17.jld2"
 # @load file p_ll
 
@@ -153,10 +153,10 @@ println("#################")
 println("###### Estimation 3 #######")
 println("#################")
 println("#################")
-m = InsuranceLogit(c,1000)
+m = InsuranceLogit(c,500)
 S = calc_gmm_Avar(m,p_stg1)
 W2 = inv(S)
-p_stg2, obj_2 = newton_raphson_GMM(m,p_stg1,W2)
+p_stg2, obj_2 = newton_raphson_GMM(m,p0,S)
 
 # #est_pre = newton_raphson(m,p_est,W2)
 #

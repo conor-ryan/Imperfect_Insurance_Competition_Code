@@ -578,7 +578,7 @@ function calc_gmm_Avar(d::InsuranceLogit,p0::Vector{Float64})
         add_Σ(Σ,g_n,idx_nonEmpty)
     end
 
-    # Σ = Σ./(Pop^2)
+    Σ = Σ./(Pop)
 
     (N,M) = size(Σ)
     aVar = zeros(d.parLength[:All] + length(d.data.tMoments),M)
