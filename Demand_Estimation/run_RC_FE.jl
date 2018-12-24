@@ -113,11 +113,9 @@ println("#################")
 println("#################")
 # Estimate
 p_ll,ll = newton_raphson_ll(m,p0)
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_ll_$rundate.jld2"
-# @save file p_ll
-# println("Load MLE")
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_ll_2018-12-17.jld2"
-# @load file p_ll
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_ll_$rundate.jld2"
+@save file p_ll
+
 
 println("#################")
 println("#################")
@@ -126,14 +124,15 @@ println("#################")
 println("#################")
 
 
-
-W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
-# p_stg1, obj_1 = newton_raphson_GMM(m,p_ll,W)
-rundate = "2018-12-17"
-println("Load GMM - Stage 1")
+S = calc_gmm_Avar(m,p_ll)
+W = inv(S)
+# W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
+p_stg1, obj_1 = newton_raphson_GMM(m,p_ll,W)
+# rundate = "2018-12-17"
+# println("Load GMM - Stage 1")
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage1_$rundate.jld2"
-# @save file p_stg1
-@load file p_stg1
+@save file p_stg1
+# @load file p_stg1
 # est_res = load(file)["est_res"]
 #
 # p_est = est_res[3]
@@ -145,15 +144,14 @@ println("#################")
 println("###### Estimation 3 #######")
 println("#################")
 println("#################")
-m = InsuranceLogit(c,500)
 S = calc_gmm_Avar(m,p_stg1)
 W2 = inv(S)
-p_stg2, obj_2 = newton_raphson_GMM(m,p_stg1,W2)
+p_stg2, obj_2 = newton_raphson_GMM(m,p_ll,W2)
 
 # #est_pre = newton_raphson(m,p_est,W2)
 #
 # est_res = estimate_GMM!(m,p_est,W2)
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_stage2_$rundate.jld2"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
 @save file p_stg2
 #
 #

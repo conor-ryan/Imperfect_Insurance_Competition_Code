@@ -102,6 +102,33 @@ function calc_risk_moments!(grad::Matrix{Float64},d::InsuranceLogit,p::parDict{T
     return mom_value .- d.data.tMoments
 end
 
+
+function calc_risk_moments_obs(app,d::InsuranceLogit,p::parDict{T}) where T
+    wgts = weight(d.data)[1,:]
+    wgts_share = wgts.*p.s_hat
+    num_prods = length(d.prods)
+    s_hat_j = Vector{Float64}(undef,num_prods)
+    r_hat_j = Vector{Float64}(undef,num_prods)
+
+    # Q = d.parLength[:All]
+
+    dSdθ_j = p.dSdθ_j
+
+    prodAvgs!(s_hat_j,r_hat_j,wgts,wgts_share,d,p)
+
+    mom_value = Vector{Float64}(undef,length(d.data.tMoments))
+
+    calc_Mom!(mom_value,s_hat_j,r_hat_j,d,p)
+
+    calc_Mom_Der!(grad,dSdθ_j,mom_value,s_hat_j,r_hat_j,d,p)
+
+
+    mom_disp = mom_value[1:6]
+    println("Risk moments are $mom_disp")
+
+    return mom_value .- d.data.tMoments
+end
+
 function calc_Mom!(mom_value::Vector{Float64},
                     s_hat_j::Vector{Float64},
                     r_hat_j::Vector{Float64},
@@ -179,6 +206,18 @@ function prodAvgs!(s_hat_j::Vector{Float64},
     return nothing
 end
 
+function prodSums!(s_hat_j::Vector{Float64},
+                    r_hat_j::Vector{Float64},
+                    wgts::Vector{Float64},
+                    wgts_share::Vector{Float64},
+                    d::InsuranceLogit,p::parDict{T}) where T
+    for j in d.prods
+        j_index_all = d.data._productDict[j]
+        s_hat_j[j] = sliceSum_wgt(p.s_hat,wgts,j_index_all)
+        r_hat_j[j] = sliceSum_wgt(p.r_hat,wgts_share,j_index_all)#*d.Γ_j[j]
+    end
+    return nothing
+end
 
 function  prodDerivatives!(#dAdθ::Matrix{Float64},
                             dRdθ::Matrix{Float64},
@@ -388,17 +427,8 @@ function risk_moments_Avar(d::InsuranceLogit,p::parDict{T}) where T
     S_unwt = Vector{T}(undef,num_prods)
     s_hat_2_j = zeros(num_prods)
     r_hat_2_j = zeros(num_prods)
-    a_hat_2_j = zeros(num_prods)
 
-    s_hat_obs_j = Vector{T}(undef,num_prods)
-    r_hat_obs_j = Vector{T}(undef,num_prods)
-    a_hat_obs_j = Vector{T}(undef,num_prods)
-
-    T_grad  = zeros(num_prods,num_prods*3)
-
-    mom_grad = zeros(length(d.data.tMoments),num_prods*3)
-
-    ageRate_long = ageRate(d.data)[1,:]
+    mom_grad = zeros(length(d.data.tMoments),num_prods*2)
 
     productIDs = Vector{Int64}(undef,length(wgts))
     for j in d.prods
@@ -406,98 +436,43 @@ function risk_moments_Avar(d::InsuranceLogit,p::parDict{T}) where T
         productIDs[idx_prod] .= j
     end
 
-    #prodAvgs!(S_unwt,r_hat_j,a_hat_j,ageRate_long,wgts,wgts_share,d,p)
-    ids = d.data._personIDs
-    Pop = 0.0
-    for i in ids
-        idxitr = d.data._personDict[i]
-        per_prods = productIDs[idxitr]
-        for (k,j) in zip(idxitr,per_prods)
-            s_hat_obs_j[j] = p.s_hat[k]
-            r_hat_obs_j[j] = p.r_hat[k]*p.s_hat[k]*d.Γ_j[j]
-            a_hat_obs_j[j] = ageRate_long[k]*p.s_hat[k]*d.AV_j[j]*d.Γ_j[j]
+    prodSums!(s_hat_2_j,r_hat_2_j,wgts,wgts_share,d,p)
+    Pop = sum(wgts)
+    # ids = d.data._personIDs
 
-            s_hat_2_j[j]+= s_hat_obs_j[j]*wgts[k]
-            r_hat_2_j[j]+= r_hat_obs_j[j]*wgts[k]
-            a_hat_2_j[j]+= a_hat_obs_j[j]*wgts[k]
-        end
-        Pop+=wgts[idxitr[1]]
-    end
+    # for i in ids
+    #     idxitr = d.data._personDict[i]
+    #     per_prods = productIDs[idxitr]
+    #     for (k,j) in zip(idxitr,per_prods)
+    #         s_hat_obs_j[j] = p.s_hat[k]
+    #         r_hat_obs_j[j] = p.r_hat[k]*p.s_hat[k]
+    #
+    #         s_hat_2_j[j]+= s_hat_obs_j[j]*wgts[k]
+    #         r_hat_2_j[j]+= r_hat_obs_j[j]*wgts[k]
+    #     end
+    # end
 
     for j in d.prods
         s_hat_2_j[j] = s_hat_2_j[j]/Pop
         r_hat_2_j[j] = r_hat_2_j[j]/Pop
-        a_hat_2_j[j] = a_hat_2_j[j]/Pop
-    end
-
-    # out=0.0
-    t_norm_j = Vector{T}(undef,num_prods)
-    t_norm_j[:] .= 0.0
-    for (s,idx_prod) in d.data._stDict
-        ST_R = sum(r_hat_2_j[idx_prod])/sum(s_hat_2_j[idx_prod])
-        ST_A = sum(a_hat_2_j[idx_prod])/sum(s_hat_2_j[idx_prod])
-        for j in idx_prod
-            t_norm_j[j] = (r_hat_2_j[j]/s_hat_2_j[j])/ST_R - (a_hat_2_j[j]/s_hat_2_j[j])/ST_A
-
-            t1 = r_hat_2_j[j]/sum(r_hat_2_j[idx_prod]) - a_hat_2_j[j]/sum(a_hat_2_j[idx_prod])
-            t2 = sum(s_hat_2_j[idx_prod])/s_hat_2_j[j]
-            for k in idx_prod
-                if k==j
-                    #S_hat_j Gradient
-                    T_grad[j,j] = t1*(1/s_hat_2_j[j] - sum(s_hat_2_j[idx_prod])/(s_hat_2_j[j]^2))
-                    #A_hat_j Gradient
-                    T_grad[j,num_prods + j] = -t2*(1/sum(a_hat_2_j[idx_prod]) - a_hat_2_j[j]/(sum(a_hat_2_j[idx_prod])^2))
-                    #R_hat_j Gradient
-                    T_grad[j,num_prods*2 + j] = t2*(1/sum(r_hat_2_j[idx_prod]) - r_hat_2_j[j]/(sum(r_hat_2_j[idx_prod])^2))
-                else
-                    #S_hat_j Gradient
-                    T_grad[j,k] = t1*(1/s_hat_2_j[j])
-                    #A_hat_j Gradient
-                    T_grad[j,num_prods + k] = t2*(a_hat_2_j[j]/(sum(a_hat_2_j[idx_prod])^2))
-                    #R_hat_j Gradient
-                    T_grad[j,num_prods*2 + k] = -t2*(r_hat_2_j[j]/(sum(r_hat_2_j[idx_prod])^2))
-                end
-            end
-        end
-
     end
 
     mom_value = Vector{T}(undef,length(d.data.tMoments))
 
-    R_unwt = similar(r_hat_2_j)
-    J = length(r_hat_2_j)
-    for j in 1:J
-        R_unwt[j] = r_hat_2_j[j]/d.Γ_j[j]
-    end
+    # R_unwt = similar(r_hat_2_j)
+    # J = length(r_hat_2_j)
+    # for j in 1:J
+    #     R_unwt[j] = r_hat_2_j[j]/d.Γ_j[j]
+    # end
 
     for (m,idx_mom) in d.data._tMomentDict
-        if true
-            t_est = sum(R_unwt[idx_mom])/sum(s_hat_2_j[idx_mom])
-            s_sum = sum(s_hat_2_j[idx_mom])
-            for k in idx_mom
-                #S_hat_j Gradient
-                mom_grad[m,k] = (r_hat_2_j[k]/d.Γ_j[k])/s_sum - t_est/s_sum
-                #A_hat_j Gradient
-                mom_grad[m,(num_prods + k)] = 0.0
-                #R_hat_j Gradient
-                mom_grad[m,(num_prods*2 + k)] = (s_hat_2_j[k]/d.Γ_j[k])/s_sum
-            end
-        else
-            t_est = sliceMean_wgt(t_norm_j,s_hat_2_j,idx_mom)
-            #mom_value[m] = d.data.tMoments[m] - t_est
-            mom_value[m] = t_est
-            for k in d.prods
-                #S_hat_j Gradient
-                mom_grad[m,k] = sliceMean_wgt(T_grad[:,k],s_hat_2_j,idx_mom)
-                #A_hat_j Gradient
-                mom_grad[m,(num_prods + k)] = sliceMean_wgt(T_grad[:,(num_prods+k)],s_hat_2_j,idx_mom)
-                #R_hat_j Gradient
-                mom_grad[m,(num_prods*2 + k)] = sliceMean_wgt(T_grad[:,(num_prods*2+k)],s_hat_2_j,idx_mom)
-            end
-            for k in idx_mom
-                #S_hat_j Gradient Addition
-                mom_grad[m,k]+= (t_norm_j[k]-mom_value[m])/sum(s_hat_2_j[idx_mom])
-            end
+        r_est = sum(r_hat_2_j[idx_mom])/sum(s_hat_2_j[idx_mom])
+        s_sum = sum(s_hat_2_j[idx_mom])
+        for k in idx_mom
+            #S_hat_j Gradient
+            mom_grad[m,k] = -r_est/s_sum
+            #R_hat_j Gradient
+            mom_grad[m,(num_prods + k)] = 1/s_sum
         end
     end
 
@@ -505,33 +480,18 @@ function risk_moments_Avar(d::InsuranceLogit,p::parDict{T}) where T
 end
 
 
-function test_Avar(d::InsuranceLogit,vec::Vector{T}) where T
+function test_Avar(moments::Vector{T},d::InsuranceLogit) where T
     num_prods = length(d.prods)
-    s_hat_2_j = vec[1:num_prods]
-    a_hat_2_j = vec[(num_prods+1):(num_prods*2)]
-    r_hat_2_j = vec[(num_prods*2+1):(num_prods*3)]
+    s_hat_2_j = moments[1:num_prods]
+    r_hat_2_j = moments[(num_prods+1):num_prods*2]
 
-
-    # out=0.0
-    t_norm_j = Vector{T}(undef,num_prods)
-    t_norm_j[:] = 0.0
-    for (s,idx_prod) in d.data._stDict
-        ST_R = sum(r_hat_2_j[idx_prod])/sum(s_hat_2_j[idx_prod])
-        ST_A = sum(a_hat_2_j[idx_prod])/sum(s_hat_2_j[idx_prod])
-        for j in idx_prod
-            t_norm_j[j] = (r_hat_2_j[j]/s_hat_2_j[j])/ST_R - (a_hat_2_j[j]/s_hat_2_j[j])/ST_A
-        end
-    end
 
     mom_value = Vector{T}(undef,length(d.data.tMoments))
 
     for (m,idx_mom) in d.data._tMomentDict
-        t_est = sliceMean_wgt(t_norm_j,s_hat_2_j,idx_mom)
-        #mom_value[m] = d.data.tMoments[m] - t_est
-        mom_value[m] = t_est
+        mom_value[m] = sum(r_hat_2_j[idx_mom])/sum(s_hat_2_j[idx_mom])
     end
-
-    return mean(mom_value)
+    return mom_value[5]
 end
 
 
@@ -556,12 +516,14 @@ function calc_gmm_Avar(d::InsuranceLogit,p0::Vector{Float64})
     end
     num_prods = length(d.prods)
 
-    mom_length = num_prods*3 + d.parLength[:All]
-    Σ = zeros(mom_length,mom_length)
 
-    risk_moments = Vector{Float64}(undef,num_prods*3)
+
+    risk_moments = Vector{Float64}(undef,num_prods*2)
+    mom_length = length(risk_moments) + d.parLength[:All]
     g_n = Vector{Float64}(undef,mom_length)
     grad_obs = Vector{Float64}(undef,d.parLength[:All])
+
+    Σ = zeros(mom_length,mom_length)
 
     for app in eachperson(d.data)
         grad_obs[:] .= 0.0
@@ -569,8 +531,9 @@ function calc_gmm_Avar(d::InsuranceLogit,p0::Vector{Float64})
         # ll_obs,grad_obs = ll_obs_gradient(app,d,p)
 
         idx_prod = risk_obs_moments!(risk_moments,productIDs,app,d,p)
+        # risk_test[:] = risk_test[:] + risk_moments
 
-        idx_nonEmpty = vcat(idx_prod,num_prods .+idx_prod,num_prods*2 .+idx_prod,(num_prods*3):mom_length)
+        idx_nonEmpty = vcat(idx_prod,num_prods .+idx_prod,(num_prods*2):mom_length)
 
         g_n[1:length(risk_moments)] = risk_moments[:]
         g_n[(length(risk_moments)+1):mom_length] = grad_obs[:]
@@ -583,8 +546,8 @@ function calc_gmm_Avar(d::InsuranceLogit,p0::Vector{Float64})
     (N,M) = size(Σ)
     aVar = zeros(d.parLength[:All] + length(d.data.tMoments),M)
     (Q,R) = size(aVar)
-    aVar[1:length(d.data.tMoments),(1:num_prods*3)] = risk_moments_Avar(d,p)
-    aVar[(length(d.data.tMoments)+1):Q,(num_prods*3 + 1):R] = Matrix{Float64}(I,d.parLength[:All],d.parLength[:All])
+    aVar[1:length(d.data.tMoments),(1:num_prods*2)] = risk_moments_Avar(d,p)
+    aVar[(length(d.data.tMoments)+1):Q,(num_prods*2 + 1):R] = Matrix{Float64}(I,d.parLength[:All],d.parLength[:All])
 
     S_est = aVar*Σ*aVar'
 
@@ -609,10 +572,8 @@ function risk_obs_moments!(mom_obs::Vector{Float64},productIDs::Vector{Int64},
     for (i,k,j) in zip(ind_itr,idxitr,per_prods)
         #S_hat
         mom_obs[j] = p.s_hat[k]*wgts[i]
-        #A_hat
-        mom_obs[num_prods + j] = ages[i]*p.s_hat[k]*d.AV_j[j]*d.Γ_j[j]*wgts[i]
         #R_hat
-        mom_obs[num_prods*2 + j] = p.r_hat[k]*p.s_hat[k]*d.Γ_j[j]*wgts[i]
+        mom_obs[num_prods + j] = p.r_hat[k]*p.s_hat[k]*wgts[i]
     end
 
     return per_prods
@@ -623,4 +584,58 @@ function add_Σ(Σ::Matrix{Float64},g_n::Vector{Float64},idx::Vector{Int64})
         @fastmath @inbounds Σ[i,j]+=g_n[i]*g_n[j]
     end
     return nothing
+end
+
+
+
+function calc_risk_moments_obs(app::ChoiceData,d::InsuranceLogit,p::parDict{T}) where T
+    wgts = weight(d.data)[1,:]
+    wgts_share = wgts.*p.s_hat
+    num_prods = length(d.prods)
+    s_hat_j = Vector{Float64}(undef,num_prods)
+    r_hat_j = Vector{Float64}(undef,num_prods)
+
+    ind = person(app)[1]
+    products = Int.(product(app))
+    peridx = app._personDict[ind]
+
+    # Q = d.parLength[:All]
+
+    dSdθ_j = p.dSdθ_j
+
+    prodAvgs!(s_hat_j,r_hat_j,wgts,wgts_share,d,p)
+
+    mom_value = Vector{Float64}(undef,length(d.data.tMoments))
+
+    calc_Mom!(mom_value,s_hat_j,r_hat_j,d,p)
+
+    mom_disp = mom_value[1:6]
+    println("Risk moments are $mom_disp")
+
+    return mom_value .- d.data.tMoments
+end
+
+function calc_Mom_obs!(mom_value::Vector{Float64},
+                    s_hat_j::Vector{Float64},
+                    r_hat_j::Vector{Float64},
+                    d::InsuranceLogit,p::parDict{T},
+                    peridx::Vector{Int}) where T
+    for (m,idx_mom) in d.data._tMomentDict
+        sum_share = sum(s_hat_j[idx_mom])
+        sliceSum_wgt(r_hat_j,s_hat_j,idx_mom)
+        mom_value[m]  = sliceMean_wgt(r_hat_j,s_hat_j,idx_mom)
+    end
+end
+
+function findinlist(list1::Vector{T},list2::Vector{T}) where T
+    out = Array{T,1}(undef,length(list1))
+    for (i,l) in enumerate(list1)
+        findidx = findall(l.==list2)
+        if length(findidx)==0
+            out[i] = 0
+        else
+            out[i] = findidx[1]
+        end
+    end
+    return sort(out[out.>0])
 end
