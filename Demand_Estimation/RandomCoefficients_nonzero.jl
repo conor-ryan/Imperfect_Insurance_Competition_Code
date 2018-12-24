@@ -102,8 +102,11 @@ function parDict(m::InsuranceLogit,x::Array{T}) where T
     J = length(m.prods)
     dSdθ_j = Matrix{T}(undef,Q,J)
     dRdθ_j = Matrix{T}(undef,Q,J)
-    d2Sdθ_j = Array{T,3}(undef,Q,Q,J)
-    d2Rdθ_j = Array{T,3}(undef,Q,Q,J)
+    # d2Sdθ_j = Array{T,3}(undef,Q,Q,J)
+    # d2Rdθ_j = Array{T,3}(undef,Q,Q,J)
+    d2Sdθ_j = Array{T,3}(undef,1,1,J)
+    d2Rdθ_j = Array{T,3}(undef,1,1,J)
+
     return parDict{T}(γ_0,γ,β_0,β,σ,FE,randCoeffs,δ,μ_ij,s_hat,r_hat,
                             dSdθ,dRdθ,dSdθ_j,dRdθ_j,d2Sdθ_j,d2Rdθ_j)
 end
