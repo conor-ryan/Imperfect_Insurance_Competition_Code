@@ -851,10 +851,10 @@ function ll_obs_hessian!(hess::Matrix{Float64},grad::Vector{Float64},
                     hess[r,q]+= hess_obs
                 end
 
-                for k in 1:K
-                    @inbounds @fastmath p.d2Sdθ_j[q,r,prodidx[k]]+= wgt[k]*dS_xy[k]/N
-                    @inbounds @fastmath p.d2Rdθ_j[q,r,prodidx[k]]+= wgt[k]*(dR_xy[k]/N)
-                end
+                # for k in 1:K
+                #     @inbounds @fastmath p.d2Sdθ_j[q,r,prodidx[k]]+= wgt[k]*dS_xy[k]/N
+                #     @inbounds @fastmath p.d2Rdθ_j[q,r,prodidx[k]]+= wgt[k]*(dR_xy[k]/N)
+                # end
             end
         end
 

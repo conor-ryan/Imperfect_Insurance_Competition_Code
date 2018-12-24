@@ -216,8 +216,11 @@ end
 
 function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
                             d::InsuranceLogit,p::Array{T}) where T
+    println("Create Parameters")
     params = parDict(d,p)
+    println("Evaluate LL")
     ll = log_likelihood!(hess,grad,d,params)
+    println("Evaluated LL")
     convert_δ!(d)
     return ll
 end
