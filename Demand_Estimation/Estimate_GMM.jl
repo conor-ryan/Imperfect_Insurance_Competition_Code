@@ -328,27 +328,17 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
                 trial_cnt+=1
             elseif trial_cnt==4
                 ga_cnt+=1
-                if ga_cnt<2
-                    println("RUN ROUND OF GRADIENT ASCENT")
-                    p_test, f_test = gradient_ascent_GMM(d,p_vec,W,max_itr=5)
-                end
+                println("RUN ROUND OF GRADIENT ASCENT")
+                p_test, f_test = gradient_ascent_GMM(d,p_vec,W,max_itr=5)
                 trial_cnt+=1
-            elseif (trial_cnt==5) & (grad_size>1e-5)
-                ga_cnt = 0
-                println("Algorithm Stalled: Random Step")
-                update = rand(length(update))/1000 .-.005
-                p_test = p_vec.+update
-                trial_cnt+=1
-            elseif (trial_cnt==5) & (grad_size<=1e-5)
-                ga_cnt = 0
-                println("Algorithm Stalled: Random Step")
-                update = rand(length(update))/10000 .-.0005
-                p_test = p_vec.+update
-                trial_cnt+=1
-            end
         end
         if trial_cnt<=4
             ga_cnt = 0
+        elseif ga_cnt>2
+            ga_cnt = 0
+            println("Algorithm Stalled: Random Step")
+            update = rand(length(update))/10000 .-.0005
+            p_test = p_test .+update
         end
 
         ### Update Minimum Vector Value

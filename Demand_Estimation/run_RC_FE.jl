@@ -113,9 +113,11 @@ println("#################")
 println("#################")
 # Estimate
 # p_ll,ll = newton_raphson_ll(m,p0)
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_ll_$rundate.jld2"
+rundate = "2018-12-24"
+println("Load MLE")
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_ll_$rundate.jld2"
 # @save file p_ll
-
+@load file p_ll
 
 println("#################")
 println("#################")
@@ -144,10 +146,10 @@ println("#################")
 println("###### Estimation 3 #######")
 println("#################")
 println("#################")
-m = InsuranceLogit(c,1500)
+m = InsuranceLogit(c,1000)
 S = calc_gmm_Avar(m,p_stg1)
 W2 = inv(S)
-p_stg2, obj_2 = newton_raphson_GMM(m,p0,W2)
+p_stg2, obj_2 = newton_raphson_GMM(m,p_ll,W2)
 
 # #est_pre = newton_raphson(m,p_est,W2)
 #
