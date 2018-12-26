@@ -312,13 +312,14 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
         p_test = p_vec .+ update
         f_test = GMM_objective(d,p_test,W)
         trial_cnt = 0
-        while ((f_test>fval) | isnan(f_test)) & (trial_cnt<=5)
+        trial_end = 4
+        while ((f_test>fval) | isnan(f_test)) & (trial_cnt<=trial_end)
             if trial_cnt==0
                 p_test_disp = p_test[1:20]
                 println("Trial (Init): Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
             end
-            if trial_cnt<(4)
+            if trial_cnt<trial_end
                 update/= 10
                 p_test = p_vec .+ update
                 f_test = GMM_objective(d,p_test,W)
@@ -326,13 +327,14 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
                 println("Trial (NR): Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
                 trial_cnt+=1
-            elseif trial_cnt==4
+            else
                 ga_cnt+=1
                 println("RUN ROUND OF GRADIENT ASCENT")
                 p_test, f_test = gradient_ascent_GMM(d,p_vec,W,max_itr=5)
                 trial_cnt+=1
+            end
         end
-        if trial_cnt<=4
+        if trial_cnt<=trial_end
             ga_cnt = 0
         elseif ga_cnt>2
             ga_cnt = 0
