@@ -460,6 +460,25 @@ for (j in 1:max(r_mom$Rtype)){
   }
 }
 
+#### Output Analogous Data ####
+choiceData = acs[,c("Person","Firm","ST","Market","Product","PERWT","Price",
+                        "MedDeduct","ExcOOP","High","AV","Big",
+                        "Family","Age","LowIncome","AGE",
+                        "METAL",
+                        "ageRate_avg","HCC_age","SilvHCC_Age",
+                        "mean_HCC_Platinum","mean_HCC_Gold","mean_HCC_Silver","mean_HCC_Bronze","mean_HCC_Catastrophic",
+                        "Rtype","Any_HCC",
+                        "var_HCC_Platinum","var_HCC_Gold","var_HCC_Silver","var_HCC_Bronze","var_HCC_Catastrophic",
+                        "AgeFE_18_30","AgeFE_31_39","AgeFE_40_51","AgeFE_52_64")]
+
+choiceData[,S_ij:=0]
+choiceData[,unins_rate:=0]
+setkey(choiceData,Person,Product)
+
+
+write.csv(choiceData,"Simulation_Risk_Output/simchoiceData_discrete.csv",row.names=FALSE)
+
+
 #### Read in Parameters ####
 
 

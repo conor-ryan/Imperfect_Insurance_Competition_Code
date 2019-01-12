@@ -93,12 +93,6 @@ function convert_δ!(d::InsuranceLogit)
 end
 
 
-# Update δ
-@views sliceMean(x::Vector{T},idx::Array{Int64,1}) where T = mean(x[idx])
-@views function sliceMean_wgt(x::Vector{T},w::Vector{S},idx::Array{Int64,1}) where {T,S}
-    wgts = w[idx]
-    return sum(x[idx].*wgts)/sum(wgts)
-end
 
 function δ_update!(d::InsuranceLogit,p::parDict{T};update::Bool=true) where T
     # Calculate overall marketshares and update δ_j

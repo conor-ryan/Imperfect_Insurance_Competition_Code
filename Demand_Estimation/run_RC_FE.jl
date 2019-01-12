@@ -22,6 +22,7 @@ include("Log_Likehood.jl")
 include("RiskMoments.jl")
 include("Estimate_Basic.jl")
 include("Estimate_GMM.jl")
+include("utility.jl")
 println("Code Loaded")
 
 # Load the Data
@@ -112,12 +113,12 @@ println("###### Estimation 1 #######")
 println("#################")
 println("#################")
 # Estimate
-p_ll,ll = newton_raphson_ll(m,p0)
-# rundate = "2018-12-24"
-# println("Load MLE")
+# p_ll,ll = newton_raphson_ll(m,p0)
+rundate = "2018-12-29"
+println("Load MLE")
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_ll_$rundate.jld2"
-@save file p_ll
-# @load file p_ll
+# @save file p_ll
+@load file p_ll
 
 println("#################")
 println("#################")
@@ -126,11 +127,11 @@ println("#################")
 println("#################")
 
 #
-S = calc_gmm_Avar(m,p_ll)
-W = inv(S)
-# # W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
+# S = calc_gmm_Avar(m,p_ll)
+# W = inv(S)
+W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
 p_stg1, obj_1 = newton_raphson_GMM(m,p_ll,W)
-# rundate = "2018-12-24"
+# rundate = "2018-12-29"
 # println("Load GMM - Stage 1")
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage1_$rundate.jld2"
 @save file p_stg1
@@ -159,7 +160,9 @@ file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermed
 #
 #
 # ##### TEST ######
-# # rundate = "2018-08-25"
+# rundate = "2018-12-29"
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
+# @load file p_stg2
 # # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_fe_rc_$rundate.jld"
 # # p_est = load(file)["est_res"][3]
 # #

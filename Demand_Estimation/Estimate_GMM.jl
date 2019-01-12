@@ -334,14 +334,6 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
                 trial_cnt+=1
             end
         end
-        if trial_cnt<=trial_end
-            ga_cnt = 0
-        elseif ga_cnt>2
-            ga_cnt = 0
-            println("Algorithm Stalled: Random Step")
-            update = rand(length(update))/10000 .-.0005
-            p_test = p_test .+update
-        end
 
         ### Update Minimum Vector Value
         if (f_test<f_min) | (cnt<3)
@@ -353,6 +345,15 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
             println("STALL COUNT: $stall_cnt")
         end
 
+
+        if trial_cnt<=trial_end
+            ga_cnt = 0
+        elseif ga_cnt>2
+            ga_cnt = 0
+            println("Algorithm Stalled: Random Step")
+            update = rand(length(update))/10000 .-.0005
+            p_test = p_test .+update
+        end
 
 
         # update = p_test - p_vec
