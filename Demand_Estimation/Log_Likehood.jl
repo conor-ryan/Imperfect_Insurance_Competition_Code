@@ -50,43 +50,6 @@ function log_likelihood(d::InsuranceLogit,p::parDict{T};cont_flag=false) where T
     return ll/Pop
 end
 
-function log_likelihood!(grad::Vector{T},d::InsuranceLogit,p::parDict{T};cont_flag = false) where T
-    Q = d.parLength[:All]
-    N = size(d.draws,1)
-    grad[:] .= 0.0
-    ll = 0.0
-    Pop =sum(weight(d.data).*choice(d.data))
-
-    # Calculate μ_ij, which depends only on parameters
-    if cont_flag
-        contraction!(d,p)
-    else
-        individual_values!(d,p)
-        individual_shares(d,p)
-    end
-
-    #shell_full = zeros(Q,N,38)
-    for app in eachperson(d.data)
-        K = length(person(app))
-        # if K>k_max
-        #     k_max = K
-        # end
-        #shell = shell_full[:,:,1:K]
-        ll_obs,grad_obs = ll_obs_gradient(app,d,p)
-
-        ll+=ll_obs
-        for q in 1:Q
-            grad[q]+=grad_obs[q]/Pop
-        end
-    end
-    if isnan(ll)
-        ll = -1e20
-    end
-    return ll/Pop
-end
-
-
-
 
 function log_likelihood(d::InsuranceLogit,p::Array{T};cont_flag=false) where T
     params = parDict(d,p)
@@ -128,13 +91,14 @@ end
 
 function log_likelihood!(grad::Vector{Float64},
                             d::InsuranceLogit,p::parDict{T};cont_flag::Bool=false) where T
+    println("Test A")
     Q = d.parLength[:All]
     N = size(d.draws,1)
     grad[:] .= 0.0
     ll = 0.0
     Pop =sum(weight(d.data).*choice(d.data))
     grad_obs = Vector{Float64}(undef,Q)
-
+    println("Test B")
     #Reset Derivatives
     p.dSdθ_j[:] .= 0.0
     p.dRdθ_j[:] .= 0.0
@@ -147,7 +111,7 @@ function log_likelihood!(grad::Vector{Float64},
         individual_values!(d,p)
         individual_shares(d,p)
     end
-
+    println("Test C")
     #shell_full = zeros(Q,N,38)
     for app in eachperson(d.data)
         ll_obs,pars_relevant = ll_obs_gradient!(grad,app,d,p)
@@ -156,6 +120,7 @@ function log_likelihood!(grad::Vector{Float64},
     if isnan(ll)
         ll = -1e20
     end
+    println("Test D")
     for q in 1:Q
         grad[q]=grad[q]/Pop
     end
