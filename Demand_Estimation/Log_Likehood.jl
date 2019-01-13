@@ -124,7 +124,7 @@ function log_likelihood!(grad::Vector{Float64},
     for q in 1:Q
         grad[q]=grad[q]/Pop
     end
-
+    println("Test E")
     return ll/Pop
 end
 

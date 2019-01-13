@@ -134,7 +134,7 @@ W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMom
 par0 = parDict(m,p_ll)
 grad = Vector{Float64}(undef,length(p_ll))
 ll = log_likelihood!(grad,m,par0)
-
+println(ll)
 p_stg1, obj_1 = newton_raphson_GMM(m,p_ll,W)
 # rundate = "2018-12-29"
 # println("Load GMM - Stage 1")
