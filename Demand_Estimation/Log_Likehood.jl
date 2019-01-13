@@ -91,14 +91,13 @@ end
 
 function log_likelihood!(grad::Vector{Float64},
                             d::InsuranceLogit,p::parDict{T};cont_flag::Bool=false) where T
-    println("Test A")
     Q = d.parLength[:All]
     N = size(d.draws,1)
     grad[:] .= 0.0
     ll = 0.0
     Pop =sum(weight(d.data).*choice(d.data))
     grad_obs = Vector{Float64}(undef,Q)
-    println("Test B")
+    println("Test C.1")
     #Reset Derivatives
     p.dSdθ_j[:] .= 0.0
     p.dRdθ_j[:] .= 0.0
@@ -111,7 +110,7 @@ function log_likelihood!(grad::Vector{Float64},
         individual_values!(d,p)
         individual_shares(d,p)
     end
-    println("Test C")
+    println("Test C.2")
     #shell_full = zeros(Q,N,38)
     for app in eachperson(d.data)
         ll_obs,pars_relevant = ll_obs_gradient!(grad,app,d,p)
@@ -120,11 +119,11 @@ function log_likelihood!(grad::Vector{Float64},
     if isnan(ll)
         ll = -1e20
     end
-    println("Test D")
+    println("Test C.3")
     for q in 1:Q
         grad[q]=grad[q]/Pop
     end
-    println("Test E")
+    println("Test C.4")
     return ll/Pop
 end
 
@@ -206,6 +205,7 @@ function log_likelihood!(thD::Array{Float64,3},
     p.dRdθ_j[:] .= 0.0
     p.d2Sdθ_j[:] .= 0.0
     p.d2Rdθ_j[:] .= 0.0
+    println("Test A.1")
 
     # thD_obs = Array{Float64,3}(Q,Q,Q)
     # hess_obs = Matrix{Float64}(Q,Q)
@@ -217,6 +217,7 @@ function log_likelihood!(thD::Array{Float64,3},
         individual_values!(d,p)
         individual_shares(d,p)
     end
+    println("Test A.2")
 
     #shell_full = zeros(Q,N,38)
     for app in eachperson(d.data)
@@ -235,6 +236,7 @@ function log_likelihood!(thD::Array{Float64,3},
     if isnan(ll)
         ll = -1e20
     end
+    println("Test A.3")
     for q in 1:Q
         grad[q]=grad[q]/Pop
         for r in 1:Q
@@ -244,6 +246,7 @@ function log_likelihood!(thD::Array{Float64,3},
             end
         end
     end
+    println("Test A.4")
 
     return ll/Pop
 end

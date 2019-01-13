@@ -130,11 +130,13 @@ println("#################")
 # S = calc_gmm_Avar(m,p_ll)
 # W = inv(S)
 W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
-
-par0 = parDict(m,p_ll)
-grad = Vector{Float64}(undef,length(p_ll))
-ll = log_likelihood!(grad,m,par0)
-println(ll)
+# println("Baby Test")
+# par0 = parDict(m,p_ll)
+# grad = Vector{Float64}(undef,length(p_ll))
+# ll = log_likelihood!(grad,m,par0)
+# println(ll)
+# par0 = 0.0
+# grad = 0.0
 p_stg1, obj_1 = newton_raphson_GMM(m,p_ll,W)
 # rundate = "2018-12-29"
 # println("Load GMM - Stage 1")
