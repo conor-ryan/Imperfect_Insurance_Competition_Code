@@ -68,11 +68,16 @@ function GMM_objective!(obj_hess::Matrix{Float64},obj_grad::Vector{Float64},d::I
 end
 
 function GMM_objective(d::InsuranceLogit,p0::Array{T},W::Matrix{Float64}) where T
+
+    println("Test A")
     par0 = parDict(d,p0)
+    println("Test B")
     grad = Vector{T}(undef,length(p0))
+    println("Test C")
     ll = log_likelihood!(grad,d,par0)
     # individual_values!(d,par0)
     # individual_shares(d,par0)
+    println("Test D")
     mom = calc_risk_moments(d,par0)
 
     moments = vcat(mom,grad)
@@ -310,9 +315,7 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
         println("Eiganvalues range from $min_e to $max_e")
 
         p_test = p_vec .+ update
-        println("Test A")
         f_test = GMM_objective(d,p_test,W)
-        println("Test B")
         trial_cnt = 0
         trial_end = 4
         while ((f_test>fval) | isnan(f_test)) & (trial_cnt<=trial_end)
@@ -336,7 +339,6 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
                 trial_cnt+=1
             end
         end
-        println("Test C")
         ### Update Minimum Vector Value
         if (f_test<f_min) | (cnt<3)
             stall_cnt = 0
