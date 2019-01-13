@@ -62,7 +62,7 @@ function GMM_objective!(obj_hess::Matrix{Float64},obj_grad::Vector{Float64},d::I
     obj = calc_GMM_Obj(moments,W)
 
     calc_GMM_Grad!(obj_grad,moments,moments_grad,W)
-    calc_GMM_Hess!(obj_hess,moments,moments_grad,moments_hess,W)
+    calc_GMM_Hess_Large!(obj_hess,moments,moments_grad,moments_hess,W)
 
     return obj
 end
