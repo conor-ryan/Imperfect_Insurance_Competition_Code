@@ -266,9 +266,7 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
         cnt+=1
         # Compute Gradient, holding δ fixed
 
-        println("Test A")
         fval = GMM_objective!(hess_new,grad_new,d,p_vec,W)
-        println("Test B")
 
         grad_size = sqrt(dot(grad_new,grad_new))
         if (grad_size<1e-8) & (cnt>10)
@@ -303,7 +301,6 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
             grad_size = 1
             continue
         end
-        println("Test C")
         # evals = eigvals(hess_new)
         # min_e = minimum(evals)
         # max_e = maximum(evals)
@@ -311,7 +308,6 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
 
         p_test = p_vec .+ update
         f_test = GMM_objective(d,p_test,W)
-        println("Test D")
         trial_cnt = 0
         trial_end = 4
         while ((f_test>fval) | isnan(f_test)) & (trial_cnt<=trial_end)
