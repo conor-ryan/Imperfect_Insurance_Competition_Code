@@ -161,19 +161,19 @@ function run_st_equil(st::String;merger=false)
     P_base = Vector{Float64}(undef,length(model.prods))
     P_RA = Vector{Float64}(undef,length(model.prods))
     P_base_man = Vector{Float64}(undef,length(model.prods))
-
+    println(sum(model.ownMat,dims=2))
 
     println("Estimate Base Model")
     solve_model!(model,1e-8)
     P_base[:] = model.premBase_j[:]
 
     println("Risk Adjustment Model")
-    # solve_model!(model,1e-8,sim="RA")
+    solve_model!(model,1e-8,sim="RA")
     P_RA[:] = model.premBase_j[:]
 
     println("Estimate Base Model w/out Mandate")
     model.data[:Mandate] = 0.0
-    # solve_model!(model,1e-8)
+    solve_model!(model,1e-8)
     P_base_man[:] = model.premBase_j[:]
 
     println("Solved: $st")
@@ -198,9 +198,9 @@ function Check_Margin(st::String)
     cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/")
     println("Read in Data for $st")
     file1 = "Intermediate_Output/Equilibrium_Data/estimated_Data_$st.csv"
-    df = CSV.read(file1,types=Dict("AGE"=>Float64,"Mandate"=>Float64,"MEMBERS"=>Float64,"Gamma_j"=>Union{Missing,Float64}),null="NA")
+    df = CSV.read(file1,types=Dict("AGE"=>Float64,"Mandate"=>Float64,"MEMBERS"=>Float64), missingstring="NA")
     file2 = "Intermediate_Output/Equilibrium_Data/estimated_prodData_$st.csv"
-    df_mkt = CSV.read(file2,null="NA")
+    df_mkt = CSV.read(file2)#,null="NA")
     # cost_pars = CSV.read("Intermediate_Output/Equilibrium_Data/cost_pars.csv",null="NA")
 
     # Solve Model

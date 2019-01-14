@@ -15,15 +15,17 @@ include("EquilibriumFunctions.jl")
 
 # states = ["AK","NE","ND","OK","MD","IA","NM","UT",
 # "OR","MO","IL","MI","GA","TX"]
-# for st in states
-    st ="MI"
-    run_st_equil(st)
-    if st in ["IL","MI","GA"]
+states = ["MO","IL","MI","GA"]
+for st in states
+    println("Solve Baseline Market Structure")
+        run_st_equil(st)
+    if st in ["MO","IL","MI","GA"]
+        println("Solve Merger Market Structure")
         run_st_equil(st,merger=true)
     end
     println("Check Margin")
     Check_Margin(st)
-# end
+end
 
 
 # # Load the data

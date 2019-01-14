@@ -1,5 +1,5 @@
 using DataFrames
-import Base.start, Base.next, Base.done, Base.getindex, Base.setindex!
+import Base.getindex, Base.setindex!
 
 abstract type
     EstData
@@ -277,12 +277,15 @@ function EqData(cdata::ChoiceData,mkt::DataFrame)#,cpars::DataFrame)
             end
         end
     end
-    firms_merge = ["AETNA","HUMANA"]
+    firms_merge_1 = ["AETNA","HUMANA"]
+    firms_merge_2 = ["ANTHEM_BLUE_CROSS_AND_BLUE_SHIELD","BLUE_CROSS_BLUE_SHIELD_OF_GEORGIA","CIGNA_HEALTH_AND_LIFE_INSURANCE_COMPANY"]
     ownMat_merge = Matrix{Float64}(undef,J,J)
     for j in 1:J
         f = firms[j]
         for i in 1:J
-            if (f in firms_merge) & (firms[i] in firms_merge)
+            if (f in firms_merge_1) & (firms[i] in firms_merge_1)
+                ownMat_merge[j,i]=1
+            elseif (f in firms_merge_2) & (firms[i] in firms_merge_2)
                 ownMat_merge[j,i]=1
             else
                 ownMat_merge[j,i]=ownMat[j,i]
