@@ -1,5 +1,6 @@
 using BenchmarkTools
 using CSV
+using JLD2
 using LinearAlgebra
 using Statistics
 
@@ -15,6 +16,7 @@ include("$load_path/Contraction.jl")
 # MC Parameters
 include("MC_parameters.jl")
 include("MC_GMM.jl")
+include("MC_var.jl")
 # Load the Data
 include("MC_load.jl")
 
@@ -42,7 +44,7 @@ costdf = MC_Data(df,mom_avg,mom_age,mom_risk;
 println("Data Loaded")
 
 #### Load Demand Estimation ####
-runDate = "2018-08-25"
+rundate = "2018-08-25"
 resDF = CSV.read("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_2018-08-25.csv")
 p_est = Float64.(resDF[:pars])
 
@@ -50,25 +52,60 @@ p_est = Float64.(resDF[:pars])
 par_est = parDict(m,p_est)
 individual_values!(m,par_est)
 
-p0 = rand(length(1:maximum(costdf._feIndex))).* 0.5
-gmm(x) = GMM_objective(x,par_est,m,costdf)
-grad = Vector{Float64}(undef,length(p0))
-ForwardDiff.gradient!(grad, gmm, p0)
-# GMM_objective(p0,par_est,m,costdf)
-
-estimate_GMM(p0,par_est,m,costdf)
-
-par0 = parMC(p0,p_est,m,costdf)
-
-individual_costs(m,par0)
+#### Estimate Cost Parameters
+p0 = Float64.(parStart[:par_start])
 
 
+println("#################")
+println("#################")
+println("###### Estimation 1 #######")
+println("#################")
+println("#################")
 
-using Profile
-Profile.init(n=10^8,delay=.001)
-Profile.clear()
-#Juno.@profile add_obs_mat!(hess,grad,hess_obs,grad_obs,Pop)
-# Juno.@profile log_likelihood!(thD_2,hess_2,grad_2,m,par0)
-Juno.@profile GMM_objective(p0,par_est,m,costdf)
-Juno.profiletree()
-Juno.profiler()
+S,Σ,Δ,mom_long = aVar(costdf,m,p0,par_est)
+W = Matrix(1.0I,P,Q)
+
+est_stg1 = estimate_GMM(p0,par_est,m,costdf,W)
+[flag, fval, p_stg1] = est_stg1
+
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/MCestimation_stg1_$rundate.jld2"
+@save file est_stg1
+
+println("#################")
+println("#################")
+println("###### Estimation 2 #######")
+println("#################")
+println("#################")
+S,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
+W = inv(S)./1000
+
+est_stg2 = estimate_GMM(p0,par_est,m,costdf,W)
+[flag, fval, p_stg2] = est_stg2
+
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/MCestimation_stg1_$rundate.jld2"
+@save file est_stg2
+
+
+
+## Test Delta Gradient
+# f_obj(x) = test_Avar(costdf,m,x)
+# grad = Vector{Float64}(undef,length(mom_long))
+# ForwardDiff.gradient!(grad, f_obj, mom_long)
+#
+# println(findall(abs.(Δ[315,:]).>1e-11) == findall(abs.(grad).>1e-11))
+# println(maximum(abs.(Δ[315,:] - grad)))
+#
+# all_mom = costMoments(costdf,m,p0,par_est)
+#
+#
+# p0 = rand(length(1:maximum(costdf._feIndex))).* 0.5
+# gmm(x) = GMM_objective(x,par_est,m,costdf)
+# grad = Vector{Float64}(undef,length(p0))
+# ForwardDiff.gradient!(grad, gmm, p0)
+# # GMM_objective(p0,par_est,m,costdf)
+#
+#
+#
+# par0 = parMC(p0,p_est,m,costdf)
+#
+# individual_costs(m,par0)

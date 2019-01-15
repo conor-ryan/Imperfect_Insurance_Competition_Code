@@ -4,9 +4,7 @@ library(Matrix)
 library(doBy)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
-#### Load Simulation Data and Merge in GCF/AV data ####
-# simFile = paste("Simulation_Risk_Output/simData_",run,".rData",sep="")
-# load(simFile)
+#### Load Data####
 choiceData = read.csv("Simulation_Risk_Output/simchoiceData_discrete.csv")
 choiceData = as.data.table(choiceData)
 choiceData[,Metal_std:=gsub(" [0-9]+","",METAL)]
@@ -90,7 +88,7 @@ setkey(choiceData,Person,Product)
 choiceData[,index:=1:nrow(choiceData)]
 firmDict = merge(firmClaims,choiceData,by=c("ST","Firm"))
 metalDict = merge(metalClaims,choiceData,by=c("ST","Firm","Metal_std"))
-avgMoments = rbind(firmDict[,c("logAvgCost","M_num","index")],metalDict[,c("logAvgCost","M_num","index")])
+avgMoments = rbind(firmDict[,c("logAvgCost","M_num","Product","index")],metalDict[,c("logAvgCost","M_num","Product","index")])
 avgMoments = avgMoments[!is.na(M_num),]
 
 ageMoments = merge(ageMoments,choiceData,by=c("Age_Bin"))
@@ -101,4 +99,32 @@ write.csv(avgMoments,file="Intermediate_Output/MC_Moments/avgMoments.csv",row.na
 write.csv(riskMoments,file="Intermediate_Output/MC_Moments/riskMoments.csv",row.names=FALSE)
 write.csv(choiceData,"Simulation_Risk_Output/simchoiceData_discrete.csv",row.names=FALSE)
 
+remove_Vars = ls()[!grepl("(full_predict|metalDict)",ls())]
+
+rm(list = remove_Vars)
+gc()
+
+#### Starting Vector ####
+run = "2018-08-25"
+simFile = paste("Simulation_Risk_Output/simData_",run,".rData",sep="")
+load(simFile)
+full_predict[,Age_1:=AGE/10]
+
+full_predict = full_predict[,c("ST","Firm","Product","Age_1","s_pred","PERWT","HCC_Silver","AV_std")]
+metalDict = unique(metalDict[,c("Product","logAvgCost","M_num")])
+rm(acs,draws)
+gc()
+
+prod_Avgs = merge(full_predict,metalDict[,c("Product","logAvgCost","M_num")],by="Product",allow.cartesian = TRUE)
+rm(full_predict,metalDict)
+gc()
+
+prod_Avgs = prod_Avgs[,list(Age = sum(10*Age_1*s_pred*PERWT)/sum(s_pred*PERWT),
+                            HCC = sum(HCC_Silver*s_pred*PERWT)/sum(s_pred*PERWT),
+                            AV = sum(AV_std*s_pred*PERWT)/sum(s_pred*PERWT)),
+                      by=c("ST","Firm","M_num","logAvgCost")]
+
+res = lm(logAvgCost~-1+Age+AV+HCC+ ST ,data=prod_Avgs)
+phi_start = res$coefficients
+write.csv(data.frame(par_start=phi_start),"Intermediate_Output/MC_Moments/linregpars.csv",row.names=FALSE)
 
