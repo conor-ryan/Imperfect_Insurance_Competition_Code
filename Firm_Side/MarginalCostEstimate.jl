@@ -62,16 +62,16 @@ println("###### Estimation 1 #######")
 println("#################")
 println("#################")
 
-# S,Σ,Δ,mom_long = aVar(costdf,m,p0,par_est)
-# (P,Q) = size(S)
-# W = Matrix(1.0I,P,Q)
-#
-# est_stg1 = estimate_GMM(p0,par_est,m,costdf,W)
+S,Σ,Δ,mom_long = aVar(costdf,m,p0,par_est)
+(P,Q) = size(S)
+W = Matrix(1.0I,P,Q)
+
+est_stg1 = estimate_GMM(p0,par_est,m,costdf,W)
 # flag, fval, p_stg1 = est_stg1
 
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/MCestimation_stg1_$rundate.jld2"
-# @save file est_stg1
-@load file est_stg1
+@save file est_stg1
+# @load file est_stg1
 flag, fval, p_stg1 = est_stg1
 
 
@@ -83,10 +83,10 @@ println("#################")
 S,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
 W = inv(S)./1000
 
-est_stg2 = estimate_GMM(p0,p_stg1,m,costdf,W)
+est_stg2 = estimate_GMM(p_stg1,par_est,m,costdf,W)
 flag, fval, p_stg2 = est_stg2
 
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/MCestimation_stg1_$rundate.jld2"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/MCestimation_stg2_$rundate.jld2"
 @save file est_stg2
 
 
