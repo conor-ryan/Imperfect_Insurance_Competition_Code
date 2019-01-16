@@ -5,7 +5,7 @@ using LinearAlgebra
 using Statistics
 
 
-load_path = "C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/Code/Demand_Estimation"
+load_path = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Code/Demand_Estimation"
 # Data Structure
 include("$load_path/InsChoiceData.jl")
 include("$load_path/Halton.jl")
