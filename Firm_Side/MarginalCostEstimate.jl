@@ -63,6 +63,7 @@ println("#################")
 println("#################")
 
 S,Σ,Δ,mom_long = aVar(costdf,m,p0,par_est)
+(P,Q) = size(S)
 W = Matrix(1.0I,P,Q)
 
 est_stg1 = estimate_GMM(p0,par_est,m,costdf,W)
