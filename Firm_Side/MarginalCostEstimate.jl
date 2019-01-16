@@ -45,7 +45,7 @@ println("Data Loaded")
 
 #### Load Demand Estimation ####
 rundate = "2018-08-25"
-resDF = CSV.read("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_$rundate.csv")
+resDF = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_$rundate.csv")
 p_est = Float64.(resDF[:pars])
 
 #### Compute Demand Estimation
