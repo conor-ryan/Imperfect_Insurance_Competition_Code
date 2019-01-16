@@ -4,7 +4,7 @@ using CSV
 #################### Loading and Cleaning Data #########################
 ########################################################################
 # Load the data
-df = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Simulation_Risk_Output/simchoiceData_discrete.csv",
+df = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Simulation_BaseData/simchoiceData_discrete.csv",
 types=Dict("unins_rate"=>Float64,"S_ij"=>Float64,"var_HCC_Silver"=>Float64))
 
 df_mkt = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Data/marketData_discrete.csv")

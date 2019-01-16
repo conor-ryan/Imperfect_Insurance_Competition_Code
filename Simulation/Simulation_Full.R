@@ -476,7 +476,7 @@ choiceData[,unins_rate:=0]
 setkey(choiceData,Person,Product)
 
 
-write.csv(choiceData,"Simulation_Risk_Output/simchoiceData_discrete.csv",row.names=FALSE)
+write.csv(choiceData,"Intermediate_Output/Simulated_BaseData/simchoiceData_discrete.csv",row.names=FALSE)
 
 
 #### Read in Parameters ####
