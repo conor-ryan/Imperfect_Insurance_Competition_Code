@@ -69,10 +69,10 @@ println("#################")
 # est_stg1 = estimate_GMM(p0,par_est,m,costdf,W)
 # # flag, fval, p_stg1 = est_stg1
 #
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
 # @save file est_stg1
-# @load file est_stg1
-# flag, fval, p_stg1 = est_stg1
+@load file est_stg1
+flag, fval, p_stg1 = est_stg1
 
 
 println("#################")
@@ -94,13 +94,13 @@ flag, fval, p_stg2 = est_stg2
 
 println("#################")
 println("#################")
-println("###### Estimation 2 #######")
+println("###### Estimation 3 #######")
 println("#################")
 println("#################")
 S,Σ,Δ,mom_long = aVar(costdf,m,p_stg2,par_est)
 W = inv(S)
 
-est_stg3 = estimate_GMM(p_stg2,par_est,m,costdf,W)
+est_stg3 = estimate_GMM(p_stg1,par_est,m,costdf,W)
 flag, fval, p_stg3 = est_stg3
 
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg3_$rundate.jld2"
