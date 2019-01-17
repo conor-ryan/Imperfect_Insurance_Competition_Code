@@ -3,6 +3,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     par = parMC(p,p_est,d,c) # Fix p0
     individual_costs(d,par)
 
+    # Pop = [0.0]
     Pop = 0.0
     wgts = weight(d.data)
 
@@ -24,19 +25,32 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
 
     Σ = zeros(mom_length,mom_length)
 
+    ## Estimate of population mean...
     for app in eachperson(d.data)
 
         idx_prod, wgt_obs = cost_obs_moments!(g_n,productIDs,app,d,c,par)
 
         idx_nonEmpty = vcat(idx_prod,num_prods .+idx_prod,(num_prods*2+1):mom_length)
-        Pop = Pop + wgt_obs
-        add_Σ(Σ,g_n,idx_nonEmpty)
+        # Pop[:] = Pop[:] + [wgt_obs]
+        Pop += wgt_obs
+        # add_Σ(Σ,g_n,idx_nonEmpty)
         cost_moments[:] += g_n[:]
     end
+    mean_moments = cost_moments./Pop
 
-    # Σ = Σ./(Pop)
+    ## Estimate of variance...
+    # g_n = Vector{Float64}(undef,mom_length)
+    for app in eachperson(d.data)
+
+        idx_prod, wgt_obs = cost_obs_moments!(g_n,productIDs,app,d,c,par)
+        g_n[:] = g_n[:] - mean_moments[:]
+        idx_nonEmpty = vcat(idx_prod,num_prods .+idx_prod,(num_prods*2+1):mom_length)
+        add_Σ(Σ,g_n,idx_nonEmpty)
+    end
+
+    Σ = Σ./(Pop)
     # println(Pop)
-    Δ = Δavar(c,d,cost_moments)
+    Δ = Δavar(c,d,mean_moments)
 
     # (N,M) = size(Σ)
     # aVar = zeros(d.parLength[:All] + length(d.data.tMoments),M)
@@ -46,7 +60,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     #
     S_est = Δ*Σ*Δ'
 
-    return S_est, Σ, Δ, cost_moments
+    return S_est, Σ, Δ, mean_moments
 end
 
 

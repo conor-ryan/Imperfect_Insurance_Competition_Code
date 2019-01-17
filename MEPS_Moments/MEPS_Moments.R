@@ -128,12 +128,12 @@ meps_risk = read.csv("Intermediate_Output/MEPS_Moments/meps_risk_scores.csv")
 
 meps = merge(meps,meps_risk,by=c("DUPERSID","PANEL"),all.x=TRUE)
 
-# mepsPers = read.csv("Data/2015_MEPS/MEPS_Person_2015.csv")
-# ## Non Group Coverage
-# mepsPers = mepsPers[mepsPers$PRIVCAT%in%c(2,3,5,6,99),]
-# # #Not Through Employer or Association 
-# mepsPers = mepsPers[mepsPers$CMJINS!=1,]
-# mepsPers = mepsPers[mepsPers$TYPEFLAG%in%c(5,6,7,11,12,13,21),]
+mepsPers = read.csv("Data/2015_MEPS/MEPS_Person_2015.csv")
+## Non Group Coverage
+mepsPers = mepsPers[mepsPers$PRIVCAT%in%c(2,3,5,6,99),]
+# #Not Through Employer or Association
+mepsPers = mepsPers[mepsPers$CMJINS!=1,]
+mepsPers = mepsPers[mepsPers$TYPEFLAG%in%c(5,6,7,11,12,13,21),]
 # 
 # mepsPers = mepsPers[mepsPers$STEXCH!=-1,]
 # 

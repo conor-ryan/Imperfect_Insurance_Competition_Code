@@ -5,7 +5,7 @@ library(doBy)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 #### Load Data####
-choiceData = read.csv("Simulation_Risk_Output/simchoiceData_discrete.csv")
+choiceData = read.csv("Intermediate_Output/Simulated_BaseData/simchoiceData_discrete.csv")
 choiceData = as.data.table(choiceData)
 choiceData[,Metal_std:=gsub(" [0-9]+","",METAL)]
 # n_draws = nrow(draws)
