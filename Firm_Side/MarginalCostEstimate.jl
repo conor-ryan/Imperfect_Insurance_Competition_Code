@@ -34,7 +34,7 @@ c = ChoiceData(df,df_mkt,df_risk;
     wgt=[:PERWT])
 
 # Fit into model
-m = InsuranceLogit(c,1000)
+m = InsuranceLogit(c,250)
 
 # Cost Data
 costdf = MC_Data(df,mom_avg,mom_age,mom_risk;
@@ -62,16 +62,16 @@ println("###### Estimation 1 #######")
 println("#################")
 println("#################")
 
-# S,Σ,Δ,mom_long = aVar(costdf,m,p0,par_est)
-# (P,Q) = size(S)
-# W = Matrix(1.0I,P,Q)
-#
-# est_stg1 = estimate_GMM(p0,par_est,m,costdf,W)
-# # flag, fval, p_stg1 = est_stg1
-#
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
+S,Σ,Δ,mom_long = aVar(costdf,m,p0,par_est)
+(P,Q) = size(S)
+W = Matrix(1.0I,P,Q)
+
+est_stg1 = estimate_GMM(p0,par_est,m,costdf,W)
+# flag, fval, p_stg1 = est_stg1
+
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
 # @save file est_stg1
-@load file est_stg1
+# @load file est_stg1
 flag, fval, p_stg1 = est_stg1
 
 
@@ -81,16 +81,16 @@ println("###### Estimation 2 #######")
 println("#################")
 println("#################")
 
-# S,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
-# W = inv(S)
-#
-# est_stg2 = estimate_GMM(p_stg1,par_est,m,costdf,W)
-# flag, fval, p_stg2 = est_stg2
-#
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
-# @save file est_stg2
-@load file est_stg2
+S,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
+W = inv(S)
+
+est_stg2 = estimate_GMM(p_stg1,par_est,m,costdf,W)
 flag, fval, p_stg2 = est_stg2
+#
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
+# @save file est_stg2
+# @load file est_stg2
+# flag, fval, p_stg2 = est_stg2
 
 println("#################")
 println("#################")
@@ -100,19 +100,24 @@ println("#################")
 S,Σ,Δ,mom_long = aVar(costdf,m,p_stg2,par_est)
 W = inv(S)
 
+
 est_stg3 = estimate_GMM(p_stg1,par_est,m,costdf,W)
 flag, fval, p_stg3 = est_stg3
 
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg3_$rundate.jld2"
-@save file est_stg3
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg3_$rundate.jld2"
+# @save file est_stg3
 
-# ## Test Estimate Outcome
+
+
+## Test Estimate Outcome
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
 # @load file est_stg2
 # flag, fval, p_stg2 = est_stg2
 #
+# GMM_objective(p_stg3,par_est,m,costdf,W)
 # GMM_objective(p_stg2,par_est,m,costdf,W)
-#
+# GMM_objective(p_stg1,par_est,m,costdf,W)
+# GMM_objective(p_test,par_est,m,costdf,W)
 #
 # S,Σ,Δ,mom_long = aVar(costdf,m,p_stg2,par_est)
 # W = inv(S)./1000

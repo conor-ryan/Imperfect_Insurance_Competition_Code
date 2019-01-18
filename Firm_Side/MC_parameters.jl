@@ -221,7 +221,8 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     ## Product and Firm Moments
     for (m,m_idx) in c._avgMomentDict
         c_avg = sliceMean_wgt(c_hat,wgts_share,m_idx)
-        pmom[m] = log(c_avg) - c.avgMoments[m]
+        # pmom[m] = log(c_avg) - c.avgMoments[m]
+        pmom[m] = (c_avg - exp(c.avgMoments[m]))/100
         # pmom[m] = c_avg
     end
 
