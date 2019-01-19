@@ -66,7 +66,7 @@ S,Σ,Δ,mom_long = aVar(costdf,m,p0,par_est)
 (P,Q) = size(S)
 W = Matrix(1.0I,P,Q)
 
-est_stg1 = estimate_GMM(p0,par_est,m,costdf,W)
+# est_stg1 = estimate_GMM(p0,par_est,m,costdf,W)
 # flag, fval, p_stg1 = est_stg1
 
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
