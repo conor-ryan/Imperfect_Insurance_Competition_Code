@@ -350,8 +350,8 @@ function costMoments_bootstrap(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
         m_sample = draw[m_idx[draw]]
 
         c_avg = sliceMean_wgt(c_hat,wgts_share,m_sample)
-        # pmom[m] = log(c_avg) - c.avgMoments[m]
-        pmom[m] = (c_avg - exp(c.avgMoments[m]))/100
+        pmom[m] = log(c_avg) - c.avgMoments[m]
+        # pmom[m] = (c_avg - exp(c.avgMoments[m]))/100
         # pmom[m] = c_avg
     end
 
@@ -388,13 +388,14 @@ end
 function var_bootstrap(c::MC_Data,d::InsuranceLogit,p::parMC{T};draw_num::Int=1000) where T
     M_num = length(c.avgMoments) + length(c.ageMoments) -1 + 1
     moment_draws = Matrix{Float64}(undef,M_num,draw_num)
+    sqrt_n = sqrt(calc_pop(m.data))
     for i in 1:draw_num
-        moment_draws[:,i] = costMoments_bootstrap(c,d,p)
+        moment_draws[:,i] = sqrt_n.*costMoments_bootstrap(c,d,p)
     end
 
     Σ = scattermat(moment_draws,2)
-    # Σ = Σ # Un-normalized
-    mean_moments = mean(moment_draws,dims=2)
+    Σ = Σ./draw_num
+    mean_moments = mean(moment_draws./sqrt_n,dims=2)
     return Σ, mean_moments
 end
 
@@ -414,4 +415,14 @@ function inlist(x::UnitRange{T},y::Vector{Union{Missing,T}}) where T
         bits[n] = i in y
     end
     return bits
+end
+
+function calc_pop(df::ChoiceData)
+    Pop = 0.0
+    wgts = weight(df)[:]
+    for (i,idx_itr) in df._personDict
+        p_obs = wgts[idx_itr[1]]
+        Pop += p_obs
+    end
+    return Pop
 end
