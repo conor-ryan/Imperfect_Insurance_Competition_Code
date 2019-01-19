@@ -34,7 +34,7 @@ c = ChoiceData(df,df_mkt,df_risk;
     wgt=[:PERWT])
 
 # Fit into model
-m = InsuranceLogit(c,250)
+m = InsuranceLogit(c,1000)
 
 # Cost Data
 costdf = MC_Data(df,mom_avg,mom_age,mom_risk;
@@ -69,8 +69,8 @@ W = Matrix(1.0I,P,Q)
 est_stg1 = estimate_GMM(p0,par_est,m,costdf,W)
 # flag, fval, p_stg1 = est_stg1
 
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
-# @save file est_stg1
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
+@save file est_stg1
 # @load file est_stg1
 flag, fval, p_stg1 = est_stg1
 
@@ -81,31 +81,38 @@ println("###### Estimation 2 #######")
 println("#################")
 println("#################")
 
-S,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
+# S,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
+# W = inv(S)
+S,mom_est = var_bootstrap(costdf,m,p_stg1,par_est,draw_num=1000)
 W = inv(S)
+scale = 1000/maximum(W)
+W = W*scale
 
 est_stg2 = estimate_GMM(p_stg1,par_est,m,costdf,W)
 flag, fval, p_stg2 = est_stg2
 #
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
-# @save file est_stg2
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
+@save file est_stg2
 # @load file est_stg2
-# flag, fval, p_stg2 = est_stg2
+flag, fval, p_stg2 = est_stg2
 
 println("#################")
 println("#################")
 println("###### Estimation 3 #######")
 println("#################")
 println("#################")
-S,Σ,Δ,mom_long = aVar(costdf,m,p_stg2,par_est)
+# S,Σ,Δ,mom_long = aVar(costdf,m,p_stg2,par_est)
+# W = inv(S)
+S,mom_est = var_bootstrap(costdf,m,p_stg1,par_est,draw_num=1000)
 W = inv(S)
-
+scale = 1000/maximum(W)
+W = W*scale
 
 est_stg3 = estimate_GMM(p_stg1,par_est,m,costdf,W)
 flag, fval, p_stg3 = est_stg3
 
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg3_$rundate.jld2"
-# @save file est_stg3
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg3_$rundate.jld2"
+@save file est_stg3
 
 
 
@@ -124,9 +131,13 @@ flag, fval, p_stg3 = est_stg3
 # est_stg3 = estimate_GMM(p_stg1,par_est,m,costdf,W)
 #
 #
-# par = parMC(p_stg1,par_est,m,costdf)
-# individual_costs(m,par)
-# moments = costMoments(costdf,m,par)
+par = parMC(p_stg1,par_est,m,costdf)
+individual_costs(m,par)
+moments = costMoments(costdf,m,par)
+
+m1 = costMoments_bootstrap(costdf,m,par)
+
+Σ,mom_est = var_bootstrap(costdf,m,par,draw_num=1000)
 
 ## Test Delta Gradient
 # f_obj(x) = test_Avar(costdf,m,x)
@@ -150,3 +161,10 @@ flag, fval, p_stg3 = est_stg3
 # par0 = parMC(p0,p_est,m,costdf)
 #
 # individual_costs(m,par0)
+
+using Profile
+Profile.init(n=10^8,delay=.001)
+Profile.clear()
+Juno.@profile m1 = costMoments_bootstrap(costdf,m,par)
+Juno.profiletree()
+Juno.profiler()

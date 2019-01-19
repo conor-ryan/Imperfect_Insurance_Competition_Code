@@ -1,3 +1,5 @@
+using StatsBase
+
 function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Float64})
 
     par = parMC(p,p_est,d,c) # Fix p0
@@ -296,4 +298,120 @@ function Δavar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{Float64})
     Δ[M_num,num_prods*2 + length(c.ageMoments)*2 + 3] = -(HCC_avg/non_avg)*(1/r_moments_p2[1])
     Δ[M_num,num_prods*2 + length(c.ageMoments)*2 + 4] = (1/r_moments_p1[2])*(1/non_avg)
     return Δ
+end
+
+
+
+function bootstrap_sample(d::InsuranceLogit)
+    (K,N) = size(d.data.data)
+    draw_vec = Array{Int64}(undef,N*2)
+    draw_vec_map = Array{Int64}(undef,N*2)
+    perIDs = Int.(unique(d.data.data[1,:]))
+    Per_num = length(perIDs)
+    x0 = 1
+    for j in 1:Per_num
+        i = Int.(floor(rand()*Per_num) + 1)
+        id = perIDs[i]
+        idx_itr = d.data._personDict[id]
+        xend = x0 + length(idx_itr)-1
+        draw_vec[x0:xend] = idx_itr
+        x0 = xend + 1
+    end
+    draw_vec = draw_vec[1:(x0-1)]
+    sort!(draw_vec)
+
+    return draw_vec
+end
+
+
+function costMoments_bootstrap(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
+    ## Bootstrap Random Draw
+    draw = bootstrap_sample(d)
+
+    s_hat = p.pars.s_hat
+    s_hat_nonrisk = p.s_hat_nonrisk
+    s_hat_risk = p.s_hat_risk
+    wgts = weight(d.data)[:]
+
+    wgts_share = wgts.*s_hat
+    any_share = wgts.*s_hat_risk.*c.anyHCC
+    none_share = wgts.*s_hat_nonrisk.*(1 .- c.anyHCC)
+
+    c_hat = p.C
+    c_hat_nonHCC = p.C_nonrisk
+    c_hat_HCC = p.C_HCC
+
+    pmom = Vector{T}(undef,length(c.avgMoments))
+    amom = Vector{T}(undef,length(c.ageMoments)-1)
+
+    ## Product and Firm Moments
+    for (m,m_idx) in c._avgMomentBit
+        # m_sample = draw[inlist_sorted(draw,m_idx)]
+        m_sample = draw[m_idx[draw]]
+
+        c_avg = sliceMean_wgt(c_hat,wgts_share,m_sample)
+        # pmom[m] = log(c_avg) - c.avgMoments[m]
+        pmom[m] = (c_avg - exp(c.avgMoments[m]))/100
+        # pmom[m] = c_avg
+    end
+
+    ## Age Moments
+    refval = sliceMean_wgt(c_hat,wgts_share,c._ageMomentDict[1])
+    for (m,m_idx) in c._ageMomentBit
+        if m==1
+            continue
+        else
+            # m_sample = draw[inlist_sorted(draw,m_idx)]
+            m_sample = draw[m_idx[draw]]
+            c_avg = sliceMean_wgt(c_hat,wgts_share,m_sample)
+            amom[m-1] = c_avg/refval[1] - c.ageMoments[m]
+        end
+    end
+    # all_idx = Int.(1:length(s_hat))
+    m_sample = draw
+
+
+    HCC_avg = sliceMean_wgt(c_hat_HCC,any_share,m_sample)
+    non_avg = sliceMean_wgt(c_hat_nonHCC,none_share,m_sample)
+    rmom = HCC_avg/non_avg - c.riskMoment
+
+    return vcat(pmom,amom,rmom)
+end
+
+function var_bootstrap(c::MC_Data,d::InsuranceLogit,p::Array{T},p_est::parDict{Float64};draw_num::Int=1000) where T
+    par = parMC(p,p_est,d,c) # Fix p0
+    individual_costs(d,par)
+    mom = var_bootstrap(c,d,par,draw_num=draw_num)
+    return mom
+end
+
+function var_bootstrap(c::MC_Data,d::InsuranceLogit,p::parMC{T};draw_num::Int=1000) where T
+    M_num = length(c.avgMoments) + length(c.ageMoments) -1 + 1
+    moment_draws = Matrix{Float64}(undef,M_num,draw_num)
+    for i in 1:draw_num
+        moment_draws[:,i] = costMoments_bootstrap(c,d,p)
+    end
+
+    Σ = scattermat(moment_draws,2)
+    # Σ = Σ # Un-normalized
+    mean_moments = mean(moment_draws,dims=2)
+    return Σ, mean_moments
+end
+
+function inlist(x::Vector{T},y::Vector{T}) where T
+    bits = BitArray{1}(undef,length(x))
+    # min_y = minimum(y)
+    for (n,i) in enumerate(x)
+        bits[n] = i in y
+    end
+    return bits
+end
+
+function inlist(x::UnitRange{T},y::Vector{Union{Missing,T}}) where T
+    bits = BitArray{1}(undef,length(x))
+    # min_y = minimum(y)
+    for (n,i) in enumerate(x)
+        bits[n] = i in y
+    end
+    return bits
 end

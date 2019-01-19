@@ -37,10 +37,12 @@ struct MC_Data
 
     # Moment Values
     _avgMomentDict::Dict{Int,Array{Int,1}}
+    _avgMomentBit::Dict{Int,BitArray{1}}
     _avgMomentProdDict::Dict{Int,Array{Int,1}}
     avgMoments::Vector{Float64}
 
     _ageMomentDict::Dict{Int,Array{Int,1}}
+    _ageMomentBit::Dict{Int,BitArray{1}}
     ageMoments::Vector{Float64}
 
     riskMoment::Float64
@@ -80,22 +82,30 @@ function MC_Data(data_choice::DataFrame,
 
     ### Moment Dictionaries
     println("Construct Moments")
+    all_idx = 1:n
+
     _avgMomentDict = Dict{Int,Array{Int64,1}}()
+    _avgMomentBit = Dict{Int,BitArray{1}}()
     _avgMomentProdDict = Dict{Int,Array{Int64,1}}()
     moments = sort(unique(mom_avg[:M_num]))
     avgMoments = Vector{Float64}(undef,length(moments))
     for m in moments
         m_df_index = findall(mom_avg[:M_num].==m)
-        _avgMomentDict[m] = mom_avg[:index][m_df_index]
+        m_index = mom_avg[:index][m_df_index]
+        _avgMomentDict[m] = m_index
+        _avgMomentBit[m] = inlist(all_idx,m_index)
         _avgMomentProdDict[m] = sort(unique(mom_avg[:Product][m_df_index]))
         avgMoments[m] = mom_avg[:logAvgCost][m_df_index][1]
     end
 
     _ageMomentDict = Dict{Int,Array{Int64,1}}()
+    _ageMomentBit = Dict{Int,BitArray{1}}()
     moments = sort(unique(mom_age[:M_num]))
     ageMoments = Vector{Float64}(undef,length(moments))
     for m in moments
-        _ageMomentDict[m] = mom_age[:index][findall(mom_age[:M_num].==m)]
+        m_index = mom_age[:index][findall(mom_age[:M_num].==m)]
+        _ageMomentDict[m] = m_index
+        _ageMomentBit[m] = inlist(all_idx,m_index)
         ageMoments[m] = mom_age[:costIndex][findall(mom_age[:M_num].==m)][1]
     end
 
@@ -103,8 +113,8 @@ function MC_Data(data_choice::DataFrame,
 
 
     return MC_Data(data,F,anyHCC,_baseIndex,_riskIndex,_feIndex,
-                    _avgMomentDict,_avgMomentProdDict,avgMoments,
-                    _ageMomentDict,ageMoments,riskMoment)
+                    _avgMomentDict,_avgMomentBit,_avgMomentProdDict,avgMoments,
+                    _ageMomentDict,_ageMomentBit,ageMoments,riskMoment)
 end
 
 
