@@ -251,7 +251,7 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     non_avg = sliceMean_wgt(c_hat_nonHCC,none_share,all_idx)
     rmom = HCC_avg/non_avg - c.riskMoment
 
-    return vcat(pmom,amom,rmom)
+    return abs.(vcat(pmom,amom,rmom))
 end
 
 

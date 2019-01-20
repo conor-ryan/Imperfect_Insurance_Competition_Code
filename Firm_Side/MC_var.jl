@@ -375,14 +375,14 @@ function costMoments_bootstrap(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     non_avg = sliceMean_wgt(c_hat_nonHCC,none_share,m_sample)
     rmom = HCC_avg/non_avg - c.riskMoment
 
-    return vcat(pmom,amom,rmom)
+    return abs.(vcat(pmom,amom,rmom))
 end
 
 function var_bootstrap(c::MC_Data,d::InsuranceLogit,p::Array{T},p_est::parDict{Float64};draw_num::Int=1000) where T
     par = parMC(p,p_est,d,c) # Fix p0
     individual_costs(d,par)
-    mom = var_bootstrap(c,d,par,draw_num=draw_num)
-    return mom
+    Σ, mom = var_bootstrap(c,d,par,draw_num=draw_num)
+    return Σ, mom
 end
 
 function var_bootstrap(c::MC_Data,d::InsuranceLogit,p::parMC{T};draw_num::Int=1000) where T
