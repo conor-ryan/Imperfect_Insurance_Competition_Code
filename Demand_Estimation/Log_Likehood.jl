@@ -75,9 +75,10 @@ function calc_Avar(d::InsuranceLogit,p::parDict{T}) where T
 
     Σ = zeros(d.parLength[:All],d.parLength[:All])
     Pop =sum(weight(d.data).*choice(d.data))
+    grad_obs = Vector{Float64}(undef,d.parLength[:All])
 
     for app in eachperson(d.data)
-        ll_obs,grad_obs = ll_obs_gradient(app,d,p)
+        ll_obs,pars_relevant = ll_obs_gradient!(grad,app,d,p)
         S_n = grad_obs*grad_obs'
         Σ+= S_n
     end
