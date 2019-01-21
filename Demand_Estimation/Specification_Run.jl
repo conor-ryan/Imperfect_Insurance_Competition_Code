@@ -59,7 +59,7 @@ function res_process(model::InsuranceLogit,p_est::Vector{Float64})
     end
     t_stat = p_est./stdErr
 
-    stars = Vector{String}(length(t_stat))
+    stars = Vector{String}(undef,length(t_stat))
     for i in 1:length(stars)
         if abs(t_stat[i])>2.326
             stars[i] = "***"
