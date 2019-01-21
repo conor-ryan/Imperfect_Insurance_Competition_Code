@@ -39,6 +39,7 @@ spec_prodchars=[:Price,:AV,:Big]
 spec_prodchars_0=[:Price,:AV,:Big]
 
 rundate = Dates.today()
+rundate = "2018-12-23"
 
 # #### Run Specification 1 ####
 println("Run Specification 1")
@@ -76,15 +77,16 @@ CSV.write(file2,out2)
 
 #### Run Specification 2 ####
 println("Run Specification 2")
-spec2 = run_specification(df,df_mkt,df_risk,
-                    haltonDim = halton_draws,
-                    spec_demoRaw=spec_demoRaw,
-                    spec_prodchars=spec_prodchars,
-                    spec_prodchars_0=[:Price,:AV,:Big],
-                    spec_fixedEffects=[:Firm_Market_Cat])
+# spec2 = run_specification(df,df_mkt,df_risk,
+#                     haltonDim = halton_draws,
+#                     spec_demoRaw=spec_demoRaw,
+#                     spec_prodchars=spec_prodchars,
+#                     spec_prodchars_0=[:Price,:AV,:Big],
+#                     spec_fixedEffects=[:Firm_Market_Cat])
 
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_spec2_$rundate.jld2"
-@save file spec2
+# @save file spec2
+@load file spec2
 println("Save Results")
 
 p_est, m, fval = spec2
@@ -110,15 +112,16 @@ CSV.write(file2,out2)
 
 #### Run Specification 3 ####
 println("Run Specification 3")
-spec3 = run_specification(df,df_mkt,df_risk,
-                    haltonDim = halton_draws,
-                    spec_demoRaw=spec_demoRaw,
-                    spec_prodchars=spec_prodchars,
-                    spec_prodchars_0=[:AV,:Big],
-                    spec_fixedEffects=[:Firm_Market_Cat_Age])
+# spec3 = run_specification(df,df_mkt,df_risk,
+#                     haltonDim = halton_draws,
+#                     spec_demoRaw=spec_demoRaw,
+#                     spec_prodchars=spec_prodchars,
+#                     spec_prodchars_0=[:AV,:Big],
+#                     spec_fixedEffects=[:Firm_Market_Cat_Age])
 
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_spec3_$rundate.jld2"
-@save file spec3
+# @save file spec3
+@load file spec3
 println("Save Results")
 
 p_est, m, fval = spec3
@@ -144,15 +147,16 @@ CSV.write(file2,out2)
 
 #### Run Specification 4 ####
 println("Run Specification 4")
-spec4 = run_specification(df,df_mkt,df_risk,
-                    haltonDim = halton_draws,
-                    spec_demoRaw=spec_demoRaw,
-                    spec_prodchars=spec_prodchars,
-                    spec_prodchars_0=[:Price,:AV,:Big],
-                    spec_fixedEffects=[:Firm_Market_Cat_Age])
+# spec4 = run_specification(df,df_mkt,df_risk,
+#                     haltonDim = halton_draws,
+#                     spec_demoRaw=spec_demoRaw,
+#                     spec_prodchars=spec_prodchars,
+#                     spec_prodchars_0=[:Price,:AV,:Big],
+#                     spec_fixedEffects=[:Firm_Market_Cat_Age])
 
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_spec4_$rundate.jld2"
-@save file spec4
+# @save file spec4
+@load file spec4
 println("Save Results")
 
 p_est, m, fval = spec4
