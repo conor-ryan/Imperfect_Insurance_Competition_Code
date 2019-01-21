@@ -39,7 +39,7 @@ spec_prodchars=[:Price,:AV,:Big]
 spec_prodchars_0=[:Price,:AV,:Big]
 
 rundate = Dates.today()
-rundate = "2018-12-23"
+# rundate = "2018-12-23"
 
 # #### Run Specification 1 ####
 println("Run Specification 1")
