@@ -42,12 +42,12 @@ rundate = Dates.today()
 
 # #### Run Specification 1 ####
 println("Run Specification 1")
-spec1 = run_specification(df,df_mkt,df_risk,
-                    haltonDim = halton_draws,
-                    spec_demoRaw=spec_demoRaw,
-                    spec_prodchars=spec_prodchars,
-                    spec_prodchars_0=[:AV,:Big],
-                    spec_fixedEffects=[:Firm_Market_Cat])
+# spec1 = run_specification(df,df_mkt,df_risk,
+#                     haltonDim = halton_draws,
+#                     spec_demoRaw=spec_demoRaw,
+#                     spec_prodchars=spec_prodchars,
+#                     spec_prodchars_0=[:AV,:Big],
+#                     spec_fixedEffects=[:Firm_Market_Cat])
 
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_spec1_$rundate.jld2"
 # @save file spec1
