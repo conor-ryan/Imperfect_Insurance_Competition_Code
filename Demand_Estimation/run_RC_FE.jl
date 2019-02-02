@@ -113,12 +113,12 @@ println("###### Estimation 1 #######")
 println("#################")
 println("#################")
 # Estimate
-p_ll,ll = newton_raphson_ll(m,p0)
+# p_ll,ll = newton_raphson_ll(m,p0)
 # rundate = "2018-12-29"
 # println("Load MLE")
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_ll_$rundate.jld2"
-@save file p_ll
-# @load file p_ll
+# @save file p_ll
+@load file p_ll
 
 println("#################")
 println("#################")
