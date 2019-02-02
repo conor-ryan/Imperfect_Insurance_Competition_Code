@@ -36,7 +36,7 @@ c = ChoiceData(df,df_mkt,df_risk;
             :LowIncome],
     prodchars=[:Price,:AV,:Big],
     prodchars_0=[:AV,:Big],
-    fixedEffects=[:Firm_Market])
+    fixedEffects=[:Firm])
 
 # Fit into model
 m = InsuranceLogit(c,1000)
@@ -113,12 +113,12 @@ println("###### Estimation 1 #######")
 println("#################")
 println("#################")
 # Estimate
-# p_ll,ll = newton_raphson_ll(m,p0)
-rundate = "2018-12-29"
-println("Load MLE")
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estimationresults_ll_$rundate.jld2"
-# @save file p_ll
-@load file p_ll
+p_ll,ll = newton_raphson_ll(m,p0)
+# rundate = "2018-12-29"
+# println("Load MLE")
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_ll_$rundate.jld2"
+@save file p_ll
+# @load file p_ll
 
 println("#################")
 println("#################")
@@ -173,13 +173,14 @@ file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermed
 # # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_fe_rc_$rundate.jld"
 # # p_est = load(file)["est_res"][3]
 # #
-# # par0 = parDict(m,p_est)
-# #
-# # individual_values!(m,par0)
-# # individual_shares(m,par0)
-# #
-# # grad = Matrix{Float64}(length(p_est),length(m.data.tMoments))
-# # r = calc_risk_moments!(grad,m,par0)
+# p_est = p_stg1
+# par0 = parDict(m,p_est)
+#
+# individual_values!(m,par0)
+# individual_shares(m,par0)
+#
+# grad = Matrix{Float64}(length(p_est),length(m.data.tMoments))
+# r = calc_risk_moments!(grad,m,par0)
 #
 # #
 #

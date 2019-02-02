@@ -372,6 +372,25 @@ function calc_Transfers!(dTdθ::Matrix{Float64},
 end
 
 
+function risk_moments_Avar(mean_moments::Array{Float64,1},d::InsuranceLogit)
+    num_prods = length(d.prods)
+    mom_grad = zeros(length(d.data.tMoments),num_prods*2)
+    for (m,idx_mom) in d.data._tMomentDict
+        r_est = sum(mean_moments[num_prods .+ idx_mom])/sum(mean_moments[idx_mom])
+        s_sum = sum(mean_moments[idx_mom])
+        for k in idx_mom
+            #S_hat_j Gradient
+            mom_grad[m,k] = -r_est/s_sum
+            #R_hat_j Gradient
+            mom_grad[m,(num_prods + k)] = 1/s_sum
+        end
+    end
+
+    return mom_grad
+end
+
+
+
 function risk_moments_Avar(d::InsuranceLogit,p::parDict{T}) where T
     wgts = weight(d.data)[1,:]
     wgts_share = wgts.*p.s_hat
@@ -431,7 +450,6 @@ function risk_moments_Avar(d::InsuranceLogit,p::parDict{T}) where T
     return mom_grad
 end
 
-
 function test_Avar(moments::Vector{T},d::InsuranceLogit) where T
     num_prods = length(d.prods)
     s_hat_2_j = moments[1:num_prods]
@@ -469,36 +487,76 @@ function calc_gmm_Avar(d::InsuranceLogit,p0::Vector{Float64})
     num_prods = length(d.prods)
 
 
-
     risk_moments = Vector{Float64}(undef,num_prods*2)
     mom_length = length(risk_moments) + d.parLength[:All]
     g_n = Vector{Float64}(undef,mom_length)
+    mom_counts = Vector{Float64}(undef,mom_length)
+    mom_counts[:] .= 0.0
+    mean_moments = Vector{Float64}(undef,mom_length)
+    mean_moments[:] .= 0.0
     grad_obs = Vector{Float64}(undef,d.parLength[:All])
 
     Σ = zeros(mom_length,mom_length)
 
+    #### Calculate mean of all risk-moments
     for app in eachperson(d.data)
         grad_obs[:] .= 0.0
+        ll_obs,pars_relevant = ll_obs_gradient!(grad_obs,app,d,p)
+        idx_prod = risk_obs_moments!(risk_moments,productIDs,app,d,p)
+
+        mean_moments[1:length(risk_moments)] += risk_moments[:]
+        mean_moments[(length(risk_moments)+1):mom_length] += grad_obs[:]
+
+        idx_nonEmpty = vcat(idx_prod,num_prods .+idx_prod,(num_prods*2) .+ pars_relevant)
+        mom_counts[idx_nonEmpty] .+= 1.0
+    end
+
+    mean_moments = mean_moments./Pop
+    w_cov_sumsq = [0.0]
+    breakflag = false
+    idx_all = 1:length(mean_moments)
+
+    Σ_hold = mean_moments*mean_moments'
+    Σ = mean_moments*mean_moments'
+    for app in eachperson(d.data)
+        g_n[:].= 0.0
+        grad_obs[:] .= 0.0
+        w_i = weight(app)[1]
+        w_cov = w_i/Pop
+        w_cov_sumsq[:] += [w_cov^2]
         ll_obs,pars_relevant = ll_obs_gradient!(grad_obs,app,d,p)
         # ll_obs,grad_obs = ll_obs_gradient(app,d,p)
 
         idx_prod = risk_obs_moments!(risk_moments,productIDs,app,d,p)
         # risk_test[:] = risk_test[:] + risk_moments
 
-        idx_nonEmpty = vcat(idx_prod,num_prods .+idx_prod,(num_prods*2):mom_length)
-
+        idx_nonEmpty = vcat(idx_prod,num_prods .+idx_prod,(num_prods*2) .+ pars_relevant)
+        mom_counts[idx_nonEmpty] .+= 1.0
         g_n[1:length(risk_moments)] = risk_moments[:]
         g_n[(length(risk_moments)+1):mom_length] = grad_obs[:]
 
-        add_Σ(Σ,g_n,idx_nonEmpty)
+        g_n[:] = (g_n[:]./w_i - mean_moments[:]) #.*(1./sqrt(mom_counts))
+
+        # for q in findall(g_n.!=0.0)
+        #     if !(q in idx_nonEmpty)
+        #         println(person(app))
+        #         breakflag= true
+        #     end
+        # end
+        # if breakflag
+        #     break
+        # end
+
+        # Σ += w_cov.*Σ_hold
+        add_Σ(Σ,g_n,idx_nonEmpty,w_cov,Σ_hold)
     end
 
-    Σ = Σ./(Pop)
-
+    # Σ = Σ./(Pop) Currently normalizing all weights in computing COV matrix
+    Σ = Σ./(1-w_cov_sumsq[1])
     (N,M) = size(Σ)
     aVar = zeros(d.parLength[:All] + length(d.data.tMoments),M)
     (Q,R) = size(aVar)
-    aVar[1:length(d.data.tMoments),(1:num_prods*2)] = risk_moments_Avar(d,p)
+    aVar[1:length(d.data.tMoments),(1:num_prods*2)] = risk_moments_Avar(mean_moments,d)
     aVar[(length(d.data.tMoments)+1):Q,(num_prods*2 + 1):R] = Matrix{Float64}(I,d.parLength[:All],d.parLength[:All])
 
     S_est = aVar*Σ*aVar'
@@ -531,14 +589,21 @@ function risk_obs_moments!(mom_obs::Vector{Float64},productIDs::Vector{Int64},
     return per_prods
 end
 
-function add_Σ(Σ::Matrix{Float64},g_n::Vector{Float64},idx::Vector{Int64})
+function add_Σ(Σ::Matrix{Float64},g_n::Vector{Float64},idx::Vector{Int64},weight::Float64,Σ_hold::Matrix{Float64})
     for i in idx, j in idx
-        @fastmath @inbounds Σ[i,j]+=g_n[i]*g_n[j]
+        @fastmath @inbounds Σ[i,j]+=weight*(g_n[i]*g_n[j] - Σ_hold[i,j])
     end
     return nothing
 end
 
-
+function add_Σ(Σ::Matrix{Float64},g_n::Vector{Float64},idx::UnitRange{Int64},weight::Float64)
+    for i in idx
+        @fastmath @inbounds @simd for j in idx
+            Σ[i,j]+=weight*g_n[i]*g_n[j]
+        end
+    end
+    return nothing
+end
 
 function calc_risk_moments_obs(app::ChoiceData,d::InsuranceLogit,p::parDict{T}) where T
     wgts = weight(d.data)[1,:]
