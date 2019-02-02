@@ -162,25 +162,29 @@ firms = prod_pred[,list(s_base = sum(s_base),
                         s_RA   = sum(s_RA),
                         s_man  = sum(s_man)),by=c("Market","Firm")]
 
+firms[,merger:="None"]
+firms[Firm%in%c("AETNA","HUMANA"),merger:= "Aetna-Humana"]
+firms[Firm%in%c("ANTHEM_BLUE_CROSS_AND_BLUE_SHIELD","BLUE_CROSS_BLUE_SHIELD_OF_GEORGIA","CIGNA_HEALTH_AND_LIFE_INSURANCE_COMPANY"),merger:= "Anthem-Cigna"]
+
+
 firms[,mergeMarket:= 0]
 firms[Firm%in%c("AETNA","HUMANA"),mergeMarket:= 1]
 firms[,mergeMarket:=sum(mergeMarket),by="Market"]
 firms[mergeMarket<2,mergeMarket:=0]
+firms[mergeMarket==0&Firm%in%c("AETNA","HUMANA"),merger:="None"]
 
 firms[,mergeMarket_2:= 0]
 firms[Firm%in%c("ANTHEM_BLUE_CROSS_AND_BLUE_SHIELD","BLUE_CROSS_BLUE_SHIELD_OF_GEORGIA","CIGNA_HEALTH_AND_LIFE_INSURANCE_COMPANY"),mergeMarket_2:= 1]
 firms[,mergeMarket_2:=sum(mergeMarket_2),by="Market"]
 firms[mergeMarket_2<2,mergeMarket_2:=0]
+firms[mergeMarket_2==0&Firm%in%c("ANTHEM_BLUE_CROSS_AND_BLUE_SHIELD","BLUE_CROSS_BLUE_SHIELD_OF_GEORGIA","CIGNA_HEALTH_AND_LIFE_INSURANCE_COMPANY"),merger:="None"]
+
 firms[,mergeMarket:=pmax(mergeMarket,mergeMarket_2)]
 firms[,mergeMarket_2:=NULL]
 
-firms[,merger:="None"]
-firms[Firm%in%c("AETNA","HUMANA"),merger:= "Aetna-Humana"]
-firms[Firm%in%c("ANTHEM_BLUE_CROSS_AND_BLUE_SHIELD","BLUE_CROSS_BLUE_SHIELD_OF_GEORGIA","CIGNA_HEALTH_AND_LIFE_INSURANCE_COMPANY"),merger:= "Anthem-Cigna"]
 firms[,dHHI:=2*prod(s_base*100,na.rm=TRUE),by=c("Market","merger")]
 firms[merger=="None"|mergeMarket==0,dHHI:=0]
-
-
+# firms[dHHI==0,merger:="None"]
 
 
 
@@ -200,19 +204,59 @@ hhi_m = firms_m[,list(hhi_base_m = sum((s_base_m*100)^2),
                     hhi_man_m  = sum((s_man_m*100)^2)), by=c("Market")]
 
 hhi = merge(hhi,hhi_m,by="Market")
-mergers = hhi[dhhi_pred>0,]
-strong_mergers = hhi[dhhi_pred>200]
+hhi[,dhhi_actual:=hhi_base_m-hhi_base]
+
+hhi[,mergerLabel:="No Merger"]
+hhi[dhhi_pred>0,mergerLabel:="Weak"]
+hhi[dhhi_pred>200,mergerLabel:="Strong"]
+
+## Label Categories
+prod_pred = merge(prod_pred,hhi[,c("Market","dhhi_pred","mergerLabel")],by="Market")
+prod_pred = merge(prod_pred,firms[,c("Market","Firm","merger")],by=c("Market","Firm"))
+
+
+
+
 
 ### Premium Table
-table_prem = prod_pred[Market%in%strong_mergers$Market,list(prem_base = 12/1000*sum(lives*Age_Avg*prem_base)/sum(lives),
-                             prem_RA = 12/1000*sum(lives*Age_Avg*prem_RA)/sum(lives),
-                             prem_man = 12/1000*sum(lives*Age_Avg*prem_man)/sum(lives),
-                             prem_base_m = 12/1000*sum(lives*Age_Avg*prem_base_m)/sum(lives),
-                             prem_RA_m = 12/1000*sum(lives*Age_Avg*prem_RA_m)/sum(lives),
-                             prem_man_m = 12/1000*sum(lives*Age_Avg*prem_man_m)/sum(lives)),by=c("Metal_std")]
+table_prem = prod_pred[merger!="None",list(prem_base = 12/1000*sum(s_base*Age_Avg*prem_base)/sum(s_base),
+                             prem_RA = 12/1000*sum(s_RA*Age_Avg*prem_RA)/sum(s_RA),
+                             prem_man = 12/1000*sum(s_man*Age_Avg*prem_man)/sum(s_man),
+                             prem_base_m = 12/1000*sum(s_base*Age_Avg*prem_base_m)/sum(s_base),
+                             prem_RA_m = 12/1000*sum(s_RA*Age_Avg*prem_RA_m)/sum(s_RA),
+                             prem_man_m = 12/1000*sum(s_man*Age_Avg*prem_man_m)/sum(s_man)),by=c("Metal_std")]
+
 
 table_prem[,Metal_std:=factor(Metal_std,levels=c("CATASTROPHIC","BRONZE","SILVER","GOLD","PLATINUM"))]
 setkey(table_prem,Metal_std)
-table_prem = table_prem[!Metal_std%in%c("CATASTROPHIC","PLATINUM"),]
+
+
+table_prem[,base_effect:=round(100*(prem_base_m-prem_base)/prem_base,1)]
+table_prem[,RA_effect:=  round(100*(prem_RA_m-prem_RA)/prem_RA,1)]
+table_prem[,man_effect:= round(100*(prem_man_m-prem_man)/prem_man,1)]
+
+table_prem[,Group:="Merging Parties"]
+
+table_prem_all = prod_pred[,list(prem_base = 12/1000*sum(s_base*Age_Avg*prem_base)/sum(s_base),
+                                           prem_RA = 12/1000*sum(s_RA*Age_Avg*prem_RA)/sum(s_RA),
+                                           prem_man = 12/1000*sum(s_man*Age_Avg*prem_man)/sum(s_man),
+                                           prem_base_m = 12/1000*sum(s_base*Age_Avg*prem_base_m)/sum(s_base),
+                                           prem_RA_m = 12/1000*sum(s_RA*Age_Avg*prem_RA_m)/sum(s_RA),
+                                           prem_man_m = 12/1000*sum(s_man*Age_Avg*prem_man_m)/sum(s_man)),by=c("Metal_std")]
+
+
+table_prem_all[,Metal_std:=factor(Metal_std,levels=c("CATASTROPHIC","BRONZE","SILVER","GOLD","PLATINUM"))]
+setkey(table_prem_all,Metal_std)
+
+
+table_prem_all[,base_effect:=round(100*(prem_base_m-prem_base)/prem_base,1)]
+table_prem_all[,RA_effect:=  round(100*(prem_RA_m-prem_RA)/prem_RA,1)]
+table_prem_all[,man_effect:= round(100*(prem_man_m-prem_man)/prem_man,1)]
+table_prem_all[,Group:="All Firms"]
+
+table_prem = rbind(table_prem[,c("Metal_std","Group","base_effect","RA_effect","man_effect")],
+                   table_prem_all[,c("Metal_std","Group","base_effect","RA_effect","man_effect")])
+
+
 
 

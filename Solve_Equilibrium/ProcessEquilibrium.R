@@ -160,22 +160,22 @@ prod_pred[,FirmShare:=sum(Mkt_share),by=c("Market","Firm")]
 firms = unique(prod_pred[,c("Market","Firm","FirmShare")])
 firms[,HHI:= sum((FirmShare*100)^2),by="Market"]
 prod_pred = merge(prod_pred,firms,by=c("Market","Firm"))
-
-firms[,mergeMarket:= 0]
-firms[Firm%in%c("AETNA","HUMANA"),mergeMarket:= 1]
-firms[,mergeMarket:=sum(mergeMarket),by="Market"]
-firms[mergeMarket<2,mergeMarket:=0]
-
-firms[Firm%in%c("AETNA","HUMANA"),mergerShare:=FirmShare*100]
-firms[,dHHI:=2*prod(mergerShare,na.rm=TRUE),by="Market"]
-
-firms[,mergeMarket:= 0]
-firms[Firm%in%c("ANTHEM_BLUE_CROSS_AND_BLUE_SHIELD","BLUE_CROSS_BLUE_SHIELD_OF_GEORGIA","CIGNA_HEALTH_AND_LIFE_INSURANCE_COMPANY"),mergeMarket:= 1]
-firms[,mergeMarket:=sum(mergeMarket),by="Market"]
-firms[mergeMarket<2,mergeMarket:=0]
-
-firms[Firm%in%c("ANTHEM_BLUE_CROSS_AND_BLUE_SHIELD","BLUE_CROSS_BLUE_SHIELD_OF_GEORGIA","CIGNA_HEALTH_AND_LIFE_INSURANCE_COMPANY"),mergerShare:=FirmShare*100]
-firms[,dHHI:=2*prod(mergerShare,na.rm=TRUE),by="Market"]
+# 
+# firms[,mergeMarket:= 0]
+# firms[Firm%in%c("AETNA","HUMANA"),mergeMarket:= 1]
+# firms[,mergeMarket:=sum(mergeMarket),by="Market"]
+# firms[mergeMarket<2,mergeMarket:=0]
+# 
+# firms[Firm%in%c("AETNA","HUMANA"),mergerShare:=FirmShare*100]
+# firms[,dHHI:=2*prod(mergerShare,na.rm=TRUE),by="Market"]
+# 
+# firms[,mergeMarket:= 0]
+# firms[Firm%in%c("ANTHEM_BLUE_CROSS_AND_BLUE_SHIELD","BLUE_CROSS_BLUE_SHIELD_OF_GEORGIA","CIGNA_HEALTH_AND_LIFE_INSURANCE_COMPANY"),mergeMarket:= 1]
+# firms[,mergeMarket:=sum(mergeMarket),by="Market"]
+# firms[mergeMarket<2,mergeMarket:=0]
+# 
+# firms[Firm%in%c("ANTHEM_BLUE_CROSS_AND_BLUE_SHIELD","BLUE_CROSS_BLUE_SHIELD_OF_GEORGIA","CIGNA_HEALTH_AND_LIFE_INSURANCE_COMPANY"),mergerShare:=FirmShare*100]
+# firms[,dHHI:=2*prod(mergerShare,na.rm=TRUE),by="Market"]
 
 
 ### HHI Table
