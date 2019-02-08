@@ -157,80 +157,91 @@ function calc_GMM_Hess_Large!(obj_hess::Matrix{Float64},
     end
 end
 
-function estimate_GMM!(d::InsuranceLogit, p0::Vector{Float64},W::Matrix{Float64};method=:LN_NELDERMEAD)
-    # Set up the optimization
-    #opt_stage1 = Opt(:LD_LBFGS, length(p0))
-    opt_stage1 = Opt(:LD_TNEWTON_PRECOND_RESTART, length(p0))
-    #opt = Opt(:LD_MMA, length(p0))
+# function estimate_GMM!(d::InsuranceLogit, p0::Vector{Float64},W::Matrix{Float64};method=:LN_NELDERMEAD)
+#     # Set up the optimization
+#     #opt_stage1 = Opt(:LD_LBFGS, length(p0))
+#     opt_stage1 = Opt(:LD_TNEWTON_PRECOND_RESTART, length(p0))
+#     #opt = Opt(:LD_MMA, length(p0))
+#
+#     #opt = Opt(:LD_TNEWTON_PRECOND_RESTART,length(p0))
+#     #opt = Opt(:LD_TNEWTON,length(p0))
+#     #opt = Opt(:LN_SBPLX, length(p0))
+#     #opt = Opt(:LN_COBYLA, length(p0))
+#
+#     #maxeval!(opt_stage1,20000)
+#     maxtime!(opt_stage1, 580000)
+#     ftol_rel!(opt_stage1,1e-8)
+#
+#     lb = repeat([-1000],inner=length(p0))
+#     # # lb[14] = 0.0
+#     ub = repeat([1000],inner=length(p0))
+#     # # ub[14] = .99
+#     #
+#     lower_bounds!(opt_stage1, lb)
+#     upper_bounds!(opt_stage1, ub)
+#
+#
+#     #gmm(x) = GMM_objective(d,x,W)
+#     gmm_grad!(grad,x) = GMM_objective!(grad,d,x,W)
+#     # println(d.draws[1:30,:])
+#     disp_length = min(20,length(p0))
+#     count = 0
+#     function gmm(x, grad)
+#         count +=1
+#         x_displ = x[1:disp_length]
+#         if count % 50 ==0
+#             x_displ = round.(x,1)
+#             println(find(abs.(x).>10))
+#         end
+#         println("Iteration $count at $x_displ")
+#         #obj = ll(x)
+#         obj = gmm_grad!(grad,x)
+#         grad_size = sqrt(dot(grad,grad))
+#         println("Gradient size equals $grad_size")
+#         #ForwardDiff.gradient!(grad, gmm, x)
+#
+#         println("Objective equals $obj on iteration $count")
+#
+#         return obj
+#     end
+#     # Set Objective
+#     min_objective!(opt_stage1, gmm)
+#
+#     # Run Optimization
+#     # maxeval!(opt_stage1,10)
+#     #
+#     # lb = repeat([-5],inner=length(p0))
+#     # # lb[14] = 0.0
+#     # ub = repeat([5],inner=length(p0))
+#     # # ub[14] = .99
+#     # lower_bounds!(opt_stage1, lb)
+#     # upper_bounds!(opt_stage1, ub)
+#     # minf, minx, ret= optimize(opt_stage1, p0)
+#
+#     maxeval!(opt_stage1,25000)
+#     #lb = repeat([-Inf],inner=length(p0))
+#     # lb[14] = 0.0
+#     #ub = repeat([Inf],inner=length(p0))
+#     # ub[14] = .99
+#     lower_bounds!(opt_stage1, lb)
+#     upper_bounds!(opt_stage1, ub)
+#     minf, minx, ret= optimize(opt_stage1, p0)
+#
+#
+#     println("In Stage 1, got $minf at $minx after $count iterations (returned $ret)")
+#
+#     # Return the object
+#     return ret, minf, minx
+# end
 
-    #opt = Opt(:LD_TNEWTON_PRECOND_RESTART,length(p0))
-    #opt = Opt(:LD_TNEWTON,length(p0))
-    #opt = Opt(:LN_SBPLX, length(p0))
-    #opt = Opt(:LN_COBYLA, length(p0))
+function estimate_GMM(d::InsuranceLogit, p0::Vector{Float64},W::Matrix{Float64})
+    # First run a gradient ascent method to get close to optimum
+    println("Gradient Ascent Method")
+    p_ga, obj_ga = gradient_ascent_BB(d,p0,W,grad_tol = 10)
+    # Then run newtons method until better convergence
+    println("Newtons Method")
+    p_nr, obj_nr = newton_raphson_GMM(m,p_ga,W)
 
-    #maxeval!(opt_stage1,20000)
-    maxtime!(opt_stage1, 580000)
-    ftol_rel!(opt_stage1,1e-8)
-
-    lb = repeat([-1000],inner=length(p0))
-    # # lb[14] = 0.0
-    ub = repeat([1000],inner=length(p0))
-    # # ub[14] = .99
-    #
-    lower_bounds!(opt_stage1, lb)
-    upper_bounds!(opt_stage1, ub)
-
-
-    #gmm(x) = GMM_objective(d,x,W)
-    gmm_grad!(grad,x) = GMM_objective!(grad,d,x,W)
-    # println(d.draws[1:30,:])
-    disp_length = min(20,length(p0))
-    count = 0
-    function gmm(x, grad)
-        count +=1
-        x_displ = x[1:disp_length]
-        if count % 50 ==0
-            x_displ = round.(x,1)
-            println(find(abs.(x).>10))
-        end
-        println("Iteration $count at $x_displ")
-        #obj = ll(x)
-        obj = gmm_grad!(grad,x)
-        grad_size = sqrt(dot(grad,grad))
-        println("Gradient size equals $grad_size")
-        #ForwardDiff.gradient!(grad, gmm, x)
-
-        println("Objective equals $obj on iteration $count")
-
-        return obj
-    end
-    # Set Objective
-    min_objective!(opt_stage1, gmm)
-
-    # Run Optimization
-    # maxeval!(opt_stage1,10)
-    #
-    # lb = repeat([-5],inner=length(p0))
-    # # lb[14] = 0.0
-    # ub = repeat([5],inner=length(p0))
-    # # ub[14] = .99
-    # lower_bounds!(opt_stage1, lb)
-    # upper_bounds!(opt_stage1, ub)
-    # minf, minx, ret= optimize(opt_stage1, p0)
-
-    maxeval!(opt_stage1,25000)
-    #lb = repeat([-Inf],inner=length(p0))
-    # lb[14] = 0.0
-    #ub = repeat([Inf],inner=length(p0))
-    # ub[14] = .99
-    lower_bounds!(opt_stage1, lb)
-    upper_bounds!(opt_stage1, ub)
-    minf, minx, ret= optimize(opt_stage1, p0)
-
-
-    println("In Stage 1, got $minf at $minx after $count iterations (returned $ret)")
-
-    # Return the object
     return ret, minf, minx
 end
 
@@ -461,3 +472,169 @@ function gradient_ascent_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
 
     return p_vec,f_final_val
 end
+
+
+
+#
+# function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
+#     ## Initialize Parameter Vector
+#     p_vec = p0
+#     N = length(p0)
+#
+#     cnt = 0
+#     grad_size = 10000
+#     f_eval_old = 1.0
+#     # # Initialize δ
+#     param_dict = parDict(d,p_vec)
+#
+#     # Initialize Gradient
+#     grad_new = similar(p0)
+#     hess_new = Matrix{Float64}(undef,length(p0),length(p0))
+#     f_final_val = 0.0
+#     max_trial_cnt = 0
+#     p_last = copy(p_vec)
+#     grad_last = copy(grad_new)
+#     # Maximize by Newtons Method
+#     while (grad_size>grad_tol) & (cnt<max_itr) & (max_trial_cnt<20)
+#         cnt+=1
+#
+#
+#         # Compute Gradient, holding δ fixed
+#
+#         fval = GMM_objective!(grad_new,d,p_vec,W)
+#
+#
+#         grad_size = sqrt(dot(grad_new,grad_new))
+#         if (grad_size<1e-8) & (cnt>10)
+#             println("Got to Break Point...?")
+#             println(grad_size)
+#             break
+#         end
+#         if cnt==1
+#             step = 1/grad_size
+#         else
+#             g = p_vec - p_last
+#             y = grad_new - grad_last
+#             step = dot(g,g)/dot(g,y)
+#         end
+#         p_test = p_vec .- step.*grad_new
+#
+#         f_test = GMM_objective(d,p_test,W)
+#
+#         while isnan(f_test)
+#             step/=100
+#             p_test = p_vec .- step.*grad_new
+#         end
+#
+#         p_last = copy(p_vec)
+#         p_vec = copy(p_test)
+#         grad_last = copy(grad_new)
+#         p_vec_disp = p_vec[1:20]
+#         f_final_val = fval
+#         println("Update Parameters to $p_vec_disp")
+#
+#
+#         println("Gradient Size: $grad_size")
+#         println("Step Size: $step")
+#         println("Function Value is $fval at iteration $cnt")
+#     end
+#
+#     return p_vec,f_final_val
+# end
+#
+#
+#
+# function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
+#     ## Initialize Parameter Vector
+#     p_vec = p0
+#     N = length(p0)
+#
+#
+#     grad_size = 10000
+#     f_eval_old = 1.0
+#     # # Initialize δ
+#     param_dict = parDict(d,p_vec)
+#
+#     # Initialize Gradient
+#     grad_new = similar(p0)
+#     hess_new = Matrix{Float64}(undef,length(p0),length(p0))
+#
+#     cnt = 0
+#     ga_cnt = 0
+#     stall_cnt = 0
+#
+#     # Save Minimizing Function Value and Parameter Vector
+#     f_min=0.0
+#     p_min = Vector{Float64}(undef,length(p0))
+#     p_last = copy(p_vec)
+#
+#     # Maximize by Newtons Method
+#     while (grad_size>grad_tol) & (cnt<max_itr)
+#         cnt+=1
+#         # Compute Gradient, holding δ fixed
+#
+#         fval = GMM_objective!(hess_new,grad_new,d,p_vec,W)
+#
+#         grad_size = sqrt(dot(grad_new,grad_new))
+#         if (grad_size<1e-8) & (cnt>10)
+#             println("Gradient Near Zero, Local Minimum Found")
+#             println("Gradient Size: $grad_size")
+#             println("Function Value is $f_min at iteration $p_min")
+#             break
+#         end
+#
+#         update = -inv(hess_new)*grad_new
+#
+#         if any(isnan.(update))
+#             p_vec = p_last.*(1 .+ rand(length(update))/100 .-.005)
+#             println("Algorithm Went to Undefined Area: Random Step")
+#             grad_size = 1
+#             continue
+#         end
+#
+#         # Bound the change in parameters
+#         update[update.>10] = 10
+#         update[update.<(-10)] = -10
+#
+#         p_test = p_vec .+ update
+#         f_test = GMM_objective(d,p_test,W)
+#         trial_cnt = 0
+#         while (isnan(f_test))
+#             if trial_cnt==0
+#                 p_test_disp = p_test[1:20]
+#                 println("Trial (Init): Got $f_test at parameters $p_test_disp")
+#                 println("Previous Iteration at $fval")
+#             end
+#             update/= 10
+#             p_test = p_vec .+ update
+#             f_test = GMM_objective(d,p_test,W)
+#             p_test_disp = p_test[1:20]
+#             println("Trial (NR): Got $f_test at parameters $p_test_disp")
+#             println("Previous Iteration at $fval")
+#             trial_cnt+=1
+#         end
+#         ### Update Minimum Vector Value
+#         if (f_test<f_min) | (cnt<3)
+#             stall_cnt = 0
+#             f_min = f_test
+#             p_min[:] = p_test[:]
+#         end
+#
+#
+#         # update = p_test - p_vec
+#         p_last = copy(p_vec)
+#         p_vec = copy(p_test)
+#         p_vec_disp = p_vec[1:20]
+#         println("Update Parameters to $p_vec_disp")
+#
+#
+#         println("Gradient Size: $grad_size")
+#         println("Function Value is $f_test at iteration $cnt")
+#     end
+#     # if (grad_size>grad_tol)
+#     #     println("Estimate Instead")
+#     #     ret, f_final_val, p_vec = estimate!(d,p0)
+#
+#
+#     return p_min,f_min
+# end
