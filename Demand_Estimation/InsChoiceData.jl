@@ -87,7 +87,7 @@ function ChoiceData(data_choice::DataFrame,
     s0= convert(Matrix{Float64},data_choice[unins])
 
     riskChars=[:ageRate_avg,:HCC_age]
-    rm = convert(Array{Float64},data_choice[riskChars])
+    rm = convert(Matrix{Float64},data_choice[riskChars])
 
     println("Create Fixed Effects")
     bigFirm = :Big in prodchars
