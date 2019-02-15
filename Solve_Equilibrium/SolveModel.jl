@@ -161,6 +161,7 @@ function run_st_equil(st::String;merger=false)
     P_base = Vector{Float64}(undef,length(model.prods))
     P_RA = Vector{Float64}(undef,length(model.prods))
     P_base_man = Vector{Float64}(undef,length(model.prods))
+    P_RA_man = Vector{Float64}(undef,length(model.prods))
     println(sum(model.ownMat,dims=2))
 
     println("Estimate Base Model")
@@ -176,12 +177,18 @@ function run_st_equil(st::String;merger=false)
     solve_model!(model,1e-8)
     P_base_man[:] = model.premBase_j[:]
 
+    println("Estimate RA Model w/out Mandate")
+    model.data[:Mandate] = 0.0
+    solve_model!(model,1e-8,sim="RA")
+    P_RA_man[:] = model.premBase_j[:]
+
     println("Solved: $st")
 
     output =  DataFrame(Products=model.prods,
                         Price_base=P_base,
                         Price_RA =P_RA,
-                        Price_man=P_base_man)
+                        Price_man=P_base_man,
+                        Price_RAman=P_RA_man)
 
     if merger
         file3 = "Estimation_Output/solvedEquilibrium_merger_$st.csv"
