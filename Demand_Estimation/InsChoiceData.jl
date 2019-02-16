@@ -153,14 +153,15 @@ function ChoiceData(data_choice::DataFrame,
     # Create a data matrix, only including person id
     println("Put Together Data non FE data together")
     k = 0
-    for (d, var) in zip([i,X, y, Z,w,rm, s0,R_metal_index,R_index,j], [person,prodchars,
-        choice, demoRaw,wgt,riskChars,unins,r_var,r_silv_var,product])
+    for (d, var) in zip([i,j,w,R_metal_index,R_index, y, X, Z, rm, s0],
+        [person,product, wgt, r_var,r_silv_var, choice, prodchars, demoRaw,riskChars,unins])
         for l=1:size(d,2)
             k+=1
             dmat = hcat(dmat, d[:,l])
             index[var[l]] = k
         end
     end
+
 
 
     #Transpose data to store as rows
@@ -181,6 +182,14 @@ function ChoiceData(data_choice::DataFrame,
     _unins = getDictArray(index, unins)
     _rInd = getDictArray(index, r_var)
     _rIndS = getDictArray(index, r_silv_var)
+
+    println("Check Collinearity")
+    all_ind = vcat(_choice,_prodchars,_demoRaw,_ageRate,_ageHCC,_unins)
+    all_data = vcat(dmat[all_ind,:],F)
+    X = all_data*all_data'
+    ev = sort(eigvals(X))
+    smallest_ev = ev[1]
+    println("Smallest Data Eigenvalue: $smallest_ev")
 
     ## Rand Coefficient Index
     _randCoeffs = Array{Int,1}(undef,length(prodchars_0))
@@ -305,7 +314,7 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false) where
             #     num_effects = length(factor_list) - 4
             # end
         end
-        if bigFirm & (fe==:Firm)
+        if bigFirm & ((fe==:Firm) | (fe==:Firm_Market))
             num_effects-= 1
         end
         L+=num_effects
@@ -336,6 +345,11 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false) where
             # end
 
             if bigFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA")
+                println("skip")
+                continue
+            end
+            if bigFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA_AK_1")
+                println("skip")
                 continue
             end
 
