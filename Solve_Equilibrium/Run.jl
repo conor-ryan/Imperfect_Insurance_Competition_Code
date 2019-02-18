@@ -13,9 +13,9 @@ include("EquilibriumFunctions.jl")
 # run_st_equil("NE")
 # Check_Margin("NE")
 
-states = ["AK","NE","ND","OK","MD","IA","NM","UT",
-"OR","MO","IL","MI","GA","TX"]
-# states = ["MO","IL","MI","GA"]
+# states = ["AK","NE","ND","OK","MD","IA","NM","UT",
+# "OR","MO","IL","MI","GA","TX"]
+states = ["MI","GA","TX"]
 for st in states
     println("Solve Baseline Market Structure")
         run_st_equil(st)
