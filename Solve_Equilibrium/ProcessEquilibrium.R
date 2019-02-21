@@ -21,7 +21,7 @@ load(costFile)
 #cost_par = CostRes$coefficients[grep("(Age|WTP)",names(CostRes$coefficients))]
 
 #### Load Equilibrium Solutions ####
-eqFiles = list.files("Estimation_Output")[grep("solvedEquil.*_RA_Man2_.*csv",list.files("Estimation_Output"))]
+eqFiles = list.files("Estimation_Output")[grep("solvedEquilibrium_[A-Z][A-Z].csv",list.files("Estimation_Output"))]
 
 prod_data = prod_data[Firm!="OTHER",]
 setkey(prod_data,Product)
@@ -32,22 +32,22 @@ for (file in eqFiles){
   temp = temp[order(temp$Products),]
   #no_transfer = grepl("no_t",file)
 
-  prod_data[Product%in%temp$Products,prem_base:= temp$Price_base]
-  prod_data[Product%in%temp$Products,prem_RA:= temp$Price_RA]
-  prod_data[Product%in%temp$Products,prem_RAtau:= temp$Price_RA_p]
-  prod_data[Product%in%temp$Products,prem_man:= temp$Price_base_man]
-  prod_data[Product%in%temp$Products,prem_RA_man:= temp$Price_RA_man]
-  prod_data[Product%in%temp$Products,prem_RAtau_man:= temp$Price_RA_p_man]
+  prod_data[Product%in%temp$Products,prem_base:= temp$Price_RA]
+  prod_data[Product%in%temp$Products,prem_noRA:= temp$Price_base]
+  # prod_data[Product%in%temp$Products,prem_RAtau:= temp$Price_RA_p]
+  prod_data[Product%in%temp$Products,prem_noMan:= temp$Price_RAman]
+  prod_data[Product%in%temp$Products,prem_none:= temp$Price_man]
+  # prod_data[Product%in%temp$Products,prem_RAtau_man:= temp$Price_RA_p_man]
   
   n = 0
   for (j in unique(temp$Products)){
     n = n+1
-    full_predict[.(j),prem_base:= temp$Price_base[n]]
-    full_predict[.(j),prem_RA:= temp$Price_RA[n]]
-    full_predict[.(j),prem_RAtau:= temp$Price_RA_p[n]]
-    full_predict[.(j),prem_man:= temp$Price_base_man[n]]
-    full_predict[.(j),prem_RA_man:= temp$Price_RA_man[n]]
-    full_predict[.(j),prem_RAtau_man:= temp$Price_RA_p_man[n]]
+    full_predict[.(j),prem_base:= temp$Price_RA[n]]
+    full_predict[.(j),prem_noRA:= temp$Price_base[n]]
+    # full_predict[.(j),prem_RAtau:= temp$Price_RA_p[n]]
+    full_predict[.(j),prem_noMan:= temp$Price_RAman[n]]
+    full_predict[.(j),prem_none:= temp$Price_man[n]]
+    # full_predict[.(j),prem_RAtau_man:= temp$Price_RA_p_man[n]]
   }
   # 
   # if(no_transfer){
@@ -80,16 +80,16 @@ full_predict[,Mandate:=Mandate/12]
 ## Set Prices and Recalculate Shares
 
 full_predict[,s_base:=vector(mode="double",nrow(full_predict))]
-full_predict[,s_man:=vector(mode="double",nrow(full_predict))]
-full_predict[,s_RA:=vector(mode="double",nrow(full_predict))]
-full_predict[,s_RAtau:=vector(mode="double",nrow(full_predict))]
+full_predict[,s_noMan:=vector(mode="double",nrow(full_predict))]
+full_predict[,s_noRA:=vector(mode="double",nrow(full_predict))]
+full_predict[,s_none:=vector(mode="double",nrow(full_predict))]
 full_predict[,CW_base:=vector(mode="double",nrow(full_predict))]
-full_predict[,CW_man:=vector(mode="double",nrow(full_predict))]
-full_predict[,CW_RA:=vector(mode="double",nrow(full_predict))]
-full_predict[,CW_RAtau:=vector(mode="double",nrow(full_predict))]
+full_predict[,CW_noMan:=vector(mode="double",nrow(full_predict))]
+full_predict[,CW_noRA:=vector(mode="double",nrow(full_predict))]
+full_predict[,CW_none:=vector(mode="double",nrow(full_predict))]
 
 setkey(full_predict,Person,d_ind,Product)
-for (var in c("base","man","RA","RAtau")){
+for (var in c("base","noMan","noRA","none")){
   print(var)
   pvar = paste("prem",var,sep="_")
   svar = paste("s",var,sep="_")
@@ -121,12 +121,15 @@ for (var in c("base","man","RA","RAtau")){
   full_predict[METAL=="CATASTROPHIC",Price_new:= (.SD*ageRate)/MEMBERS,.SDcol=pvar]
   full_predict[,util:=non_price_util*exp(alpha*Price_new)]
   full_predict[,exp_sum:=sum(util),by=c("Person","d_ind")]
-  full_predict[,c(svar):=util/(exp(alpha*Mandate)+exp_sum)]
-  full_predict[,c(Insvar):=exp_sum/(exp(alpha*Mandate)+exp_sum)]
-  if(var=="man"){
-    full_predict[,c(CWvar):=-log(exp_sum + 1)/alpha]
-  }else{
+  if(!var%in%c("noMan","none")){
+    full_predict[,c(svar):=util/(exp(alpha*Mandate)+exp_sum)]
+    full_predict[,c(Insvar):=exp_sum/(exp(alpha*Mandate)+exp_sum)]
     full_predict[,c(CWvar):=-log(exp_sum+ exp(alpha*(Mandate)))/alpha]
+  }
+  else{
+    full_predict[,c(svar):=util/(1+exp_sum)]
+    full_predict[,c(Insvar):=exp_sum/(1+exp_sum)]
+    full_predict[,c(CWvar):=-log(exp_sum + 1)/alpha]
   }
   full_predict[,c("Price_new","util","exp_sum","Benchmark"):=NULL]
 }
@@ -134,8 +137,8 @@ for (var in c("base","man","RA","RAtau")){
 
 
 #### Preliminary Results ####
-Welfare = unique(full_predict[,c("Person","d_ind","PERWT","HCC_Silver","Market","CW_base","CW_man","CW_RA","CW_RAtau",
-                                 "ins_base","ins_man","ins_RA","ins_RAtau")])
+Welfare = unique(full_predict[,c("Person","d_ind","PERWT","HCC_Silver","Market","CW_base","CW_noMan","CW_noRA","CW_none",
+                                 "ins_base","ins_noMan","ins_noRA","ins_none")])
 
 
 prod_pred = full_predict[,list(lives = sum(s_base*PERWT),
@@ -180,21 +183,24 @@ prod_pred = merge(prod_pred,firms,by=c("Market","Firm"))
 
 ### HHI Table
 prod_pred[,HHI_flag:=0]
-prod_pred[HHI>4000,HHI_flag:=1]
-prod_pred[HHI>6000,HHI_flag:=2]
+prod_pred[HHI>3600,HHI_flag:=1]
+prod_pred[HHI>5500,HHI_flag:=2]
 
 table_prem = prod_pred[,list(prem_base = 12/1000*sum(lives*Age_Avg*prem_base)/sum(lives),
-                        prem_RA = 12/1000*sum(lives*Age_Avg*prem_RA)/sum(lives),
-                        prem_man = 12/1000*sum(lives*Age_Avg*prem_man)/sum(lives),
-                        prem_RAtau = 12/1000*sum(lives*Age_Avg*prem_RAtau)/sum(lives)),by=c("Metal_std","HHI_flag")]
+                        prem_noMan = 12/1000*sum(lives*Age_Avg*prem_noMan)/sum(lives),
+                        prem_noRA = 12/1000*sum(lives*Age_Avg*prem_noRA)/sum(lives),
+                        prem_none = 12/1000*sum(lives*Age_Avg*prem_none)/sum(lives)),by=c("Metal_std","HHI_flag")]
 table_prem[,Metal_std:=factor(Metal_std,levels=c("CATASTROPHIC","BRONZE","SILVER","GOLD","PLATINUM"))]
 setkey(table_prem,HHI_flag,Metal_std)
 table_prem = table_prem[!Metal_std%in%c("CATASTROPHIC","PLATINUM"),]
+# table_prem[,prem_noRA:=round(100*(prem_noRA-prem_base)/prem_base,1)]
+# table_prem[,prem_noMan:=round(100*(prem_noMan-prem_base)/prem_base,1)]
+# table_prem[,prem_none:=round(100*(prem_none-prem_base)/prem_base,1)]
 
 Welfare = merge(Welfare,unique(firms[,c("Market","HHI")]),by="Market")
 Welfare[,HHI_flag:=0]
-Welfare[HHI>4000,HHI_flag:=1]
-Welfare[HHI>6000,HHI_flag:=2]
+Welfare[HHI>3600,HHI_flag:=1]
+Welfare[HHI>5500,HHI_flag:=2]
 
 Welfare[,HighRisk:=0]
 Welfare[HCC_Silver>10,HighRisk:=1]
@@ -203,22 +209,23 @@ Welfare[,LowRisk:=0]
 Welfare[HCC_Silver==0,LowRisk:=1]
 
 table_CW = Welfare[,list(CW_base=12/1000*sum(CW_base*PERWT)/sum(PERWT),
-                           CW_man=sum(CW_man*PERWT)/sum(PERWT),
-                           CW_RA=sum(CW_RA*PERWT)/sum(PERWT),
-                           CW_RAtau=sum(CW_RAtau*PERWT)/sum(PERWT),
+                           CW_noMan=sum(CW_noMan*PERWT)/sum(PERWT),
+                           CW_noRA=sum(CW_noRA*PERWT)/sum(PERWT),
+                           CW_none=sum(CW_none*PERWT)/sum(PERWT),
                          ins_base=sum(ins_base*PERWT)/sum(PERWT),
-                         ins_man=sum(ins_man*PERWT)/sum(PERWT),
-                         ins_RA=sum(ins_RA*PERWT)/sum(PERWT),
-                         ins_RAtau=sum(ins_RAtau*PERWT)/sum(PERWT)),by=c("HHI_flag","HighRisk","LowRisk")]
+                         ins_noMan=sum(ins_noMan*PERWT)/sum(PERWT),
+                         ins_noRA=sum(ins_noRA*PERWT)/sum(PERWT),
+                         ins_none=sum(ins_none*PERWT)/sum(PERWT)),by=c("HHI_flag","HighRisk","LowRisk")]
 
 table_CW_avg = Welfare[,list(CW_base=12/1000*sum(CW_base*PERWT)/sum(PERWT),
-                         CW_RA=12/1000*sum(CW_RA*PERWT)/sum(PERWT),
-                         CW_man=12/1000*sum(CW_man*PERWT)/sum(PERWT),
-                         CW_RAtau=sum(CW_RAtau*PERWT)/sum(PERWT),
+                             CW_noMan=12/1000*sum(CW_noMan*PERWT)/sum(PERWT),
+                         CW_noRA=12/1000*sum(CW_noRA*PERWT)/sum(PERWT),
+                         CW_none=sum(CW_none*PERWT)/sum(PERWT),
                          ins_base=sum(ins_base*PERWT)/sum(PERWT),
-                         ins_RA=sum(ins_RA*PERWT)/sum(PERWT),
-                         ins_man=sum(ins_man*PERWT)/sum(PERWT),
-                         ins_RAtau=sum(ins_RAtau*PERWT)/sum(PERWT)),by=c("HHI_flag")]
+                         ins_noMan=sum(ins_noMan*PERWT)/sum(PERWT),
+                         ins_noRA=sum(ins_noRA*PERWT)/sum(PERWT),
+                         ins_none=sum(ins_none*PERWT)/sum(PERWT)),by=c("HHI_flag")]
+setkey(table_CW_avg,HHI_flag)
 
 #### Calculate Market Shares / Equilibrium Distribution ####
 

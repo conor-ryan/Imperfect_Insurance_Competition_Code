@@ -158,6 +158,8 @@ function run_st_equil(st::String;merger=false)
     end
 
     # Initialize Price Vectors
+    P_init = Vector{Float64}(undef,length(model.prods))
+    P_init[:] = model.premBase_j[:]
     P_base = Vector{Float64}(undef,length(model.prods))
     P_RA = Vector{Float64}(undef,length(model.prods))
     P_base_man = Vector{Float64}(undef,length(model.prods))
@@ -165,21 +167,25 @@ function run_st_equil(st::String;merger=false)
     println(sum(model.ownMat,dims=2))
 
     println("Estimate Base Model")
-    solve_model!(model,1e-8)
+    model.premBase_j[:] = P_init[:]
+    solve_model!(model,1e-12)
     P_base[:] = model.premBase_j[:]
 
     println("Risk Adjustment Model")
-    solve_model!(model,1e-8,sim="RA")
+    model.premBase_j[:] = P_init[:]
+    solve_model!(model,1e-12,sim="RA")
     P_RA[:] = model.premBase_j[:]
 
     println("Estimate Base Model w/out Mandate")
+    model.premBase_j[:] = P_init[:]
     model.data[:Mandate] = 0.0
-    solve_model!(model,1e-8)
+    solve_model!(model,1e-12)
     P_base_man[:] = model.premBase_j[:]
 
     println("Estimate RA Model w/out Mandate")
+    model.premBase_j[:] = P_init[:]
     model.data[:Mandate] = 0.0
-    solve_model!(model,1e-8,sim="RA")
+    solve_model!(model,1e-12,sim="RA")
     P_RA_man[:] = model.premBase_j[:]
 
     println("Solved: $st")

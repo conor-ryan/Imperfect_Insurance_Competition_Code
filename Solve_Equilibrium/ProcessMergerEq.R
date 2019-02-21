@@ -20,8 +20,6 @@ load(costFile)
 #cost_par = CostRes$coefficients[grep("(Age|WTP)",names(CostRes$coefficients))]
 
 #### Load Equilibrium Solutions ####
-eqFiles = list.files("Estimation_Output")[grep("solvedEquil.*_RA_Man2_.*csv",list.files("Estimation_Output"))]
-
 prod_data = prod_data[Firm!="OTHER",]
 prod_data = prod_data[ST%in%c("MI","MO","GA","IL"),]
 full_predict = full_predict[ST%in%c("MI","MO","GA","IL"),]
@@ -35,16 +33,18 @@ for (st in c("MI","MO","GA","IL")){
   temp = temp[order(temp$Products),]
   #no_transfer = grepl("no_t",file)
   
-  prod_data[Product%in%temp$Products,prem_base:= temp$Price_base]
-  prod_data[Product%in%temp$Products,prem_RA:= temp$Price_RA]
-  prod_data[Product%in%temp$Products,prem_man:= temp$Price_man]
+  prod_data[Product%in%temp$Products,prem_base:= temp$Price_RA]
+  prod_data[Product%in%temp$Products,prem_noRA:= temp$Price_base]
+  prod_data[Product%in%temp$Products,prem_noMan:= temp$Price_RAman]
+  prod_data[Product%in%temp$Products,prem_none:= temp$Price_man]
   
   n = 0
   for (j in unique(temp$Products)){
     n = n+1
-    full_predict[.(j),prem_base:= temp$Price_base[n]]
-    full_predict[.(j),prem_RA:= temp$Price_RA[n]]
-    full_predict[.(j),prem_man:= temp$Price_man[n]]
+    full_predict[.(j),prem_base:= temp$Price_RA[n]]
+    full_predict[.(j),prem_noRA:= temp$Price_base[n]]
+    full_predict[.(j),prem_noMan:= temp$Price_RAman[n]]
+    full_predict[.(j),prem_none:= temp$Price_man[n]]
   }
   
   file = paste("Estimation_Output/solvedEquilibrium_merger_",st,".csv",sep="")
@@ -53,16 +53,18 @@ for (st in c("MI","MO","GA","IL")){
   temp = temp[order(temp$Products),]
   #no_transfer = grepl("no_t",file)
   
-  prod_data[Product%in%temp$Products,prem_base_m:= temp$Price_base]
-  prod_data[Product%in%temp$Products,prem_RA_m:= temp$Price_RA]
-  prod_data[Product%in%temp$Products,prem_man_m:= temp$Price_man]
+  prod_data[Product%in%temp$Products,prem_base_m:= temp$Price_RA]
+  prod_data[Product%in%temp$Products,prem_noRA_m:= temp$Price_base]
+  prod_data[Product%in%temp$Products,prem_noMan_m:= temp$Price_RAman]
+  prod_data[Product%in%temp$Products,prem_none_m:= temp$Price_man]
   
   n = 0
   for (j in unique(temp$Products)){
     n = n+1
-    full_predict[.(j),prem_base_m:= temp$Price_base[n]]
-    full_predict[.(j),prem_RA_m:= temp$Price_RA[n]]
-    full_predict[.(j),prem_man_m:= temp$Price_man[n]]
+    full_predict[.(j),prem_base_m:= temp$Price_RA[n]]
+    full_predict[.(j),prem_noRA_m:= temp$Price_base[n]]
+    full_predict[.(j),prem_noMan_m:= temp$Price_RAman[n]]
+    full_predict[.(j),prem_none_m:= temp$Price_man[n]]
   }
 }
 
@@ -76,21 +78,25 @@ full_predict[,Mandate:=Mandate/12]
 ## Set Prices and Recalculate Shares
 
 full_predict[,s_base:=vector(mode="double",nrow(full_predict))]
-full_predict[,s_man:=vector(mode="double",nrow(full_predict))]
-full_predict[,s_RA:=vector(mode="double",nrow(full_predict))]
-full_predict[,s_base_m:=vector(mode="double",nrow(full_predict))]
-full_predict[,s_man_m:=vector(mode="double",nrow(full_predict))]
-full_predict[,s_RA_m:=vector(mode="double",nrow(full_predict))]
-
+full_predict[,s_noMan:=vector(mode="double",nrow(full_predict))]
+full_predict[,s_noRA:=vector(mode="double",nrow(full_predict))]
+full_predict[,s_none:=vector(mode="double",nrow(full_predict))]
 full_predict[,CW_base:=vector(mode="double",nrow(full_predict))]
-full_predict[,CW_man:=vector(mode="double",nrow(full_predict))]
-full_predict[,CW_RA:=vector(mode="double",nrow(full_predict))]
+full_predict[,CW_noMan:=vector(mode="double",nrow(full_predict))]
+full_predict[,CW_noRA:=vector(mode="double",nrow(full_predict))]
+full_predict[,CW_none:=vector(mode="double",nrow(full_predict))]
+
+full_predict[,s_base_m:=vector(mode="double",nrow(full_predict))]
+full_predict[,s_noMan_m:=vector(mode="double",nrow(full_predict))]
+full_predict[,s_noRA_m:=vector(mode="double",nrow(full_predict))]
+full_predict[,s_none_m:=vector(mode="double",nrow(full_predict))]
 full_predict[,CW_base_m:=vector(mode="double",nrow(full_predict))]
-full_predict[,CW_man_m:=vector(mode="double",nrow(full_predict))]
-full_predict[,CW_RA_m:=vector(mode="double",nrow(full_predict))]
+full_predict[,CW_noMan_m:=vector(mode="double",nrow(full_predict))]
+full_predict[,CW_noRA_m:=vector(mode="double",nrow(full_predict))]
+full_predict[,CW_none_m:=vector(mode="double",nrow(full_predict))]
 
 setkey(full_predict,Person,d_ind,Product)
-for (var in c("base","man","RA","base_m","man_m","RA_m")){
+for (var in c("base","noMan","noRA","none","base_m","noMan_m","noRA_m","none_m")){
   print(var)
   pvar = paste("prem",var,sep="_")
   svar = paste("s",var,sep="_")
@@ -137,12 +143,17 @@ for (var in c("base","man","RA","base_m","man_m","RA_m")){
 #### Preliminary Results ####
 prod_pred = full_predict[,list(lives = sum(s_base*PERWT),
                                s_base = sum(s_base*PERWT),
-                               s_RA = sum(s_RA*PERWT),
-                               s_man = sum(s_man*PERWT),
+                               s_noRA = sum(s_noRA*PERWT),
+                               s_noMan = sum(s_noMan*PERWT),
+                               s_none = sum(s_none*PERWT),
                                s_base_m = sum(s_base_m*PERWT),
-                               s_RA_m = sum(s_RA_m*PERWT),
-                               s_man_m = sum(s_man_m*PERWT),
-                               Age_Avg = sum(s_base*ageRate_avg*mkt_density)/sum(s_base*mkt_density),
+                               s_noRA_m = sum(s_noRA_m*PERWT),
+                               s_noMan_m = sum(s_noMan_m*PERWT),
+                               s_none_m = sum(s_none_m*PERWT),
+                               Age_base = sum(s_base*ageRate_avg*mkt_density)/sum(s_base*mkt_density),
+                               Age_noRA = sum(s_noRA*ageRate_avg*mkt_density)/sum(s_noRA*mkt_density),
+                               Age_noMan = sum(s_noMan*ageRate_avg*mkt_density)/sum(s_noMan*mkt_density),
+                               Age_none = sum(s_none*ageRate_avg*mkt_density)/sum(s_none*mkt_density),
                                C_j = sum(C*s_base*PERWT)/sum(s_base*PERWT)),
                          by=c("Product")]
 
@@ -150,17 +161,20 @@ prod_pred = merge(prod_pred,prod_data,by="Product")
 
 ### HHI Table
 prod_pred[,s_base:=s_base/sum(s_base),by="Market"]
-prod_pred[,s_RA:=s_RA/sum(s_RA),by="Market"]
-prod_pred[,s_man:=s_man/sum(s_man),by="Market"]
+prod_pred[,s_noRA:=s_noRA/sum(s_noRA),by="Market"]
+prod_pred[,s_noMan:=s_noMan/sum(s_noMan),by="Market"]
+prod_pred[,s_none:=s_none/sum(s_none),by="Market"]
 
 prod_pred[,s_base_m:=s_base_m/sum(s_base_m),by="Market"]
-prod_pred[,s_RA_m:=s_RA_m/sum(s_RA_m),by="Market"]
-prod_pred[,s_man_m:=s_man_m/sum(s_man_m),by="Market"]
+prod_pred[,s_noRA_m:=s_noRA_m/sum(s_noRA_m),by="Market"]
+prod_pred[,s_noMan_m:=s_noMan_m/sum(s_noMan_m),by="Market"]
+prod_pred[,s_none_m:=s_none/sum(s_none_m),by="Market"]
 
 
 firms = prod_pred[,list(s_base = sum(s_base),
-                        s_RA   = sum(s_RA),
-                        s_man  = sum(s_man)),by=c("Market","Firm")]
+                        s_noRA   = sum(s_noRA),
+                        s_noMan  = sum(s_noMan),
+                        s_none   = sum(s_none)),by=c("Market","Firm")]
 
 firms[,merger:="None"]
 firms[Firm%in%c("AETNA","HUMANA"),merger:= "Aetna-Humana"]
@@ -190,18 +204,21 @@ firms[merger=="None"|mergeMarket==0,dHHI:=0]
 
 
 hhi = firms[,list(hhi_base = sum((s_base*100)^2),
-                  hhi_RA   = sum((s_RA*100)^2),
-                  hhi_man  = sum((s_man*100)^2),
+                  hhi_noRA   = sum((s_noRA*100)^2),
+                  hhi_noMan  = sum((s_noMan*100)^2),
+                  hhi_none  = sum((s_none*100)^2),
                   dhhi_pred  = sum(dHHI)/2), by=c("Market")]
 
 prod_pred[Firm%in%c("AETNA","HUMANA"),Firm:= "AETNA"]
 prod_pred[Firm%in%c("ANTHEM_BLUE_CROSS_AND_BLUE_SHIELD","BLUE_CROSS_BLUE_SHIELD_OF_GEORGIA","CIGNA_HEALTH_AND_LIFE_INSURANCE_COMPANY"),Firm:="ANTHEM"]
 firms_m = prod_pred[,list(s_base_m = sum(s_base_m),
-                          s_RA_m   = sum(s_RA_m),
-                          s_man_m  = sum(s_man_m)),by=c("Market","Firm")]
+                          s_noRA_m   = sum(s_noRA_m),
+                          s_noMan_m  = sum(s_noMan_m),
+                          s_none_m  = sum(s_none_m)),by=c("Market","Firm")]
 hhi_m = firms_m[,list(hhi_base_m = sum((s_base_m*100)^2),
-                    hhi_RA_m   = sum((s_RA_m*100)^2),
-                    hhi_man_m  = sum((s_man_m*100)^2)), by=c("Market")]
+                      hhi_noRA_m   = sum((s_noRA_m*100)^2),
+                      hhi_noMan_m  = sum((s_noMan_m*100)^2),
+                      hhi_none_m  = sum((s_none_m*100)^2)), by=c("Market")]
 
 hhi = merge(hhi,hhi_m,by="Market")
 hhi[,dhhi_actual:=hhi_base_m-hhi_base]
@@ -219,43 +236,53 @@ prod_pred = merge(prod_pred,firms[,c("Market","Firm","merger")],by=c("Market","F
 
 
 ### Premium Table
-table_prem = prod_pred[merger!="None",list(prem_base = 12/1000*sum(s_base*Age_Avg*prem_base)/sum(s_base),
-                             prem_RA = 12/1000*sum(s_RA*Age_Avg*prem_RA)/sum(s_RA),
-                             prem_man = 12/1000*sum(s_man*Age_Avg*prem_man)/sum(s_man),
-                             prem_base_m = 12/1000*sum(s_base*Age_Avg*prem_base_m)/sum(s_base),
-                             prem_RA_m = 12/1000*sum(s_RA*Age_Avg*prem_RA_m)/sum(s_RA),
-                             prem_man_m = 12/1000*sum(s_man*Age_Avg*prem_man_m)/sum(s_man)),by=c("Metal_std")]
+table_prem = prod_pred[merger!="None",list(prem_base = 12/1000*sum(s_base*Age_base*prem_base)/sum(s_base),
+                             prem_noRA = 12/1000*sum(s_noRA*Age_noRA*prem_noRA)/sum(s_noRA),
+                             prem_noMan = 12/1000*sum(s_noMan*Age_noMan*prem_noMan)/sum(s_noMan),
+                             prem_none = 12/1000*sum(s_none*Age_none*prem_none)/sum(s_none),
+                             prem_base_m = 12/1000*sum(s_base*Age_base*prem_base_m)/sum(s_base),
+                             prem_noRA_m = 12/1000*sum(s_noRA*Age_noRA*prem_noRA_m)/sum(s_noRA),
+                             prem_noMan_m = 12/1000*sum(s_noMan*Age_noMan*prem_noMan_m)/sum(s_noMan),
+                             prem_none_m = 12/1000*sum(s_none*Age_none*prem_none_m)/sum(s_none)),by=c("Metal_std")]
 
 
 table_prem[,Metal_std:=factor(Metal_std,levels=c("CATASTROPHIC","BRONZE","SILVER","GOLD","PLATINUM"))]
+table_prem = table_prem[!Metal_std%in%c("CATASTROPHIC","PLATINUM"),]
 setkey(table_prem,Metal_std)
 
 
 table_prem[,base_effect:=round(100*(prem_base_m-prem_base)/prem_base,1)]
-table_prem[,RA_effect:=  round(100*(prem_RA_m-prem_RA)/prem_RA,1)]
-table_prem[,man_effect:= round(100*(prem_man_m-prem_man)/prem_man,1)]
+table_prem[,noRA_effect:=  round(100*(prem_noRA_m-prem_noRA)/prem_noRA,1)]
+table_prem[,noMan_effect:= round(100*(prem_noMan_m-prem_noMan)/prem_noMan,1)]
+table_prem[,none_effect:= round(100*(prem_none_m-prem_none)/prem_none,1)]
 
 table_prem[,Group:="Merging Parties"]
 
-table_prem_all = prod_pred[,list(prem_base = 12/1000*sum(s_base*Age_Avg*prem_base)/sum(s_base),
-                                           prem_RA = 12/1000*sum(s_RA*Age_Avg*prem_RA)/sum(s_RA),
-                                           prem_man = 12/1000*sum(s_man*Age_Avg*prem_man)/sum(s_man),
-                                           prem_base_m = 12/1000*sum(s_base*Age_Avg*prem_base_m)/sum(s_base),
-                                           prem_RA_m = 12/1000*sum(s_RA*Age_Avg*prem_RA_m)/sum(s_RA),
-                                           prem_man_m = 12/1000*sum(s_man*Age_Avg*prem_man_m)/sum(s_man)),by=c("Metal_std")]
+table_prem_all = prod_pred[,list(prem_base = 12/1000*sum(s_base*Age_base*prem_base)/sum(s_base),
+                                           prem_noRA = 12/1000*sum(s_noRA*Age_noRA*prem_noRA)/sum(s_noRA),
+                                           prem_noMan = 12/1000*sum(s_noMan*Age_noMan*prem_noMan)/sum(s_noMan),
+                                           prem_none = 12/1000*sum(s_none*Age_none*prem_none)/sum(s_none),
+                                           prem_base_m = 12/1000*sum(s_base*Age_base*prem_base_m)/sum(s_base),
+                                           prem_noRA_m = 12/1000*sum(s_noRA*Age_noRA*prem_noRA_m)/sum(s_noRA),
+                                           prem_noMan_m = 12/1000*sum(s_noMan*Age_noMan*prem_noMan_m)/sum(s_noMan),
+                                           prem_none_m = 12/1000*sum(s_none*Age_none*prem_none_m)/sum(s_none)),by=c("Metal_std")]
 
 
 table_prem_all[,Metal_std:=factor(Metal_std,levels=c("CATASTROPHIC","BRONZE","SILVER","GOLD","PLATINUM"))]
+table_prem_all = table_prem_all[!Metal_std%in%c("CATASTROPHIC","PLATINUM"),]
 setkey(table_prem_all,Metal_std)
 
 
 table_prem_all[,base_effect:=round(100*(prem_base_m-prem_base)/prem_base,1)]
-table_prem_all[,RA_effect:=  round(100*(prem_RA_m-prem_RA)/prem_RA,1)]
-table_prem_all[,man_effect:= round(100*(prem_man_m-prem_man)/prem_man,1)]
+table_prem_all[,noRA_effect:=  round(100*(prem_noRA_m-prem_noRA)/prem_noRA,1)]
+table_prem_all[,noMan_effect:= round(100*(prem_noMan_m-prem_noMan)/prem_noMan,1)]
+table_prem_all[,none_effect:= round(100*(prem_none_m-prem_none)/prem_none,1)]
+
+
 table_prem_all[,Group:="All Firms"]
 
-table_prem = rbind(table_prem[,c("Metal_std","Group","base_effect","RA_effect","man_effect")],
-                   table_prem_all[,c("Metal_std","Group","base_effect","RA_effect","man_effect")])
+table_prem = rbind(table_prem[,c("Metal_std","Group","base_effect","noRA_effect","noMan_effect","none_effect")],
+                   table_prem_all[,c("Metal_std","Group","base_effect","noRA_effect","noMan_effect","none_effect")])
 
 
 
