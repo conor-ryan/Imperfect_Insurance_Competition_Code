@@ -109,20 +109,20 @@ par0 = parDict(m,p0)
 #
 #p_ll = newton_raphson(m,p0)
 
-rundate = Dates.today()
-# rundate = "2019-02-08"
+# rundate = Dates.today()
+rundate = "2019-02-16"
 println("#################")
 println("#################")
 println("###### Estimation 1 #######")
 println("#################")
 println("#################")
 # Estimate
-p_ll,ll = newton_raphson_ll(m,p0)
+# p_ll,ll = newton_raphson_ll(m,p0)
 # rundate = "2018-12-24"
-# println("Load MLE")
+println("Load MLE")
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_ll_$rundate.jld2"
-@save file p_ll
-# @load file p_ll
+# @save file p_ll
+@load file p_ll
 
 println("#################")
 println("#################")
@@ -141,7 +141,7 @@ W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMom
 # println(ll)
 # par0 = 0.0
 # grad = 0.0
-p_stg1, obj_1 = newton_raphson_GMM(m,p_ll,W)
+# p_stg1, obj_1 = newton_raphson_GMM(m,p_ll,W)
 # p_stg1 = [1.69666, -0.624074, 7.70532, -3.40489, -6.69419, -2.48158, 7.60393, -14.0308, -0.181931, 0.717822, 0.340304, 0.469169, -0.507845, 0.788595, 0.123226, -1.79194, -0.333285, -0.723316, -3.17282, -0.426228, -0.293929, -2.64561, -0.0784879, -1.35754, 3.21791, -1.88876,
 # -1.58925, -2.53687, -0.370789, -2.18622, -14.7182, 1.80582, -1.0009, -2.17884, 0.200387, 16.1311, 0.288741, 3.14, -0.860258, 4.10627, -1.70509, 1.49477, -3.3637, -2.42231, 24.7657, -20.5494, 2.2456, 19.4633, -2.92765,
 # -3.89891, -2.2637, -14.4735, -11.431, 0.533514, -2.2294, -2.6287, -26.1137, -1.4943, -2.44579, 8.59815, 0.969846, -1.72829, -5.566, -13.7933, -1.97754, -3.8871, 4.10815, -0.718699, -3.23624, -1.27109, 0.117634, -4.85136, 13.4222, 20.4344, 2.75925, 14.4956, 16.0905,
@@ -164,10 +164,10 @@ p_stg1, obj_1 = newton_raphson_GMM(m,p_ll,W)
 #     7.25704, 11.0117, 15.7999, 13.8628, 168.437, 12.9696, 12.7651, 14.7568, 0.564273, 10.6377, 5.83764, 18.6474, 11.5926, 56.8914, 5.08712, 8.68608, 13.3077, 14.4718, 13.3431, 12.1455, 18.5251, 11.6841,17.7341]
 
 # rundate = "2018-12-29"
-# println("Load GMM - Stage 1")
+println("Load GMM - Stage 1")
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage1_$rundate.jld2"
-@save file p_stg1
-# @load file p_stg1
+# @save file p_stg1
+@load file p_stg1
 # est_res = load(file)["est_res"]
 #
 # p_est = est_res[3]
