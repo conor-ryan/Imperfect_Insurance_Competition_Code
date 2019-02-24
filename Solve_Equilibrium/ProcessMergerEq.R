@@ -101,6 +101,7 @@ for (var in c("base","noMan","noRA","none","base_m","noMan_m","noRA_m","none_m")
   pvar = paste("prem",var,sep="_")
   svar = paste("s",var,sep="_")
   CWvar = paste("CW",var,sep="_")
+  pvar_ind = paste("ppost",var,sep="_")
   Insvar = paste("ins",var,sep="_")
   
   ## Re-Calculate Benchmark and Subsidies
@@ -126,14 +127,18 @@ for (var in c("base","noMan","noRA","none","base_m","noMan_m","noRA_m","none_m")
   full_predict[,Price_new:=pmax(Price_new,0)]
   full_predict[,Price_new:= Price_new/MEMBERS]
   full_predict[METAL=="CATASTROPHIC",Price_new:= (.SD*ageRate)/MEMBERS,.SDcol=pvar]
+  full_predict[,c(pvar_ind):= Price_new]
   full_predict[,util:=non_price_util*exp(alpha*Price_new)]
   full_predict[,exp_sum:=sum(util),by=c("Person","d_ind")]
-  full_predict[,c(svar):=util/(exp(alpha*Mandate)+exp_sum)]
-  full_predict[,c(Insvar):=exp_sum/(exp(alpha*Mandate)+exp_sum)]
-  if(var=="man"){
-    full_predict[,c(CWvar):=-log(exp_sum + 1)/alpha]
-  }else{
+  if(!var%in%c("noMan","none","noMan_m","none_m")){
+    full_predict[,c(svar):=util/(exp(alpha*Mandate)+exp_sum)]
+    full_predict[,c(Insvar):=exp_sum/(exp(alpha*Mandate)+exp_sum)]
     full_predict[,c(CWvar):=-log(exp_sum+ exp(alpha*(Mandate)))/alpha]
+  }
+  else{
+    full_predict[,c(svar):=util/(1+exp_sum)]
+    full_predict[,c(Insvar):=exp_sum/(1+exp_sum)]
+    full_predict[,c(CWvar):=-log(exp_sum + 1)/alpha]
   }
   full_predict[,c("Price_new","util","exp_sum","Benchmark"):=NULL]
 }
@@ -141,6 +146,11 @@ for (var in c("base","noMan","noRA","none","base_m","noMan_m","noRA_m","none_m")
 
 
 #### Preliminary Results ####
+Welfare = unique(full_predict[,c("Person","d_ind","PERWT","HCC_Silver","Market","CW_base","CW_noMan","CW_noRA","CW_none",
+                                 "ins_base","ins_noMan","ins_noRA","ins_none",
+                                 "CW_base_m","CW_noMan_m","CW_noRA_m","CW_none_m",
+                                 "ins_base_m","ins_noMan_m","ins_noRA_m","ins_none_m")])
+
 prod_pred = full_predict[,list(lives = sum(s_base*PERWT),
                                s_base = sum(s_base*PERWT),
                                s_noRA = sum(s_noRA*PERWT),
@@ -281,9 +291,39 @@ table_prem_all[,none_effect:= round(100*(prem_none_m-prem_none)/prem_none,1)]
 
 table_prem_all[,Group:="All Firms"]
 
-table_prem = rbind(table_prem[,c("Metal_std","Group","base_effect","noRA_effect","noMan_effect","none_effect")],
-                   table_prem_all[,c("Metal_std","Group","base_effect","noRA_effect","noMan_effect","none_effect")])
+table_prem = rbind(table_prem[,c("Metal_std","Group","base_effect","noMan_effect","noRA_effect","none_effect")],
+                   table_prem_all[,c("Metal_std","Group","base_effect","noMan_effect","noRA_effect","none_effect")])
 
+
+### Welfare and Insurance
+
+table_CW_avg = Welfare[,list(CW_base=12/1000*sum(CW_base*PERWT)/sum(PERWT),
+                             CW_noMan=12/1000*sum(CW_noMan*PERWT)/sum(PERWT),
+                             CW_noRA=12/1000*sum(CW_noRA*PERWT)/sum(PERWT),
+                             CW_none=12/1000*sum(CW_none*PERWT)/sum(PERWT),
+                             CW_base_m=12/1000*sum(CW_base_m*PERWT)/sum(PERWT),
+                             CW_noMan_m=12/1000*sum(CW_noMan_m*PERWT)/sum(PERWT),
+                             CW_noRA_m=12/1000*sum(CW_noRA_m*PERWT)/sum(PERWT),
+                             CW_none_m=12/1000*sum(CW_none_m*PERWT)/sum(PERWT),
+                             ins_base=sum(ins_base*PERWT)/sum(PERWT),
+                             ins_noMan=sum(ins_noMan*PERWT)/sum(PERWT),
+                             ins_noRA=sum(ins_noRA*PERWT)/sum(PERWT),
+                             ins_none=sum(ins_none*PERWT)/sum(PERWT),
+                             ins_base_m=sum(ins_base_m*PERWT)/sum(PERWT),
+                             ins_noMan_m=sum(ins_noMan_m*PERWT)/sum(PERWT),
+                             ins_noRA_m=sum(ins_noRA_m*PERWT)/sum(PERWT),
+                             ins_none_m=sum(ins_none_m*PERWT)/sum(PERWT))]
+
+
+table_CW_avg[,CW_base_effect:=round(100*(CW_base_m-CW_base)/CW_base,1)]
+table_CW_avg[,CW_noMan_effect:= round(100*(CW_noMan_m-CW_noMan)/CW_noMan,1)]
+table_CW_avg[,CW_noRA_effect:=  round(100*(CW_noRA_m-CW_noRA)/CW_noRA,1)]
+table_CW_avg[,CW_none_effect:= round(100*(CW_none_m-CW_none)/CW_none,1)]
+
+table_CW_avg[,Ins_base_effect:=round(100*(ins_base_m-ins_base)/ins_base,1)]
+table_CW_avg[,Ins_noMan_effect:= round(100*(ins_noMan_m-ins_noMan)/ins_noMan,1)]
+table_CW_avg[,Ins_noRA_effect:=  round(100*(ins_noRA_m-ins_noRA)/ins_noRA,1)]
+table_CW_avg[,Ins_none_effect:= round(100*(ins_none_m-ins_none)/ins_none,1)]
 
 
 
