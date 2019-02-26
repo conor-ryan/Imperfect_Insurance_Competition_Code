@@ -287,12 +287,12 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
             break
         end
 
-        if (stall_cnt>5)
-            println("No Better Point Found")
-            println("Nearby Gradient Size: $grad_size")
-            println("Function Value is $f_min at $p_min")
-            break
-        end
+        # if (stall_cnt>5)
+        #     println("No Better Point Found")
+        #     println("Nearby Gradient Size: $grad_size")
+        #     println("Function Value is $f_min at $p_min")
+        #     break
+        # end
 
         step_size = 1/grad_size
 
@@ -321,7 +321,7 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
         f_test = GMM_objective(d,p_test,W)
         trial_cnt = 0
         trial_end = 4
-        while ((f_test>fval) | isnan(f_test)) & (trial_cnt<=trial_end)
+        while ((f_test>fval*1.5) | isnan(f_test)) & (trial_cnt<=trial_end)
             if trial_cnt==0
                 p_test_disp = p_test[1:20]
                 println("Trial (Init): Got $f_test at parameters $p_test_disp")
