@@ -501,6 +501,7 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
     # Maximize by Newtons Method
     while (grad_size>grad_tol) & (cnt<max_itr) & (max_trial_cnt<20)
         cnt+=1
+        trial_cnt=0
 
 
         # Compute Gradient, holding δ fixed
