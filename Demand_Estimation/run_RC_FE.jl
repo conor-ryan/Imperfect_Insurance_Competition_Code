@@ -184,7 +184,7 @@ println("#################")
 m = InsuranceLogit(c,500)
 S = calc_gmm_Avar(m,p_stg1)
 W2 = inv(S)
-p_stg2, obj_2 = newton_raphson_GMM(m,p_ll,W2)
+p_stg2, obj_2 = gradient_ascent_BB(m,p_ll,W2)
 
 # #est_pre = newton_raphson(m,p_est,W2)
 #
