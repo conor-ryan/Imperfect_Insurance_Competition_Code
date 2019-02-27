@@ -507,7 +507,7 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
         # Compute Gradient, holding δ fixed
 
         fval = GMM_objective!(grad_new,d,p_vec,W)
-        if (cnt==1) | (fval>f_min)
+        if (cnt==1) | (fval<f_min)
             f_min = copy(fval)
             p_min[:] = p_vec[:]
             no_progress=0
@@ -532,7 +532,7 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
         p_test = p_vec .- step.*grad_new
 
         f_test = GMM_objective(d,p_test,W)
-        while ((f_test<fval*1.25) | isnan(f_test)) & (trial_cnt<10)
+        while ((f_test>fval*1.25) | isnan(f_test)) & (trial_cnt<10)
             p_test_disp = p_test[1:disp_length]
             if trial_cnt==0
                 println("Trial: Got $f_test at parameters $p_test_disp")
