@@ -532,6 +532,7 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
         p_test = p_vec .- step.*grad_new
 
         f_test = GMM_objective(d,p_test,W)
+        println("Initial Step Size: $step")
         while ((f_test>fval*1.25) | isnan(f_test)) & (trial_cnt<10)
             p_test_disp = p_test[1:disp_length]
             if trial_cnt==0
@@ -539,7 +540,7 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
                 println("Previous Iteration at $fval")
                 println("Reducing Step Size...")
             end
-            step/= 2
+            step/= 20
             p_test = p_vec .+ step.*grad_new
             f_test = GMM_objective(d,p_test,W)
             trial_cnt+=1
@@ -564,7 +565,7 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
 
         println("Gradient Size: $grad_size")
         println("Step Size: $step")
-        println("Function Value is $fval at iteration $cnt")
+        println("Function Value is $f_test at iteration $cnt")
         println("Steps since last improvement: $no_progress")
     end
     println("Lowest Function Value is $f_min at $p_min")
