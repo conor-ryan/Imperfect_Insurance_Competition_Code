@@ -475,72 +475,100 @@ end
 
 
 
-#
-# function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
-#     ## Initialize Parameter Vector
-#     p_vec = p0
-#     N = length(p0)
-#
-#     cnt = 0
-#     grad_size = 10000
-#     f_eval_old = 1.0
-#     # # Initialize δ
-#     param_dict = parDict(d,p_vec)
-#
-#     # Initialize Gradient
-#     grad_new = similar(p0)
-#     hess_new = Matrix{Float64}(undef,length(p0),length(p0))
-#     f_final_val = 0.0
-#     max_trial_cnt = 0
-#     p_last = copy(p_vec)
-#     grad_last = copy(grad_new)
-#     # Maximize by Newtons Method
-#     while (grad_size>grad_tol) & (cnt<max_itr) & (max_trial_cnt<20)
-#         cnt+=1
-#
-#
-#         # Compute Gradient, holding δ fixed
-#
-#         fval = GMM_objective!(grad_new,d,p_vec,W)
-#
-#
-#         grad_size = sqrt(dot(grad_new,grad_new))
-#         if (grad_size<1e-8) & (cnt>10)
-#             println("Got to Break Point...?")
-#             println(grad_size)
-#             break
-#         end
-#         if cnt==1
-#             step = 1/grad_size
-#         else
-#             g = p_vec - p_last
-#             y = grad_new - grad_last
-#             step = dot(g,g)/dot(g,y)
-#         end
-#         p_test = p_vec .- step.*grad_new
-#
-#         f_test = GMM_objective(d,p_test,W)
-#
-#         while isnan(f_test)
-#             step/=100
-#             p_test = p_vec .- step.*grad_new
-#         end
-#
-#         p_last = copy(p_vec)
-#         p_vec = copy(p_test)
-#         grad_last = copy(grad_new)
-#         p_vec_disp = p_vec[1:20]
-#         f_final_val = fval
-#         println("Update Parameters to $p_vec_disp")
-#
-#
-#         println("Gradient Size: $grad_size")
-#         println("Step Size: $step")
-#         println("Function Value is $fval at iteration $cnt")
-#     end
-#
-#     return p_vec,f_final_val
-# end
+
+function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
+    ## Initialize Parameter Vector
+    p_vec = p0
+    N = length(p0)
+
+    cnt = 0
+    grad_size = 10000
+    f_eval_old = 1.0
+    # # Initialize δ
+    param_dict = parDict(d,p_vec)
+
+    # Initialize Gradient
+    grad_new = similar(p0)
+    hess_new = Matrix{Float64}(undef,length(p0),length(p0))
+    f_final_val = 0.0
+    max_trial_cnt = 0
+    p_last = copy(p_vec)
+    grad_last = copy(grad_new)
+    disp_length = min(length(p0),20)
+    f_min = -1e3
+    p_min  = similar(p_vec)
+    no_progress=0
+    # Maximize by Newtons Method
+    while (grad_size>grad_tol) & (cnt<max_itr) & (max_trial_cnt<20)
+        cnt+=1
+
+
+        # Compute Gradient, holding δ fixed
+
+        fval = GMM_objective!(grad_new,d,p_vec,W)
+        if (cnt==1) | (fval>f_min)
+            f_min = copy(fval)
+            p_min[:] = p_vec[:]
+            no_progress=0
+        else
+            no_progress+=1
+        end
+
+
+        grad_size = sqrt(dot(grad_new,grad_new))
+        if (grad_size<1e-8) & (cnt>10)
+            println("Got to Break Point...?")
+            println(grad_size)
+            break
+        end
+        if cnt==1
+            step = 1/grad_size
+        else
+            g = p_vec - p_last
+            y = grad_new - grad_last
+            step = dot(g,g)/dot(g,y)
+        end
+        p_test = p_vec .- step.*grad_new
+
+        f_test = GMM_objective(d,p_test,W)
+        while ((f_test<fval*1.25) | isnan(f_test)) & (trial_cnt<10)
+            p_test_disp = p_test[1:disp_length]
+            if trial_cnt==0
+                println("Trial: Got $f_test at parameters $p_test_disp")
+                println("Previous Iteration at $fval")
+                println("Reducing Step Size...")
+            end
+            step/= 2
+            p_test = p_vec .+ step.*grad_new
+            f_test = GMM_objective(d,p_test,W)
+            trial_cnt+=1
+            if (trial_cnt==10) & (grad_size>1e-5)
+                println("Algorithm Stalled: Random Step")
+                max_trial_cnt+=1
+                step = rand(length(step))/1000 .-.005
+            elseif (trial_cnt==10) & (grad_size<=1e-5)
+                println("Algorithm Stalled: Random Step")
+                max_trial_cnt+=1
+                step = rand(length(step))/10000 .-.005
+            end
+        end
+
+        p_last = copy(p_vec)
+        p_vec = copy(p_test)
+        grad_last = copy(grad_new)
+        p_vec_disp = p_vec[1:20]
+        f_final_val = fval
+        println("Update Parameters to $p_vec_disp")
+
+
+        println("Gradient Size: $grad_size")
+        println("Step Size: $step")
+        println("Function Value is $fval at iteration $cnt")
+        println("Steps since last improvement: $no_progress")
+    end
+    println("Lowest Function Value is $f_min at $p_min")
+    return p_min,f_min
+end
 #
 #
 #
