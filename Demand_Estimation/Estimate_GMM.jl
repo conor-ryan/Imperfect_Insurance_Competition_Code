@@ -237,12 +237,12 @@ end
 function estimate_GMM(d::InsuranceLogit, p0::Vector{Float64},W::Matrix{Float64})
     # First run a gradient ascent method to get close to optimum
     println("Gradient Ascent Method")
-    p_ga, obj_ga = gradient_ascent_BB(d,p0,W,grad_tol = 10)
+    p_est, fval, flag = gradient_ascent_BB(d,p0,W,grad_tol = .25)
     # Then run newtons method until better convergence
     println("Newtons Method")
-    p_nr, obj_nr = newton_raphson_GMM(m,p_ga,W)
+    p_est, fval = newton_raphson_GMM(m,p_est,W,grad_tol = 1e-8)
 
-    return ret, minf, minx
+    return p_est,fval
 end
 
 
@@ -498,6 +498,7 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
     f_min = -1e3
     p_min  = similar(p_vec)
     no_progress=0
+    flag = "empty"
     # Maximize by Newtons Method
     while (grad_size>grad_tol) & (cnt<max_itr) & (max_trial_cnt<20)
         cnt+=1
@@ -517,11 +518,19 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
 
 
         grad_size = sqrt(dot(grad_new,grad_new))
-        if (grad_size<1e-8) & (cnt>10)
+        if (grad_size<grad_tol) & (cnt>10)
             println("Got to Break Point...?")
             println(grad_size)
+            flag = "converged"
             break
         end
+        if no_progress==10
+            println("Limit on No Progress")
+            flag = "no progress"
+            break
+        end
+
+
         if cnt==1
             step = 1/grad_size
         else
