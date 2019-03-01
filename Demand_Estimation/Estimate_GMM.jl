@@ -569,7 +569,7 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
 
         f_test = GMM_objective(d,p_test,W)
         println("Initial Step Size: $step")
-        while ((f_test>fval*mistake_thresh) | isnan(f_test)) & (trial_cnt<10)
+        while ((f_test>fval*mistake_thresh) | isnan(f_test)) & (step>1e-15)
             p_test_disp = p_test[1:disp_length]
             if trial_cnt==0
                 println("Trial: Got $f_test at parameters $p_test_disp")
@@ -577,18 +577,8 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
                 println("Reducing Step Size...")
             end
             step/= 20
-            p_test = p_vec .+ step.*grad_new
+            p_test = p_vec .- step.*grad_new
             f_test = GMM_objective(d,p_test,W)
-            trial_cnt+=1
-            if (trial_cnt==10) & (grad_size>1e-5)
-                println("Algorithm Stalled: Random Step")
-                max_trial_cnt+=1
-                step = rand(length(step))/1000 .-.005
-            elseif (trial_cnt==10) & (grad_size<=1e-5)
-                println("Algorithm Stalled: Random Step")
-                max_trial_cnt+=1
-                step = rand(length(step))/10000 .-.005
-            end
         end
 
         p_last = copy(p_vec)
