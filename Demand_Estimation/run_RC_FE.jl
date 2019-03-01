@@ -42,7 +42,7 @@ c = ChoiceData(df,df_mkt,df_risk;
 #2019 - 02 - 16: Firm - Market Specification
 
 # Fit into model
-m = InsuranceLogit(c,500)
+m = InsuranceLogit(c,100)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
@@ -182,7 +182,7 @@ println("#################")
 println("#################")
 
 
-m = InsuranceLogit(c,500)
+m = InsuranceLogit(c,100)
 S = calc_gmm_Avar(m,p_stg1)
 W2 = inv(S)
 p_stg2, obj_2 = estimate_GMM(m,p_ll,W2)

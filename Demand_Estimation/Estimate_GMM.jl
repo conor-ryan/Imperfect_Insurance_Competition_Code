@@ -237,7 +237,7 @@ end
 function estimate_GMM(d::InsuranceLogit, p0::Vector{Float64},W::Matrix{Float64})
     # First run a gradient ascent method to get close to optimum
     println("Gradient Ascent Method")
-    p_est, fval = gradient_ascent_BB(d,p0,W,grad_tol = .05,max_itr=75)
+    p_est, fval = gradient_ascent_BB(d,p0,W,max_itr=500)
     # Then run newtons method until better convergence
     println("Newtons Method")
     p_est, fval = newton_raphson_GMM(m,p_est,W,grad_tol = 1e-8)
@@ -476,7 +476,7 @@ end
 
 
 
-function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
+function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,,f_tol=1e-8,x_tol=1e-8,max_itr=2000)
     ## Initialize Parameter Vector
     p_vec = p0
     N = length(p0)
@@ -499,6 +499,10 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
     p_min  = similar(p_vec)
     no_progress=0
     flag = "empty"
+
+    ## Tolerance Counts
+    f_tol_cnt = 0
+    X_tol_cnt = 0
     # Maximize by Newtons Method
     while (grad_size>grad_tol) & (cnt<max_itr) & (max_trial_cnt<20)
         cnt+=1
@@ -509,27 +513,37 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
 
         fval = GMM_objective!(grad_new,d,p_vec,W)
         if (cnt==1) | (fval<f_min)
+            if abs(fval-f_min)<f_tol
+                f_tol_cnt += 1
+            end
+            if maximum(abs.(p_vec - p_min))<x_tol
+                x_tol_cnt += 1
+            end
+
             f_min = copy(fval)
             p_min[:] = p_vec[:]
+
             no_progress=0
         else
             no_progress+=1
         end
 
 
-        grad_size = sqrt(dot(grad_new,grad_new))
-        if (grad_size<grad_tol) & (cnt>10)
+        grad_size = maximum(abs.(grad_new))
+        if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1)
             println("Got to Break Point...?")
             println(grad_size)
+            println(f_tol_cnt)
+            println(x_tol_cnt)
             flag = "converged"
             break
         end
-        if no_progress==10
-            println("Limit on No Progress")
-            flag = "no progress"
-            break
-        end
 
+        if grad_size>.1
+            mistake_thresh = 1.25
+        else
+            mistake_thresh = 1.05
+        end
 
         if cnt==1
             step = 1/grad_size
@@ -538,11 +552,23 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
             y = grad_new - grad_last
             step = dot(g,g)/dot(g,y)
         end
+
+        if no_progress==10
+            println("Return: Limit on No Progress")
+            p_vec = copy(p_min)
+            fval = GMM_objective!(grad_new,d,p_vec,W)
+            grad_size = maximum(abs.(grad_new))
+            step = 1/grad_size
+            mistake_thresh = 1.00
+        end
+
+
+
         p_test = p_vec .- step.*grad_new
 
         f_test = GMM_objective(d,p_test,W)
         println("Initial Step Size: $step")
-        while ((f_test>fval*1.25) | isnan(f_test)) & (trial_cnt<10)
+        while ((f_test>fval*mistake_thresh) | isnan(f_test)) & (trial_cnt<10)
             p_test_disp = p_test[1:disp_length]
             if trial_cnt==0
                 println("Trial: Got $f_test at parameters $p_test_disp")
