@@ -553,7 +553,8 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
             step = dot(g,g)/dot(g,y)
         end
 
-        if no_progress==10
+        if no_progress>10
+            no_progress = 0
             println("Return: Limit on No Progress")
             p_vec = copy(p_min)
             fval = GMM_objective!(grad_new,d,p_vec,W)
