@@ -476,7 +476,7 @@ end
 
 
 
-function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,,f_tol=1e-8,x_tol=1e-8,max_itr=2000)
+function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2000)
     ## Initialize Parameter Vector
     p_vec = p0
     N = length(p0)
