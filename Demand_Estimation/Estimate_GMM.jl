@@ -502,7 +502,7 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
 
     ## Tolerance Counts
     f_tol_cnt = 0
-    X_tol_cnt = 0
+    x_tol_cnt = 0
     # Maximize by Newtons Method
     while (grad_size>grad_tol) & (cnt<max_itr) & (max_trial_cnt<20)
         cnt+=1
