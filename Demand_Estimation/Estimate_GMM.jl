@@ -632,6 +632,7 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
     p_min  = similar(p_vec)
     no_progress=0
     flag = "empty"
+    step = 1
     if strict
         mistake_thresh = 1.00
     else
@@ -704,7 +705,7 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
 
         f_test = GMM_objective(d,p_test,W)
 
-        while ((f_test>fval*mistake_thresh) | isnan(f_test)) & (step>1e-15)
+        while ((f_test>fval*mistake_thresh) | isnan(f_test)) & (trial_cnt<=trial_end)
             if trial_cnt==0
                 p_test_disp = p_test[1:20]
                 println("Trial (Init): Got $f_test at parameters $p_test_disp")
