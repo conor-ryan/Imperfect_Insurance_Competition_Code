@@ -512,7 +512,7 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
     f_tol_cnt = 0
     x_tol_cnt = 0
     # Maximize by Newtons Method
-    while (grad_size>grad_tol) & (cnt<max_itr) & (max_trial_cnt<20)
+    while (cnt<max_itr)
         cnt+=1
         trial_cnt=0
 
@@ -539,7 +539,7 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
 
         grad_size = maximum(abs.(grad_new))
         if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1)
-            println("Got to Break Point...?")
+            println("Got to Break Point")
             println(grad_size)
             println(f_tol_cnt)
             println(x_tol_cnt)
@@ -559,7 +559,7 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
         else
             g = p_vec - p_last
             y = grad_new - grad_last
-            step = dot(g,g)/dot(g,y)
+            step = abs.(dot(g,g)/dot(g,y))
         end
 
         if no_progress>10
