@@ -687,6 +687,9 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
         end
 
         update = -inv(hess_new)*grad_new
+        if any(isnan.(update))
+            update = -(1/grad_size).*grad_new
+        end
 
 
         if no_progress>5
