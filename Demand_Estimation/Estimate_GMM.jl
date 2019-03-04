@@ -724,7 +724,7 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
                 trial_cnt+=1
             else
                 println("RUN ROUND OF GRADIENT ASCENT")
-                p_test, f_test = gradient_ascent_BB(d,p_vec,W,max_itr=10,strict=true)
+                p_test, f_test = gradient_ascent_BB(d,p_vec,W,max_itr=5,strict=true)
                 trial_cnt+=1
             end
         end

@@ -36,13 +36,14 @@ c = ChoiceData(df,df_mkt,df_risk;
             :LowIncome],
     prodchars=[:Price,:AV,:Big],
     prodchars_0=[:AV,:Big],
-    fixedEffects=[:Firm_Market])
+    fixedEffects=[:Firm])
 
 #2018 - 12 - 24 : Firm Specification
+#2018 - 03 - 4 : Firm Specification
 #2019 - 02 - 16: Firm - Market Specification
 
 # Fit into model
-m = InsuranceLogit(c,500)
+m = InsuranceLogit(c,1000)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
@@ -109,20 +110,20 @@ par0 = parDict(m,p0)
 #
 #p_ll = newton_raphson(m,p0)
 
-# rundate = Dates.today()
-rundate = "2019-02-16"
+rundate = Dates.today()
+# rundate = "2019-02-16"
 println("#################")
 println("#################")
 println("###### Estimation 1 #######")
 println("#################")
 println("#################")
 # Estimate
-# p_ll,ll = newton_raphson_ll(m,p0)
+p_ll,ll = newton_raphson_ll(m,p0)
 # rundate = "2018-12-24"
-println("Load MLE")
+# println("Load MLE")
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_ll_$rundate.jld2"
-# @save file p_ll
-@load file p_ll
+@save file p_ll
+# @load file p_ll
 
 println("#################")
 println("#################")
@@ -166,7 +167,7 @@ p_stg1, obj_1 = estimate_GMM(m,p_ll,W)
 
 # rundate = "2018-12-29"
 # println("Load GMM - Stage 1")
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage1b_$rundate.jld2"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage1_$rundate.jld2"
 @save file p_stg1
 # @load file p_stg1
 # est_res = load(file)["est_res"]
@@ -182,7 +183,7 @@ println("#################")
 println("#################")
 
 
-m = InsuranceLogit(c,500)
+m = InsuranceLogit(c,1000)
 S = calc_gmm_Avar(m,p_stg1)
 W2 = inv(S)
 p_stg2, obj_2 = estimate_GMM(m,p_ll,W2)
