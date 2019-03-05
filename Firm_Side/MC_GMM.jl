@@ -10,6 +10,24 @@ function GMM_objective(p::Vector{T},p_est::parDict{Float64},
     return obj
 end
 
+function GMM_objective!(grad::Vector{Float64},
+                p::Vector{T},p_est::parDict{Float64},
+                d::InsuranceLogit,c::MC_Data,W::Matrix{Float64}) where T
+    gmm(x) = GMM_objective(x,p_est,d,c,W)
+    obj = gmm(p)
+    ForwardDiff.gradient!(grad, gmm, x)
+    return obj
+end
+
+function GMM_objective(p::Vector{T},p_est::parDict{Float64},
+                d::InsuranceLogit,c::MC_Data,W::Matrix{Float64}) where T
+    par = parMC(p,p_est,d,c)
+    individual_costs(d,par)
+    moments = costMoments(c,d,par)
+    obj = calc_GMM_Obj(moments,W)
+    return obj
+end
+
 function calc_GMM_Obj(moments::Vector{T},W::Matrix{Float64}) where T
     obj = 0.0
     for i in 1:length(moments), j in 1:length(moments)
@@ -22,7 +40,7 @@ end
 function estimate_GMM(p0::Vector{Float64},p_est::parDict{Float64},
                 d::InsuranceLogit,c::MC_Data,W::Matrix{Float64};bounded=false)
     # Set up the optimization
-    opt = Opt(:LD_MMA, length(p0))
+    opt = Opt(:LN_NELDERMEAD, length(p0))
     # opt = Opt(:LD_TNEWTON_PRECOND_RESTART, length(p0))
 
     #maxeval!(opt_stage1,20000)
@@ -49,7 +67,7 @@ function estimate_GMM(p0::Vector{Float64},p_est::parDict{Float64},
         x_displ = x[1:disp_length]
         println("Iteration $count at $x_displ")
         obj = gmm(x)
-        ForwardDiff.gradient!(grad, gmm, x)
+        # ForwardDiff.gradient!(grad, gmm, x)
         grad_size = sqrt(dot(grad,grad))
         println("Gradient size equals $grad_size")
 
