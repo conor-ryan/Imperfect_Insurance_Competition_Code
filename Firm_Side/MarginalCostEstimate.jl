@@ -17,6 +17,7 @@ include("$load_path/Contraction.jl")
 include("MC_parameters.jl")
 include("MC_GMM.jl")
 include("MC_var.jl")
+include("MC_optimization.jl")
 # Load the Data
 include("MC_load.jl")
 
@@ -66,8 +67,8 @@ S,Σ,Δ,mom_long = aVar(costdf,m,p0,par_est)
 (P,Q) = size(S)
 W = Matrix(1.0I,P,Q)
 
-est_stg1 = estimate_GMM(p0,par_est,m,costdf,W)
-# flag, fval, p_stg1 = est_stg1
+est_stg1 = estimate_GMM(p0,par_est,m,costdf,W,method=:LN_NELDERMEAD)
+flag, fval, p_stg1 = est_stg1
 
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
 # @save file est_stg1
@@ -80,14 +81,44 @@ println("#################")
 println("###### Estimation 2 #######")
 println("#################")
 println("#################")
+# 0.013256879768224933
+# 2.216022853728525
+# 0.1379307879498515
+# 3.7043473610912434
+# 3.0742318364102337
+# 2.5971482342483383
+# 2.9299329664027836
+# 3.0627843999066524
+# 2.2569960479161213
+# 4.0509420797356706
+# 2.5501373583954208
+# 3.4911435432186857
+# 2.7044854042466335
+# 3.140991172783581
+# 3.01763297597877
+# 3.0255579091830334
+# 3.44939149700815
 
 # S,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
 # W = inv(S)
 S,mom_est = var_bootstrap(costdf,m,p_stg1,par_est,draw_num=1000)
 W = inv(S)
 
-est_stg2 = estimate_GMM(p_stg1,par_est,m,costdf,W)
+# est_stg2 = gradient_ascent_BB(p_stg1,par_est,m,costdf,W)
+# p_stg2, fval = est_stg2
+
+est_stg2 = estimate_GMM(p_stg1,par_est,m,costdf,W,method=:LN_NELDERMEAD)
 flag, fval, p_stg2 = est_stg2
+#
+# est_stg4 = estimate_GMM(p_stg3,par_est,m,costdf,W)
+# flag, fval, p_stg4 = est_stg4
+#
+# est_stg4 = gradient_ascent_BB(p_stg3,par_est,m,costdf,W,strict=true)
+# p_stg4, fval = est_stg4
+#
+
+
+
 #
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
 @save file est_stg2
@@ -113,6 +144,15 @@ file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermed
 
 
 ## Test Estimate Outcome
+
+f_obj(x) = GMM_objective(x,par_est,m,costdf,W)
+grad = Vector{Float64}(undef,length(p_stg4))
+hess = Matrix{Float64}(undef,length(p_stg4),length(p_stg4))
+println("Gradient")
+ForwardDiff.gradient!(grad, f_obj, p_stg4)
+println("Hessian")
+ForwardDiff.hessian!(hess, f_obj, p_stg4)
+
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
 # @load file est_stg2
 # flag, fval, p_stg2 = est_stg2
@@ -127,9 +167,9 @@ file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermed
 # est_stg3 = estimate_GMM(p_stg1,par_est,m,costdf,W)
 #
 #
-# par = parMC(p_stg1,par_est,m,costdf)
-# individual_costs(m,par)
-# moments = costMoments(costdf,m,par)
+par = parMC(p_stg4,par_est,m,costdf)
+individual_costs(m,par)
+moments = costMoments(costdf,m,par)
 #
 # m1 = costMoments_bootstrap(costdf,m,par)
 #

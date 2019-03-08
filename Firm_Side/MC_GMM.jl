@@ -20,10 +20,11 @@ end
 
 
 function estimate_GMM(p0::Vector{Float64},p_est::parDict{Float64},
-                d::InsuranceLogit,c::MC_Data,W::Matrix{Float64};bounded=false)
+                d::InsuranceLogit,c::MC_Data,W::Matrix{Float64};method=:LD_MMA,bounded=false)
     # Set up the optimization
-    opt = Opt(:LD_MMA, length(p0))
+    # opt = Opt(:LD_MMA, length(p0))
     # opt = Opt(:LD_TNEWTON_PRECOND_RESTART, length(p0))
+    opt = Opt(method, length(p0))
 
     #maxeval!(opt_stage1,20000)
     maxtime!(opt, 580000)
@@ -49,14 +50,15 @@ function estimate_GMM(p0::Vector{Float64},p_est::parDict{Float64},
         x_displ = x[1:disp_length]
         println("Iteration $count at $x_displ")
         obj = gmm(x)
-        ForwardDiff.gradient!(grad, gmm, x)
-        grad_size = sqrt(dot(grad,grad))
-        println("Gradient size equals $grad_size")
+        # ForwardDiff.gradient!(grad, gmm, x)
+        # grad_size = sqrt(dot(grad,grad))
+        # println("Gradient size equals $grad_size")
 
         println("Objective equals $obj on iteration $count")
 
         return obj
     end
+
     # Set Objective
     min_objective!(opt, gmm)
 
