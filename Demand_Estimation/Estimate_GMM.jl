@@ -237,7 +237,7 @@ end
 function estimate_GMM(d::InsuranceLogit, p0::Vector{Float64},W::Matrix{Float64})
     # First run a gradient ascent method to get close to optimum
     println("Gradient Ascent Method")
-    p_est, fval = gradient_ascent_BB(d,p0,W,max_itr=50)
+    p_est, fval = gradient_ascent_BB(d,p0,W,max_itr=300)
     # Then run newtons method until better convergence
     println("Newtons Method")
     p_est, fval = newton_raphson_GMM(m,p_est,W,grad_tol = 1e-8)
