@@ -173,7 +173,7 @@ W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMom
 #     -5.06572, 11.7315, 18.1173, 10.5411, 12.0244, 15.8235, 14.736, 9.60201, 4.14706, 8.93215, 0.988055, 8.08833, 11.9478, -14.9794, 23.1496, 10.239, 7.26027, 28.488, 15.2253, 10.6566, 14.3801, 14.0296, 20.8127, 13.2942, 12.1854, 9.24998, 14.8631, 10.1576, -0.0425643, 13.184, 16.2932, 14.2816,
 #     7.25704, 11.0117, 15.7999, 13.8628, 168.437, 12.9696, 12.7651, 14.7568, 0.564273, 10.6377, 5.83764, 18.6474, 11.5926, 56.8914, 5.08712, 8.68608, 13.3077, 14.4718, 13.3431, 12.1455, 18.5251, 11.6841,17.7341]
 
-# rundate = "2018-12-29"
+rundate = "2019-03-07"
 # println("Load GMM - Stage 1")
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage1_$rundate.jld2"
 # @save file p_stg1
@@ -189,7 +189,6 @@ println("#################")
 println("###### Estimation 3 #######")
 println("#################")
 println("#################")
-rundate = "2019-03-07"
 
 m = InsuranceLogit(c,1000)
 S = calc_gmm_Avar(m,p_stg1)
