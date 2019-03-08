@@ -237,7 +237,7 @@ end
 function estimate_GMM(d::InsuranceLogit, p0::Vector{Float64},W::Matrix{Float64})
     # First run a gradient ascent method to get close to optimum
     println("Gradient Ascent Method")
-    p_est, fval = gradient_ascent_BB(d,p0,W,max_itr=500)
+    p_est, fval = gradient_ascent_BB(d,p0,W,max_itr=50)
     # Then run newtons method until better convergence
     println("Newtons Method")
     p_est, fval = newton_raphson_GMM(m,p_est,W,grad_tol = 1e-8)
@@ -708,14 +708,21 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
 
         f_test = GMM_objective(d,p_test,W)
 
-        while ((f_test>fval*mistake_thresh) | isnan(f_test)) & (trial_cnt<=trial_end)
+        step_size = maximum(abs.(update))
+        trial_max = 0
+        while ((f_test>fval*mistake_thresh) | isnan(f_test)) & (trial_max==0)
             if trial_cnt==0
                 p_test_disp = p_test[1:20]
                 println("Trial (Init): Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
             end
-            if trial_cnt<trial_end
-                update/= 10
+            if (step_size>1e-13)
+                if trial_cnt<=2
+                    update/= 20
+                else
+                    update/= 200
+                end
+                step_size = maximum(abs.(update))
                 p_test = p_vec .+ update
                 f_test = GMM_objective(d,p_test,W)
                 p_test_disp = p_test[1:20]
@@ -723,9 +730,9 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
                 println("Previous Iteration at $fval")
                 trial_cnt+=1
             else
+                trial_max = 1
                 println("RUN ROUND OF GRADIENT ASCENT")
                 p_test, f_test = gradient_ascent_BB(d,p_vec,W,max_itr=5,strict=true)
-                trial_cnt+=1
             end
         end
 
