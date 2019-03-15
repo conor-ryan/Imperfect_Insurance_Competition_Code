@@ -716,7 +716,7 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
                 println("Trial (Init): Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
             end
-            if (step_size>1e-13)
+            if (step_size>x_tol)
                 if trial_cnt<=2
                     update/= 20
                 else
@@ -745,7 +745,7 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
 
 
         println("Gradient Size: $grad_size")
-        println("Step Size: $step")
+        println("Step Size: $step_size")
         println("Function Value is $f_test at iteration $cnt")
         println("Steps since last improvement: $no_progress")
     end

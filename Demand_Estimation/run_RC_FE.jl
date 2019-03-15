@@ -37,7 +37,7 @@ c = ChoiceData(df,df_mkt,df_risk;
             :LowIncome],
     prodchars=[:Price,:AV,:Big],
     prodchars_0=[:AV,:Big],
-    fixedEffects=[:Firm])
+    fixedEffects=[:Firm_Market_Cat])
 
 #2018 - 12 - 24 : Firm Specification
 #2019 - 03 - 7 : Firm Specification
@@ -112,7 +112,7 @@ par0 = parDict(m,p0)
 #p_ll = newton_raphson(m,p0)
 
 rundate = Dates.today()
-rundate = "2019-03-07"
+# rundate = "2019-03-07"
 println("#################")
 println("#################")
 println("###### Estimation 1 #######")
