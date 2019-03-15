@@ -7,7 +7,7 @@ library(ggplot2)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
 
 ## Run
-run = "2018-08-25"
+run = "2019-03-07"
 
 #### 2015 Subsidy Percentage Function ####
 
@@ -136,9 +136,9 @@ acs[,names(acs)[grepl("(_HCC_|Any_HCC|riskDraw|Rtype|draws_Any)",names(acs))]:=N
 
 #### Apply Cost ####
 ## Cost Function 
-costFile = paste("Simulation_Risk_Output/costParameters_MSM_Stage2_",run,".rData",sep="")
-load(costFile)
-phi = est_res$estimate
+costFile = paste("Intermediate_Output/Estimation_Parameters/MCestimation_",run,".csv",sep="")
+mc_res = read.csv(costFile)
+phi = mc_res$pars
 
 # Use Georgia Fixed Effect
 phi_st_avg = phi[5]
@@ -254,9 +254,9 @@ dev.off()
 ### Cost by Age
 acs[,AV:=0.7]
 ## Apply Cost Function
-acs[,C:=exp(phi[1]*AGE/10 +
-              phi[2]*HCC_Silver +
-              phi[3]*AV +
+acs[,C:=exp(phi[1]*AGE +
+              phi[2]*AV +
+              phi[3]*HCC_Silver +
               # phi[4]*FE_AK +
               # phi[5]*FE_GA +
               # phi[6]*FE_IA +
@@ -271,7 +271,7 @@ acs[,C:=exp(phi[1]*AGE/10 +
             # phi[15]*FE_OR +
             # phi[16]*FE_TX +
             # phi[17]*FE_UT +
-            phi_st_avg)]
+            phi_st_avg)/AV]
 
 ageMeans = acs[,list(avgCost=sum(PERWT*C)/sum(PERWT),Pop=sum(PERWT)),by=c("AGE")]
 ageMeans[AGE<=22,yngAvg:=sum(avgCost*Pop)/sum(Pop)]
@@ -363,7 +363,7 @@ rm(ageMeans,ageMeans_MEPS,HCC,hccMeans,hccMeans_MEPS,ins,meps,meps_risk,mepsFull
 
 
 #### Read in Parameters ####
-parFile = paste("Estimation_Output/estimationresults_",run,".csv",sep="")
+parFile = paste("Intermediate_Output/Estimation_Parameters/estimationresults_GMM_",run,".csv",sep="")
 pars = read.csv(parFile)
 
 beta_vec = pars$pars
@@ -421,12 +421,12 @@ alpha_z = (demos%*%t(beta))
 acs[,alpha:=beta0[1] + alpha_z[,1]]
 acs[,WTP:=-.1*(beta0[2]+HCC_Silver*sigma[1])/(alpha/1000*12)]
 
-acs[,addC:=exp(phi[1]*AGE/10 + 
-                    phi[2]*HCC_Silver + 
-                    phi[3]*.7 + phi_st_avg)-
-      exp(phi[1]*AGE/10 + 
-            phi[2]*HCC_Silver + 
-            phi[3]*.6 + phi_st_avg)]
+acs[,addC:=exp(phi[1]*AGE + 
+                 phi[2]*.7 + 
+                    phi[3]*HCC_Silver + phi_st_avg)-
+      exp(phi[1]*AGE/10 +  
+            phi[2]*.6 +
+            phi[3]*HCC_Silver + phi_st_avg)]
 
 
 
@@ -439,9 +439,9 @@ acs = as.data.table(rbind(acs_High,acs_Low))
 rm(acs_High,acs_Low)
 
 ## Apply Cost Function
-acs[,C:=exp(phi[1]*AGE/10 + 
-              phi[2]*HCC_Silver + 
-              phi[3]*AV + 
+acs[,C:=exp(phi[1]*AGE + 
+              phi[2]*AV + 
+              phi[3]*HCC_Silver + 
               # phi[4]*FE_AK + 
               # phi[5]*FE_GA + 
               # phi[6]*FE_IA + 

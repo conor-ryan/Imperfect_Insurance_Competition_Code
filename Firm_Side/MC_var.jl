@@ -426,3 +426,57 @@ function calc_pop(df::ChoiceData)
     end
     return Pop
 end
+
+
+function GMM_var(c::MC_Data,d::InsuranceLogit,p::Array{Float64},par_est::parDict{Float64};draw_num=1000)
+    ## Moment Variance
+    println("Moment Variance")
+    S,mom_est = var_bootstrap(c,d,p,par_est,draw_num=draw_num)
+
+    ## Derivative of Moments wrt Parameters
+    println("Moment Gradient")
+    G = mom_gradient(p,par_est,m,costdf)
+
+    ## Calculate Variance
+    Avar = inv(G'*inv(S)*G)
+    Pop = calc_pop(d.data)
+
+    V = (1/sqrt(Pop)).*Avar
+
+    ## Calculate Standard Error
+    if any(diag(V.<0))
+        println("Some negative variances")
+        stdErr = sqrt.(abs.(diag(V)))
+    else
+        stdErr = sqrt.(diag(V))
+    end
+    t_stat = p./stdErr
+
+    stars = Vector{String}(undef,length(t_stat))
+    for i in 1:length(stars)
+        if abs(t_stat[i])>2.326
+            stars[i] = "***"
+        elseif abs(t_stat[i])>1.654
+            stars[i] = "**"
+        elseif abs(t_stat[i])>1.282
+            stars[i] = "*"
+        else
+            stars[i] = ""
+        end
+    end
+
+    return V, stdErr, t_stat, stars
+end
+
+
+
+function mom_gradient(p::Vector{T},p_est::parDict{Float64},
+                d::InsuranceLogit,c::MC_Data) where T
+    Mlen = length(c.avgMoments)+(length(c.ageMoments)-1) + 1
+    mom_grad = Matrix{Float64}(undef,Mlen,length(p))
+
+    f_obj(x) = costMoments(c,d,x,p_est)
+    ForwardDiff.jacobian!(mom_grad,f_obj,p)
+
+    return mom_grad
+end

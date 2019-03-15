@@ -467,7 +467,7 @@ end
 
 # Calculate Standard Errors
 # Hiyashi, p. 491
-function calc_gmm_Avar(d::InsuranceLogit,p0::Vector{Float64})
+function calc_mom_Avar(d::InsuranceLogit,p0::Vector{Float64})
     p = parDict(d,p0)
     # Calculate μ_ij, which depends only on parameters
     individual_values!(d,p)

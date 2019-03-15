@@ -105,12 +105,13 @@ rm(list = remove_Vars)
 gc()
 
 #### Starting Vector ####
-run = "2018-08-25"
+run = "2019-03-07"
 simFile = paste("Simulation_Risk_Output/simData_",run,".rData",sep="")
 load(simFile)
-full_predict[,Age_1:=AGE/10]
+full_predict[,Age_1:=AGE]
+full_predict[,AV_diff:=AV-AV_std]
 
-full_predict = full_predict[,c("ST","Firm","Product","Age_1","s_pred","PERWT","HCC_Silver","AV_std")]
+full_predict = full_predict[,c("ST","Firm","Product","Metal_std","Age_1","s_pred","PERWT","HCC_Silver","AV_std","AV_diff")]
 metalDict = unique(metalDict[,c("Product","logAvgCost","M_num")])
 rm(acs,draws)
 gc()
@@ -121,10 +122,12 @@ gc()
 
 prod_Avgs = prod_Avgs[,list(Age = sum(10*Age_1*s_pred*PERWT)/sum(s_pred*PERWT),
                             HCC = sum(HCC_Silver*s_pred*PERWT)/sum(s_pred*PERWT),
-                            AV = sum(AV_std*s_pred*PERWT)/sum(s_pred*PERWT)),
-                      by=c("ST","Firm","M_num","logAvgCost")]
+                            AV_std = sum(AV_std*s_pred*PERWT)/sum(s_pred*PERWT),
+                            AV_diff = sum(AV_diff*s_pred*PERWT)/sum(s_pred*PERWT)),
+                      by=c("ST","Firm","M_num","logAvgCost","Metal_std")]
 
-res = lm(logAvgCost~-1+Age+AV+HCC+ ST ,data=prod_Avgs)
+res = lm(logAvgCost~-1+Age+AV_std+AV_diff+HCC+ ST ,data=prod_Avgs)
 phi_start = res$coefficients
-write.csv(data.frame(par_start=phi_start),"Intermediate_Output/MC_Moments/linregpars.csv",row.names=FALSE)
+linregfile = paste("Intermediate_Output/MC_Moments/linregpars_",run,".csv",sep="")
+write.csv(data.frame(par_start=phi_start),linregfile,row.names=FALSE)
 

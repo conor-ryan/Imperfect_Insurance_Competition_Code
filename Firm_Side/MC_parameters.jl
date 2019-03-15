@@ -247,6 +247,9 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
         if m==1
             continue
         else
+            # avg_act = sum(wgts_share[m_idx].*actuarial_values[m_idx])/sum(wgts_share[m_idx])
+            # println(m)
+            # println(avg_act)
             c_avg = sliceMean_wgt(c_hat_total,wgts_share,m_idx)
             amom[m-1] = c_avg/refval[1] - c.ageMoments[m]
         end
@@ -257,6 +260,7 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     rmom = HCC_avg/non_avg - c.riskMoment
 
     return abs.(vcat(pmom,amom,rmom))
+    # return vcat(pmom,amom,rmom)
 end
 
 

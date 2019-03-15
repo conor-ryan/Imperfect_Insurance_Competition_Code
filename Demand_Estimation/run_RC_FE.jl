@@ -22,6 +22,7 @@ include("Log_Likehood.jl")
 include("RiskMoments.jl")
 include("Estimate_Basic.jl")
 include("Estimate_GMM.jl")
+include("GMM_Var.jl")
 include("utility.jl")
 println("Code Loaded")
 
@@ -36,7 +37,7 @@ c = ChoiceData(df,df_mkt,df_risk;
             :LowIncome],
     prodchars=[:Price,:AV,:Big],
     prodchars_0=[:AV,:Big],
-    fixedEffects=[:Firm_Market])
+    fixedEffects=[:Firm])
 
 #2018 - 12 - 24 : Firm Specification
 #2019 - 03 - 7 : Firm Specification
@@ -111,7 +112,7 @@ par0 = parDict(m,p0)
 #p_ll = newton_raphson(m,p0)
 
 rundate = Dates.today()
-# rundate = "2019-03-04"
+rundate = "2019-03-07"
 println("#################")
 println("#################")
 println("###### Estimation 1 #######")
@@ -132,7 +133,7 @@ println("#################")
 println("#################")
 
 #
-# S = calc_gmm_Avar(m,p_ll)
+# S = calc_mom_Avar(m,p_ll)
 # W = inv(S)
 W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
 # println("Baby Test")
@@ -191,7 +192,7 @@ println("#################")
 println("#################")
 
 m = InsuranceLogit(c,1000)
-S = calc_gmm_Avar(m,p_stg1)
+S = calc_mom_Avar(m,p_stg1)
 W2 = inv(S)
 p_stg2, obj_2 = estimate_GMM(m,p_stg1,W2)
 
@@ -200,6 +201,26 @@ p_stg2, obj_2 = estimate_GMM(m,p_stg1,W2)
 # est_res = estimate_GMM!(m,p_est,W2)
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
 @save file p_stg2
+
+
+println("#################")
+println("#################")
+println("###### Save Results #######")
+println("#################")
+println("#################")
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
+@load file p_stg2
+Avar, se, t_stat, stars = GMM_var(m,p_stg2)
+
+out1 = DataFrame(pars=p_stg2,se=se,ts=t_stat,sig=stars)
+file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_GMM_$rundate.csv"
+CSV.write(file1,out1)
+
+out2 = DataFrame(delta=m.deltas,prods=m.prods)
+file2 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/deltaresults_GMM_$rundate.csv"
+CSV.write(file2,out2)
+
+
 #
 #
 # ##### TEST ######

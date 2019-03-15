@@ -39,21 +39,25 @@ m = InsuranceLogit(c,1000)
 
 # Cost Data
 costdf = MC_Data(df,mom_avg,mom_age,mom_risk;
-                baseSpec=[:AGE,:AV],
+                baseSpec=[:AGE,:AV_std,:AV_diff],
                 fixedEffects=[:ST])
 
 println("Data Loaded")
 
 #### Load Demand Estimation ####
-rundate = "2018-08-25"
-resDF = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_$rundate.csv")
-p_est = Float64.(resDF[:pars])
+rundate = "2019-03-07"
+# resDF = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_$rundate.csv")
+# p_est = Float64.(resDF[:pars])
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
+@load file p_stg2
+p_est = copy(p_stg2)
 
 #### Compute Demand Estimation
 par_est = parDict(m,p_est)
 individual_values!(m,par_est)
 
-#### Estimate Cost Parameters
+#### Load Starting Parameter
+parStart = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/MC_Moments/linregpars_$rundate.csv")
 p0 = Float64.(parStart[:par_start])
 
 
@@ -63,16 +67,15 @@ println("###### Estimation 1 #######")
 println("#################")
 println("#################")
 
-S,Σ,Δ,mom_long = aVar(costdf,m,p0,par_est)
-(P,Q) = size(S)
-W = Matrix(1.0I,P,Q)
-
+mom_length = length(costdf.avgMoments) + (length(costdf.ageMoments)-1) + 1
+W = Matrix(1.0I,mom_length,mom_length)
+# p0 = [0.0142467, 2.38318, 0.118645, 3.71279, 2.82461, 3.05562, 3.13485, 2.9542, 2.57828, 3.15453, 3.11387, 3.04592, 2.28916, 3.28014, 3.22481, 2.87773, 2.82558]
 est_stg1 = estimate_GMM(p0,par_est,m,costdf,W,method=:LN_NELDERMEAD)
-flag, fval, p_stg1 = est_stg1
+incase = est_stg1
 
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
-# @save file est_stg1
-@load file est_stg1
+@save file est_stg1
+# @load file est_stg1
 flag, fval, p_stg1 = est_stg1
 
 
@@ -104,18 +107,9 @@ println("#################")
 S,mom_est = var_bootstrap(costdf,m,p_stg1,par_est,draw_num=1000)
 W = inv(S)
 
-# est_stg2 = gradient_ascent_BB(p_stg1,par_est,m,costdf,W)
-# p_stg2, fval = est_stg2
 
-est_stg2 = estimate_GMM(p_stg1,par_est,m,costdf,W,method=:LN_NELDERMEAD)
+est_stg2 = estimate_GMM(p0,par_est,m,costdf,W,method=:LN_NELDERMEAD)
 flag, fval, p_stg2 = est_stg2
-#
-# est_stg4 = estimate_GMM(p_stg3,par_est,m,costdf,W)
-# flag, fval, p_stg4 = est_stg4
-#
-# est_stg4 = gradient_ascent_BB(p_stg3,par_est,m,costdf,W,strict=true)
-# p_stg4, fval = est_stg4
-#
 
 
 
@@ -127,19 +121,41 @@ flag, fval, p_stg2 = est_stg2
 
 println("#################")
 println("#################")
-println("###### Estimation 3 #######")
+println("###### Save Results #######")
 println("#################")
 println("#################")
-# S,Σ,Δ,mom_long = aVar(costdf,m,p_stg2,par_est)
+
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
+@load file est_stg2
+flag, fval, p_stg2 = est_stg2
+Avar, se, t_stat, stars = GMM_var(costdf,m,p_stg2,par_est)
+
+out1 = DataFrame(pars=p_stg2,se=se,ts=t_stat,sig=stars)
+file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_$rundate.csv"
+CSV.write(file1,out1)
+
+
+# println("#################")
+# println("#################")
+# println("###### Estimation 3 #######")
+# println("#################")
+# println("#################")
+# # S,Σ,Δ,mom_long = aVar(costdf,m,p_stg2,par_est)
+# # W = inv(S)
+# S,mom_est = var_bootstrap(costdf,m,p_stg1,par_est,draw_num=1000)
 # W = inv(S)
-S,mom_est = var_bootstrap(costdf,m,p_stg1,par_est,draw_num=1000)
-W = inv(S)
+#
+# est_stg3 = estimate_GMM(p_stg1,par_est,m,costdf,W)
+# flag, fval, p_stg3 = est_stg3
+#
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg3_$rundate.jld2"
+# @save file est_stg3
+#
 
-est_stg3 = estimate_GMM(p_stg1,par_est,m,costdf,W)
-flag, fval, p_stg3 = est_stg3
 
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg3_$rundate.jld2"
-@save file est_stg3
+
+
+
 
 
 
@@ -167,7 +183,7 @@ ForwardDiff.hessian!(hess, f_obj, p_stg4)
 # est_stg3 = estimate_GMM(p_stg1,par_est,m,costdf,W)
 #
 #
-par = parMC(p_stg4,par_est,m,costdf)
+par = parMC(p_stg2,par_est,m,costdf)
 individual_costs(m,par)
 moments = costMoments(costdf,m,par)
 #

@@ -5,7 +5,7 @@ library(data.table)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
 
 ## Run
-run = "2018-09-19"
+run = "2019-03-07"
 
 #### 2015 Subsidy Percentage Function ####
 
@@ -367,6 +367,20 @@ acs[METAL=="SILVER 94",AV:=.94]
 acs[METAL=="GOLD",AV:=.8]
 acs[METAL=="PLATINUM",AV:=.9]
 
+## Standard Actuarial Value
+acs[METAL=="CATASTROPHIC",AV_std:=.57]
+acs[METAL=="BRONZE",AV_std:=.6]
+acs[METAL=="SILVER",AV_std:=.7]
+acs[METAL=="SILVER 73",AV_std:=.7]
+acs[METAL=="SILVER 87",AV_std:=.7]
+acs[METAL=="SILVER 94",AV_std:=.7]
+acs[METAL=="GOLD",AV_std:=.8]
+acs[METAL=="PLATINUM",AV_std:=.9]
+
+## Cost Sharing Reduction
+acs[,AV_diff:=AV-AV_std]
+
+
 ## Merge in GCF
 gcf = read.csv("Data/2015_MLR/2015_GCF.csv")
 gcf$Market = with(gcf,paste(State,Rating.Area,sep="_"))
@@ -462,7 +476,7 @@ for (j in 1:max(r_mom$Rtype)){
 
 #### Output Analogous Data ####
 choiceData = acs[,c("Person","Firm","ST","Market","Product","PERWT","Price",
-                        "MedDeduct","ExcOOP","High","AV","Big",
+                        "MedDeduct","ExcOOP","High","AV","AV_std","AV_diff","Big",
                         "Family","Age","LowIncome","AGE",
                         "METAL",
                         "ageRate_avg","HCC_age","SilvHCC_Age",
@@ -482,10 +496,10 @@ write.csv(choiceData,"Intermediate_Output/Simulated_BaseData/simchoiceData_discr
 #### Read in Parameters ####
 
 
-parFile = paste("Estimation_Output/estimationresults_",run,".csv",sep="")
+parFile = paste("Intermediate_Output/Estimation_Parameters/estimationresults_GMM_",run,".csv",sep="")
 pars = read.csv(parFile)
 
-delFile = paste("Estimation_Output/deltaresults_",run,".csv",sep="")
+delFile = paste("Intermediate_Output/Estimation_Parameters/deltaresults_GMM_",run,".csv",sep="")
 deltas = read.csv(delFile)
 
 beta_vec = pars$pars
