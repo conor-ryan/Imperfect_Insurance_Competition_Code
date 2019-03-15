@@ -314,7 +314,7 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false) where
             #     num_effects = length(factor_list) - 4
             # end
         end
-        if bigFirm & ((fe==:Firm) | (fe==:Firm_Market))
+        if bigFirm & ((fe==:Firm) | (fe==:Firm_Market) | (fe==:Firm_Market_Cat))
             num_effects-= 1
         end
         L+=num_effects
@@ -349,6 +349,10 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false) where
                 continue
             end
             if bigFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA_AK_1")
+                println("skip")
+                continue
+            end
+            if bigFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA_AK_1_Low")
                 println("skip")
                 continue
             end

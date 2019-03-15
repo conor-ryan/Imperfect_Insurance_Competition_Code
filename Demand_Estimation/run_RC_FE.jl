@@ -42,6 +42,8 @@ c = ChoiceData(df,df_mkt,df_risk;
 #2018 - 12 - 24 : Firm Specification
 #2019 - 03 - 7 : Firm Specification
 #2019 - 03 - 12: Firm - Market Specification
+#2019 - 03 - 15: Firm - Market - Cat Specification
+
 
 # Fit into model
 m = InsuranceLogit(c,1000)
