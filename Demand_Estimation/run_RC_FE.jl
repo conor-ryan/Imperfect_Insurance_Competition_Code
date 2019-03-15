@@ -57,7 +57,7 @@ println("Data Loaded")
 FEstart = rand(m.parLength[:FE])/100 .-.005
 
 p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
-par0 = parDict(m,p0)
+# par0 = parDict(m,p0)
 #
 
 # ll = log_likelihood(m,par0)
