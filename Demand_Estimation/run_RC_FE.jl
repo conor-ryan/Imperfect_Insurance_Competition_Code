@@ -42,7 +42,7 @@ c = ChoiceData(df,df_mkt,df_risk;
 #2018 - 12 - 24 : Firm Specification
 #2019 - 03 - 7 : Firm Specification
 #2019 - 03 - 12: Firm - Market Specification
-#2019 - 03 - 15: Firm - Market - Cat Specification
+#2019 - 03 - 16: Firm - Market - Cat Specification
 
 
 # Fit into model
@@ -123,15 +123,15 @@ println("#################")
 # Estimate
 # p_ll,ll = newton_raphson_ll(m,p0)
 # rundate = "2018-12-24"
-println("Load MLE")
+
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_ll_$rundate.jld2"
 # @save file p_ll
 
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_spec12019-01-21.csv"
-ll_pars = CSV.read(file)
-p_ll = Float64.(ll_pars[:pars])
+println("Load MLE")
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estresults_fe_rc_FMC_2019-03-16.jld2"
+@load file p_est
+p_ll = copy(p_est)
 
-trash = 0.0
 
 println("#################")
 println("#################")
