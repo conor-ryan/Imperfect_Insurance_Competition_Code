@@ -203,6 +203,7 @@ function newton_raphson_ll(d,p0;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
         p_test = p_vec .+ step
         f_test = log_likelihood(d,p_test)
         trial_cnt = 0
+        trial_max = 0
         while ((f_test<fval) | isnan(f_test)) & (trial_max==0)
             if (step_size>1e-8)
                 p_test_disp = p_test[1:20]
@@ -218,10 +219,12 @@ function newton_raphson_ll(d,p0;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
                 f_test = log_likelihood(d,p_test)
                 trial_cnt+=1
             elseif (grad_size>1e-5)
+                trial_max = 1
                 println("Algorithm Stalled: Random Step")
                 max_trial_cnt+=1
                 step = rand(length(step))/1000 .-.005
             else
+                trial_max = 1
                 println("Algorithm Stalled: Random Step")
                 max_trial_cnt+=1
                 step = rand(length(step))/10000 .-.005
