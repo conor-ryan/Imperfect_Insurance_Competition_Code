@@ -121,12 +121,17 @@ println("###### Estimation 1 #######")
 println("#################")
 println("#################")
 # Estimate
-p_ll,ll = newton_raphson_ll(m,p0)
+# p_ll,ll = newton_raphson_ll(m,p0)
 # rundate = "2018-12-24"
-# println("Load MLE")
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_ll_$rundate.jld2"
-@save file p_ll
-# @load file p_ll
+println("Load MLE")
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_ll_$rundate.jld2"
+# @save file p_ll
+
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estresults_fe_rc_spec1_2019-01-21.jld2"
+@load file spec1
+p_ll, trash, fval = spec1
+println("LL maximized: $fval")
+trash = 0.0
 
 println("#################")
 println("#################")
