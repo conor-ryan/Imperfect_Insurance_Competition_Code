@@ -198,23 +198,30 @@ function newton_raphson_ll(d,p0;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
         # println("Hessian is $hess_new")
 
         step = - inv(hess_new)*grad_new
+        step_size = maximum(abs.(update))
 
         p_test = p_vec .+ step
         f_test = log_likelihood(d,p_test)
         trial_cnt = 0
-        while ((f_test<fval) | isnan(f_test)) & (trial_cnt<10)
-            p_test_disp = p_test[1:20]
-            println("Trial: Got $f_test at parameters $p_test_disp")
-            println("Previous Iteration at $fval")
-            step/= 10
-            p_test = p_vec .+ step
-            f_test = log_likelihood(d,p_test)
-            trial_cnt+=1
-            if (trial_cnt==10) & (grad_size>1e-5)
+        while ((f_test<fval) | isnan(f_test)) & (trial_max==0)
+            if (step_size>1e-8)
+                p_test_disp = p_test[1:20]
+                println("Trial: Got $f_test at parameters $p_test_disp")
+                println("Previous Iteration at $fval")
+                if trial_cnt <=2
+                    step/= 10
+                else
+                    step/= 100
+                end
+                step_size = maximum(abs.(step))
+                p_test = p_vec .+ step
+                f_test = log_likelihood(d,p_test)
+                trial_cnt+=1
+            elseif (grad_size>1e-5)
                 println("Algorithm Stalled: Random Step")
                 max_trial_cnt+=1
                 step = rand(length(step))/1000 .-.005
-            elseif (trial_cnt==10) & (grad_size<=1e-5)
+            else
                 println("Algorithm Stalled: Random Step")
                 max_trial_cnt+=1
                 step = rand(length(step))/10000 .-.005
