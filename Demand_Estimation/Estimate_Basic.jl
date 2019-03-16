@@ -198,7 +198,7 @@ function newton_raphson_ll(d,p0;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
         # println("Hessian is $hess_new")
 
         step = - inv(hess_new)*grad_new
-        step_size = maximum(abs.(update))
+        step_size = maximum(abs.(step))
 
         p_test = p_vec .+ step
         f_test = log_likelihood(d,p_test)
