@@ -43,16 +43,16 @@ rundate = Dates.today()
 
 # #### Run Specification 1 ####
 println("Run Specification 1")
-# spec1 = run_specification(df,df_mkt,df_risk,
-#                     haltonDim = halton_draws,
-#                     spec_demoRaw=spec_demoRaw,
-#                     spec_prodchars=spec_prodchars,
-#                     spec_prodchars_0=[:AV,:Big],
-#                     spec_fixedEffects=[:Firm_Market_Cat])
-
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_spec1_$rundate.jld2"
-# @save file spec1
-@load file spec1
+spec1 = run_specification(df,df_mkt,df_risk,
+                    haltonDim = halton_draws,
+                    spec_demoRaw=spec_demoRaw,
+                    spec_prodchars=spec_prodchars,
+                    spec_prodchars_0=[:AV,:Big],
+                    spec_fixedEffects=[:Firm_Market_Cat])
+p_est, model, fval = spec1
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estresults_fe_rc_FMC_$rundate.jld2"
+@save file p_est
+# @load file spec1
 println("Save Results")
 
 p_est, m, fval = spec1
@@ -68,11 +68,11 @@ AsVar, stdErr,t_stat, stars = res_process(m,p_est)
 
 spec = "spec1"
 out1 = DataFrame(pars=p_est,se=stdErr,ts=t_stat,sig=stars)
-file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_$spec$rundate.csv"
+file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_FMC_$rundate.csv"
 CSV.write(file1,out1)
 
 out2 = DataFrame(delta=m.deltas,prods=m.prods)
-file2 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/deltaresults_$spec$rundate.csv"
+file2 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/deltaresults_FMC_$rundate.csv"
 CSV.write(file2,out2)
 
 #### Run Specification 2 ####
@@ -83,9 +83,9 @@ spec2 = run_specification(df,df_mkt,df_risk,
                     spec_prodchars=spec_prodchars,
                     spec_prodchars_0=[:Price,:AV,:Big],
                     spec_fixedEffects=[:Firm_Market_Cat])
-
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_spec2_$rundate.jld2"
-@save file spec2
+p_est, model, fval = spec2
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estresults_fe_rc_FMCp_$rundate.jld2"
+@save file p_est
 # @load file spec2
 println("Save Results")
 
@@ -102,11 +102,11 @@ AsVar, stdErr,t_stat, stars = res_process(m,p_est)
 
 spec = "spec2"
 out1 = DataFrame(pars=p_est,se=stdErr,ts=t_stat,sig=stars)
-file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_$spec$rundate.csv"
+file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_FMCp_$rundate.csv"
 CSV.write(file1,out1)
 
 out2 = DataFrame(delta=m.deltas,prods=m.prods)
-file2 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/deltaresults_$spec$rundate.csv"
+file2 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/deltaresults_FMCp_$rundate.csv"
 CSV.write(file2,out2)
 
 
@@ -118,9 +118,9 @@ spec3 = run_specification(df,df_mkt,df_risk,
                     spec_prodchars=spec_prodchars,
                     spec_prodchars_0=[:AV,:Big],
                     spec_fixedEffects=[:Firm_Market_Cat_Age])
-
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_spec3_$rundate.jld2"
-@save file spec3
+p_est, model, fval = spec3
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estresults_fe_rc_FMCA_$rundate.jld2"
+@save file p_est
 # @load file spec3
 println("Save Results")
 
@@ -137,11 +137,11 @@ AsVar, stdErr,t_stat, stars = res_process(m,p_est)
 
 spec = "spec3"
 out1 = DataFrame(pars=p_est,se=stdErr,ts=t_stat,sig=stars)
-file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_$spec$rundate.csv"
+file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_FMCA_$rundate.csv"
 CSV.write(file1,out1)
 
 out2 = DataFrame(delta=m.deltas,prods=m.prods)
-file2 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/deltaresults_$spec$rundate.csv"
+file2 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/deltaresults_FMCA_$rundate.csv"
 CSV.write(file2,out2)
 
 
@@ -153,9 +153,9 @@ spec4 = run_specification(df,df_mkt,df_risk,
                     spec_prodchars=spec_prodchars,
                     spec_prodchars_0=[:Price,:AV,:Big],
                     spec_fixedEffects=[:Firm_Market_Cat_Age])
-
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/estresults_fe_rc_spec4_$rundate.jld2"
-@save file spec4
+p_est, model, fval = spec4
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estresults_fe_rc_FMCAp_$rundate.jld2"
+@save file p_est
 # @load file spec4
 println("Save Results")
 
@@ -172,15 +172,15 @@ AsVar, stdErr,t_stat, stars = res_process(m,p_est)
 
 spec = "spec4"
 out1 = DataFrame(pars=p_est,se=stdErr,ts=t_stat,sig=stars)
-file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_$spec$rundate.csv"
+file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_FMCAp_$rundate.csv"
 CSV.write(file1,out1)
 
 out2 = DataFrame(delta=m.deltas,prods=m.prods)
-file2 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/deltaresults_$spec$rundate.csv"
+file2 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/deltaresults_FMCAp_$rundate.csv"
 CSV.write(file2,out2)
 
 #### Full Parameter Set
-file_all = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_spec_comp$rundate.csv"
+file_all = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_spec_comp_$rundate.csv"
 CSV.write(file_all,DataFrame(P_mat))
 #
 #### Load Results ####

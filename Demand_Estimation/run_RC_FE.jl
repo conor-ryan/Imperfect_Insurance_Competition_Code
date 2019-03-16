@@ -127,10 +127,10 @@ println("Load MLE")
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_ll_$rundate.jld2"
 # @save file p_ll
 
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estresults_fe_rc_spec1_2019-01-21.jld2"
-@load file spec1
-p_ll, trash, fval = spec1
-println("LL maximized: $fval")
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_spec12019-01-21.csv"
+ll_pars = CSV.read(file)
+p_ll = Float64.(ll_pars[:pars])
+
 trash = 0.0
 
 println("#################")
