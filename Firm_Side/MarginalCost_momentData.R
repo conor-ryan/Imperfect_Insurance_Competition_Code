@@ -55,6 +55,9 @@ metalClaims[ST=="IL"&Firm=="ASSURANT_HEALTH",logAvgCost:=NA]
 metalClaims[ST=="NE"&Firm=="ASSURANT_HEALTH",logAvgCost:=NA]
 metalClaims[ST=="IA"&Firm=="AVERA_HEALTH_PLANS",logAvgCost:=NA]
 
+## Drop Claims for firms that have no variation in reported cost
+metalClaims[!is.na(logAvgCost),cost_var:=(max(EXP_INC_CLM_PMPM)-min(EXP_INC_CLM_PMPM))/mean(EXP_INC_CLM_PMPM),by=c("Firm","ST")]
+metalClaims[cost_var<.05,logAvgCost:=NA]
 
 #### MEPS Age Moments ####
 ageMoments = as.data.table(read.csv("Intermediate_Output/MEPS_Moments/ageMoments.csv"))

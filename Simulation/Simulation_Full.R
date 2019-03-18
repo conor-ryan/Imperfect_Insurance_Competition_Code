@@ -321,6 +321,7 @@ acs[,Person:=as.numeric(Person)]
 acs[,prodCat:=":Low"]
 acs[METAL%in%c("SILVER 87","SILVER 94","GOLD","PLATINUM"),prodCat:="High"]
 acs[,Firm_Market_Cat:=paste(Firm,Market,prodCat,sep="_")]
+acs[,Firm_ST:=paste(Firm,ST,sep="_")]
 
 
 #### Merge in Product Map #### 
@@ -475,7 +476,7 @@ for (j in 1:max(r_mom$Rtype)){
 }
 
 #### Output Analogous Data ####
-choiceData = acs[,c("Person","Firm","ST","Market","Product","PERWT","Price",
+choiceData = acs[,c("Person","Firm","ST","Firm_ST","Market","Product","PERWT","Price",
                         "MedDeduct","ExcOOP","High","AV","AV_std","AV_diff","Big",
                         "Family","Age","LowIncome","AGE",
                         "METAL",

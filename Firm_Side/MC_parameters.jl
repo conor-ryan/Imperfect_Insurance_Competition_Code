@@ -80,6 +80,13 @@ function MC_Data(data_choice::DataFrame,
     _riskIndex = maximum(_baseIndex) + 1
     _feIndex = maximum(_riskIndex) .+ (1:size(F,1))
 
+    println("Check Collinearity")
+    all_data = vcat(data[_baseIndex,:],F)
+    X = all_data*all_data'
+    ev = sort(eigvals(X))
+    smallest_ev = ev[1]
+    println("Smallest Data Eigenvalue: $smallest_ev")
+
     ### Moment Dictionaries
     println("Construct Moments")
     all_idx = 1:n

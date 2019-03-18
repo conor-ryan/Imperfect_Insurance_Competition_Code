@@ -40,7 +40,7 @@ m = InsuranceLogit(c,1000)
 # Cost Data
 costdf = MC_Data(df,mom_avg,mom_age,mom_risk;
                 baseSpec=[:AGE,:AV_std,:AV_diff],
-                fixedEffects=[:ST])
+                fixedEffects=[:Firm_ST])
 
 println("Data Loaded")
 
@@ -57,8 +57,8 @@ par_est = parDict(m,p_est)
 individual_values!(m,par_est)
 
 #### Load Starting Parameter
-parStart = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/MC_Moments/linregpars_$rundate.csv")
-p0 = Float64.(parStart[:par_start])
+# parStart = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/MC_Moments/linregpars_$rundate.csv")
+# p0 = Float64.(parStart[:par_start])
 
 
 println("#################")
@@ -70,6 +70,7 @@ println("#################")
 mom_length = length(costdf.avgMoments) + (length(costdf.ageMoments)-1) + 1
 W = Matrix(1.0I,mom_length,mom_length)
 # p0 = [0.0142467, 2.38318, 0.118645, 3.71279, 2.82461, 3.05562, 3.13485, 2.9542, 2.57828, 3.15453, 3.11387, 3.04592, 2.28916, 3.28014, 3.22481, 2.87773, 2.82558]
+p0 = vcat([0,1,0,0],rand(length(costdf._feIndex)).+2)
 est_stg1 = estimate_GMM(p0,par_est,m,costdf,W,method=:LN_NELDERMEAD)
 incase = est_stg1
 
@@ -102,15 +103,13 @@ println("#################")
 # 3.0255579091830334
 # 3.44939149700815
 
-# S,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
+# S2,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
 # W = inv(S)
 S,mom_est = var_bootstrap(costdf,m,p_stg1,par_est,draw_num=1000)
 W = inv(S)
 
-
-est_stg2 = estimate_GMM(p0,par_est,m,costdf,W,method=:LN_NELDERMEAD)
+est_stg2 = estimate_GMM(p_stg1,par_est,m,costdf,W,method=:LN_NELDERMEAD)
 flag, fval, p_stg2 = est_stg2
-
 
 
 #
@@ -162,10 +161,10 @@ CSV.write(file1,out1)
 ## Test Estimate Outcome
 
 f_obj(x) = GMM_objective(x,par_est,m,costdf,W)
-grad = Vector{Float64}(undef,length(p_stg4))
-hess = Matrix{Float64}(undef,length(p_stg4),length(p_stg4))
+grad = Vector{Float64}(undef,length(p0))
+hess = Matrix{Float64}(undef,length(p0),length(p0))
 println("Gradient")
-ForwardDiff.gradient!(grad, f_obj, p_stg4)
+ForwardDiff.gradient!(grad, f_obj, p0)
 println("Hessian")
 ForwardDiff.hessian!(hess, f_obj, p_stg4)
 
@@ -183,7 +182,7 @@ ForwardDiff.hessian!(hess, f_obj, p_stg4)
 # est_stg3 = estimate_GMM(p_stg1,par_est,m,costdf,W)
 #
 #
-par = parMC(p_stg2,par_est,m,costdf)
+par = parMC(p0,par_est,m,costdf)
 individual_costs(m,par)
 moments = costMoments(costdf,m,par)
 #
