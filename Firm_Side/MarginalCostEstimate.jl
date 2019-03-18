@@ -185,6 +185,19 @@ ForwardDiff.hessian!(hess, f_obj, p_stg4)
 par = parMC(p0,par_est,m,costdf)
 individual_costs(m,par)
 moments = costMoments(costdf,m,par)
+
+
+grad = Matrix{Float64}(undef,costdf.par_length,costdf.mom_length)
+hess = Array{Float64,3}(undef,costdf.par_length,costdf.par_length,costdf.mom_length)
+costMoments!(hess,grad,costdf,m,par)
+
+
+grad2 = mom_gradient(p0,par_est,m,costdf)
+
+test = grad - grad2'
+test[costdf._riskIndex,:] .= 0.0
+println(maximum(abs.(test)))
+
 #
 # m1 = costMoments_bootstrap(costdf,m,par)
 #
@@ -213,9 +226,9 @@ moments = costMoments(costdf,m,par)
 #
 # individual_costs(m,par0)
 
-# using Profile
-# Profile.init(n=10^8,delay=.001)
-# Profile.clear()
-# Juno.@profile m1 = costMoments_bootstrap(costdf,m,par)
-# Juno.profiletree()
-# Juno.profiler()
+using Profile
+Profile.init(n=10^8,delay=.001)
+Profile.clear()
+Juno.@profile costMoments!(hess,grad,costdf,m,par)
+Juno.profiletree()
+Juno.profiler()
