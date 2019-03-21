@@ -624,6 +624,7 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
     hess_new = Matrix{Float64}(undef,length(p0),length(p0))
     f_final_val = 0.0
     max_trial_cnt = 0
+    NaN_steps = 0
     trial_end = 5
     p_last = copy(p_vec)
     grad_last = copy(grad_new)
@@ -646,7 +647,6 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
     while (grad_size>grad_tol) & (cnt<max_itr) & (max_trial_cnt<20)
         cnt+=1
         trial_cnt=0
-
 
         # Compute Gradient, holding δ fixed
 
@@ -688,7 +688,15 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
 
         update = -inv(hess_new)*grad_new
         if any(isnan.(update))
+            println("Step contains NaN")
+            #Check Hessian
+            eigvals = sort(abs.(eigvals(hess_new)))
+            sm_e = eigvals[1]
+            println("Smallest Eigenvalue: $sm_e ")
+            NaN_steps +=1
             update = -(1/grad_size).*grad_new
+        else
+            NaN_steps = 0
         end
 
 
@@ -734,6 +742,11 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
                 println("RUN ROUND OF GRADIENT ASCENT")
                 p_test, f_test = gradient_ascent_BB(d,p_vec,W,max_itr=5,strict=true)
             end
+        end
+        if NaN_steps>5
+            println("Hessian might be singular")
+            println("RUN ROUND OF GRADIENT ASCENT")
+            p_test, f_test = gradient_ascent_BB(d,p_test,W,max_itr=20,strict=true)
         end
 
         p_last = copy(p_vec)
