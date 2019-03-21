@@ -488,6 +488,7 @@ choiceData = acs[,c("Person","Firm","ST","Firm_ST","Market","Product","PERWT","P
 
 choiceData[,S_ij:=0]
 choiceData[,unins_rate:=0]
+choiceData[,AGE:=AGE/10]
 setkey(choiceData,Person,Product)
 
 
