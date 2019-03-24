@@ -690,10 +690,11 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
         if any(isnan.(update))
             println("Step contains NaN")
             #Check Hessian
-            eigvals = sort(abs.(eigvals(hess_new)))
-            sm_e = eigvals[1]
+            eig = sort(abs.(eigvals(hess_new)))
+            sm_e = eig[1]
             println("Smallest Eigenvalue: $sm_e ")
             NaN_steps +=1
+            grad_size = sqrt(dot(grad_new,grad_new))
             update = -(1/grad_size).*grad_new
         else
             NaN_steps = 0
