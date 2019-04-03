@@ -6,7 +6,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     individual_costs(d,par)
 
     # Pop = [0.0]
-    Pop = 0.0
+    Pop =calc_pop(d.data)
     wgts = weight(d.data)
 
     ### Unique Product IDs
@@ -34,7 +34,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
 
         idx_nonEmpty = vcat(idx_prod,num_prods .+idx_prod,(num_prods*2+1):mom_length)
         # Pop[:] = Pop[:] + [wgt_obs]
-        Pop += wgt_obs
+        # Pop += wgt_obs
         # add_Σ(Σ,g_n,idx_nonEmpty)
         cost_moments[:] += g_n[:]
     end
@@ -42,15 +42,36 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
 
     ## Estimate of variance...
     # g_n = Vector{Float64}(undef,mom_length)
+    w_cov_sumsq = [0.0]
+    breakflag = false
+    idx_all = 1:length(mean_moments)
+
+    sum_sq_wgts = calc_pop_sq(d.data)
+    # Σ_hold = sum_sq_wgts.*mean_moments*mean_moments'
+    # Σ = sum_sq_wgts.*mean_moments*mean_moments'
+    Σ_hold = mean_moments*mean_moments'
+    Σ =mean_moments*mean_moments'
+    # Σ = zeros(mom_length,mom_length)
+
     for app in eachperson(d.data)
+        g_n[:].= 0.0
+        w_i = weight(app)[1]
+        # w_cov = w_i/Pop
+        w_cov = 1.0
+        w_cov_sumsq[:] += [w_cov^2]
 
         idx_prod, wgt_obs = cost_obs_moments!(g_n,productIDs,app,d,c,par)
-        g_n[:] = g_n[:] - mean_moments[:]
-        idx_nonEmpty = vcat(idx_prod,num_prods .+idx_prod,(num_prods*2+1):mom_length)
-        add_Σ(Σ,g_n,idx_nonEmpty)
-    end
 
-    Σ = Σ./(Pop)
+        # g_n[:] = g_n[:] - mean_moments[:]
+        # g_n[:] = (g_n[:]./w_i - mean_moments[:])
+        g_n[:] = (g_n[:] - w_i.*mean_moments[:])
+
+        idx_nonEmpty = vcat(idx_prod,num_prods .+idx_prod,(num_prods*2+1):mom_length)
+        # add_Σ(Σ,g_n,idx_nonEmpty)
+        add_Σ(Σ,g_n,idx_nonEmpty,w_cov,Σ_hold)
+    end
+    # Σ = Σ./(1-w_cov_sumsq[1])
+    Σ = Σ./Pop
     # println(Pop)
     Δ = Δavar(c,d,mean_moments)
 
@@ -77,13 +98,18 @@ function cost_obs_moments!(mom_obs::Vector{Float64},productIDs::Vector{Int64},
     idxitr = app._personDict[ind]
     ind_itr = 1:length(idxitr)
     per_prods = productIDs[idxitr]
+    actuarial_values = c.data[2,idxitr]
 
     age = c.data[1,idxitr][1]
-    age_ind = Int.(max(floor((age-20.0)/5),0)) + 1
+    age_ind = Int.(max(floor((age-2.0)/.5),0)) + 1
 
     costs = p.C[idxitr]
     costs_risk = p.C_HCC[idxitr]
     costs_nonrisk = p.C_nonrisk[idxitr]
+
+    costs_total = costs./actuarial_values
+    costs_risk_total = costs_risk./actuarial_values
+    costs_nonrisk_total = costs_nonrisk./actuarial_values
 
 
     s_hat = p.pars.s_hat[idxitr]
@@ -95,8 +121,12 @@ function cost_obs_moments!(mom_obs::Vector{Float64},productIDs::Vector{Int64},
     ins_share_nonrisk = sum(s_hat_nonrisk)
 
     ins_cost  = sum(s_hat.*costs)
-    ins_cost_risk  = sum(s_hat_risk.*costs_risk)
-    ins_cost_nonrisk  = sum(s_hat_nonrisk.*costs_nonrisk)
+    # ins_cost_risk  = sum(s_hat_risk.*costs_risk)
+    # ins_cost_nonrisk  = sum(s_hat_nonrisk.*costs_nonrisk)
+
+    ins_cost_total  = sum(s_hat.*costs_total)
+    ins_cost_risk_total  = sum(s_hat_risk.*costs_risk_total)
+    ins_cost_nonrisk_total  = sum(s_hat_nonrisk.*costs_nonrisk_total)
 
     anyHCC = c.anyHCC[idxitr]
 
@@ -110,17 +140,23 @@ function cost_obs_moments!(mom_obs::Vector{Float64},productIDs::Vector{Int64},
     #Insurance
     mom_obs[num_prods*2 + age_ind] = ins_share*wgts[1]
     #Age Bin
-    mom_obs[num_prods*2 + length(c.ageMoments) + age_ind] = ins_cost*wgts[1]
+    mom_obs[num_prods*2 + length(c.ageMoments) + age_ind] = ins_cost_total*wgts[1]
     #Insurance by Risk
     mom_obs[num_prods*2+length(c.ageMoments)*2+1] = ins_share_nonrisk*wgts[1]*(1-anyHCC[1])
     mom_obs[num_prods*2+length(c.ageMoments)*2+2] = ins_share_risk*wgts[1]*(anyHCC[1])
     #Cost by Risk
-    mom_obs[num_prods*2+length(c.ageMoments)*2+3] = ins_cost_nonrisk*wgts[1]*(1-anyHCC[1])
-    mom_obs[num_prods*2+length(c.ageMoments)*2+4] = ins_cost_risk*wgts[1]*(anyHCC[1])
+    mom_obs[num_prods*2+length(c.ageMoments)*2+3] = ins_cost_nonrisk_total*wgts[1]*(1-anyHCC[1])
+    mom_obs[num_prods*2+length(c.ageMoments)*2+4] = ins_cost_risk_total*wgts[1]*(anyHCC[1])
 
     return per_prods, wgts[1]
 end
 
+function add_Σ(Σ::Matrix{Float64},g_n::Vector{Float64},idx::Vector{Int64},weight::Float64,Σ_hold::Matrix{Float64})
+    for i in idx, j in idx
+        @fastmath @inbounds Σ[i,j]+=weight*(g_n[i]*g_n[j] - Σ_hold[i,j])
+    end
+    return nothing
+end
 
 function add_Σ(Σ::Matrix{Float64},g_n::Vector{Float64},idx::Vector{Int64})
     for i in idx, j in idx
@@ -253,7 +289,7 @@ function test_Avar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{T}) where T
     non_avg = r_moments_p2[1]/r_moments_p1[1]
     HCC_avg = r_moments_p2[2]/r_moments_p1[2]
     rmom = HCC_avg/non_avg  - c.riskMoment
-    return vcat(pmom,amom,rmom)[315]
+    return vcat(pmom,amom,rmom)[297]
 end
 
 
@@ -302,20 +338,22 @@ end
 
 
 
-function bootstrap_sample(d::InsuranceLogit)
+function bootstrap_sample(d::InsuranceLogit,c::MC_Data)
     (K,N) = size(d.data.data)
     draw_vec = Array{Int64}(undef,N*2)
-    draw_vec_map = Array{Int64}(undef,N*2)
-    perIDs = Int.(unique(d.data.data[1,:]))
-    Per_num = length(perIDs)
+    # draw_vec_map = Array{Int64}(undef,N*2)
     x0 = 1
-    for j in 1:Per_num
-        i = Int.(floor(rand()*Per_num) + 1)
-        id = perIDs[i]
-        idx_itr = d.data._personDict[id]
-        xend = x0 + length(idx_itr)-1
-        draw_vec[x0:xend] = idx_itr
-        x0 = xend + 1
+    for (st,perIDs) in c._stDict
+        # perIDs = Int.(unique(d.data.data[1,:]))
+        Per_num = length(perIDs)
+        for j in 1:Per_num
+            i = Int.(floor(rand()*Per_num) + 1)
+            id = perIDs[i]
+            idx_itr = d.data._personDict[id]
+            xend = x0 + length(idx_itr)-1
+            draw_vec[x0:xend] = idx_itr
+            x0 = xend + 1
+        end
     end
     draw_vec = draw_vec[1:(x0-1)]
     sort!(draw_vec)
@@ -326,7 +364,7 @@ end
 
 function costMoments_bootstrap(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     ## Bootstrap Random Draw
-    draw = bootstrap_sample(d)
+    draw = bootstrap_sample(d,c)
 
     s_hat = p.pars.s_hat
     s_hat_nonrisk = p.s_hat_nonrisk
@@ -375,7 +413,7 @@ function costMoments_bootstrap(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     non_avg = sliceMean_wgt(c_hat_nonHCC,none_share,m_sample)
     rmom = HCC_avg/non_avg - c.riskMoment
 
-    return abs.(vcat(pmom,amom,rmom))
+    return vcat(pmom,amom,rmom)
 end
 
 function var_bootstrap(c::MC_Data,d::InsuranceLogit,p::Array{T},p_est::parDict{Float64};draw_num::Int=1000) where T
@@ -389,9 +427,16 @@ function var_bootstrap(c::MC_Data,d::InsuranceLogit,p::parMC{T};draw_num::Int=10
     M_num = length(c.avgMoments) + length(c.ageMoments) -1 + 1
     moment_draws = Matrix{Float64}(undef,M_num,draw_num)
     sqrt_n = sqrt(calc_pop(m.data))
+    #Sample By States
+
+
     for i in 1:draw_num
-        moment_draws[:,i] = sqrt_n.*costMoments_bootstrap(c,d,p)
+        # moment_draws[:,i] = sqrt_n.*costMoments_bootstrap(c,d,p)
+        moment_draws[:,i] = sqrt_n.*costMoments_bootstrap(c,d,p).^2
     end
+    check = sum(moment_draws,dims=1)
+    nan_ind = findall( .! (isnan.(check[:]) .| isinf.(check[:])))
+    moment_draws = moment_draws[:,nan_ind]
 
     Σ = scattermat(moment_draws,2)
     Σ = Σ./draw_num
@@ -427,6 +472,15 @@ function calc_pop(df::ChoiceData)
     return Pop
 end
 
+function calc_pop_sq(df::ChoiceData)
+    Pop = 0.0
+    wgts = weight(df)[:]
+    for (i,idx_itr) in df._personDict
+        p_obs = wgts[idx_itr[1]]
+        Pop += p_obs^2
+    end
+    return Pop
+end
 
 function GMM_var(c::MC_Data,d::InsuranceLogit,p::Array{Float64},par_est::parDict{Float64};draw_num=1000)
     ## Moment Variance
@@ -435,10 +489,12 @@ function GMM_var(c::MC_Data,d::InsuranceLogit,p::Array{Float64},par_est::parDict
 
     ## Derivative of Moments wrt Parameters
     println("Moment Gradient")
-    G = mom_gradient(p,par_est,m,costdf)
+    G = Matrix{Float64}(undef,c.par_length,c.mom_length)
+    moments = costMoments!(G,c,d,p,par_est)
+    # G = mom_gradient(p,par_est,m,costdf)
 
     ## Calculate Variance
-    Avar = inv(G'*inv(S)*G)
+    Avar = inv(G*inv(S)*G')
     Pop = calc_pop(d.data)
 
     V = (1/sqrt(Pop)).*Avar

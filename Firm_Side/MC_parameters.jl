@@ -48,6 +48,9 @@ struct MC_Data
     mom_length::Int
     par_length::Int
 
+    #State-Level Sampling Dictionary
+    _stDict::Dict{Int,Array{Int,1}}
+
     # Moment Values
     _avgMomentDict::Dict{Int,Array{Int,1}}
     _avgMomentBit::Dict{Int,BitArray{1}}
@@ -100,6 +103,24 @@ function MC_Data(data_choice::DataFrame,
     smallest_ev = ev[1]
     println("Smallest Data Eigenvalue: $smallest_ev")
 
+    ### State-Level Sampling Dictionary
+    println("Sampling Dictionary")
+    # st_vec = data_choice[:ST]
+    states = sort(unique(data_choice[:ST]))
+    st_vec = Vector{Int}(undef,length(data_choice[:ST]))
+    for (k,s) in enumerate(states)
+        st_vec[data_choice[:ST].==s] .= k
+    end
+
+    _stDict_temp = build_ProdDict(st_vec)
+    _stDict = Dict{Int,Array{Int,1}}()
+    person_vec = data_choice[:Person]
+    for (st,ind) in _stDict_temp
+        _stDict[st] = unique(person_vec[ind])
+    end
+
+
+
     ### Moment Dictionaries
     println("Construct Moments")
     all_idx = 1:n
@@ -139,7 +160,7 @@ function MC_Data(data_choice::DataFrame,
 
 
     return MC_Data(data,F,anyHCC,_baseIndex,_riskIndex,_feIndex,
-                    mom_length,par_length,
+                    mom_length,par_length,_stDict,
                     _avgMomentDict,_avgMomentBit,_avgMomentProdDict,avgMoments,
                     _ageMomentDict,_ageMomentBit,ageMoments,riskMoment)
 end
@@ -297,6 +318,11 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     for (m,m_idx) in c._avgMomentDict
         c_avg = sliceMean_wgt(c_hat,wgts_share,m_idx)
         pmom[m] = log(c_avg) - c.avgMoments[m]
+        # t = sum(test[m_idx])
+        # if t>0.0
+        #     println(m)
+        #     println(t)
+        # end
         # pmom[m] = (c_avg - exp(c.avgMoments[m]))/100
         # pmom[m] = c_avg
     end

@@ -5,7 +5,7 @@ library(data.table)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
 
 ## Run
-run = "2019-03-07"
+run = "2019-03-12"
 
 #### 2015 Subsidy Percentage Function ####
 
@@ -320,6 +320,7 @@ acs[,Person:=as.numeric(Person)]
 
 acs[,prodCat:=":Low"]
 acs[METAL%in%c("SILVER 87","SILVER 94","GOLD","PLATINUM"),prodCat:="High"]
+acs[,Firm_Market:=paste(Firm,Market,sep="_")]
 acs[,Firm_Market_Cat:=paste(Firm,Market,prodCat,sep="_")]
 acs[,Firm_ST:=paste(Firm,ST,sep="_")]
 
@@ -476,7 +477,7 @@ for (j in 1:max(r_mom$Rtype)){
 }
 
 #### Output Analogous Data ####
-choiceData = acs[,c("Person","Firm","ST","Firm_ST","Market","Product","PERWT","Price",
+choiceData = acs[,c("Person","Firm","ST","Firm_ST","Firm_Market","Firm_Market_Cat","Market","Product","PERWT","Price",
                         "MedDeduct","ExcOOP","High","AV","AV_std","AV_diff","Big",
                         "Family","Age","LowIncome","AGE",
                         "METAL",

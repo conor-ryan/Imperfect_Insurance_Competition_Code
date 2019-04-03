@@ -163,6 +163,7 @@ function costMoments!(hess::Array{T,3},grad::Matrix{T},c::MC_Data,d::InsuranceLo
     return moments
 end
 
+
 function costMoments!(grad::Matrix{T},c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     s_hat = p.pars.s_hat
     s_hat_nonrisk = p.s_hat_nonrisk
@@ -256,6 +257,24 @@ function costMoments!(grad::Matrix{T},c::MC_Data,d::InsuranceLogit,p::parMC{T}) 
 
     return moments
 end
+
+
+function costMoments!(hess::Array{T,3},grad::Matrix{T},c::MC_Data,d::InsuranceLogit,p::Array{T},p_est::parDict{Float64}) where T
+    par = parMC(p,p_est,d,c) # Fix p0
+    individual_costs(d,par)
+    mom = costMoments!(hess,grad,c,d,par)
+    return mom
+end
+
+
+
+function costMoments!(grad::Matrix{T},c::MC_Data,d::InsuranceLogit,p::Array{T},p_est::parDict{Float64}) where T
+    par = parMC(p,p_est,d,c) # Fix p0
+    individual_costs(d,par)
+    mom = costMoments!(grad,c,d,par)
+    return mom
+end
+
 
 
 function grad_par_return(k::Int,c::MC_Data,p::parMC{T}) where T
