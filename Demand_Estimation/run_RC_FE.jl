@@ -37,7 +37,7 @@ c = ChoiceData(df,df_mkt,df_risk;
             :LowIncome],
     prodchars=[:Price,:AV,:Big],
     prodchars_0=[:AV,:Big],
-    fixedEffects=[:Firm_Market_Cat])
+    fixedEffects=[:Firm_Market])
 
 #2018 - 12 - 24 : Firm Specification
 #2019 - 03 - 7 : Firm Specification
@@ -215,6 +215,7 @@ println("#################")
 println("###### Save Results #######")
 println("#################")
 println("#################")
+rundate = "2019-03-12"
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
 @load file p_stg2
 Avar, se, t_stat, stars = GMM_var(m,p_stg2)

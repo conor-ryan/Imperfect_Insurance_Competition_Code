@@ -5,7 +5,7 @@ library(ggplot2)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 ## Run
-run = "2018-08-25"
+run = "2019-03-12"
 
 #### Read in Data ####
 

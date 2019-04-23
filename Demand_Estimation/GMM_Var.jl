@@ -14,6 +14,7 @@ function GMM_var(d::InsuranceLogit,p_est::Vector{Float64})
     G = hcat(mom_grad,hess)
 
     ## Calculate Variance
+    println("Invert Matrices")
     Avar = inv(G*inv(S)*G')
     Pop =sum(weight(d.data).*choice(d.data))
 

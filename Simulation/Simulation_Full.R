@@ -338,12 +338,12 @@ acs = acs[!is.na(acs$Product),]
 
 #### Fixed Effects ####
 # Market Product Category Fixed Effects
-firm_list = sort(unique(prod_map$Firm))
-firm_list = firm_list[firm_list!="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA"]
+firm_list = sort(unique(acs$Firm_Market))
+firm_list = firm_list[firm_list!="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA_AK_1"]
 for (fe in firm_list){
   var = paste("FE",fe,sep="_")
   acs[,c(var):=0]
-  acs[Firm==fe,c(var):=1]
+  acs[Firm_Market==fe,c(var):=1]
 }
 
 acs[,AgeFE_18_30:=0]
