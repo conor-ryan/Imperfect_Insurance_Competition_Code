@@ -1,174 +1,16 @@
-using DataFrames
-import Base.getindex, Base.setindex!
-
-abstract type
-    EstData
-end
-
-
-# Make a type to interface with the data for discrete choice models
-struct ChoiceData <: EstData
-    # Matrix of the data (transposed, pre-sorted)
-    data::Matrix{Float64}
-    data_byperson::Matrix{Float64}
-    # Index of the data column names
-    index::Dict{Symbol,Int}
-
-    # ID Lookup Mappings
-    _personIDs::Array{Float64,1}
-    _personDict::Dict{Int, UnitRange{Int}}
-    _productDict::Dict{Int, Array{Int,1}}
-    _person_prod_Dict::Dict{Int,Dict{Real,Int}}
-    _prod_person_Dict::Dict{Int,Dict{Real,Array{Int}}}
-
-    _prod_2_per_map::Vector{Int64}
-    _per_2_prod_map::Vector{Int64}
-
-    _crossprod_Dict::Array{Int,2}
-end
-
-
-function ChoiceData(data_est::DataFrame,df_mkt::DataFrame)
-
-    # Get the size of the data
-    n, k = size(data_est)
-
-    index = Dict{Symbol, Int}()
-    dmat = Matrix{Float64}(undef,n,0)
-
-    ## Set Catastrophic Gamma_j Values to -100
-    data_est[:Gamma_j][findall(ismissing.(data_est[:Gamma_j]))] .= -100
-    ## Get Benchmark
-    #R_bench = df_mkt[:R_bench][df_mkt[:Firm].=="OTHER"][1]
-
-    data_est[:R_Gamma_j] = data_est[:Gamma_j].*data_est[:R]  #./R_bench
-    data_est[:A_Gamma_j] = data_est[:Gamma_j].*data_est[:ageRate_avg].*data_est[:AV]
-
-    ## Adjust Alpha for Monthly Prices
-    data_est[:alpha] = data_est[:alpha].*(12/1000)
-
-    # Create a data matrix, only including person id
-    println("Construct Data")
-    varNames = [:Person,:Product,:R,:alpha,:WTP,:AGE,:mkt_density,:ageRate,:ageRate_avg,
-                :Mandate,:subsidy,:IncomeCont,:MEMBERS,:non_price_util,
-                :R_Gamma_j,:A_Gamma_j,:C,:C_nonAV,
-                :Catastrophic,:AV,:Gamma_j,:PERWT]
-    for (l,var) in enumerate(varNames)
-        mat_temp = Array{Float64}(data_est[var])
-        dmat = hcat(dmat,mat_temp)
-        index[var]=l
-    end
-
-    println("Product ID Mapping")
-    _productDict = Dict{Real, UnitRange{Int}}()
-    _prod_person_Dict = Dict{Int,Dict{Real,Array{Int}}}()
-    allids = data_est[:Product]
-    prodids = sort(unique(allids))
-
-    for id in prodids
-        idx1 = searchsortedfirst(allids,id)
-        idxJ = searchsortedlast(allids,id)
-        _productDict[id] = idx1:idxJ
-        # _prod_person_Dict[id] = build_IdxDict(dmat[idx1:idxJ,index[:Person]])
-    end
-
-    println("Person Mapping")
-    _prod_2_per_map = sortperm(dmat[:,index[:Person]])
-    dmat_per = dmat[_prod_2_per_map,:]
-
-    # Reverse Sort
-    _per_2_prod_map = sortperm(_prod_2_per_map)
-
-    _personDict = Dict{Real, UnitRange{Int}}()
-    _person_prod_Dict = Dict{Int,Dict{Real,Int64}}()
-    allids = dmat_per[:,index[:Person]]
-    uniqids = sort(unique(allids))
-    for id in uniqids
-        idx1 = searchsortedfirst(allids,id)
-        idxJ = searchsortedlast(allids,id)
-        _personDict[id] = idx1:idxJ
-        _person_prod_Dict[id] = build_IdxDict(dmat_per[idx1:idxJ,index[:Product]])
-    end
-
-
-    # #Create Product Dictionary
-    # println("Product Dictionary")
-    # _productDict = build_ProdDict(data_est[:Product])
-
-    #Build Cross Product Dict
-    _crossprod_Dict = Array{Int64,2}(undef,n,length(prodids))
-    for (q,j) in enumerate(sort(prodids))
-        idx = Vector{Int64}(undef,n)
-        _crossprod_Dict[:,q] = crossprod_index!(idx,j,
-                                uniqids,
-                                _personDict,
-                                _person_prod_Dict)
-    end
-
-
-    # Make the data object
-    m = ChoiceData(dmat,dmat_per,index,
-    uniqids,_personDict,_productDict,
-    _person_prod_Dict,_prod_person_Dict,
-    _prod_2_per_map,_per_2_prod_map,
-    _crossprod_Dict)
-    return m
-end
-
-
-function crossprod_index!(cross_idx::Vector{Int64},
-                prod::Int64,
-                _personIDs::Array{Float64,1},
-                _personDict::Dict{Real, UnitRange{Int}},
-                _person_prod_Dict::Dict{Int,Dict{Real,Int}})
-
-    for i in _personIDs
-        idxitr = _personDict[i]
-        k = get(_person_prod_Dict[i],prod,-1)
-        if k>0
-            cross_idx[idxitr] .= idxitr[k]
-        else
-            cross_idx[idxitr] .= -1
-        end
-    end
-    return cross_idx
-end
-
-
-
-function build_IdxDict(j::Array{T,N}) where {T,N}
-    ids = unique(j)
-    dict = build_IdxDict(j,ids)
-    return dict
-end
-
-function build_IdxDict(j::Array{T,N},ids::Vector{T}) where {T,N}
-    sort!(ids)
-    _productDict = Dict{Real,Int64}()
-
-    for id in ids
-        _productDict[id] = findall(j.==id)[1]
-    end
-    return _productDict
-end
-
-getindex(m::ChoiceData, idx::Symbol) = m.data[:,m.index[idx]]
-
-function setindex!(m::ChoiceData,x::T,idx::Symbol) where T
-    m.data[:,m.index[idx]] .= x
-end
-
-
-mutable struct EqData
+mutable struct EqData{T}
     # Choice Data
-    data::ChoiceData
+    data::InsuranceLogit
+    #Demand Estimates
+    dem_est::parDict{T}
+    # Cost Estimates
+    mc_est::parMC{T}
+
     # Product Data
     p_avg::Matrix{Float64}
     p_index::Dict{Symbol, Int}
     # Products
     prods::Vector{Int64}
-    # Cost Parameters
-    #cost_pars::DataFrame
 
     # Firm Prices
     premBase_j::Vector{Float64}
@@ -186,6 +28,10 @@ mutable struct EqData
     silver_index::Dict{Real,Array{Int64,1}}
     mkt_index_long::Array{Int64,1}
 
+    # Non-delta utility for (ij) pairs and draws
+    μ_ij_nonprice::Matrix{T}
+    μ_ij::Matrix{T}
+
     # ij pairs of market shares
     s_pred::Vector{Float64}
     s_pred_byperson::Vector{Float64}
@@ -193,15 +39,7 @@ mutable struct EqData
     price_ij::Vector{Float64}
     subsidy_ij::Vector{Float64}
 
-    # Benchmark Risk Score, RA Share
-    R_bench::Float64
-    RA_share::Float64
-    Other_R::Float64
 
-    # Fixed RA Properties
-    ST_R_fix::Float64
-    ST_A_fix::Float64
-    avgPrem_fix::Float64
 end
 
 function EqData(cdata::ChoiceData,mkt::DataFrame)#,cpars::DataFrame)

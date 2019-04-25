@@ -1,0 +1,146 @@
+using DataFrames
+using CSV
+using LinearAlgebra
+using Statistics
+using BenchmarkTools
+using JLD2
+########################################################################
+#################### Loading and Cleaning Data #########################
+########################################################################
+load_path = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Code/"
+# Data Structure
+include("$load_path/Demand_Estimation/InsChoiceData.jl")
+include("$load_path/Demand_Estimation/Halton.jl")
+include("EQ_RandomCoefficients.jl")
+include("$load_path/Demand_Estimation/utility.jl")
+include("$load_path/Demand_Estimation/Contraction.jl")
+include("$load_path/Firm_Side/MC_parameters.jl")
+
+#Equilibrium Functions
+# include("predictionData_New.jl")
+include("EQ_RandomCoefficients.jl")
+
+#Load Data
+include("EQ_load.jl")
+
+
+rundate = "2019-03-12"
+
+chdf = ChoiceData(df,df_mkt,df_risk;
+    demoRaw=[:AgeFE_31_39,
+            :AgeFE_40_51,
+            :AgeFE_52_64,
+            :Family,
+            :LowIncome],
+    prodchars=[:Price,:AV,:Big],
+    prodchars_0=[:AV,:Big],
+    fixedEffects=[:Firm_Market],
+    wgt=[:PERWT])
+
+m = InsuranceLogit(chdf,1000)
+
+costdf = MC_Data(df,mom_avg,mom_age,mom_risk;
+                baseSpec=[:AGE,:AV_std,:AV_diff],
+                fixedEffects=[:Firm_ST],
+                constMoments=false)
+chdf = 0.0
+
+
+## Load Demand Estimation
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
+@load file p_stg2
+p_est = copy(p_stg2)
+
+#### Compute Demand Estimation
+par_est_dem = parDict(m,p_est)
+individual_values_nonprice!(m,par_est_dem)
+individual_values_price!(m,par_est_dem)
+individual_shares(m,par_est_dem)
+
+### Load Marginal Cost Estimation
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
+@load file est_stg2
+p_stg2 ,fval = est_stg2
+mc_est = copy(p_stg2)
+
+#### Compute Marginal Costs
+par_est_mc = parMC(mc_est,par_est_dem,m,costdf)
+individual_costs(m,par_est_mc)
+
+## Size of Data
+(K,M) = size(m.data.data)
+(N,Q) = size(m.draws)
+
+output_data = Matrix{Float64}(undef,18,M*N/2)
+
+### Count 0 HCC Individuals ####
+pos_HCC = sum(m.draws.>0,dims=1)
+
+
+person_long = person(m.data)
+product_long = product(m.data)
+riskInd_long = Int.(rInd(m.data))
+ageHCC_long = ageHCC(m.data)
+otherData = convert(Matrix{Float64},df[[:AGE,:ageRate,:ageRate_avg,:AV,:Gamma_j,:Mandate,:subsidy,:IncomeCont,:MEMBERS,:PERWT]])
+density_long = df[:mkt_density]
+Catas_long = Int.(df[:METAL].=="Catastrophic")
+
+state_index = Vector{String}(undef,M*N/2)
+state_long = df[:ST]
+ind = [0]
+for i in 1:M
+    if i%1000==0
+        println(i)
+    end
+    zero_draw_flag = 0
+    r_ind = riskInd_long[i]
+    per_raw = person_long[i]
+    prd = product_long[i]
+    oth = otherData[i,:]
+    catas = Catas_long[i]
+    dens_raw = density_long[i]
+    ageHCC = ageHCC_long[i]
+
+    C_nonrisk = par_est_mc.C_nonrisk[i]
+    for n in 1:N
+        risk_draw = m.draws[n,r_ind]
+        if risk_draw>0
+            mkt_dens = dens_raw
+        elseif zero_draw_flag==0
+            mkt_dens = dens_raw*(N-pos_HCC[r_ind])
+            zero_draw_flag = 1
+        else
+            continue
+        end
+        ind[1]+=1
+
+        per = per_raw*N + n
+
+        R = m.draws[n,r_ind] + ageHCC
+        C = C_nonrisk*par_est_mc.risks[n,r_ind]
+        α = par_est_dem.α[n,i]
+        μ_ij_nonprice = par_est_dem.μ_ij_nonprice[n,i]
+
+        row = vcat([per,prd,catas,mkt_dens],oth,[α,μ_ij_nonprice,R,C])
+        output_data[:,ind[1]] = row
+        state_index[ind[1]] = state_long[i]
+    end
+end
+output_data = output_data[:,1:ind[1]]
+state_index = state_index[1:ind[1]]
+
+states = unique(df[:ST])
+header = Symbol.(["Person","Product","Catastrophic","mkt_density",
+"AGE","ageRate","ageRate_avg","AV","Gamma_j","Mandate","subsidy","IncomeCont","MEMBERS","PERWT",
+"alpha","non_price_util","R","C"])
+for st in states
+    println(st)
+    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Equilibrium_Data/estimated_Data_$st$rundate.csv"
+    st_subset = state_index.==st
+    df_st = convert(DataFrame,permutedims(output_data[:,st_subset],(2,1)))
+    names!(df_st,header)
+    CSV.write(file,df_st,
+                colnames=["Person","Product","Catastrophic",
+                "AGE","ageRate","ageRate_avg","AV","Gamma_j","Mandate","subsidy","IncomeCont","MEMBERS","PERWT",
+                "alpha","non_price_util","R","C"])
+end

@@ -71,7 +71,8 @@ function ChoiceData(data_choice::DataFrame,
         fixedEffects=Vector{Symbol}(undef,0),
         wgt=[:N],
         unins=[:unins_rate],
-        riskscores=true)
+        riskscores=true,
+        constMoments=true)
 
     # Get the size of the data
     n, k = size(data_choice)
@@ -235,23 +236,27 @@ function ChoiceData(data_choice::DataFrame,
     moments = sort(unique(data_risk[:momentID]))
     tMoments = Vector{Float64}(undef,length(moments))
     st_share = zeros(length(keys(_productDict)))
-    for m in moments
-        _tMomentDict[m] = data_risk[:Product][findall(data_risk[:momentID].==m)]
-        tMoments[m] = data_risk[:T_moment][findall(data_risk[:momentID].==m)][1]
-    end
-
-
     _stDict = Dict{Int,Array{Int64,1}}()
-    states = unique(data_risk[:ST])
-    for s in states
-        _stDict[s] = unique(data_risk[:Product][findall(data_risk[:ST].==s)])
-    end
+    if constMoments
 
-    for prod in keys(_productDict)
-        ind = Int(prod)
-        idx = findall(data_risk[:Product].==prod)
-        if length(idx)>0
-            st_share[ind] = data_risk[:st_share][idx[1]]
+        for m in moments
+            _tMomentDict[m] = data_risk[:Product][findall(data_risk[:momentID].==m)]
+            tMoments[m] = data_risk[:T_moment][findall(data_risk[:momentID].==m)][1]
+        end
+
+
+
+        states = unique(data_risk[:ST])
+        for s in states
+            _stDict[s] = unique(data_risk[:Product][findall(data_risk[:ST].==s)])
+        end
+
+        for prod in keys(_productDict)
+            ind = Int(prod)
+            idx = findall(data_risk[:Product].==prod)
+            if length(idx)>0
+                st_share[ind] = data_risk[:st_share][idx[1]]
+            end
         end
     end
 

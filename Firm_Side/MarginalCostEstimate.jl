@@ -9,7 +9,7 @@ load_path = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Cod
 # Data Structure
 include("$load_path/InsChoiceData.jl")
 include("$load_path/Halton.jl")
-include("$load_path/RandomCoefficients_nonzero.jl")
+include("$load_path/RandomCoefficients.jl")
 include("$load_path/utility.jl")
 include("$load_path/Contraction.jl")
 
@@ -24,7 +24,7 @@ include("MC_load.jl")
 
 #### Build Model ####
 # Structre the data
-c = ChoiceData(df,df_mkt,df_risk;
+chdf = ChoiceData(df,df_mkt,df_risk;
     demoRaw=[:AgeFE_31_39,
             :AgeFE_40_51,
             :AgeFE_52_64,
@@ -36,7 +36,7 @@ c = ChoiceData(df,df_mkt,df_risk;
     wgt=[:PERWT])
 
 # Fit into model
-m = InsuranceLogit(c,1000)
+m = InsuranceLogit(chdf,1000)
 
 # Cost Data
 costdf = MC_Data(df,mom_avg,mom_age,mom_risk;

@@ -69,12 +69,13 @@ function MC_Data(data_choice::DataFrame,
                 mom_age::DataFrame,
                 mom_risk::DataFrame;
         baseSpec=[:Age,:AV],
-        fixedEffects=Vector{Symbol}(undef,0))
+        fixedEffects=Vector{Symbol}(undef,0),
+        constMoments = true)
     # Get the size of the data
     n, k = size(data_choice)
 
     # Convert everything to an array once for performance
-    data = convert(Array{Float64},data_choice[baseSpec])
+    data = convert(Matrix{Float64},data_choice[baseSpec])
 
     println("Create Fixed Effects")
     bigFirm = false
@@ -130,24 +131,28 @@ function MC_Data(data_choice::DataFrame,
     _avgMomentProdDict = Dict{Int,Array{Int64,1}}()
     moments = sort(unique(mom_avg[:M_num]))
     avgMoments = Vector{Float64}(undef,length(moments))
-    for m in moments
-        m_df_index = findall(mom_avg[:M_num].==m)
-        m_index = mom_avg[:index][m_df_index]
-        _avgMomentDict[m] = m_index
-        _avgMomentBit[m] = inlist(all_idx,m_index)
-        _avgMomentProdDict[m] = sort(unique(mom_avg[:Product][m_df_index]))
-        avgMoments[m] = mom_avg[:logAvgCost][m_df_index][1]
+    if constMoments
+        for m in moments
+            m_df_index = findall(mom_avg[:M_num].==m)
+            m_index = mom_avg[:index][m_df_index]
+            _avgMomentDict[m] = m_index
+            _avgMomentBit[m] = inlist(all_idx,m_index)
+            _avgMomentProdDict[m] = sort(unique(mom_avg[:Product][m_df_index]))
+            avgMoments[m] = mom_avg[:logAvgCost][m_df_index][1]
+        end
     end
 
     _ageMomentDict = Dict{Int,Array{Int64,1}}()
     _ageMomentBit = Dict{Int,BitArray{1}}()
     moments = sort(unique(mom_age[:M_num]))
     ageMoments = Vector{Float64}(undef,length(moments))
-    for m in moments
-        m_index = mom_age[:index][findall(mom_age[:M_num].==m)]
-        _ageMomentDict[m] = m_index
-        _ageMomentBit[m] = inlist(all_idx,m_index)
-        ageMoments[m] = mom_age[:costIndex][findall(mom_age[:M_num].==m)][1]
+    if constMoments
+        for m in moments
+            m_index = mom_age[:index][findall(mom_age[:M_num].==m)]
+            _ageMomentDict[m] = m_index
+            _ageMomentBit[m] = inlist(all_idx,m_index)
+            ageMoments[m] = mom_age[:costIndex][findall(mom_age[:M_num].==m)][1]
+        end
     end
 
     riskMoment = mom_risk[:costIndex][2]

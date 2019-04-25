@@ -1,5 +1,28 @@
 using PyPlot
 
+function outputData(c::MC_Data,d::InsuranceLogit,rundate::String)
+    ### Load Demand Estimation
+    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
+    @load file p_stg2
+    p_est = copy(p_stg2)
+
+    #### Compute Demand Estimation
+    par_est_dem = parDict(m,p_est)
+    individual_values!(m,par_est)
+
+    ### Load Marginal Cost Estimation
+    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
+    @load file est_stg2
+    p_stg2 ,fval = est_stg2
+    mc_est = copy(p_stg2)
+
+    #### Compute Marginal Costs
+    par_est_mc = parMC(mc_est,p_est,d,c)
+    individual_costs(d,par_est_mc)
+
+
+
+
 function momFitPlot(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     s_hat = p.pars.s_hat
     s_hat_nonrisk = p.s_hat_nonrisk
