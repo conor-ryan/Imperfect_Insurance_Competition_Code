@@ -379,18 +379,28 @@ function costMoments_bootstrap(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     c_hat_nonHCC = p.C_nonrisk
     c_hat_HCC = p.C_HCC
 
-    pmom = Vector{T}(undef,length(c.avgMoments))
+    fmom = Vector{T}(undef,length(c.firmMoments))
+    mmom = Vector{T}(undef,length(c.metalMoments)-1)
     amom = Vector{T}(undef,length(c.ageMoments)-1)
 
-    ## Product and Firm Moments
-    for (m,m_idx) in c._avgMomentBit
-        # m_sample = draw[inlist_sorted(draw,m_idx)]
-        m_sample = draw[m_idx[draw]]
 
+    ## Firm Moments
+    for (m,m_idx) in c._firmMomentBit
+        m_sample = draw[m_idx[draw]]
         c_avg = sliceMean_wgt(c_hat,wgts_share,m_sample)
-        pmom[m] = log(c_avg) - c.avgMoments[m]
-        # pmom[m] = (c_avg - exp(c.avgMoments[m]))/100
-        # pmom[m] = c_avg
+        fmom[m] = log(c_avg) - c.firmMoments[m]
+    end
+
+    ## Metal Moments
+    refval = sliceMean_wgt(c_hat,wgts_share,c._metalMomentDict[1])
+    for (m,m_idx) in c._metalMomentBit
+        if m==1
+            continue
+        else
+            m_sample = draw[m_idx[draw]]
+            c_avg = sliceMean_wgt(c_hat,wgts_share,m_sample)
+            mmom[m-1] = c_avg/refval[1] - c.metalMoments[m]
+        end
     end
 
     ## Age Moments
@@ -413,7 +423,7 @@ function costMoments_bootstrap(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     non_avg = sliceMean_wgt(c_hat_nonHCC,none_share,m_sample)
     rmom = HCC_avg/non_avg - c.riskMoment
 
-    return vcat(pmom,amom,rmom)
+    return vcat(fmom,mmom,amom,rmom)
 end
 
 function var_bootstrap(c::MC_Data,d::InsuranceLogit,p::Array{T},p_est::parDict{Float64};draw_num::Int=1000) where T
@@ -424,7 +434,7 @@ function var_bootstrap(c::MC_Data,d::InsuranceLogit,p::Array{T},p_est::parDict{F
 end
 
 function var_bootstrap(c::MC_Data,d::InsuranceLogit,p::parMC{T};draw_num::Int=1000) where T
-    M_num = length(c.avgMoments) + length(c.ageMoments) -1 + 1
+    M_num = c.mom_length
     moment_draws = Matrix{Float64}(undef,M_num,draw_num)
     sqrt_n = sqrt(calc_pop(m.data))
     #Sample By States
@@ -438,7 +448,7 @@ function var_bootstrap(c::MC_Data,d::InsuranceLogit,p::parMC{T};draw_num::Int=10
     nan_ind = findall( .! (isnan.(check[:]) .| isinf.(check[:])))
     moment_draws = moment_draws[:,nan_ind]
 
-    Σ = scattermat(moment_draws,2)
+    Σ = scattermat(moment_draws,dims=2)
     Σ = Σ./draw_num
     mean_moments = mean(moment_draws./sqrt_n,dims=2)
     return Σ, mean_moments
@@ -528,7 +538,7 @@ end
 
 function mom_gradient(p::Vector{T},p_est::parDict{Float64},
                 d::InsuranceLogit,c::MC_Data) where T
-    Mlen = length(c.avgMoments)+(length(c.ageMoments)-1) + 1
+    Mlen = c.mom_length
     mom_grad = Matrix{Float64}(undef,Mlen,length(p))
 
     f_obj(x) = costMoments(c,d,x,p_est)

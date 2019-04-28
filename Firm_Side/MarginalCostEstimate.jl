@@ -142,7 +142,7 @@ println("#################")
 
 # S2,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
 # W = inv(S2)
-S,mom_est = var_bootstrap(costdf,m,p_stg1,par_est,draw_num=1000)
+S,mom_est = var_bootstrap(costdf,m,p_init,par_est,draw_num=1000)
 W = inv(S)
 
 p0 = vcat([0.1,2,2,0.1],rand(length(costdf._feIndex)).+2)
@@ -234,9 +234,9 @@ moments = costMoments(costdf,m,par)
 println(sum(moments.^2))
 println(sum(moments.^4))
 
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
-# @load file est_stg2
-# flag, fval, p_stg2 = est_stg2
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
+@load file est_stg2
+p_stg2, fval = est_stg2
 #
 # GMM_objective(p_stg3,par_est,m,costdf,W)
 # GMM_objective(p_stg2,par_est,m,costdf,W)
@@ -252,17 +252,17 @@ par = parMC(p_stg2,par_est,m,costdf)
 individual_costs(m,par)
 moments = costMoments(costdf,m,par)
 
-par1 = parMC(p_stg1,par_est,m,costdf)
-individual_costs(m,par1)
-moments1 = costMoments(costdf,m,par1)
+# par1 = parMC(p_stg1,par_est,m,costdf)
+# individual_costs(m,par1)
+# moments1 = costMoments(costdf,m,par1)
 
 
 grad = Matrix{Float64}(undef,costdf.par_length,costdf.mom_length)
 hess = Array{Float64,3}(undef,costdf.par_length,costdf.par_length,costdf.mom_length)
-costMoments!(hess,grad,costdf,m,par)
+mom_test = costMoments!(hess,grad,costdf,m,par)
 
 
-grad2 = mom_gradient(p0,par_est,m,costdf)
+grad2 = mom_gradient(p_stg2,par_est,m,costdf)
 
 test = grad - grad2'
 test[costdf._riskIndex,:] .= 0.0
