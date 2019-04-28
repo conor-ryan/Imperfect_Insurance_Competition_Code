@@ -39,7 +39,7 @@ chdf = ChoiceData(df,df_mkt,df_risk;
 m = InsuranceLogit(chdf,1000)
 
 # Cost Data
-costdf = MC_Data(df,mom_avg,mom_age,mom_risk;
+costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_risk;
                 baseSpec=[:AGE,:AV_std,:AV_diff],
                 fixedEffects=[:Firm_ST])
 
@@ -99,8 +99,7 @@ println("###### Estimation 1 #######")
 println("#################")
 println("#################")
 
-mom_length = length(costdf.avgMoments) + (length(costdf.ageMoments)-1) + 1
-W = Matrix(1.0I,mom_length,mom_length)
+W = Matrix(1.0I,costdf.mom_length,costdf.mom_length)
 # p0 = [0.0142467, 2.38318, 0.118645, 3.71279, 2.82461, 3.05562, 3.13485, 2.9542, 2.57828, 3.15453, 3.11387, 3.04592, 2.28916, 3.28014, 3.22481, 2.87773, 2.82558]
 p0 = vcat([0,1,1,0],rand(length(costdf._feIndex)).+2)
 est_init = estimate_GMM(p0,par_est,m,costdf,W)

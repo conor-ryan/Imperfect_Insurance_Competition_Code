@@ -21,7 +21,7 @@ function outputData(c::MC_Data,d::InsuranceLogit,rundate::String)
     individual_costs(d,par_est_mc)
 
 
-
+end
 
 function momFitPlot(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     s_hat = p.pars.s_hat

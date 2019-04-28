@@ -52,10 +52,15 @@ struct MC_Data
     _stDict::Dict{Int,Array{Int,1}}
 
     # Moment Values
-    _avgMomentDict::Dict{Int,Array{Int,1}}
-    _avgMomentBit::Dict{Int,BitArray{1}}
-    _avgMomentProdDict::Dict{Int,Array{Int,1}}
-    avgMoments::Vector{Float64}
+    _firmMomentDict::Dict{Int,Array{Int,1}}
+    _firmMomentBit::Dict{Int,BitArray{1}}
+    _firmMomentProdDict::Dict{Int,Array{Int,1}}
+    firmMoments::Vector{Float64}
+
+    _metalMomentDict::Dict{Int,Array{Int,1}}
+    _metalMomentBit::Dict{Int,BitArray{1}}
+    _metalMomentProdDict::Dict{Int,Array{Int,1}}
+    metalMoments::Vector{Float64}
 
     _ageMomentDict::Dict{Int,Array{Int,1}}
     _ageMomentBit::Dict{Int,BitArray{1}}
@@ -65,7 +70,8 @@ struct MC_Data
 end
 
 function MC_Data(data_choice::DataFrame,
-                mom_avg::DataFrame,
+                mom_firm::DataFrame,
+                mom_metal::DataFrame,
                 mom_age::DataFrame,
                 mom_risk::DataFrame;
         baseSpec=[:Age,:AV],
@@ -126,19 +132,35 @@ function MC_Data(data_choice::DataFrame,
     println("Construct Moments")
     all_idx = 1:n
 
-    _avgMomentDict = Dict{Int,Array{Int64,1}}()
-    _avgMomentBit = Dict{Int,BitArray{1}}()
-    _avgMomentProdDict = Dict{Int,Array{Int64,1}}()
-    moments = sort(unique(mom_avg[:M_num]))
-    avgMoments = Vector{Float64}(undef,length(moments))
+    _firmMomentDict = Dict{Int,Array{Int64,1}}()
+    _firmMomentBit = Dict{Int,BitArray{1}}()
+    _firmMomentProdDict = Dict{Int,Array{Int64,1}}()
+    moments = sort(unique(mom_firm[:M_num]))
+    firmMoments = Vector{Float64}(undef,length(moments))
     if constMoments
         for m in moments
-            m_df_index = findall(mom_avg[:M_num].==m)
-            m_index = mom_avg[:index][m_df_index]
-            _avgMomentDict[m] = m_index
-            _avgMomentBit[m] = inlist(all_idx,m_index)
-            _avgMomentProdDict[m] = sort(unique(mom_avg[:Product][m_df_index]))
-            avgMoments[m] = mom_avg[:logAvgCost][m_df_index][1]
+            m_df_index = findall(mom_firm[:M_num].==m)
+            m_index = mom_firm[:index][m_df_index]
+            _firmMomentDict[m] = m_index
+            _firmMomentBit[m] = inlist(all_idx,m_index)
+            _firmMomentProdDict[m] = sort(unique(mom_firm[:Product][m_df_index]))
+            firmMoments[m] = mom_firm[:logAvgCost][m_df_index][1]
+        end
+    end
+
+    _metalMomentDict = Dict{Int,Array{Int64,1}}()
+    _metalMomentBit = Dict{Int,BitArray{1}}()
+    _metalMomentProdDict = Dict{Int,Array{Int64,1}}()
+    moments = sort(unique(mom_metal[:M_num]))
+    metalMoments = Vector{Float64}(undef,length(moments))
+    if constMoments
+        for m in moments
+            m_df_index = findall(mom_metal[:M_num].==m)
+            m_index = mom_metal[:index][m_df_index]
+            _metalMomentDict[m] = m_index
+            _metalMomentBit[m] = inlist(all_idx,m_index)
+            _metalMomentProdDict[m] = sort(unique(mom_metal[:Product][m_df_index]))
+            metalMoments[m] = mom_metal[:costIndex][m_df_index][1]
         end
     end
 
@@ -159,14 +181,15 @@ function MC_Data(data_choice::DataFrame,
 
 
     ### Lengths
-    mom_length = length(avgMoments) + (length(ageMoments)-1) + length(riskMoment)
+    mom_length = length(firmMoments)  + (length(metalMoments)-1) + (length(ageMoments)-1) + length(riskMoment)
     par_length = length(_baseIndex) + length(_riskIndex) + length(_feIndex)
 
 
 
     return MC_Data(data,F,anyHCC,_baseIndex,_riskIndex,_feIndex,
                     mom_length,par_length,_stDict,
-                    _avgMomentDict,_avgMomentBit,_avgMomentProdDict,avgMoments,
+                    _firmMomentDict,_firmMomentBit,_firmMomentProdDict,firmMoments,
+                    _metalMomentDict,_metalMomentBit,_metalMomentProdDict,metalMoments,
                     _ageMomentDict,_ageMomentBit,ageMoments,riskMoment)
 end
 
@@ -316,13 +339,14 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     c_hat_nonHCC_total = p.C_nonrisk./actuarial_values
     c_hat_HCC_total = p.C_HCC./actuarial_values
 
-    pmom = Vector{T}(undef,length(c.avgMoments))
+    fmom = Vector{T}(undef,length(c.firmMoments))
+    mmom = Vector{T}(undef,length(c.metalMoments)-1)
     amom = Vector{T}(undef,length(c.ageMoments)-1)
 
-    ## Product and Firm Moments
-    for (m,m_idx) in c._avgMomentDict
+    ## Firm Moments
+    for (m,m_idx) in c._firmMomentDict
         c_avg = sliceMean_wgt(c_hat,wgts_share,m_idx)
-        pmom[m] = log(c_avg) - c.avgMoments[m]
+        fmom[m] = log(c_avg) - c.firmMoments[m]
         # t = sum(test[m_idx])
         # if t>0.0
         #     println(m)
@@ -330,6 +354,17 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
         # end
         # pmom[m] = (c_avg - exp(c.avgMoments[m]))/100
         # pmom[m] = c_avg
+    end
+
+    ## Metal Moments
+    refval = sliceMean_wgt(c_hat,wgts_share,c._metalMomentDict[1])
+    for (m,m_idx) in c._metalMomentDict
+        if m==1
+            continue
+        else
+            c_avg = sliceMean_wgt(c_hat,wgts_share,m_idx)
+            mmom[m-1] = c_avg/refval[1] - c.metalMoments[m]
+        end
     end
 
     ## Age Moments
@@ -350,7 +385,7 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     non_avg = sliceMean_wgt(c_hat_nonHCC_total,none_share,all_idx)
     rmom = HCC_avg/non_avg - c.riskMoment
 
-    return vcat(pmom,amom,rmom)
+    return vcat(fmom,mmom,amom,rmom)
     # return vcat(pmom,amom,rmom)
 end
 

@@ -139,20 +139,25 @@ function solve_model!(e::EqData,tol::Float64=.5;sim="Base")
 end
 
 
-function run_st_equil(st::String;merger=false)
+function run_st_equil(st::String,rundate::String;merger=false)
     cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/")
     println("Read in Data for $st")
-    file1 = "Intermediate_Output/Equilibrium_Data/estimated_Data_$st.csv"
+    file1 = "Intermediate_Output/Equilibrium_Data/estimated_Data_$st$rundate.csv"
     df = CSV.read(file1,types=Dict("AGE"=>Float64,"Mandate"=>Float64,"MEMBERS"=>Float64), missingstring="NA")
     file2 = "Intermediate_Output/Equilibrium_Data/estimated_prodData_$st.csv"
     df_mkt = CSV.read(file2)#,null="NA")
     #cost_pars = CSV.read("Intermediate_Output/Equilibrium_Data/cost_pars.csv",null="NA")
 
+
+    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
+    @load file est_stg2
+    p_stg2 ,fval = est_stg2
+    ψ_AV = p_stg2[2]
     # Solve Model
     println("Build Model")
     c = ChoiceData(df,df_mkt)
 
-    model = EqData(c,df_mkt)
+    model = EqData(c,df_mkt,ψ_AV)
     if merger
         model.ownMat = model.ownMat_merge
     end
@@ -197,9 +202,9 @@ function run_st_equil(st::String;merger=false)
                         Price_RAman=P_RA_man)
 
     if merger
-        file3 = "Estimation_Output/solvedEquilibrium_merger_$st.csv"
+        file3 = "Estimation_Output/solvedEquilibrium_merger_$st$rundate.csv"
     else
-        file3 = "Estimation_Output/solvedEquilibrium_$st.csv"
+        file3 = "Estimation_Output/solvedEquilibrium_$st$rundate.csv"
     end
     CSV.write(file3,output)
     return nothing
@@ -210,17 +215,21 @@ end
 function Check_Margin(st::String)
     cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/")
     println("Read in Data for $st")
-    file1 = "Intermediate_Output/Equilibrium_Data/estimated_Data_$st.csv"
+    file1 = "Intermediate_Output/Equilibrium_Data/estimated_Data_$st$rundate.csv"
     df = CSV.read(file1,types=Dict("AGE"=>Float64,"Mandate"=>Float64,"MEMBERS"=>Float64), missingstring="NA")
     file2 = "Intermediate_Output/Equilibrium_Data/estimated_prodData_$st.csv"
     df_mkt = CSV.read(file2)#,null="NA")
     # cost_pars = CSV.read("Intermediate_Output/Equilibrium_Data/cost_pars.csv",null="NA")
+    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
+    @load file est_stg2
+    p_stg2 ,fval = est_stg2
+    ψ_AV = p_stg2[2]
 
     # Solve Model
     println("Build Model")
     c = ChoiceData(df,df_mkt)
 
-    model = EqData(c,df_mkt)
+    model = EqData(c,df_mkt,ψ_AV)
 
     evaluate_model!(model,init=true)
     # foc_Std, foc_RA, foc_RA_fix, S_m, dsdp_rev = eval_FOC(model)
@@ -241,7 +250,7 @@ function Check_Margin(st::String)
                         Price_RA = P_RA)
 
 
-    file3 = "Estimation_Output/focMargin_$st.csv"
+    file3 = "Estimation_Output/focMargin_$st$rundate.csv"
     CSV.write(file3,output)
     return nothing
 end

@@ -1,6 +1,7 @@
 using DataFrames
 using CSV
 using BenchmarkTools
+using JLD2
 ########################################################################
 #################### Loading and Cleaning Data #########################
 ########################################################################
@@ -12,18 +13,19 @@ include("SolveModel.jl")
 include("EquilibriumFunctions.jl")
 # run_st_equil("NE")
 # Check_Margin("NE")
+rundate = "2019-03-12"
 
 states = ["AK","NE","ND","OK","MD","IA","NM","UT",
 "OR","MO","IL","MI","GA","TX"]
 # states = ["MI","GA","TX"]
 for st in states
-    println("Solve Baseline Market Structure")
-        run_st_equil(st)
-    if st in ["MO","IL","MI","GA"]
-        println("Solve Merger Market Structure")
-        run_st_equil(st,merger=true)
-    end
-    println("Check Margin")
+    # println("Solve Baseline Market Structure")
+    #     run_st_equil(st,rundate)
+    # if st in ["MO","IL","MI","GA"]
+    #     println("Solve Merger Market Structure")
+    #     run_st_equil(st,rundate,merger=true)
+    # end
+    # println("Check Margin")
     Check_Margin(st)
 end
 

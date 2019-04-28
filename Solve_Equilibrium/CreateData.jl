@@ -71,21 +71,24 @@ individual_costs(m,par_est_mc)
 (K,M) = size(m.data.data)
 (N,Q) = size(m.draws)
 
-output_data = Matrix{Float64}(undef,18,M*N/2)
+output_data = Matrix{Float64}(undef,21,Int(M*N/2))
 
 ### Count 0 HCC Individuals ####
 pos_HCC = sum(m.draws.>0,dims=1)
 
 
 person_long = person(m.data)
-product_long = product(m.data)
+# product_long = product(m.data)
+product_long = Float64.(df[:Product_std])
 riskInd_long = Int.(rInd(m.data))
 ageHCC_long = ageHCC(m.data)
-otherData = convert(Matrix{Float64},df[[:AGE,:ageRate,:ageRate_avg,:AV,:Gamma_j,:Mandate,:subsidy,:IncomeCont,:MEMBERS,:PERWT]])
+otherData = convert(Matrix{Float64},df[[:AGE,:ageRate,:ageRate_avg,:AV,:Gamma_j,:Mandate,:subsidy,:IncomeCont,:MEMBERS]])
 density_long = df[:mkt_density]
-Catas_long = Int.(df[:METAL].=="Catastrophic")
+wgts_long = df[:PERWT]
+Catas_long = Float64.(df[:METAL].=="CATASTROPHIC")
+C_AV_long = exp.(mc_est[2].*df[:AV_std])
 
-state_index = Vector{String}(undef,M*N/2)
+state_index = Vector{String}(undef,Int(M*N/2))
 state_long = df[:ST]
 ind = [0]
 for i in 1:M
@@ -98,16 +101,22 @@ for i in 1:M
     prd = product_long[i]
     oth = otherData[i,:]
     catas = Catas_long[i]
-    dens_raw = density_long[i]
     ageHCC = ageHCC_long[i]
 
+
+    dens_raw = density_long[i]/N
+    wgt_raw = wgts_long[i]/N
+
     C_nonrisk = par_est_mc.C_nonrisk[i]
+    C_AV = C_AV_long[i]
     for n in 1:N
         risk_draw = m.draws[n,r_ind]
         if risk_draw>0
             mkt_dens = dens_raw
+            wgt = wgt_raw
         elseif zero_draw_flag==0
             mkt_dens = dens_raw*(N-pos_HCC[r_ind])
+            wgt = wgt_raw*(N-pos_HCC[r_ind])
             zero_draw_flag = 1
         else
             continue
@@ -116,12 +125,14 @@ for i in 1:M
 
         per = per_raw*N + n
 
-        R = m.draws[n,r_ind] + ageHCC
+        R = risk_draw + ageHCC
         C = C_nonrisk*par_est_mc.risks[n,r_ind]
+        C_nonAV = C/C_AV
         α = par_est_dem.α[n,i]
         μ_ij_nonprice = par_est_dem.μ_ij_nonprice[n,i]
+        μ_ij = par_est_dem.μ_ij[n,i]
 
-        row = vcat([per,prd,catas,mkt_dens],oth,[α,μ_ij_nonprice,R,C])
+        row = vcat([per,prd,catas,mkt_dens,wgt],oth,[α,μ_ij_nonprice,μ_ij,R,risk_draw,C,C_nonAV])
         output_data[:,ind[1]] = row
         state_index[ind[1]] = state_long[i]
     end
@@ -130,17 +141,16 @@ output_data = output_data[:,1:ind[1]]
 state_index = state_index[1:ind[1]]
 
 states = unique(df[:ST])
-header = Symbol.(["Person","Product","Catastrophic","mkt_density",
-"AGE","ageRate","ageRate_avg","AV","Gamma_j","Mandate","subsidy","IncomeCont","MEMBERS","PERWT",
-"alpha","non_price_util","R","C"])
+header = Symbol.(["Person","Product","Catastrophic","mkt_density","PERWT",
+"AGE","ageRate","ageRate_avg","AV","Gamma_j","Mandate","subsidy","IncomeCont","MEMBERS",
+"alpha","non_price_util","util","R","R_HCC","C","C_nonAV"])
 for st in states
     println(st)
     file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Equilibrium_Data/estimated_Data_$st$rundate.csv"
     st_subset = state_index.==st
     df_st = convert(DataFrame,permutedims(output_data[:,st_subset],(2,1)))
     names!(df_st,header)
-    CSV.write(file,df_st,
-                colnames=["Person","Product","Catastrophic",
-                "AGE","ageRate","ageRate_avg","AV","Gamma_j","Mandate","subsidy","IncomeCont","MEMBERS","PERWT",
-                "alpha","non_price_util","R","C"])
+    # sort!(df_st,(:Person,:Product))
+    sort!(df_st,(:Product,:Person))
+    CSV.write(file,df_st)
 end

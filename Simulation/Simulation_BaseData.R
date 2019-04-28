@@ -410,6 +410,11 @@ acs[METAL=="BRONZE",HCC_age:=BronHCC_Age]
 acs[METAL=="CATASTROPHIC",HCC_age:=CataHCC_Age]
 
 
+## Standardized Silver Plans
+acs[,Metal_std:=gsub(" .*","",METAL)]
+acs[,Product_std:=min(Product),by=c("Firm","Metal_std","Market")]
+acs[,premBase_std:=median(premBase),by=c("Firm","Metal_std","Market")]
+
 rm(gcf)
 
 #### Density Weights ####
@@ -438,51 +443,13 @@ acs = merge(acs,r_mom,by=c("Age_Cat","Inc_Cat"),all.x=TRUE)
 acs[,c("Age_Cat","Inc_Cat"):=NULL]
 
 
-## Draws
-n_draws = 1000
-
-draws = halton(n_draws+100,dim=1,usetime=TRUE,normal=FALSE)[101:(100+n_draws)]
-
-HCC_draws = matrix(NA,nrow=n_draws,ncol=max(acs$Rtype))
-
-for (j in 1:max(r_mom$Rtype)){
-  any = 1 - r_mom$Any_HCC[r_mom$Rtype==j]
-  mu = r_mom$mean_HCC_Silver[r_mom$Rtype==j]
-  sigma = sqrt(r_mom$var_HCC_Silver[r_mom$Rtype==j])
-  draws_any = (draws-any)/(1-any)
-  
-  log_norm = exp(qnorm(draws_any)*sigma + mu)
-  log_norm[is.nan(log_norm)] = 0
-  
-  HCC_draws[,j] = log_norm
-}
-
-HCC_draws_metal = matrix(NA,nrow=n_draws,ncol=max(acs$Rtype)*5)
-metal_list = c("Catastrophic","Bronze","Silver","Gold","Platinum")
-
-for (j in 1:max(r_mom$Rtype)){
-  for (m in 1:5){
-    any = 1 - r_mom$Any_HCC[r_mom$Rtype==j]
-    mean_var = paste("mean_HCC",metal_list[m],sep="_")
-    sigma_var = paste("var_HCC",metal_list[m],sep="_")
-    
-    mu = r_mom[[mean_var]][r_mom$Rtype==j]
-    sigma = sqrt(r_mom[[sigma_var]][r_mom$Rtype==j])
-    draws_any = (draws-any)/(1-any)
-    
-    log_norm = exp(qnorm(draws_any)*sigma + mu)
-    log_norm[is.nan(log_norm)] = 0
-    
-    HCC_draws_metal[,(m-1)*max(r_mom$Rtype)+j] = log_norm
-  }
-}
-
 #### Output Analogous Data ####
 choiceData = acs[,c("Person","Firm","ST","Firm_ST","Firm_Market","Firm_Market_Cat","Market","Product","PERWT","Price",
                     "MedDeduct","ExcOOP","High","AV","AV_std","AV_diff","Big","Gamma_j",
                     "Mandate","subsidy","IncomeCont","mkt_density",
                     "Family","Age","LowIncome","AGE",
-                    "METAL",
+                    "METAL","premBase",
+                    "Metal_std","Product_std","premBase_std",
                     "ageRate","ageRate_avg","HCC_age","SilvHCC_Age","MEMBERS",
                     "mean_HCC_Platinum","mean_HCC_Gold","mean_HCC_Silver","mean_HCC_Bronze","mean_HCC_Catastrophic",
                     "Rtype","Any_HCC",

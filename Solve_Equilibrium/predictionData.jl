@@ -49,7 +49,7 @@ function ChoiceData(data_est::DataFrame,df_mkt::DataFrame)
 
     # Create a data matrix, only including person id
     println("Construct Data")
-    varNames = [:Person,:Product,:R,:alpha,:WTP,:AGE,:mkt_density,:ageRate,:ageRate_avg,
+    varNames = [:Person,:Product,:R,:alpha,:AGE,:mkt_density,:ageRate,:ageRate_avg,
                 :Mandate,:subsidy,:IncomeCont,:MEMBERS,:non_price_util,
                 :R_Gamma_j,:A_Gamma_j,:C,:C_nonAV,
                 :Catastrophic,:AV,:Gamma_j,:PERWT]
@@ -63,7 +63,7 @@ function ChoiceData(data_est::DataFrame,df_mkt::DataFrame)
     _productDict = Dict{Real, UnitRange{Int}}()
     _prod_person_Dict = Dict{Int,Dict{Real,Array{Int}}}()
     allids = data_est[:Product]
-    prodids = sort(unique(allids))
+    prodids = Int.(sort(unique(allids)))
 
     for id in prodids
         idx1 = searchsortedfirst(allids,id)
@@ -204,7 +204,7 @@ mutable struct EqData
     avgPrem_fix::Float64
 end
 
-function EqData(cdata::ChoiceData,mkt::DataFrame)#,cpars::DataFrame)
+function EqData(cdata::ChoiceData,mkt::DataFrame,ψ_AV::Float64)#,cpars::DataFrame)
     J = sum([mkt[:Firm].!="OTHER"][1])
     premBase = Vector{Float64}(undef,J)
     premBase[:] = mkt[:premBase][mkt[:Firm].!="OTHER"]
@@ -212,7 +212,7 @@ function EqData(cdata::ChoiceData,mkt::DataFrame)#,cpars::DataFrame)
 
     costBase = Vector{Float64}(undef,J)
     #cost = Vector{Float64}(J)
-    cost = mkt[:C_AV][mkt[:Firm].!="OTHER"]
+    cost = exp.(mkt[:AV_std][mkt[:Firm].!="OTHER"].*ψ_AV)
     #costBase[:] = mkt[:Cost_prod][mkt[:Firm].!="OTHER"]
 
     prods = Vector{Int64}(undef,J)
@@ -262,7 +262,8 @@ function EqData(cdata::ChoiceData,mkt::DataFrame)#,cpars::DataFrame)
     pmat = Matrix{Float64}(undef,length(prods),length(varNames))
 
     prod_data = 0
-    Other_R = mkt[:R_f][mkt[:Firm].=="OTHER"][1]
+    # Other_R = mkt[:R_f][mkt[:Firm].=="OTHER"][1]
+    Other_R = 0.0
 
     ## Build Ownership Matrix
     firms = mkt[:Firm][mkt[:Firm].!="OTHER"]
