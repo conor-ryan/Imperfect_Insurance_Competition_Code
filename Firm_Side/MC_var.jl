@@ -56,22 +56,22 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     for app in eachperson(d.data)
         g_n[:].= 0.0
         w_i = weight(app)[1]
-        # w_cov = w_i/Pop
-        w_cov = 1.0
+        w_cov = w_i/Pop
+        # w_cov = 1.0
         w_cov_sumsq[:] += [w_cov^2]
 
         idx_prod, wgt_obs = cost_obs_moments!(g_n,productIDs,app,d,c,par)
 
         # g_n[:] = g_n[:] - mean_moments[:]
-        # g_n[:] = (g_n[:]./w_i - mean_moments[:])
-        g_n[:] = (g_n[:] - w_i.*mean_moments[:])
+        g_n[:] = (g_n[:]./w_i - mean_moments[:])
+        # g_n[:] = (g_n[:] - w_i.*mean_moments[:])
 
         idx_nonEmpty = vcat(idx_prod,num_prods .+idx_prod,(num_prods*2+1):mom_length)
         # add_Σ(Σ,g_n,idx_nonEmpty)
         add_Σ(Σ,g_n,idx_nonEmpty,w_cov,Σ_hold)
     end
-    # Σ = Σ./(1-w_cov_sumsq[1])
-    Σ = Σ./Pop
+    Σ = Σ./(1-w_cov_sumsq[1])
+    # Σ = Σ./Pop
     # println(Pop)
     Δ = Δavar(c,d,mean_moments)
 
@@ -166,106 +166,40 @@ function add_Σ(Σ::Matrix{Float64},g_n::Vector{Float64},idx::Vector{Int64})
 end
 
 
-function test_Avar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Float64})
-    par = parMC(p,p_est,d,c) # Fix p0
-    individual_costs(d,par)
-
-    Pop = 0.0
-    wgts = weight(d.data)
-
-    ### Unique Product IDs
-    (N,M) = size(d.data.data)
-    productIDs = Vector{Int64}(undef,M)
-    for j in d.prods
-        idx_prod = d.data._productDict[j]
-        productIDs[idx_prod] .= j
-    end
-    num_prods = length(d.prods)
-
-    cost_moments = Vector{Float64}(undef,num_prods*2+2*length(c.ageMoments)+4)
-    mom_length = length(cost_moments)
-    g_n = Vector{Float64}(undef,mom_length)
-
-    Σ = zeros(mom_length,mom_length)
-    p_moments_p1= Vector{Float64}(undef,length(c.avgMoments))
-    p_moments_p2= Vector{Float64}(undef,length(c.avgMoments))
-    a_moments_p1= Vector{Float64}(undef,length(c.ageMoments))
-    a_moments_p2= Vector{Float64}(undef,length(c.ageMoments))
-    r_moments_p1= Vector{Float64}(undef,2)
-    r_moments_p2= Vector{Float64}(undef,2)
-
-    p_moments_p1[:] .= 0.0
-    p_moments_p2[:] .= 0.0
-    a_moments_p1[:] .= 0.0
-    a_moments_p2[:] .= 0.0
-    r_moments_p1[:] .= 0.0
-    r_moments_p2[:] .= 0.0
-
-
-    pmom = Vector{Float64}(undef,length(c.avgMoments))
-    amom = Vector{Float64}(undef,length(c.ageMoments)-1)
-
-    for app in eachperson(d.data)
-
-        idx_prod, wgt_obs = cost_obs_moments!(cost_moments,productIDs,app,d,c,par)
-
-        ## Product and Firm Moments
-        for (m,m_idx) in c._avgMomentProdDict
-            p_moments_p1[m] += sum(cost_moments[m_idx])
-            p_moments_p2[m] += sum(cost_moments[num_prods .+ m_idx])
-        end
-        ## Age Moments
-        a_moments_p1[:] += cost_moments[num_prods*2 .+ (1:length(c.ageMoments))]
-        a_moments_p2[:] += cost_moments[(num_prods*2 + length(c.ageMoments)) .+ (1:length(c.ageMoments))]
-        ## Risk Moments
-        r_moments_p1[:] += cost_moments[(num_prods*2 + 2*length(c.ageMoments)) .+ (1:2)]
-        r_moments_p2[:] += cost_moments[(num_prods*2 + 2*length(c.ageMoments)) .+ (3:4)]
-    end
-
-    ## Total Product Moments
-    for (m,m_idx) in c._avgMomentProdDict
-        pmom[m] = log(p_moments_p2[m]/p_moments_p1[m]) - c.avgMoments[m]
-        # pmom[m] = p_moments_p2[m]/p_moments_p1[m]
-    end
-    ## Total Age Moments
-    refval = a_moments_p2[1]/a_moments_p1[1]
-    for m in 2:length(a_moments_p1)
-        c_avg = a_moments_p2[m]/a_moments_p1[m]
-        amom[m-1] = c_avg/refval - c.ageMoments[m]
-    end
-    ## Total Risk Moments
-    non_avg = r_moments_p2[1]/r_moments_p1[1]
-    HCC_avg = r_moments_p2[2]/r_moments_p1[2]
-    rmom = HCC_avg/non_avg  - c.riskMoment
-    return vcat(pmom,amom,rmom)
-end
-
-
 function test_Avar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{T}) where T
 
     num_prods = length(d.prods)
-    p_moments_p1= Vector{T}(undef,length(c.avgMoments))
-    p_moments_p2= Vector{T}(undef,length(c.avgMoments))
+    f_moments_p1= Vector{T}(undef,length(c.firmMoments))
+    f_moments_p2= Vector{T}(undef,length(c.firmMoments))
+    m_moments_p1= Vector{T}(undef,length(c.metalMoments))
+    m_moments_p2= Vector{T}(undef,length(c.metalMoments))
     a_moments_p1= Vector{T}(undef,length(c.ageMoments))
     a_moments_p2= Vector{T}(undef,length(c.ageMoments))
     r_moments_p1= Vector{T}(undef,2)
     r_moments_p2= Vector{T}(undef,2)
 
-    p_moments_p1[:] .= 0.0
-    p_moments_p2[:] .= 0.0
+    f_moments_p1[:] .= 0.0
+    f_moments_p2[:] .= 0.0
+    m_moments_p1[:] .= 0.0
+    m_moments_p2[:] .= 0.0
     a_moments_p1[:] .= 0.0
     a_moments_p2[:] .= 0.0
     r_moments_p1[:] .= 0.0
     r_moments_p2[:] .= 0.0
 
 
-    pmom = Vector{T}(undef,length(c.avgMoments))
+    fmom = Vector{T}(undef,length(c.firmMoments))
+    mmom = Vector{T}(undef,length(c.metalMoments)-1)
     amom = Vector{T}(undef,length(c.ageMoments)-1)
 
     ## Product and Firm Moments
-    for (m,m_idx) in c._avgMomentProdDict
-        p_moments_p1[m] = sum(cost_moments[m_idx])
-        p_moments_p2[m] = sum(cost_moments[num_prods .+ m_idx])
+    for (m,m_idx) in c._firmMomentProdDict
+        f_moments_p1[m] = sum(cost_moments[m_idx])
+        f_moments_p2[m] = sum(cost_moments[num_prods .+ m_idx])
+    end
+    for (m,m_idx) in c._metalMomentProdDict
+        m_moments_p1[m] = sum(cost_moments[m_idx])
+        m_moments_p2[m] = sum(cost_moments[num_prods .+ m_idx])
     end
     ## Age Moments
     a_moments_p1[:] = cost_moments[num_prods*2 .+ (1:length(c.ageMoments))]
@@ -274,67 +208,114 @@ function test_Avar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{T}) where T
     r_moments_p1[:] = cost_moments[(num_prods*2 + 2*length(c.ageMoments)) .+ (1:2)]
     r_moments_p2[:] = cost_moments[(num_prods*2 + 2*length(c.ageMoments)) .+ (3:4)]
 
-    ## Total Product Moments
-    for (m,m_idx) in c._avgMomentProdDict
-        pmom[m] = log(p_moments_p2[m]/p_moments_p1[m]) - c.avgMoments[m]
-        # pmom[m] = p_moments_p2[m]/p_moments_p1[m]
+    ## Total Firm Moments
+    for (m,m_idx) in c._firmMomentProdDict
+        fmom[m] = log(f_moments_p2[m]/f_moments_p1[m]) - c.firmMoments[m]
+        # pmom[m] = f_moments_p2[m]/f_moments_p1[m]
+    end
+    ## Total Metal Moments
+    refval = m_moments_p2[1]/m_moments_p1[1]
+    for m in 2:length(m_moments_p1)
+        c_avg = m_moments_p2[m]/m_moments_p1[m]
+        mmom[m-1] = c_avg/refval - c.metalMoments[m]
     end
     ## Total Age Moments
     refval = a_moments_p2[1]/a_moments_p1[1]
     for m in 2:length(a_moments_p1)
         c_avg = a_moments_p2[m]/a_moments_p1[m]
-        amom[m-1] = c_avg/refval - c.ageMoments[m]
+        amom[m-1] = c_avg /refval - c.ageMoments[m]
     end
     ## Total Risk Moments
     non_avg = r_moments_p2[1]/r_moments_p1[1]
     HCC_avg = r_moments_p2[2]/r_moments_p1[2]
     rmom = HCC_avg/non_avg  - c.riskMoment
-    return vcat(pmom,amom,rmom)[297]
+    return vcat(fmom,mmom,amom,rmom)
 end
-
 
 function Δavar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{Float64})
-    M_num = length(c.avgMoments) + (length(c.ageMoments)-1) + 1
-    num_prods = length(d.prods)
-    Δ = zeros(M_num,length(cost_moments))
+    f_obj(x) = test_Avar(c,d,x)
+    grad = Matrix{Float64}(undef,c.mom_length,length(cost_moments))
+    ForwardDiff.jacobian!(grad, f_obj, cost_moments)
 
-    ## Product and Firm Moments
-    for (m,m_idx) in c._avgMomentProdDict
-        for j in m_idx
-            Δ[m,j] =  -1/sum(cost_moments[m_idx])
-            Δ[m,num_prods+j] = 1/sum(cost_moments[num_prods .+ m_idx])
-        end
-    end
-
-    ## Age Moments
-    a_moments_p1 = cost_moments[num_prods*2 .+ (1:length(c.ageMoments))]
-    a_moments_p2 = cost_moments[(num_prods*2 + length(c.ageMoments)) .+ (1:length(c.ageMoments))]
-
-
-    refval = a_moments_p2[1]/a_moments_p1[1]
-    for m in 2:(length(c.ageMoments))
-        # ref value
-        Δ[length(c.avgMoments) + m-1,num_prods*2 + 1] = (1/a_moments_p2[1])*(a_moments_p2[m]/a_moments_p1[m])
-        Δ[length(c.avgMoments) + m-1,num_prods*2 + length(c.ageMoments) + 1] = -(1/refval)*(1/a_moments_p2[1])*(a_moments_p2[m]/a_moments_p1[m])
-        # age val
-        Δ[length(c.avgMoments) + m-1,num_prods*2 + m] = -(1/refval)*(a_moments_p2[m]/a_moments_p1[m])*(1/a_moments_p1[m])
-        Δ[length(c.avgMoments) + m-1,num_prods*2 + length(c.ageMoments) + m] = (1/refval)*(1/a_moments_p1[m])
-    end
-
-    ## Risk Moments
-    r_moments_p1 = cost_moments[(num_prods*2 + 2*length(c.ageMoments)) .+ (1:2)]
-    r_moments_p2 = cost_moments[(num_prods*2 + 2*length(c.ageMoments)) .+ (3:4)]
-
-    ## Total Risk Moments
-    non_avg = r_moments_p2[1]/r_moments_p1[1]
-    HCC_avg = r_moments_p2[2]/r_moments_p1[2]
-    # rmom = HCC_avg/non_avg  - c.riskMoment
-    Δ[M_num,num_prods*2 + length(c.ageMoments)*2 + 1] = (HCC_avg)*(1/r_moments_p2[1])
-    Δ[M_num,num_prods*2 + length(c.ageMoments)*2 + 2] = -(HCC_avg/non_avg)*(1/r_moments_p1[2])
-    Δ[M_num,num_prods*2 + length(c.ageMoments)*2 + 3] = -(HCC_avg/non_avg)*(1/r_moments_p2[1])
-    Δ[M_num,num_prods*2 + length(c.ageMoments)*2 + 4] = (1/r_moments_p1[2])*(1/non_avg)
-    return Δ
+    return grad
 end
+
+
+#
+# function Δavar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{Float64})
+#     M_num = c.mom_length
+#     num_prods = length(d.prods)
+#     Δ = zeros(M_num,length(cost_moments))
+#     M1 = length(c.firmMoments)
+#     M2 = length(c.firmMoments) + length(c.metalMoments) - 1
+#
+#     ##  Firm Moments
+#     for (m,m_idx) in c._firmMomentProdDict
+#         for j in m_idx
+#             Δ[m,j] =  -1/sum(cost_moments[m_idx])
+#             Δ[m,num_prods+j] = 1/sum(cost_moments[num_prods .+ m_idx])
+#         end
+#     end
+#
+#     ## Metal Moments
+#     m_moments_p1 = Vector{Float64}(undef,length(c.metalMoments))
+#     m_moments_p2 = Vector{Float64}(undef,length(c.metalMoments))
+#
+#     for (m,m_idx) in c._metalMomentProdDict
+#         m_moments_p2[m] = sum(cost_moments[num_prods .+ m_idx])
+#         m_moments_p1[m] = sum(cost_moments[m_idx])
+#     end
+#
+#     refval = m_moments_p2[1]/m_moments_p1[1]
+#     ref_idx = c._metalMomentProdDict[1]
+#
+#     for (m,m_idx) in c._metalMomentProdDict
+#         if m==1
+#             continue
+#         end
+#         for j in ref_idx
+#             # ref value
+#             Δ[M1 + m-1,j] = (1/m_moments_p2[1])*(m_moments_p2[m]/m_moments_p1[m])
+#             Δ[M1 + m-1,num_prods .+ j] = -(1/refval)*(1/m_moments_p2[1])*(m_moments_p2[m]/m_moments_p1[m])
+#         end
+#         for j in m_idx
+#                 # age val
+#                 Δ[M1 + m-1,j] = -(1/refval)*(m_moments_p2[m]/m_moments_p1[m])*(1/m_moments_p1[m])
+#                 Δ[M1 + m-1,num_prods .+ j] = (1/refval)*(1/m_moments_p1[m])
+#         end
+#     end
+#
+#     ## Age Moments
+#
+#     a_moments_p1 = cost_moments[num_prods*2 .+ (1:length(c.ageMoments))]
+#     a_moments_p2 = cost_moments[(num_prods*2 + length(c.ageMoments)) .+ (1:length(c.ageMoments))]
+#
+#
+#     refval = a_moments_p2[1]/a_moments_p1[1]
+#     for m in 2:(length(c.ageMoments))
+#         # ref value
+#         Δ[M2 + m-1,num_prods*2 + 1] = (1/a_moments_p2[1])*(a_moments_p2[m]/a_moments_p1[m])
+#         Δ[M2 + m-1,num_prods*2 + length(c.ageMoments) + 1] = -(1/refval)*(1/a_moments_p2[1])*(a_moments_p2[m]/a_moments_p1[m])
+#         # age val
+#         Δ[M2 + m-1,num_prods*2 + m] = -(1/refval)*(a_moments_p2[m]/a_moments_p1[m])*(1/a_moments_p1[m])
+#         Δ[M2 + m-1,num_prods*2 + length(c.ageMoments) + m] = (1/refval)*(1/a_moments_p1[m])
+#     end
+#
+#
+#     ## Risk Moments
+#     r_moments_p1 = cost_moments[(num_prods*2 + 2*length(c.ageMoments)) .+ (1:2)]
+#     r_moments_p2 = cost_moments[(num_prods*2 + 2*length(c.ageMoments)) .+ (3:4)]
+#
+#     ## Total Risk Moments
+#     non_avg = r_moments_p2[1]/r_moments_p1[1]
+#     HCC_avg = r_moments_p2[2]/r_moments_p1[2]
+#     # rmom = HCC_avg/non_avg  - c.riskMoment
+#     Δ[M_num,num_prods*2 + length(c.ageMoments)*2 + 1] = (HCC_avg)*(1/r_moments_p2[1])
+#     Δ[M_num,num_prods*2 + length(c.ageMoments)*2 + 2] = -(HCC_avg/non_avg)*(1/r_moments_p1[2])
+#     Δ[M_num,num_prods*2 + length(c.ageMoments)*2 + 3] = -(HCC_avg/non_avg)*(1/r_moments_p2[1])
+#     Δ[M_num,num_prods*2 + length(c.ageMoments)*2 + 4] = (1/r_moments_p1[2])*(1/non_avg)
+#     return Δ
+# end
 
 
 
@@ -441,8 +422,8 @@ function var_bootstrap(c::MC_Data,d::InsuranceLogit,p::parMC{T};draw_num::Int=10
 
 
     for i in 1:draw_num
-        # moment_draws[:,i] = sqrt_n.*costMoments_bootstrap(c,d,p)
-        moment_draws[:,i] = sqrt_n.*costMoments_bootstrap(c,d,p).^2
+        moment_draws[:,i] = sqrt_n.*costMoments_bootstrap(c,d,p)
+        # moment_draws[:,i] = sqrt_n.*costMoments_bootstrap(c,d,p).^2
     end
     check = sum(moment_draws,dims=1)
     nan_ind = findall( .! (isnan.(check[:]) .| isinf.(check[:])))
@@ -452,24 +433,6 @@ function var_bootstrap(c::MC_Data,d::InsuranceLogit,p::parMC{T};draw_num::Int=10
     Σ = Σ./draw_num
     mean_moments = mean(moment_draws./sqrt_n,dims=2)
     return Σ, mean_moments
-end
-
-function inlist(x::Vector{T},y::Vector{T}) where T
-    bits = BitArray{1}(undef,length(x))
-    # min_y = minimum(y)
-    for (n,i) in enumerate(x)
-        bits[n] = i in y
-    end
-    return bits
-end
-
-function inlist(x::UnitRange{T},y::Vector{Union{Missing,T}}) where T
-    bits = BitArray{1}(undef,length(x))
-    # min_y = minimum(y)
-    for (n,i) in enumerate(x)
-        bits[n] = i in y
-    end
-    return bits
 end
 
 function calc_pop(df::ChoiceData)
@@ -495,7 +458,8 @@ end
 function GMM_var(c::MC_Data,d::InsuranceLogit,p::Array{Float64},par_est::parDict{Float64};draw_num=1000)
     ## Moment Variance
     println("Moment Variance")
-    S,mom_est = var_bootstrap(c,d,p,par_est,draw_num=draw_num)
+    # S,mom_est = var_bootstrap(c,d,p,par_est,draw_num=draw_num)
+    S,Σ,Δ,mom_long = aVar(c,d,p,par_est)
 
     ## Derivative of Moments wrt Parameters
     println("Moment Gradient")

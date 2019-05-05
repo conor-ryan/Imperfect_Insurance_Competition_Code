@@ -21,6 +21,7 @@ df[:Firm] = String.(df[:Firm])
 df[:constant] = ones(size(df, 1))
 
 
-mom_avg = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/MC_Moments/avgMoments.csv")
+mom_firm = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/MC_Moments/firmMoments.csv")
+mom_metal = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/MC_Moments/metalMoments.csv")
 mom_age = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/MC_Moments/ageMoments.csv")
 mom_risk = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/MC_Moments/riskMoments.csv")

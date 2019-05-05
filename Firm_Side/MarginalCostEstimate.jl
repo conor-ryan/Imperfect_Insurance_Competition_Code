@@ -19,6 +19,7 @@ include("MC_GMM.jl")
 include("MC_var.jl")
 include("MC_derivatives.jl")
 include("MC_optimization.jl")
+include("Firm_Inner_Loop.jl")
 # Load the Data
 include("MC_load.jl")
 
@@ -100,56 +101,83 @@ println("#################")
 println("#################")
 
 W = Matrix(1.0I,costdf.mom_length,costdf.mom_length)
-# p0 = [0.0142467, 2.38318, 0.118645, 3.71279, 2.82461, 3.05562, 3.13485, 2.9542, 2.57828, 3.15453, 3.11387, 3.04592, 2.28916, 3.28014, 3.22481, 2.87773, 2.82558]
-p0 = vcat([0,1,1,0],rand(length(costdf._feIndex)).+2)
-est_init = estimate_GMM(p0,par_est,m,costdf,W)
-p_init, fval = est_init
-est_stg1 = estimate_GMM(p_init,par_est,m,costdf,W;squared=true)
+p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2,rand(length(costdf._feIndex)).*3 .+1)
+est_stg1 = estimate_GMM(p0,par_est,m,costdf,W,fit=true)
 incase = est_stg1
 #
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
 @save file est_stg1
 
-
-
-
+# p0 = [.1,4,.1,.1]
+# p_firm = fit_firm_moments(p0,par_est,m,costdf)
+#
+#
+# p0 = vcat([0,1,1,0],rand(length(costdf._feIndex)).+2)
+# p0 = [0.197683, 3.19544, -0.389545, 0.142835]
+# est = estimate_NLOpt(p0,par_est,m,costdf,W)
+# flag, fval, pinit = est
+# p_full = fit_firm_moments(pinit,par_est,m,costdf)
+# est_init = estimate_GMM(p_full,par_est,m,costdf,W)
+#
+# est = twopart_NR_GMM(p0,par_est,m,costdf,W)
+# p0 = vcat(rand(1)*.3,rand(2).*4,rand(1)*.3)
+#
+#
+#
+# par = parMC(p2,par_est,m,costdf)
+# individual_costs(m,par)
+# m2 = costMoments(costdf,m,par)
+#
+#
+# p0 = vcat(rand(1)*.3,rand(2).*4,rand(1)*.3,rand(length(costdf._feIndex)).*3 .+1)
+# est_init = estimate_GMM(p0,par_est,m,costdf,W)
+#
+#
+# est = twopart_GA_GMM(p0,par_est,m,costdf,W)
+#
+# GMM_outer_loop(p0,par_est,m,costdf,W)
+# est = estimate_NLOpt(p0,par_est,m,costdf,W)
+#
+# p_test,f_test = newton_raphson_GMM(p0,par_est,m,costdf,W)
+#
+# est_init = estimate_GMM(p_firm,par_est,m,costdf,W)
+# p_init, fval = est_init
+# est_stg1 = estimate_GMM(p_init,par_est,m,costdf,W;squared=true)
+# incase = est_stg1
+# #
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
+# @save file est_stg1
+#
+#
+#
+#
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
 @load file est_stg1
 p_stg1, fval = est_stg1
+#
+# p_test = fit_firm_moments(p_stg1[1:4],par_est,m,costdf)
 
 println("#################")
 println("#################")
 println("###### Estimation 2 #######")
 println("#################")
 println("#################")
-# 0.013256879768224933
-# 2.216022853728525
-# 0.1379307879498515
-# 3.7043473610912434
-# 3.0742318364102337
-# 2.5971482342483383
-# 2.9299329664027836
-# 3.0627843999066524
-# 2.2569960479161213
-# 4.0509420797356706
-# 2.5501373583954208
-# 3.4911435432186857
-# 2.7044854042466335
-# 3.140991172783581
-# 3.01763297597877
-# 3.0255579091830334
-# 3.44939149700815
 
-# S2,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
-# W = inv(S2)
-S,mom_est = var_bootstrap(costdf,m,p_init,par_est,draw_num=1000)
-W = inv(S)
 
-p0 = vcat([0.1,2,2,0.1],rand(length(costdf._feIndex)).+2)
-est_stg2 = estimate_GMM(p0,par_est,m,costdf,W;squared=true)
+S2,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
+W = inv(S2)
+# S,mom_est = var_bootstrap(costdf,m,p_stg1,par_est,draw_num=10000)
+# W = inv(S)
+
+p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2)
+# p0 = [0.0152152, 2.42283, -0.21084, 0.154506]
+flag,fval,p_init = estimate_NLOpt(p0,par_est,m,costdf,W)
+p_full0 = fit_firm_moments(p_init,par_est,m,costdf)
+
+est_stg2 = estimate_GMM(p_full0,par_est,m,costdf,W)
 p_stg2, fval = est_stg2
 
-
+# GMM_objective(p_fit,par_est,m,costdf,W,squared=true)
 #
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
 @save file est_stg2
@@ -227,7 +255,7 @@ GMM_objective!(hess2,grad2,p0,par_est,m,costdf,W)
 mom_grad = Matrix{Float64}(undef,costdf.par_length,costdf.mom_length)
 mom_hess = Array{Float64,3}(undef,costdf.par_length,costdf.par_length,costdf.mom_length)
 
-par = parMC(p_stg1,par_est,m,costdf)
+par = parMC(p_stg2,par_est,m,costdf)
 individual_costs(m,par)
 moments = costMoments(costdf,m,par)
 # moments = costMoments!(mom_hess,mom_grad,costdf,m,par)
@@ -273,10 +301,20 @@ println(maximum(abs.(test)))
 #
 # Σ,mom_est = var_bootstrap(costdf,m,par,draw_num=1000)
 
+
 ## Test Delta Gradient
+par = parMC(p_stg1,par_est,m,costdf)
+individual_costs(m,par)
+moments = costMoments(costdf,m,par)
+
+S2,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
+test = test_Avar(costdf,m,mom_long)
+
+
+
 f_obj(x) = test_Avar(costdf,m,x)
-grad = Vector{Float64}(undef,length(mom_long))
-ForwardDiff.gradient!(grad, f_obj, mom_long)
+grad = Matrix{Float64}(undef,length(moments),length(mom_long))
+ForwardDiff.jacobian!(grad, f_obj, mom_long)
 #
 println(findall(abs.(Δ[297,:]).>1e-11) == findall(abs.(grad).>1e-11))
 println(maximum(abs.(Δ[297,:] - grad)))

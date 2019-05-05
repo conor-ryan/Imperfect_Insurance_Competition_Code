@@ -365,7 +365,7 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false) where
                 println("skip")
                 continue
             end
-
+            # println(fac)
             F[fac_variables.==fac,ind] .= 1
             ind+= 1
 

@@ -38,7 +38,9 @@ firmData = unique(choiceData[,c("ST","Firm")])
 
 firmClaims = merge(firmData,claims,by.x=c("ST","Firm"),by.y=c("STATE","Firm"),all.x=TRUE)
 firmClaims[,logAvgCost:=log(AvgCost)]
-setkey(firmClaims,ST,Firm)
+firmClaims[,Firm_ST:=paste(Firm,ST,sep="_")]
+setkey(firmClaims,Firm_ST)
+firmClaims[,Firm_ST:=NULL]
 save(firmClaims,file="Intermediate_Output/Average_Claims/FirmAvgCost.rData")
 
 #### Filings Claims Data ####
@@ -95,7 +97,7 @@ ageMoments = as.data.table(read.csv("Intermediate_Output/MEPS_Moments/ageMoments
 setkey(ageMoments,Age_Bin)
 
 choiceData[,Age_Bin:=floor(AGE*10/5)*5]
-choiceData[AGE>=18 & Age_Bin==15,Age_Bin:=20]
+choiceData[AGE>=1.8 & Age_Bin==15,Age_Bin:=20]
 choiceData[,Age_1:=AGE/10]
 choiceData[,Age_2:=Age_1^2]
 
@@ -146,32 +148,32 @@ remove_Vars = ls()[!grepl("(full_predict|metalDict)",ls())]
 
 rm(list = remove_Vars)
 gc()
-
-
-#### Starting Vector ####
-run = "2019-03-12"
-simFile = paste("Simulation_Risk_Output/simData_",run,".rData",sep="")
-load(simFile)
-full_predict[,Age_1:=AGE]
-full_predict[,AV_diff:=AV-AV_std]
-
-full_predict = full_predict[,c("ST","Firm","Product","Metal_std","Age_1","s_pred","PERWT","HCC_Silver","AV_std","AV_diff")]
-metalDict = unique(metalDict[,c("Product","logAvgCost","M_num")])
-rm(acs,draws)
-gc()
-
-prod_Avgs = merge(full_predict,metalDict[,c("Product","logAvgCost","M_num")],by="Product",allow.cartesian = TRUE)
-rm(full_predict,metalDict)
-gc()
-
-prod_Avgs = prod_Avgs[,list(Age = sum(10*Age_1*s_pred*PERWT)/sum(s_pred*PERWT),
-                            HCC = sum(HCC_Silver*s_pred*PERWT)/sum(s_pred*PERWT),
-                            AV_std = sum(AV_std*s_pred*PERWT)/sum(s_pred*PERWT),
-                            AV_diff = sum(AV_diff*s_pred*PERWT)/sum(s_pred*PERWT)),
-                      by=c("ST","Firm","M_num","logAvgCost","Metal_std")]
-
-res = lm(logAvgCost~-1+Age+AV_std+AV_diff+HCC+ ST ,data=prod_Avgs)
-phi_start = res$coefficients
-linregfile = paste("Intermediate_Output/MC_Moments/linregpars_",run,".csv",sep="")
-write.csv(data.frame(par_start=phi_start),linregfile,row.names=FALSE)
-
+# 
+# 
+# #### Starting Vector ####
+# run = "2019-03-12"
+# simFile = paste("Simulation_Risk_Output/simData_",run,".rData",sep="")
+# load(simFile)
+# full_predict[,Age_1:=AGE]
+# full_predict[,AV_diff:=AV-AV_std]
+# 
+# full_predict = full_predict[,c("ST","Firm","Product","Metal_std","Age_1","s_pred","PERWT","HCC_Silver","AV_std","AV_diff")]
+# metalDict = unique(metalDict[,c("Product","logAvgCost","M_num")])
+# rm(acs,draws)
+# gc()
+# 
+# prod_Avgs = merge(full_predict,metalDict[,c("Product","logAvgCost","M_num")],by="Product",allow.cartesian = TRUE)
+# rm(full_predict,metalDict)
+# gc()
+# 
+# prod_Avgs = prod_Avgs[,list(Age = sum(10*Age_1*s_pred*PERWT)/sum(s_pred*PERWT),
+#                             HCC = sum(HCC_Silver*s_pred*PERWT)/sum(s_pred*PERWT),
+#                             AV_std = sum(AV_std*s_pred*PERWT)/sum(s_pred*PERWT),
+#                             AV_diff = sum(AV_diff*s_pred*PERWT)/sum(s_pred*PERWT)),
+#                       by=c("ST","Firm","M_num","logAvgCost","Metal_std")]
+# 
+# res = lm(logAvgCost~-1+Age+AV_std+AV_diff+HCC+ ST ,data=prod_Avgs)
+# phi_start = res$coefficients
+# linregfile = paste("Intermediate_Output/MC_Moments/linregpars_",run,".csv",sep="")
+# write.csv(data.frame(par_start=phi_start),linregfile,row.names=FALSE)
+# 

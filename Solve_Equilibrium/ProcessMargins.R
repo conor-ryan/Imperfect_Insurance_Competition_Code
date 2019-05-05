@@ -38,7 +38,7 @@ plot = ggplot(prod_data[Firm!="OTHER"&Metal_std=="GOLD",]) + aes(y=12/1000*prem_
   geom_smooth(color="red",method="lm",se=FALSE) + 
   scale_x_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
   scale_y_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
-  # coord_cartesian(ylim=c(0,10)) + 
+  coord_cartesian(ylim=c(0,6)) +
   xlab("Observed Base Premium (000s)") + 
   ylab("Optimal Base Premium (000s)") + 
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
@@ -62,7 +62,7 @@ ggplot(prod_data[,]) + aes(x=12/1000*premBase,y=12/1000*prem_FOC_RA) +
   geom_smooth(color="red",method="lm",se=FALSE) + 
   scale_x_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
   scale_y_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
-  coord_cartesian(ylim=c(0,10)) + 
+  coord_cartesian(ylim=c(0,8)) + 
   xlab("Observed Base Premium (000s)") + 
   ylab("Optimal Base Premium (000s)") + 
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),

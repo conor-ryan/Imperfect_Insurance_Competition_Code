@@ -232,17 +232,17 @@ CSV.write(file2,out2)
 #
 #
 # ##### TEST ######
-# rundate = "2018-12-29"
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
-# @load file p_stg2
-# # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_fe_rc_$rundate.jld"
-# # p_est = load(file)["est_res"][3]
-# #
-# p_est = p_stg1
-# par0 = parDict(m,p_est)
+rundate = "2019-03-12"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
+@load file p_stg2
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_fe_rc_$rundate.jld"
+# p_est = load(file)["est_res"][3]
 #
-# individual_values!(m,par0)
-# individual_shares(m,par0)
+p_est = p_stg2
+par0 = parDict(m,p_est)
+
+individual_values!(m,par0)
+individual_shares(m,par0)
 #
 # grad = Matrix{Float64}(length(p_est),length(m.data.tMoments))
 # r = calc_risk_moments!(grad,m,par0)
