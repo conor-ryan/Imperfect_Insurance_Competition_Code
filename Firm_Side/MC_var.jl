@@ -5,8 +5,11 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     par = parMC(p,p_est,d,c) # Fix p0
     individual_costs(d,par)
 
-    # Pop = [0.0]
+    Pop = [0.0]
     Pop =calc_pop(d.data)
+
+    N = length(unique(person(d.data)))
+    sqrt_n = sqrt(N)
     wgts = weight(d.data)
 
     ### Unique Product IDs
@@ -49,15 +52,16 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     sum_sq_wgts = calc_pop_sq(d.data)
     # Σ_hold = sum_sq_wgts.*mean_moments*mean_moments'
     # Σ = sum_sq_wgts.*mean_moments*mean_moments'
-    Σ_hold = mean_moments*mean_moments'
-    Σ =mean_moments*mean_moments'
-    # Σ = zeros(mom_length,mom_length)
+    # Σ_hold = (mean_moments*mean_moments')
+    # Σ = (mean_moments*mean_moments')
+    Σ = zeros(mom_length,mom_length)
+    Σ_hold = zeros(mom_length,mom_length)
 
     for app in eachperson(d.data)
         g_n[:].= 0.0
         w_i = weight(app)[1]
-        w_cov = w_i/Pop
-        # w_cov = 1.0
+        # w_cov = w_i/Pop
+        w_cov = 1.0/8300
         w_cov_sumsq[:] += [w_cov^2]
 
         idx_prod, wgt_obs = cost_obs_moments!(g_n,productIDs,app,d,c,par)
@@ -70,8 +74,12 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
         # add_Σ(Σ,g_n,idx_nonEmpty)
         add_Σ(Σ,g_n,idx_nonEmpty,w_cov,Σ_hold)
     end
+    # Σ = Σ./8300
+
+
     Σ = Σ./(1-w_cov_sumsq[1])
-    # Σ = Σ./Pop
+    Σ = Σ./N
+    # Σ = Σ.*Pop
     # println(Pop)
     Δ = Δavar(c,d,mean_moments)
 
@@ -81,7 +89,8 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     # aVar[1:length(d.data.tMoments),(1:num_prods*2)] = risk_moments_Avar(d,p)
     # aVar[(length(d.data.tMoments)+1):Q,(num_prods*2 + 1):R] = Matrix{Float64}(I,d.parLength[:All],d.parLength[:All])
     #
-    S_est = Δ*Σ*Δ'
+    S_est = N.*(Δ*Σ*Δ')
+    # S_est = S_est.*(sqrt_n^2)
 
     return S_est, Σ, Δ, mean_moments
 end
@@ -166,7 +175,7 @@ function add_Σ(Σ::Matrix{Float64},g_n::Vector{Float64},idx::Vector{Int64})
 end
 
 
-function test_Avar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{T}) where T
+function moments_Avar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{T}) where T
 
     num_prods = length(d.prods)
     f_moments_p1= Vector{T}(undef,length(c.firmMoments))
@@ -233,7 +242,7 @@ function test_Avar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{T}) where T
 end
 
 function Δavar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{Float64})
-    f_obj(x) = test_Avar(c,d,x)
+    f_obj(x) = moments_Avar(c,d,x)
     grad = Matrix{Float64}(undef,c.mom_length,length(cost_moments))
     ForwardDiff.jacobian!(grad, f_obj, cost_moments)
 
@@ -410,29 +419,43 @@ end
 function var_bootstrap(c::MC_Data,d::InsuranceLogit,p::Array{T},p_est::parDict{Float64};draw_num::Int=1000) where T
     par = parMC(p,p_est,d,c) # Fix p0
     individual_costs(d,par)
-    Σ, mom = var_bootstrap(c,d,par,draw_num=draw_num)
-    return Σ, mom
+    Σ, Σ_unwt, mom = var_bootstrap(c,d,par,draw_num=draw_num)
+    return Σ, Σ_unwt, mom
 end
 
 function var_bootstrap(c::MC_Data,d::InsuranceLogit,p::parMC{T};draw_num::Int=1000) where T
     M_num = c.mom_length
     moment_draws = Matrix{Float64}(undef,M_num,draw_num)
-    sqrt_n = sqrt(calc_pop(m.data))
+    moment_var = Matrix{Float64}(undef,M_num,draw_num)
+    # sqrt_n = sqrt(calc_pop(m.data))
+    N = length(unique(person(d.data)))
+    sqrt_n = sqrt(N)
+
     #Sample By States
 
 
     for i in 1:draw_num
-        moment_draws[:,i] = sqrt_n.*costMoments_bootstrap(c,d,p)
+        # moment_draws[:,i] = sqrt_n.*costMoments_bootstrap(c,d,p)
+        moment_draws[:,i] = costMoments_bootstrap(c,d,p)
         # moment_draws[:,i] = sqrt_n.*costMoments_bootstrap(c,d,p).^2
     end
     check = sum(moment_draws,dims=1)
     nan_ind = findall( .! (isnan.(check[:]) .| isinf.(check[:])))
     moment_draws = moment_draws[:,nan_ind]
 
-    Σ = scattermat(moment_draws,dims=2)
-    Σ = Σ./draw_num
-    mean_moments = mean(moment_draws./sqrt_n,dims=2)
-    return Σ, mean_moments
+    Σ_unwt = scattermat(moment_draws,dims=2)
+    Σ_unwt = Σ_unwt./draw_num
+
+    ## Assymptotic Variance
+    mean_moments = mean(moment_draws,dims=2)
+    for i in 1:draw_num
+        moment_var[:,i] = (moment_draws[:,i]-mean_moments)
+    end
+
+    Σ = scattermat(moment_var,dims=2)
+    Σ = N.*(Σ./draw_num)
+
+    return Σ, Σ_unwt, mean_moments
 end
 
 function calc_pop(df::ChoiceData)

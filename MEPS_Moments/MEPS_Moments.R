@@ -152,10 +152,19 @@ meps = meps[meps$AGE15X<66,]
 meps = meps[meps$UNINS15==2,]
 meps = as.data.table(meps)
 
+meps$HoH_Age = ave(meps$AGE15X,meps$HIEUIDX,FUN=max)
+meps$Age_Cat = 0
+meps$Age_Cat[meps$HoH_Age>45] = 1
+
 ## Non-Zero Average Cost
+
 
 meps[,HCC_positive:=0]
 meps[HCC_Score_Silver>0,HCC_positive:=1]
+
+test = meps[,list(avgCost=sum(PERWT15F*TOTEXP15)/sum(PERWT15F)),by=c("Age_Cat","HCC_positive")]
+test[,costIndex:=avgCost/min(avgCost),by="Age_Cat"]
+
 
 riskMoments = meps[,list(avgCost=sum(PERWT15F*TOTEXP15)/sum(PERWT15F)),by="HCC_positive"]
 riskMoments[,costIndex:=avgCost/min(avgCost)]
