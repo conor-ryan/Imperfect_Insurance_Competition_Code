@@ -39,7 +39,7 @@ chdf = ChoiceData(df,df_mkt,df_risk;
 
 m = InsuranceLogit(chdf,1000)
 
-costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_risk;
+costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk;
                 baseSpec=[:AGE,:AV_std,:AV_diff],
                 fixedEffects=[:Firm_ST])
 chdf = 0.0

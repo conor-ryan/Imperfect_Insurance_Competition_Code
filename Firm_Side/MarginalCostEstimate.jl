@@ -40,7 +40,7 @@ chdf = ChoiceData(df,df_mkt,df_risk;
 m = InsuranceLogit(chdf,1000)
 
 # Cost Data
-costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_risk;
+costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk;
                 baseSpec=[:AGE,:AV_std,:AV_diff],
                 fixedEffects=[:Firm_ST])
 
@@ -100,13 +100,13 @@ println("###### Estimation 1 #######")
 println("#################")
 println("#################")
 
-# W = Matrix(1.0I,costdf.mom_length,costdf.mom_length)
-# p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2,rand(length(costdf._feIndex)).*3 .+1)
-# est_stg1 = estimate_GMM(p0,par_est,m,costdf,W,fit=true)
-# incase = est_stg1
+W = Matrix(1.0I,costdf.mom_length,costdf.mom_length)
+p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2,rand(length(costdf._feIndex)).*3 .+1)
+est_stg1 = estimate_GMM(p0,par_est,m,costdf,W,fit=true)
+incase = est_stg1
 # #
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
-# @save file est_stg1
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
+@save file est_stg1
 
 # p0 = [.1,4,.1,.1]
 # p_firm = fit_firm_moments(p0,par_est,m,costdf)
@@ -165,6 +165,10 @@ println("#################")
 
 
 S,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
+# W = zeros(costdf.mom_length,costdf.mom_length)
+# for i in 1:costdf.mom_length
+#     W[i,i] = 1/S[i,i]
+# end
 W = inv(S)
 # S,S_unwt,mom_est = var_bootstrap(costdf,m,p_stg1,par_est,draw_num=5000)
 # W = inv(S)
@@ -174,7 +178,8 @@ p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2)
 flag,fval,p_init = estimate_NLOpt(p0,par_est,m,costdf,W)
 p_full0 = fit_firm_moments(p_init,par_est,m,costdf)
 
-est_stg2 = estimate_GMM(p_full0,par_est,m,costdf,W)
+p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2,rand(length(costdf._feIndex)).*3 .+1)
+est_stg2 = estimate_GMM(p0,par_est,m,costdf,W,max_ga_itr=45)
 p_stg2, fval = est_stg2
 
 # GMM_objective(p_fit,par_est,m,costdf,W,squared=true)
@@ -198,9 +203,12 @@ W = inv(S2)
 # S,S_unwt,mom_est = var_bootstrap(costdf,m,p_stg1,par_est,draw_num=5000)
 # W = inv(S)
 
-p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2,rand(length(costdf._feIndex)).*3 .+1)
-
-est_stg3 = estimate_GMM(p0,par_est,m,costdf,W)
+#
+# p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2)
+# flag,fval,p_init = estimate_NLOpt(p0,par_est,m,costdf,W)
+# p_full0 = fit_firm_moments(p_init,par_est,m,costdf)
+p_full0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2,rand(length(costdf._feIndex)).*3 .+1)
+est_stg3 = estimate_GMM(p_full0,par_est,m,costdf,W)
 p_stg3, fval = est_stg3
 
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg3_$rundate.jld2"
@@ -218,11 +226,11 @@ W = inv(S3)
 # S,S_unwt,mom_est = var_bootstrap(costdf,m,p_stg1,par_est,draw_num=5000)
 # W = inv(S)
 
-p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2)
-# p0 = [0.0152152, 2.42283, -0.21084, 0.154506]
-flag,fval,p_init = estimate_NLOpt(p0,par_est,m,costdf,W)
-p_full0 = fit_firm_moments(p_init,par_est,m,costdf)
-
+# p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2)
+# # p0 = [0.0152152, 2.42283, -0.21084, 0.154506]
+# flag,fval,p_init = estimate_NLOpt(p0,par_est,m,costdf,W)
+# p_full0 = fit_firm_moments(p_init,par_est,m,costdf)
+p_full0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2,rand(length(costdf._feIndex)).*3 .+1)
 est_stg4 = estimate_GMM(p_full0,par_est,m,costdf,W)
 p_stg4, fval = est_stg4
 
@@ -241,11 +249,12 @@ W = inv(S4)
 # S,S_unwt,mom_est = var_bootstrap(costdf,m,p_stg1,par_est,draw_num=5000)
 # W = inv(S)
 
-p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2)
-# p0 = [0.0152152, 2.42283, -0.21084, 0.154506]
-flag,fval,p_init = estimate_NLOpt(p0,par_est,m,costdf,W)
-p_full0 = fit_firm_moments(p_init,par_est,m,costdf)
+# p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2)
+# # p0 = [0.0152152, 2.42283, -0.21084, 0.154506]
+# flag,fval,p_init = estimate_NLOpt(p0,par_est,m,costdf,W)
+# p_full0 = fit_firm_moments(p_init,par_est,m,costdf)
 
+p_full0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2,rand(length(costdf._feIndex)).*3 .+1)
 est_stg5 = estimate_GMM(p_full0,par_est,m,costdf,W)
 p_stg5, fval = est_stg5
 
@@ -259,9 +268,9 @@ println("###### Save Results #######")
 println("#################")
 println("#################")
 
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg5_$rundate.jld2"
-@load file est_stg5
-p_stg5 ,fval = est_stg5
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
+@load file est_stg2
+p_stg5 ,fval = est_stg2
 Avar, se, t_stat, stars = GMM_var(costdf,m,p_stg5,par_est)
 
 out1 = DataFrame(pars=p_stg5,se=se,ts=t_stat,sig=stars)
@@ -270,41 +279,64 @@ CSV.write(file1,out1)
 
 
 
-## Test Estimate Outcome
+
+#### TEST FUNCTIONS ####
+p =  vcat(rand(1)*.2,rand(2).*4,rand(1)*.2,rand(length(costdf._feIndex)).*3 .+1)
+W = Matrix(1.0I,costdf.mom_length,costdf.mom_length)
+# W = zeros(costdf.mom_length,costdf.mom_length)
+# M2 = 1+ length(costdf.firmMoments) #+ length(costdf.metalMoments)-1 #+ length(costdf.ageMoments)-1
+# M3 = length(costdf.firmMoments) + length(costdf.metalMoments)-1 #+ length(costdf.ageMoments)-1
+# for i in M2:M3
+#         W[i,i]=1.0
+# end
+par = parMC(p,par_est,m,costdf)
+individual_costs(m,par)
+moments = costMoments(costdf,m,par)
+
+S,Σ,Δ,mom_long = aVar(costdf,m,p,par_est)
+moments_test = moments_Avar(costdf,m,mom_long)
+println("Test Moment Gradient Function")
+println(maximum(abs.(moments_test-moments)))
+
+
+grad2 = Vector{Float64}(undef,length(p))
+hess2 = Matrix{Float64}(undef,length(p),length(p))
+obj2 = GMM_objective!(hess2,grad2,p,par_est,m,costdf,W)
+
+grad3 = Vector{Float64}(undef,length(p))
+obj3 = GMM_objective!(grad3,p,par_est,m,costdf,W)
+println("Matching Derivative Functions")
+println(obj2-obj3)
+println(maximum(abs.(grad2-grad3)))
 
 # f_obj(x) = GMM_objective(x,par_est,m,costdf,W)
-f_obj(x) = GMM_test(x,p0,par_est,m,costdf,W)
-p_test = p0[1:4]
+f_obj(x) = GMM_test(x,p,par_est,m,costdf,W)
+p_test = p[1:5]
+L = length(p_test)
+fval = f_obj(p_test)
+println(fval-obj2)
+
+
 grad = Vector{Float64}(undef,length(p_test))
 hess = Matrix{Float64}(undef,length(p_test),length(p_test))
 println("Gradient")
 ForwardDiff.gradient!(grad, f_obj, p_test)
+println(maximum(abs.(grad-grad2[1:L])))
 println("Hessian")
 ForwardDiff.hessian!(hess, f_obj, p_test)
-
-
-# hess_FD = copy(hess)
-obj_grad = Vector{Float64}(undef,length(p0))
-obj_hess = Matrix{Float64}(undef,length(p0),length(p0))
-
-
-grad2 = Vector{Float64}(undef,length(p0))
-hess2 = Matrix{Float64}(undef,length(p0),length(p0))
-# GMM_objective!(grad2,p0,par_est,m,costdf,W)
-GMM_objective!(hess2,grad2,p0,par_est,m,costdf,W)
-
-# grad1 = copy(grad2)
-# hess1 = copy(hess2)
+println(maximum(abs.(hess-hess2[1:L,1:L])))
 
 
 
-mom_grad = Matrix{Float64}(undef,costdf.par_length,costdf.mom_length)
+mom_grad1 = Matrix{Float64}(undef,costdf.par_length,costdf.mom_length)
+mom_grad2 = Matrix{Float64}(undef,costdf.par_length,costdf.mom_length)
 mom_hess = Array{Float64,3}(undef,costdf.par_length,costdf.par_length,costdf.mom_length)
 
-par = parMC(p_stg2,par_est,m,costdf)
-individual_costs(m,par)
-moments = costMoments(costdf,m,par)
-# moments = costMoments!(mom_hess,mom_grad,costdf,m,par)
+moments1 = costMoments!(mom_hess,mom_grad1,costdf,m,par)
+moments2 = costMoments!(mom_grad2,costdf,m,par)
+println("Matching Moment Derivatives")
+println(maximum(abs.(moments1-moments2)))
+
 println(sum(moments.^2))
 println(sum(moments.^4))
 

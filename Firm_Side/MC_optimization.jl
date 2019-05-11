@@ -155,6 +155,7 @@ function newton_raphson_GMM(p0::Vector{Float64},p_est::parDict{Float64},
     f_final_val = 0.0
     max_trial_cnt = 0
     trial_max = 0
+    reset = 0
     p_last = copy(p_vec)
     grad_last = copy(grad)
     disp_length = min(length(p0),20)
@@ -183,6 +184,7 @@ function newton_raphson_GMM(p0::Vector{Float64},p_est::parDict{Float64},
             p_vec = fit_firm_moments(p_vec[1:4],p_est,d,c)
             no_progress_cnt=0
             no_progress=0
+            reset = 1
         end
 
         # Compute Gradient, holding δ fixed
@@ -194,7 +196,7 @@ function newton_raphson_GMM(p0::Vector{Float64},p_est::parDict{Float64},
         esm = minimum(eigs)
         println("Hessian Eigenvalues between $elg and $esm")
 
-        if (cnt==1) | (fval<f_min)
+        if (cnt==1) | (fval<f_min) | (reset==1)
             if abs((fval-f_min)/f_min)<f_tol
                 f_tol_cnt += 1
             end
@@ -210,6 +212,7 @@ function newton_raphson_GMM(p0::Vector{Float64},p_est::parDict{Float64},
             p_min[:] = p_vec[:]
 
             no_progress=0
+            reset = 0
         else
             no_progress+=1
         end
@@ -283,7 +286,7 @@ function newton_raphson_GMM(p0::Vector{Float64},p_est::parDict{Float64},
                 println("Trial (Init): Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
             end
-            if (step_size>1e-6)
+            if (step_size>x_tol)
                 if trial_cnt<=4
                     update/= 10
                 else
@@ -296,11 +299,18 @@ function newton_raphson_GMM(p0::Vector{Float64},p_est::parDict{Float64},
                 println("Trial (NR): Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
                 trial_cnt+=1
-            else
+            elseif no_progress_cnt<2
                 trial_max = 1
                 println("RUN ROUND OF GRADIENT ASCENT")
+                if no_progress_cnt==0
+                    ga_itr=10
+                else
+                    ga_itr=30
+                end
                 p_test, f_test = gradient_ascent_BB(p_vec,par_est,m,costdf,W,max_itr=ga_itr,strict=true,squared=squared)
                 no_progress_cnt+=1
+            else
+                trial_max=1
             end
         end
 
@@ -322,10 +332,10 @@ function newton_raphson_GMM(p0::Vector{Float64},p_est::parDict{Float64},
 end
 
 function estimate_GMM(p0::Vector{Float64},p_est::parDict{Float64},
-                d::InsuranceLogit,c::MC_Data,W::Matrix{Float64};squared=false,fit=false)
+                d::InsuranceLogit,c::MC_Data,W::Matrix{Float64};squared=false,fit=false,max_ga_itr=30)
     # First run a gradient ascent method to get close to optimum
     println("Gradient Ascent Method")
-    p1, fval = gradient_ascent_BB(p0,p_est,d,c,W,max_itr=30,squared=squared)
+    p1, fval = gradient_ascent_BB(p0,p_est,d,c,W,max_itr=max_ga_itr,squared=squared)
     if fit
         p1 = fit_firm_moments(p1[1:4],p_est,d,c)
     end

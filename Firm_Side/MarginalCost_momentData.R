@@ -96,6 +96,9 @@ save(metalClaims,metalAvg,file="Intermediate_Output/Average_Claims/ProdAvgCost.r
 ageMoments = as.data.table(read.csv("Intermediate_Output/MEPS_Moments/ageMoments.csv"))
 setkey(ageMoments,Age_Bin)
 
+ageMoments_noHCC = as.data.table(read.csv("Intermediate_Output/MEPS_Moments/ageMoments_noHCC.csv"))
+setkey(ageMoments_noHCC,Age_Bin)
+
 choiceData[,Age_Bin:=floor(AGE*10/5)*5]
 choiceData[AGE>=1.8 & Age_Bin==15,Age_Bin:=20]
 choiceData[,Age_1:=AGE/10]
@@ -117,6 +120,7 @@ setkey(riskMoments,HCC_positive)
 firmClaims$M_num = 1:nrow(firmClaims)
 # metalClaims$M_num[!is.na(metalClaims$logAvgCost)] = max(firmClaims$M_num) + 1:sum(!is.na(metalClaims$logAvgCost))
 ageMoments$M_num = 1:nrow(ageMoments)
+ageMoments_noHCC$M_num = 1:nrow(ageMoments_noHCC)
 riskMoments$M_num = 1:nrow(riskMoments)
 
 #### Create Moment Index DF ####
@@ -134,11 +138,16 @@ metalMoments = merge(metalMoments,choiceData[,c("Product","index")],by="Product"
 ageMoments = merge(ageMoments,choiceData,by=c("Age_Bin"))
 ageMoments = ageMoments[,c("costIndex","M_num","index")]
 
+ageMoments_noHCC = merge(ageMoments_noHCC,choiceData,by=c("Age_Bin"))
+ageMoments_noHCC = ageMoments_noHCC[,c("costIndex","M_num","index")]
+
 setkey(firmMoments,index)
 setkey(metalMoments,index)
 setkey(ageMoments,index)
+setkey(ageMoments_noHCC,index)
 
 write.csv(ageMoments,file="Intermediate_Output/MC_Moments/ageMoments.csv",row.names=FALSE)
+write.csv(ageMoments,file="Intermediate_Output/MC_Moments/ageMoments_noHCC.csv",row.names=FALSE)
 write.csv(firmMoments,file="Intermediate_Output/MC_Moments/firmMoments.csv",row.names=FALSE)
 write.csv(metalMoments,file="Intermediate_Output/MC_Moments/metalMoments.csv",row.names=FALSE)
 write.csv(riskMoments,file="Intermediate_Output/MC_Moments/riskMoments.csv",row.names=FALSE)

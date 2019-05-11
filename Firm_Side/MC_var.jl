@@ -23,7 +23,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
 
 
 
-    cost_moments = Vector{Float64}(undef,num_prods*2+length(c.ageMoments)*2+4)
+    cost_moments = Vector{Float64}(undef,num_prods*2+length(c.ageMoments)*2+length(c.agenoMoments)*2+4)
     cost_moments[:] .= 0.0
     mom_length = length(cost_moments)
     g_n = Vector{Float64}(undef,mom_length)
@@ -139,6 +139,10 @@ function cost_obs_moments!(mom_obs::Vector{Float64},productIDs::Vector{Int64},
 
     anyHCC = c.anyHCC[idxitr]
 
+    M1 = num_prods*2
+    M2 = num_prods*2+length(c.ageMoments)*2
+    M3 = num_prods*2+length(c.ageMoments)*2+length(c.agenoMoments)*2
+
     for (i,k,j) in zip(ind_itr,idxitr,per_prods)
         #S_hat
         mom_obs[j] = s_hat[i]*wgts[i]
@@ -146,16 +150,25 @@ function cost_obs_moments!(mom_obs::Vector{Float64},productIDs::Vector{Int64},
         mom_obs[num_prods + j] = costs[i]*s_hat[i]*wgts[i]
     end
 
-    #Insurance
-    mom_obs[num_prods*2 + age_ind] = ins_share*wgts[1]
-    #Age Bin
-    mom_obs[num_prods*2 + length(c.ageMoments) + age_ind] = ins_cost_total*wgts[1]
+    ## Age Moments
+    #Insurance Rate
+    mom_obs[M1 + age_ind] = ins_share*wgts[1]
+    #Weighted Cose
+    mom_obs[M1 + length(c.ageMoments) + age_ind] = ins_cost_total*wgts[1]
+
+    ## Age without HCC Moments
+    #Insurance Rate
+    mom_obs[M2 + age_ind] = ins_share_nonrisk*wgts[1]*(1-anyHCC[1])
+    #Weighted Cose
+    mom_obs[M2 + length(c.agenoMoments) + age_ind] = ins_cost_nonrisk_total*wgts[1]*(1-anyHCC[1])
+
+    ## Risk Moments
     #Insurance by Risk
-    mom_obs[num_prods*2+length(c.ageMoments)*2+1] = ins_share_nonrisk*wgts[1]*(1-anyHCC[1])
-    mom_obs[num_prods*2+length(c.ageMoments)*2+2] = ins_share_risk*wgts[1]*(anyHCC[1])
+    mom_obs[M3+1] = ins_share_nonrisk*wgts[1]*(1-anyHCC[1])
+    mom_obs[M3+2] = ins_share_risk*wgts[1]*(anyHCC[1])
     #Cost by Risk
-    mom_obs[num_prods*2+length(c.ageMoments)*2+3] = ins_cost_nonrisk_total*wgts[1]*(1-anyHCC[1])
-    mom_obs[num_prods*2+length(c.ageMoments)*2+4] = ins_cost_risk_total*wgts[1]*(anyHCC[1])
+    mom_obs[M3+3] = ins_cost_nonrisk_total*wgts[1]*(1-anyHCC[1])
+    mom_obs[M3+4] = ins_cost_risk_total*wgts[1]*(anyHCC[1])
 
     return per_prods, wgts[1]
 end
@@ -184,6 +197,8 @@ function moments_Avar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{T}) wher
     m_moments_p2= Vector{T}(undef,length(c.metalMoments))
     a_moments_p1= Vector{T}(undef,length(c.ageMoments))
     a_moments_p2= Vector{T}(undef,length(c.ageMoments))
+    n_moments_p1= Vector{T}(undef,length(c.agenoMoments))
+    n_moments_p2= Vector{T}(undef,length(c.agenoMoments))
     r_moments_p1= Vector{T}(undef,2)
     r_moments_p2= Vector{T}(undef,2)
 
@@ -193,6 +208,8 @@ function moments_Avar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{T}) wher
     m_moments_p2[:] .= 0.0
     a_moments_p1[:] .= 0.0
     a_moments_p2[:] .= 0.0
+    n_moments_p1[:] .= 0.0
+    n_moments_p2[:] .= 0.0
     r_moments_p1[:] .= 0.0
     r_moments_p2[:] .= 0.0
 
@@ -200,6 +217,11 @@ function moments_Avar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{T}) wher
     fmom = Vector{T}(undef,length(c.firmMoments))
     mmom = Vector{T}(undef,length(c.metalMoments)-1)
     amom = Vector{T}(undef,length(c.ageMoments)-1)
+    nmom = Vector{T}(undef,length(c.agenoMoments)-1)
+
+    M1 = num_prods*2
+    M2 = num_prods*2+length(c.ageMoments)*2
+    M3 = num_prods*2+length(c.ageMoments)*2+length(c.agenoMoments)*2
 
     ## Product and Firm Moments
     for (m,m_idx) in c._firmMomentProdDict
@@ -211,11 +233,16 @@ function moments_Avar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{T}) wher
         m_moments_p2[m] = sum(cost_moments[num_prods .+ m_idx])
     end
     ## Age Moments
-    a_moments_p1[:] = cost_moments[num_prods*2 .+ (1:length(c.ageMoments))]
-    a_moments_p2[:] = cost_moments[(num_prods*2 + length(c.ageMoments)) .+ (1:length(c.ageMoments))]
+    a_moments_p1[:] = cost_moments[M1 .+ (1:length(c.ageMoments))]
+    a_moments_p2[:] = cost_moments[(M1 + length(c.ageMoments)) .+ (1:length(c.ageMoments))]
+
+    ## Age without Risk Moments
+    n_moments_p1[:] = cost_moments[M2 .+ (1:length(c.agenoMoments))]
+    n_moments_p2[:] = cost_moments[(M2 + length(c.agenoMoments)) .+ (1:length(c.agenoMoments))]
+
     ## Risk Moments
-    r_moments_p1[:] = cost_moments[(num_prods*2 + 2*length(c.ageMoments)) .+ (1:2)]
-    r_moments_p2[:] = cost_moments[(num_prods*2 + 2*length(c.ageMoments)) .+ (3:4)]
+    r_moments_p1[:] = cost_moments[M3 .+ (1:2)]
+    r_moments_p2[:] = cost_moments[M3 .+ (3:4)]
 
     ## Total Firm Moments
     for (m,m_idx) in c._firmMomentProdDict
@@ -234,11 +261,19 @@ function moments_Avar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{T}) wher
         c_avg = a_moments_p2[m]/a_moments_p1[m]
         amom[m-1] = c_avg /refval - c.ageMoments[m]
     end
+    ## Total Age without HCC Moments
+    refval = n_moments_p2[1]/n_moments_p1[1]
+    for m in 2:length(n_moments_p1)
+        c_avg = n_moments_p2[m]/n_moments_p1[m]
+        # println("$m: $c_avg")
+        nmom[m-1] = c_avg /refval - c.agenoMoments[m]
+    end
     ## Total Risk Moments
     non_avg = r_moments_p2[1]/r_moments_p1[1]
     HCC_avg = r_moments_p2[2]/r_moments_p1[2]
     rmom = HCC_avg/non_avg  - c.riskMoment
-    return vcat(fmom,mmom,amom,rmom)
+    # return vcat(fmom,mmom,amom,nmom,rmom)
+    return vcat(fmom,mmom,nmom,rmom)
 end
 
 function Δavar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{Float64})
@@ -372,6 +407,7 @@ function costMoments_bootstrap(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     fmom = Vector{T}(undef,length(c.firmMoments))
     mmom = Vector{T}(undef,length(c.metalMoments)-1)
     amom = Vector{T}(undef,length(c.ageMoments)-1)
+    nmom = Vector{T}(undef,length(c.agenoMoments)-1)
 
 
     ## Firm Moments
@@ -405,6 +441,20 @@ function costMoments_bootstrap(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
             amom[m-1] = c_avg/refval[1] - c.ageMoments[m]
         end
     end
+
+    ## Age without HCC Moments
+    refval = sliceMean_wgt(c_hat_nonHCC,wgts_share,c._agenoMomentDict[1])
+    for (m,m_idx) in c._agenoMomentBit
+        if m==1
+            continue
+        else
+            # m_sample = draw[inlist_sorted(draw,m_idx)]
+            m_sample = draw[m_idx[draw]]
+            c_avg = sliceMean_wgt(c_hat_nonHCC,wgts_share,m_sample)
+            nmom[m-1] = c_avg/refval[1] - c.agenoMoments[m]
+        end
+    end
+
     # all_idx = Int.(1:length(s_hat))
     m_sample = draw
 
@@ -413,7 +463,7 @@ function costMoments_bootstrap(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     non_avg = sliceMean_wgt(c_hat_nonHCC,none_share,m_sample)
     rmom = HCC_avg/non_avg - c.riskMoment
 
-    return vcat(fmom,mmom,amom,rmom)
+    return vcat(fmom,mmom,amom,nmom,rmom)
 end
 
 function var_bootstrap(c::MC_Data,d::InsuranceLogit,p::Array{T},p_est::parDict{Float64};draw_num::Int=1000) where T

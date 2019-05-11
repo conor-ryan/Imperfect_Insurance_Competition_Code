@@ -16,21 +16,26 @@ function costMoments!(hess::Array{T,3},grad::Matrix{T},c::MC_Data,d::InsuranceLo
 
     M1 = length(c.firmMoments)
     M2 = length(c.firmMoments) + length(c.metalMoments)-1
+    M3 = length(c.firmMoments) + length(c.metalMoments)-1 #+ length(c.ageMoments)-1
 
     ### Compute Averages
     fval= Vector{T}(undef,length(c.firmMoments))
     mval= Vector{T}(undef,length(c.metalMoments))
     aval = Vector{T}(undef,length(c.ageMoments))
+    nval = Vector{T}(undef,length(c.ageMoments))
 
     d_fmom = Matrix{T}(undef,c.par_length,length(c.firmMoments))
     d_mmom = Matrix{T}(undef,c.par_length,length(c.metalMoments))
     d_amom = Matrix{T}(undef,c.par_length,length(c.ageMoments))
+    d_nmom = Matrix{T}(undef,c.par_length,length(c.ageMoments))
+
     d_HCC = Vector{T}(undef,c.par_length)
     d_nonHCC = Vector{T}(undef,c.par_length)
 
     fmom = Vector{T}(undef,length(c.firmMoments))
     mmom = Vector{T}(undef,length(c.metalMoments)-1)
     amom = Vector{T}(undef,length(c.ageMoments)-1)
+    nmom = Vector{T}(undef,length(c.agenoMoments)-1)
 
     ## Firm Moments
     for (m,m_idx) in c._firmMomentDict
@@ -50,21 +55,34 @@ function costMoments!(hess::Array{T,3},grad::Matrix{T},c::MC_Data,d::InsuranceLo
         end
     end
 
-    ## Age Moments
-    refval = sliceMean_wgt(c_hat_total,wgts_share,c._ageMomentDict[1])
-    for (m,m_idx) in c._ageMomentDict
-        c_avg = sliceMean_wgt(c_hat_total,wgts_share,m_idx)
-        aval[m] = c_avg
+    # ## Age Moments
+    # refval = sliceMean_wgt(c_hat_total,wgts_share,c._ageMomentDict[1])
+    # for (m,m_idx) in c._ageMomentDict
+    #     c_avg = sliceMean_wgt(c_hat_total,wgts_share,m_idx)
+    #     aval[m] = c_avg
+    #     if m>1
+    #         amom[m-1] = c_avg/refval[1] - c.ageMoments[m]
+    #     end
+    # end
+
+    ## Age without HCC Moments
+    refval = sliceMean_wgt(c_hat_nonHCC_total,none_share,c._agenoMomentDict[1])
+    for (m,m_idx) in c._agenoMomentDict
+        c_avg = sliceMean_wgt(c_hat_nonHCC_total,none_share,m_idx)
+        nval[m] = c_avg
         if m>1
-            amom[m-1] = c_avg/refval[1] - c.ageMoments[m]
+            nmom[m-1] = c_avg/refval[1] - c.agenoMoments[m]
         end
     end
 
+    ## Risk Moments
     all_idx = Int.(1:length(s_hat))
     HCC_avg = sliceMean_wgt(c_hat_HCC_total,any_share,all_idx)
     non_avg = sliceMean_wgt(c_hat_nonHCC_total,none_share,all_idx)
     rmom = HCC_avg/non_avg - c.riskMoment
-    moments = vcat(fmom,mmom,amom,rmom)
+
+    # moments = vcat(fmom,mmom,amom,nmom,rmom)
+    moments = vcat(fmom,mmom,nmom,rmom)
 
     # dc_vec = Vector{Vector{Float64}}(undef,c.par_length)
     # dc_nonHCC_vec = Vector{Vector{Float64}}(undef,c.par_length)
@@ -105,18 +123,33 @@ function costMoments!(hess::Array{T,3},grad::Matrix{T},c::MC_Data,d::InsuranceLo
             end
         end
 
-        #Age Moments
-        refval = aval[1]
-        dkrefval = sliceMean_wgt(dkc_hat_total,wgts_share,c._ageMomentDict[1])
-        for (m,m_idx) in c._ageMomentDict
+        # #Age Moments
+        # refval = aval[1]
+        # dkrefval = sliceMean_wgt(dkc_hat_total,wgts_share,c._ageMomentDict[1])
+        # for (m,m_idx) in c._ageMomentDict
+        #     if m==1
+        #         dkc_avg = sliceMean_wgt(dkc_hat_total,wgts_share,m_idx)
+        #         d_amom[k,m] = dkc_avg
+        #     else
+        #         c_avg = aval[m]
+        #         dkc_avg = sliceMean_wgt(dkc_hat_total,wgts_share,m_idx)
+        #         d_amom[k,m] = dkc_avg
+        #         grad[k,M2 + m-1] = dkc_avg/refval - dkrefval[1]*c_avg/(refval)^2
+        #     end
+        # end
+
+        #Age without HCC Moments
+        refval = nval[1]
+        dkrefval = sliceMean_wgt(dkc_hat_nonHCC_total,none_share,c._agenoMomentDict[1])
+        for (m,m_idx) in c._agenoMomentDict
             if m==1
-                dkc_avg = sliceMean_wgt(dkc_hat_total,wgts_share,m_idx)
-                d_amom[k,m] = dkc_avg
+                dkc_avg = sliceMean_wgt(dkc_hat_nonHCC_total,none_share,m_idx)
+                d_nmom[k,m] = dkc_avg
             else
-                c_avg = aval[m]
-                dkc_avg = sliceMean_wgt(dkc_hat_total,wgts_share,m_idx)
-                d_amom[k,m] = dkc_avg
-                grad[k,M2 + m-1] = dkc_avg/refval - dkrefval[1]*c_avg/(refval)^2
+                c_avg = nval[m]
+                dkc_avg = sliceMean_wgt(dkc_hat_nonHCC_total,none_share,m_idx)
+                d_nmom[k,m] = dkc_avg
+                grad[k,M3 + m-1] = dkc_avg/refval - dkrefval[1]*c_avg/(refval)^2
             end
         end
 
@@ -154,7 +187,9 @@ function costMoments!(hess::Array{T,3},grad::Matrix{T},c::MC_Data,d::InsuranceLo
             end
 
             ## Metal Moments
+            refval = mval[1]
             dlrefval = d_mmom[l,1]
+            dkrefval = d_mmom[k,1]
             d2refval = sliceMean_wgt(d2c_hat,wgts_share,c._metalMomentDict[1])
             for (m,m_idx) in c._metalMomentDict
                 if m==1
@@ -170,21 +205,41 @@ function costMoments!(hess::Array{T,3},grad::Matrix{T},c::MC_Data,d::InsuranceLo
                 end
             end
 
-            ## Age Moments
-            # dlrefval = sliceMean_wgt(dlc_hat_total,wgts_share,c._ageMomentDict[1])
-            dlrefval = d_amom[l,1]
-            d2refval = sliceMean_wgt(d2c_hat_total,wgts_share,c._ageMomentDict[1])
-            for (m,m_idx) in c._ageMomentDict
+            # ## Age Moments
+            # # dlrefval = sliceMean_wgt(dlc_hat_total,wgts_share,c._ageMomentDict[1])
+            # refval = aval[1]
+            # dlrefval = d_amom[l,1]
+            # dkrefval = d_amom[k,1]
+            # d2refval = sliceMean_wgt(d2c_hat_total,wgts_share,c._ageMomentDict[1])
+            # for (m,m_idx) in c._ageMomentDict
+            #     if m==1
+            #         continue
+            #     else
+            #         c_avg = aval[m]
+            #         dkc_avg = d_amom[k,m]
+            #         dlc_avg = d_amom[l,m]
+            #         # dlc_avg = sliceMean_wgt(dlc_hat_total,wgts_share,m_idx)
+            #         d2c_avg = sliceMean_wgt(d2c_hat_total,wgts_share,m_idx)
+            #         hess[k,l,M2 + m-1] = d2c_avg/refval - dlrefval[1]*dkc_avg/(refval)^2 - d2refval[1]*c_avg/(refval)^2 - dkrefval[1]*dlc_avg/(refval)^2 + 2*dkrefval[1]*dlrefval[1]*c_avg/(refval)^3
+            #         hess[l,k,M2 + m-1] = d2c_avg/refval - dlrefval[1]*dkc_avg/(refval)^2 - d2refval[1]*c_avg/(refval)^2 - dkrefval[1]*dlc_avg/(refval)^2 + 2*dkrefval[1]*dlrefval[1]*c_avg/(refval)^3
+            #     end
+            # end
+
+            ## Age without HCC Moments
+            refval = nval[1]
+            dlrefval = d_nmom[l,1]
+            dkrefval = d_nmom[k,1]
+            d2refval = sliceMean_wgt(d2c_hat_nonHCC_total,none_share,c._agenoMomentDict[1])
+            for (m,m_idx) in c._agenoMomentDict
                 if m==1
                     continue
                 else
-                    c_avg = aval[m]
-                    dkc_avg = d_amom[k,m]
-                    dlc_avg = d_amom[l,m]
-                    # dlc_avg = sliceMean_wgt(dlc_hat_total,wgts_share,m_idx)
-                    d2c_avg = sliceMean_wgt(d2c_hat_total,wgts_share,m_idx)
-                    hess[k,l,M2 + m-1] = d2c_avg/refval - dlrefval[1]*dkc_avg/(refval)^2 - d2refval[1]*c_avg/(refval)^2 - dkrefval[1]*dlc_avg/(refval)^2 + 2*dkrefval[1]*dlrefval[1]*c_avg/(refval)^3
-                    hess[l,k,M2 + m-1] = d2c_avg/refval - dlrefval[1]*dkc_avg/(refval)^2 - d2refval[1]*c_avg/(refval)^2 - dkrefval[1]*dlc_avg/(refval)^2 + 2*dkrefval[1]*dlrefval[1]*c_avg/(refval)^3
+                    c_avg = nval[m]
+                    dkc_avg = d_nmom[k,m]
+                    dlc_avg = d_nmom[l,m]
+                    d2c_avg = sliceMean_wgt(d2c_hat_nonHCC_total,none_share,m_idx)
+                    hess[k,l,M3 + m-1] = d2c_avg/refval - dlrefval[1]*dkc_avg/(refval)^2 - d2refval[1]*c_avg/(refval)^2 - dkrefval[1]*dlc_avg/(refval)^2 + 2*dkrefval[1]*dlrefval[1]*c_avg/(refval)^3
+                    hess[l,k,M3 + m-1] = d2c_avg/refval - dlrefval[1]*dkc_avg/(refval)^2 - d2refval[1]*c_avg/(refval)^2 - dkrefval[1]*dlc_avg/(refval)^2 + 2*dkrefval[1]*dlrefval[1]*c_avg/(refval)^3
                 end
             end
 
@@ -201,7 +256,6 @@ function costMoments!(hess::Array{T,3},grad::Matrix{T},c::MC_Data,d::InsuranceLo
 
     return moments
 end
-
 
 function costMoments!(grad::Matrix{T},c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     s_hat = p.pars.s_hat
@@ -221,15 +275,18 @@ function costMoments!(grad::Matrix{T},c::MC_Data,d::InsuranceLogit,p::parMC{T}) 
 
     M1 = length(c.firmMoments)
     M2 = length(c.firmMoments) + length(c.metalMoments)-1
+    M3 = length(c.firmMoments) + length(c.metalMoments)-1# + length(c.ageMoments)-1
 
     ### Compute Averages
     fval= Vector{T}(undef,length(c.firmMoments))
     mval= Vector{T}(undef,length(c.metalMoments))
     aval = Vector{T}(undef,length(c.ageMoments))
+    nval = Vector{T}(undef,length(c.ageMoments))
 
     fmom = Vector{T}(undef,length(c.firmMoments))
     mmom = Vector{T}(undef,length(c.metalMoments)-1)
     amom = Vector{T}(undef,length(c.ageMoments)-1)
+    nmom = Vector{T}(undef,length(c.agenoMoments)-1)
 
     ## Firm Moments
     for (m,m_idx) in c._firmMomentDict
@@ -249,22 +306,34 @@ function costMoments!(grad::Matrix{T},c::MC_Data,d::InsuranceLogit,p::parMC{T}) 
         end
     end
 
-    ## Age Moments
-    refval = sliceMean_wgt(c_hat_total,wgts_share,c._ageMomentDict[1])
-    for (m,m_idx) in c._ageMomentDict
-        c_avg = sliceMean_wgt(c_hat_total,wgts_share,m_idx)
-        aval[m] = c_avg
+    # ## Age Moments
+    # refval = sliceMean_wgt(c_hat_total,wgts_share,c._ageMomentDict[1])
+    # for (m,m_idx) in c._ageMomentDict
+    #     c_avg = sliceMean_wgt(c_hat_total,wgts_share,m_idx)
+    #     aval[m] = c_avg
+    #     if m>1
+    #         amom[m-1] = c_avg/refval[1] - c.ageMoments[m]
+    #     end
+    # end
+
+    ## Age without HCC Moments
+    refval = sliceMean_wgt(c_hat_nonHCC_total,none_share,c._agenoMomentDict[1])
+    for (m,m_idx) in c._agenoMomentDict
+        c_avg = sliceMean_wgt(c_hat_nonHCC_total,none_share,m_idx)
+        nval[m] = c_avg
         if m>1
-            amom[m-1] = c_avg/refval[1] - c.ageMoments[m]
+            nmom[m-1] = c_avg/refval[1] - c.agenoMoments[m]
         end
     end
 
+    ## Risk Moments
     all_idx = Int.(1:length(s_hat))
     HCC_avg = sliceMean_wgt(c_hat_HCC_total,any_share,all_idx)
     non_avg = sliceMean_wgt(c_hat_nonHCC_total,none_share,all_idx)
     rmom = HCC_avg/non_avg - c.riskMoment
-    moments = vcat(fmom,mmom,amom,rmom)
 
+    # moments = vcat(fmom,mmom,amom,nmom,rmom)
+    moments = vcat(fmom,mmom,nmom,rmom)
     # dc_vec = Vector{Vector{Float64}}(undef,c.par_length)
     # dc_nonHCC_vec = Vector{Vector{Float64}}(undef,c.par_length)
     # dc_HCC_vec = Vector{Vector{Float64}}(undef,c.par_length)
@@ -301,18 +370,29 @@ function costMoments!(grad::Matrix{T},c::MC_Data,d::InsuranceLogit,p::parMC{T}) 
             end
         end
 
+        # #Age Moments
+        # refval = aval[1]
+        # dkrefval = sliceMean_wgt(dkc_hat_total,wgts_share,c._ageMomentDict[1])
+        # for (m,m_idx) in c._ageMomentDict
+        #     if m==1
+        #         continue
+        #     else
+        #         c_avg = aval[m]
+        #         dkc_avg = sliceMean_wgt(dkc_hat_total,wgts_share,m_idx)
+        #         grad[k,M2 + m-1] = dkc_avg/refval - dkrefval[1]*c_avg/(refval)^2
+        #     end
+        # end
 
-
-        #Age Moments
-        refval = aval[1]
-        dkrefval = sliceMean_wgt(dkc_hat_total,wgts_share,c._ageMomentDict[1])
-        for (m,m_idx) in c._ageMomentDict
+        #Age without HCC Moments
+        refval = nval[1]
+        dkrefval = sliceMean_wgt(dkc_hat_nonHCC_total,none_share,c._agenoMomentDict[1])
+        for (m,m_idx) in c._agenoMomentDict
             if m==1
                 continue
             else
-                c_avg = aval[m]
-                dkc_avg = sliceMean_wgt(dkc_hat_total,wgts_share,m_idx)
-                grad[k,M2 + m-1] = dkc_avg/refval - dkrefval[1]*c_avg/(refval)^2
+                c_avg = nval[m]
+                dkc_avg = sliceMean_wgt(dkc_hat_nonHCC_total,none_share,m_idx)
+                grad[k,M3 + m-1] = dkc_avg/refval - dkrefval[1]*c_avg/(refval)^2
             end
         end
 

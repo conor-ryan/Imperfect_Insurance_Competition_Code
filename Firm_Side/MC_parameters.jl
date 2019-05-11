@@ -66,6 +66,10 @@ struct MC_Data
     _ageMomentBit::Dict{Int,BitArray{1}}
     ageMoments::Vector{Float64}
 
+    _agenoMomentDict::Dict{Int,Array{Int,1}}
+    _agenoMomentBit::Dict{Int,BitArray{1}}
+    agenoMoments::Vector{Float64}
+
     riskMoment::Float64
 end
 
@@ -73,6 +77,7 @@ function MC_Data(data_choice::DataFrame,
                 mom_firm::DataFrame,
                 mom_metal::DataFrame,
                 mom_age::DataFrame,
+                mom_ageno::DataFrame,
                 mom_risk::DataFrame;
         baseSpec=[:Age,:AV],
         fixedEffects=Vector{Symbol}(undef,0),
@@ -177,10 +182,24 @@ function MC_Data(data_choice::DataFrame,
         end
     end
 
+    _agenoMomentDict = Dict{Int,Array{Int64,1}}()
+    _agenoMomentBit = Dict{Int,BitArray{1}}()
+    moments = sort(unique(mom_ageno[:M_num]))
+    agenoMoments = Vector{Float64}(undef,length(moments))
+    if constMoments
+        for m in moments
+            m_index = mom_ageno[:index][findall(mom_ageno[:M_num].==m)]
+            _agenoMomentDict[m] = m_index
+            _agenoMomentBit[m] = inlist(all_idx,m_index)
+            agenoMoments[m] = mom_ageno[:costIndex][findall(mom_ageno[:M_num].==m)][1]
+        end
+    end
+
     riskMoment = mom_risk[:costIndex][2]
 
 
     ### Lengths
+    # mom_length = length(firmMoments)  + (length(metalMoments)-1) + (length(ageMoments)-1) + (length(agenoMoments)-1) + length(riskMoment)
     mom_length = length(firmMoments)  + (length(metalMoments)-1) + (length(ageMoments)-1) + length(riskMoment)
     par_length = length(_baseIndex) + length(_riskIndex) + length(_feIndex)
 
@@ -190,7 +209,8 @@ function MC_Data(data_choice::DataFrame,
                     mom_length,par_length,_stDict,
                     _firmMomentDict,_firmMomentBit,_firmMomentProdDict,firmMoments,
                     _metalMomentDict,_metalMomentBit,_metalMomentProdDict,metalMoments,
-                    _ageMomentDict,_ageMomentBit,ageMoments,riskMoment)
+                    _ageMomentDict,_ageMomentBit,ageMoments,
+                    _agenoMomentDict,_agenoMomentBit,agenoMoments,riskMoment)
 end
 
 
@@ -342,6 +362,7 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     fmom = Vector{T}(undef,length(c.firmMoments))
     mmom = Vector{T}(undef,length(c.metalMoments)-1)
     amom = Vector{T}(undef,length(c.ageMoments)-1)
+    nmom = Vector{T}(undef,length(c.agenoMoments)-1)
 
     ## Firm Moments
     for (m,m_idx) in c._firmMomentDict
@@ -381,13 +402,28 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
             amom[m-1] = c_avg/refval[1] - c.ageMoments[m]
         end
     end
+
+    ## Age without HCC Moments
+    refval = sliceMean_wgt(c_hat_nonHCC_total,none_share,c._agenoMomentDict[1])
+    for (m,m_idx) in c._agenoMomentDict
+        if m==1
+            continue
+        else
+            c_avg = sliceMean_wgt(c_hat_nonHCC_total,none_share,m_idx)
+            # println("$m: $c_avg")
+            nmom[m-1] = c_avg/refval[1] - c.agenoMoments[m]
+        end
+    end
+
+
+    ## Risk Moments
     all_idx = Int.(1:length(s_hat))
     HCC_avg = sliceMean_wgt(c_hat_HCC_total,any_share,all_idx)
     non_avg = sliceMean_wgt(c_hat_nonHCC_total,none_share,all_idx)
     rmom = HCC_avg/non_avg - c.riskMoment
 
-    return vcat(fmom,mmom,amom,rmom)
-    # return vcat(pmom,amom,rmom)
+    # return vcat(fmom,mmom,amom,nmom,rmom)
+    return vcat(fmom,mmom,nmom,rmom)
 end
 
 
