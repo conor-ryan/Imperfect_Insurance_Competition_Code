@@ -9,6 +9,17 @@ choiceData = read.csv("Intermediate_Output/Simulated_BaseData/simchoiceData_disc
 choiceData = as.data.table(choiceData)
 choiceData[,Metal_std:=gsub(" [0-9]+","",METAL)]
 # n_draws = nrow(draws)
+
+#### Firm-Share Adjustments ####
+## Merge in Sample Market Shares
+prod_data = as.data.table(read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv"))
+prod_data[,Metal_std:=gsub(" .*","",METAL)]
+prod_adj = prod_data[,list(lives=sum(lives),
+                            AV=sum(lives*AV)/sum(lives)),by=c("STATE","Firm","Metal_std")]
+firm_adj = prod_data[,list(lives=sum(lives),
+                            AV=sum(lives*AV)/sum(lives)),by=c("STATE","Firm")]
+
+
 #### Read in Total Claims Data ####
 MLR_Data = read.csv("Data/2015_MLR/Part1_2_Summary_Data_Premium_Claims.csv")
 
@@ -41,42 +52,48 @@ firmClaims[,logAvgCost:=log(AvgCost)]
 firmClaims[,Firm_ST:=paste(Firm,ST,sep="_")]
 setkey(firmClaims,Firm_ST)
 firmClaims[,Firm_ST:=NULL]
-save(firmClaims,file="Intermediate_Output/Average_Claims/FirmAvgCost.rData")
+firmClaims$M_num = 1:nrow(firmClaims)
+
+# ##Average Cost
+# avgTest = merge(firmClaims,firm_adj,by.x=c("ST","Firm"),by.y=c("STATE","Firm"))
+# avgTest[Firm!="AMBETTER_FROM_SUPERIOR_HEALTHPLAN"&!(Firm=="AETNA"&ST=="IL"),sum(lives*(AvgCost))/sum(lives)]
+# avgTest[MLR_lives>50&ST%in%c("IA","IL","MI","MO","ND","NE"),sum(lives*(AvgCost))/sum(lives)]
+# avgTest[MLR_lives>50&ST%in%c("GA","MD","OK","TX"),sum(lives*(AvgCost))/sum(lives)]
+# avgTest[MLR_lives>50&ST%in%c("AK","OR","NM","UT"),sum(lives*(AvgCost))/sum(lives)]
+
 
 #### Filings Claims Data ####
 metalClaims = as.data.table(read.csv("Intermediate_Output/Average_Claims/firmClaims.csv"))
 metalData = unique(choiceData[,c("ST","Firm","Metal_std")])
-metalClaims = merge(metalData,metalClaims[,c("STATE","Firm","METAL","EXP_INC_CLM_PMPM")],by.x=c("ST","Firm","Metal_std"),
+metalClaims = merge(metalData,metalClaims[,c("STATE","Firm","METAL","EXP_INC_CLM_PMPM","EXP_MM")],by.x=c("ST","Firm","Metal_std"),
                     by.y=c("STATE","Firm","METAL"),all.x=TRUE)
 
-metalClaims[EXP_INC_CLM_PMPM==0,EXP_INC_CLM_PMPM:=NA]
+metalClaims[EXP_INC_CLM_PMPM<=0,EXP_INC_CLM_PMPM:=NA]
 # metalClaims[,logAvgCost:=log(EXP_INC_CLM_PMPM)]
 setkey(metalClaims,ST,Firm,Metal_std)
 
 ## Drop Claims for firms that only have one purchased product in the state
-metalClaims[ST=="IL"&Firm=="ASSURANT_HEALTH",EXP_INC_CLM_PMPM:=NA]
-metalClaims[ST=="NE"&Firm=="ASSURANT_HEALTH",EXP_INC_CLM_PMPM:=NA]
-metalClaims[ST=="IA"&Firm=="AVERA_HEALTH_PLANS",EXP_INC_CLM_PMPM:=NA]
+# metalClaims[ST=="IL"&Firm=="ASSURANT_HEALTH",EXP_INC_CLM_PMPM:=NA]
+# metalClaims[ST=="NE"&Firm=="ASSURANT_HEALTH",EXP_INC_CLM_PMPM:=NA]
+# metalClaims[ST=="IA"&Firm=="AVERA_HEALTH_PLANS",EXP_INC_CLM_PMPM:=NA]
 
 ## Drop Claims for firms that have no variation in reported cost
 metalClaims[!is.na(EXP_INC_CLM_PMPM),cost_var:=(max(EXP_INC_CLM_PMPM)-min(EXP_INC_CLM_PMPM))/mean(EXP_INC_CLM_PMPM),by=c("Firm","ST")]
 metalClaims[cost_var<.05,EXP_INC_CLM_PMPM:=NA]
 
 ## Merge in Sample Market Shares
-prod_data = as.data.table(read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv"))
-prod_data[,Metal_std:=gsub(" .*","",METAL)]
-# prod_data = prod_data[,list(lives=sum(lives)),by=c("STATE","Firm","Metal_std")]
+# prod_data = as.data.table(read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv"))
+# prod_data[,Metal_std:=gsub(" .*","",METAL)]
+# # prod_data = prod_data[,list(lives=sum(lives)),by=c("STATE","Firm","Metal_std")]
 
-metalClaims = merge(metalClaims[!is.na(EXP_INC_CLM_PMPM),],prod_data[,c("STATE","Firm","Metal_std","lives","Product")],by.x=c("ST","Firm","Metal_std"),by.y=c("STATE","Firm","Metal_std"))
+metalAvg = merge(metalClaims[!is.na(EXP_INC_CLM_PMPM),],prod_adj,by.x=c("ST","Firm","Metal_std"),by.y=c("STATE","Firm","Metal_std"))
+metalAvg[,sum(lives*EXP_INC_CLM_PMPM/AV)/sum(lives)]
 
-
-
-
-metalAvg = metalClaims[,list(lives=sum(lives)),by=c("ST","Firm","Metal_std","EXP_INC_CLM_PMPM")]
 
 metalAvg[Metal_std=="PLATINUM",Metal_std:="GOLD"]
 metalAvg = metalAvg[,list(avgCost=sum(lives*EXP_INC_CLM_PMPM)/sum(lives)),by="Metal_std"]
-
+# firmTest = metalAvg[,list(avgCost=sum(lives*EXP_INC_CLM_PMPM)/sum(lives)),by=c("ST","Firm")]
+# firmTest = merge(firmTest,firmClaims,by=c("ST","Firm"))
 
 ### Bronze Cost Ratio
 metalAvg[Metal_std=="BRONZE",bronzeCost:=avgCost]
@@ -85,12 +102,13 @@ metalAvg[,costIndex:=avgCost/bronzeCost]
 metalAvg[,c("bronzeCost","avgCost"):=NULL]
 metalAvg[,M_num:=1:nrow(metalAvg)]
 
-metalClaims[Metal_std=="PLATINUM",Metal_std:="GOLD"]
+prod_data[,Metal_merge:=Metal_std]
+prod_data[Metal_std=="PLATINUM",Metal_merge:="GOLD"]
 
-metalMoments = merge(metalAvg,metalClaims[,c("Product","Metal_std")],by="Metal_std")
+metalMoments = merge(metalAvg,prod_data[,c("Product","Metal_merge")],by.x="Metal_std",by.y="Metal_merge")
 metalMoments[,c("Metal_std"):=NULL]
 
-save(metalClaims,metalAvg,file="Intermediate_Output/Average_Claims/ProdAvgCost.rData")
+save(firmClaims,metalAvg,file="Intermediate_Output/Average_Claims/AvgCostMoments.rData")
 
 #### MEPS Age Moments ####
 ageMoments = as.data.table(read.csv("Intermediate_Output/MEPS_Moments/ageMoments.csv"))
@@ -117,7 +135,6 @@ setkey(riskMoments,HCC_positive)
 
 
 #### All Moments ####
-firmClaims$M_num = 1:nrow(firmClaims)
 # metalClaims$M_num[!is.na(metalClaims$logAvgCost)] = max(firmClaims$M_num) + 1:sum(!is.na(metalClaims$logAvgCost))
 ageMoments$M_num = 1:nrow(ageMoments)
 ageMoments_noHCC$M_num = 1:nrow(ageMoments_noHCC)

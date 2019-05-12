@@ -33,7 +33,7 @@ chdf = ChoiceData(df,df_mkt,df_risk;
             :LowIncome],
     prodchars=[:Price,:AV,:Big],
     prodchars_0=[:AV,:Big],
-    fixedEffects=[:Firm],
+    fixedEffects=[:Firm_Market],
     wgt=[:PERWT])
 
 # Fit into model
@@ -78,7 +78,7 @@ costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk;
 println("Data Loaded")
 
 #### Load Demand Estimation ####
-rundate = "2019-03-07"
+rundate = "2019-03-12"
 # resDF = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_$rundate.csv")
 # p_est = Float64.(resDF[:pars])
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
@@ -276,6 +276,34 @@ Avar, se, t_stat, stars = GMM_var(costdf,m,p_stg5,par_est)
 out1 = DataFrame(pars=p_stg5,se=se,ts=t_stat,sig=stars)
 file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_$rundate.csv"
 CSV.write(file1,out1)
+
+
+#### TEST OUTCOMES ####
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg4_$rundate.jld2"
+@load file est_stg4
+p ,fval = est_stg4
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
+@load file est_stg1
+p_stg1, fval = est_stg1
+S,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
+W = inv(S)
+
+par = parMC(p,par_est,m,costdf)
+individual_costs(m,par)
+moments = costMoments(costdf,m,par)
+
+GMM_objective(p,par_est,m,costdf,W)
+
+f_adj = firmParameters(costdf,m,p,par_est,28)
+p_test = similar(p)
+p_test[1:4] = p[1:4]
+p_test[5:length(p_test)] = p[5:length(p_test)] + f_adj
+
+par = parMC(p_test,par_est,m,costdf)
+individual_costs(m,par)
+moments_test = costMoments(costdf,m,par)
+
+GMM_objective(p_test,par_est,m,costdf,W)
 
 
 

@@ -40,6 +40,28 @@ end
 
 
 
+function firmParameters(c::MC_Data,d::InsuranceLogit,p::Array{T},p_est::parDict{Float64},M_num::Int) where T
+    par = parMC(p,p_est,d,c) # Fix p0
+    individual_costs(d,par)
+
+    s_hat = par.pars.s_hat
+    wgts = weight(d.data)[:]
+
+    wgts_share = wgts.*s_hat
+    c_hat = par.C
+
+    fpar = zeros(length(c.firmMoments))
+
+    ## Firm Moments
+    m_idx = c._firmMomentDict[M_num]
+    c_avg = sliceMean_wgt(c_hat,wgts_share,m_idx)
+    fpar[M_num] = -(log(c_avg) - c.firmMoments[M_num])
+
+    return fpar
+end
+
+
+
 
 #
 # function fit_firm_moments(p0::Vector{Float64},p_est::parDict{Float64},

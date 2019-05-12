@@ -355,9 +355,6 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     c_hat_nonHCC = p.C_nonrisk
     c_hat_HCC = p.C_HCC
 
-    c_hat_total = c_hat./actuarial_values
-    c_hat_nonHCC_total = p.C_nonrisk./actuarial_values
-    c_hat_HCC_total = p.C_HCC./actuarial_values
 
     fmom = Vector{T}(undef,length(c.firmMoments))
     mmom = Vector{T}(undef,length(c.metalMoments)-1)
@@ -389,7 +386,7 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     end
 
     ## Age Moments
-    refval = sliceMean_wgt(c_hat_total,wgts_share,c._ageMomentDict[1])
+    refval = sliceMean_wgt(c_hat,wgts_share,c._ageMomentDict[1])
     for (m,m_idx) in c._ageMomentDict
         if m==1
             continue
@@ -397,19 +394,19 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
             # avg_act = sum(wgts_share[m_idx].*actuarial_values[m_idx])/sum(wgts_share[m_idx])
             # println(m)
             # println(avg_act)
-            c_avg = sliceMean_wgt(c_hat_total,wgts_share,m_idx)
+            c_avg = sliceMean_wgt(c_hat,wgts_share,m_idx)
             #println("$m: $c_avg")
             amom[m-1] = c_avg/refval[1] - c.ageMoments[m]
         end
     end
 
     ## Age without HCC Moments
-    refval = sliceMean_wgt(c_hat_nonHCC_total,none_share,c._agenoMomentDict[1])
+    refval = sliceMean_wgt(c_hat_nonHCC,none_share,c._agenoMomentDict[1])
     for (m,m_idx) in c._agenoMomentDict
         if m==1
             continue
         else
-            c_avg = sliceMean_wgt(c_hat_nonHCC_total,none_share,m_idx)
+            c_avg = sliceMean_wgt(c_hat_nonHCC,none_share,m_idx)
             # println("$m: $c_avg")
             nmom[m-1] = c_avg/refval[1] - c.agenoMoments[m]
         end
@@ -418,8 +415,8 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
 
     ## Risk Moments
     all_idx = Int.(1:length(s_hat))
-    HCC_avg = sliceMean_wgt(c_hat_HCC_total,any_share,all_idx)
-    non_avg = sliceMean_wgt(c_hat_nonHCC_total,none_share,all_idx)
+    HCC_avg = sliceMean_wgt(c_hat_HCC,any_share,all_idx)
+    non_avg = sliceMean_wgt(c_hat_nonHCC,none_share,all_idx)
     rmom = HCC_avg/non_avg - c.riskMoment
 
     # return vcat(fmom,mmom,amom,nmom,rmom)
@@ -452,9 +449,9 @@ end
 #     c_hat_nonHCC = p.C_nonrisk
 #     c_hat_HCC = p.C_HCC
 #
-#     # c_hat_total = c_hat./actuarial_values
-#     c_hat_nonHCC_total = p.C_nonrisk./actuarial_values
-#     c_hat_HCC_total = p.C_HCC./actuarial_values
+#     # c_hat = c_hat./actuarial_values
+#     c_hat_nonHCC = p.C_nonrisk./actuarial_values
+#     c_hat_HCC = p.C_HCC./actuarial_values
 #     #
 #     # pmom = Vector{T}(undef,length(c.avgMoments))
 #     # amom = Vector{T}(undef,length(c.ageMoments)-1)
@@ -466,8 +463,8 @@ end
 #     # pmom = log(c_avg) - c.avgMoments[m]
 #
 #     all_idx = Int.(1:length(s_hat))
-#     HCC_avg = sliceMean_wgt(c_hat_HCC_total,any_share,all_idx)
-#     non_avg = sliceMean_wgt(c_hat_nonHCC_total,none_share,all_idx)
+#     HCC_avg = sliceMean_wgt(c_hat_HCC,any_share,all_idx)
+#     non_avg = sliceMean_wgt(c_hat_nonHCC,none_share,all_idx)
 #     rmom = HCC_avg/non_avg - c.riskMoment
 #
 #     return rmom

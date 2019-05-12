@@ -464,3 +464,8 @@ setkey(choiceData,Person,Product)
 
 
 write.csv(choiceData,"Intermediate_Output/Simulated_BaseData/simchoiceData_discrete.csv",row.names=FALSE)
+
+#### Output Market Size ####
+people = unique(acs[,c("Person","Market","PERWT")])
+marketSize = people[,list(size=sum(PERWT)),by=c("Market")]
+save(marketSize,file="Intermediate_Output/Simulated_BaseData/simMarketSize.rData")

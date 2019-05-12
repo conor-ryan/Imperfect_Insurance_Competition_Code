@@ -32,6 +32,9 @@ for (f in simdataFiles){
 setkey(simData,Person)
 simData[,s_hat:=util/(1+sum(util)),by="Person"]
 
+
+
+
 #### Load Product Data ####
 load("Simulation_Risk_Output/prodData.rData")
 load("Intermediate_Output/Average_Claims/FirmAvgCost.rData")

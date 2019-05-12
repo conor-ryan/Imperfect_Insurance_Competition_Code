@@ -93,6 +93,21 @@ function update_Prices!(P_new::Vector{Float64},
     return foc_err, err_new
 end
 
+function optimalPrice(e::EqData)
+
+    P_Std, P_RA, P_RAτ, τ = eval_FOC(e)
+    costs = e[:C]
+    share = e[:S_j]
+    rating = e[:ageRate_avg]
+    # ### MLR Constraint
+    # MLR_const = costs./0.8
+    # P_Std[(P_Std.>MLR_const)] = MLR_const[(P_Std.>MLR_const)]
+    # P_RA[(P_RA.>MLR_const)] = MLR_const[(P_RA.>MLR_const)]
+
+
+    return P_Std,P_RA,costs,share,rating
+end
+
 function solve_model!(e::EqData,tol::Float64=.5;sim="Base")
     err = 10
     cnt = 0
@@ -140,7 +155,6 @@ end
 
 
 function run_st_equil(st::String,rundate::String;merger=false)
-    cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/")
     println("Read in Data for $st")
     file1 = "Intermediate_Output/Equilibrium_Data/estimated_Data_$st$rundate.csv"
     df = CSV.read(file1,types=Dict("AGE"=>Float64,"Mandate"=>Float64,"MEMBERS"=>Float64), missingstring="NA")
@@ -212,8 +226,7 @@ end
 
 
 
-function Check_Margin(st::String)
-    cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/")
+function Check_Margin(st::String,rundate::String)
     println("Read in Data for $st")
     file1 = "Intermediate_Output/Equilibrium_Data/estimated_Data_$st$rundate.csv"
     df = CSV.read(file1,types=Dict("AGE"=>Float64,"Mandate"=>Float64,"MEMBERS"=>Float64), missingstring="NA")
@@ -233,7 +246,7 @@ function Check_Margin(st::String)
 
     evaluate_model!(model,init=true)
     # foc_Std, foc_RA, foc_RA_fix, S_m, dsdp_rev = eval_FOC(model)
-    P_Std, P_RA, P_RAτ, τ = eval_FOC(model)
+    P_Std, P_RA, cost,share,rating = optimalPrice(model)
     # P_new = predict_price(foc_Std,foc_RA,foc_RA_fix,S_m,dsdp_rev,
     #                         model,sim="Base")
 
@@ -247,7 +260,10 @@ function Check_Margin(st::String)
     output =  DataFrame(Products=model.prods,
                         Price_orig=model.premBase_j,
                         Price_Std =P_Std,
-                        Price_RA = P_RA)
+                        Price_RA = P_RA,
+                        AvgCost = cost,
+                        Share = share,
+                        AgeRate= rating)
 
 
     file3 = "Estimation_Output/focMargin_$st$rundate.csv"

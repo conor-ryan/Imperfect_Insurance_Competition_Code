@@ -116,10 +116,6 @@ function cost_obs_moments!(mom_obs::Vector{Float64},productIDs::Vector{Int64},
     costs_risk = p.C_HCC[idxitr]
     costs_nonrisk = p.C_nonrisk[idxitr]
 
-    costs_total = costs./actuarial_values
-    costs_risk_total = costs_risk./actuarial_values
-    costs_nonrisk_total = costs_nonrisk./actuarial_values
-
 
     s_hat = p.pars.s_hat[idxitr]
     s_hat_risk = p.s_hat_risk[idxitr]
@@ -130,12 +126,8 @@ function cost_obs_moments!(mom_obs::Vector{Float64},productIDs::Vector{Int64},
     ins_share_nonrisk = sum(s_hat_nonrisk)
 
     ins_cost  = sum(s_hat.*costs)
-    # ins_cost_risk  = sum(s_hat_risk.*costs_risk)
-    # ins_cost_nonrisk  = sum(s_hat_nonrisk.*costs_nonrisk)
-
-    ins_cost_total  = sum(s_hat.*costs_total)
-    ins_cost_risk_total  = sum(s_hat_risk.*costs_risk_total)
-    ins_cost_nonrisk_total  = sum(s_hat_nonrisk.*costs_nonrisk_total)
+    ins_cost_risk  = sum(s_hat_risk.*costs_risk)
+    ins_cost_nonrisk  = sum(s_hat_nonrisk.*costs_nonrisk)
 
     anyHCC = c.anyHCC[idxitr]
 
@@ -154,21 +146,21 @@ function cost_obs_moments!(mom_obs::Vector{Float64},productIDs::Vector{Int64},
     #Insurance Rate
     mom_obs[M1 + age_ind] = ins_share*wgts[1]
     #Weighted Cose
-    mom_obs[M1 + length(c.ageMoments) + age_ind] = ins_cost_total*wgts[1]
+    mom_obs[M1 + length(c.ageMoments) + age_ind] = ins_cost*wgts[1]
 
     ## Age without HCC Moments
     #Insurance Rate
     mom_obs[M2 + age_ind] = ins_share_nonrisk*wgts[1]*(1-anyHCC[1])
     #Weighted Cose
-    mom_obs[M2 + length(c.agenoMoments) + age_ind] = ins_cost_nonrisk_total*wgts[1]*(1-anyHCC[1])
+    mom_obs[M2 + length(c.agenoMoments) + age_ind] = ins_cost_nonrisk*wgts[1]*(1-anyHCC[1])
 
     ## Risk Moments
     #Insurance by Risk
     mom_obs[M3+1] = ins_share_nonrisk*wgts[1]*(1-anyHCC[1])
     mom_obs[M3+2] = ins_share_risk*wgts[1]*(anyHCC[1])
     #Cost by Risk
-    mom_obs[M3+3] = ins_cost_nonrisk_total*wgts[1]*(1-anyHCC[1])
-    mom_obs[M3+4] = ins_cost_risk_total*wgts[1]*(anyHCC[1])
+    mom_obs[M3+3] = ins_cost_nonrisk*wgts[1]*(1-anyHCC[1])
+    mom_obs[M3+4] = ins_cost_risk*wgts[1]*(anyHCC[1])
 
     return per_prods, wgts[1]
 end

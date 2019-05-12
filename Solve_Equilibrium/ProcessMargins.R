@@ -17,22 +17,54 @@ load(predFile)
 
 focFiles = list.files("Estimation_Output")[grep(paste("focMargin.*",run,sep=""),list.files("Estimation_Output"))]
 
-prod_data[,prem_FOC:= vector(mode="double",nrow(prod_data))]
 setkey(prod_data,Product)
 for (file in focFiles){
   temp = read.csv(paste("Estimation_Output/",file,sep=""))
   temp = temp[order(temp$Products),]
   prod_data[Product%in%temp$Products,prem_FOC_base:= temp$Price_Std]
   prod_data[Product%in%temp$Products,prem_FOC_RA:= temp$Price_RA]
+  prod_data[Product%in%temp$Products,avgCost:= temp$AvgCost]
+  prod_data[Product%in%temp$Products,share_base:= temp$Share]
+  prod_data[Product%in%temp$Products,ageRate:= temp$AgeRate]
 }
 
 
+#### Market Size ####
+load("Intermediate_Output/Simulated_BaseData/simMarketSize.rData")
+prod_data = merge(prod_data,marketSize,by="Market")
+prod_data[,lives:=share_base*size]
+
+#### Merge Firm Costs ####
+load("Intermediate_Output/Average_Claims/AvgCostMoments.rData")
+firmClaims = firmClaims[,c("ST","Firm","AvgCost","M_num")]
+names(firmClaims) = c("ST","Firm","FirmAvgCost","M_num")
+prod_data = merge(prod_data,firmClaims,by=c("ST","Firm"))
+
+
+#### Share Estimates from Data ####
+shares = read.csv("Intermediate_Output/Estimation_Data/marketData_discrete.csv")
+prod_data = merge(prod_data,shares[,c("Product","Share")],by="Product")
+
+#### Test Cost Moments ####
+firmMoments = prod_data[,list(estFirmCost=sum(share_base*avgCost)/sum(share_base),
+                              share=sum(share_base)),by=c("ST","Firm","Market","FirmAvgCost","M_num")]
+
+metalMoments = prod_data[,list(estAvgCost=sum(share_base*avgCost)/sum(share_base)),by=c("Metal_std")]
+metalMoments = merge(metalMoments,metalAvg,by="Metal_std")
+
+# metalMoments[Metal_std=="BRONZE",bronzeCost:=avgCost]
+# metalMoments[,bronzeCost:=max(bronzeCost,na.rm=TRUE)]
+# metalMoments[,costIndex:=avgCost/bronzeCost]
+# metalMoments[,c("bronzeCost"):=NULL]
+
+metalMoments[Metal_std=="BRONZE",bronzeCost:=estAvgCost]
+metalMoments[,bronzeCost:=max(bronzeCost,na.rm=TRUE)]
+metalMoments[,estCostIndex:=estAvgCost/bronzeCost]
+metalMoments[,c("bronzeCost"):=NULL]
 
 #### Plot Margin Check ####
-
-
 png("Writing/Images/marginCheckBase.png",width=2000,height=1500,res=275)
-plot = ggplot(prod_data[Firm!="OTHER"&Metal_std=="GOLD",]) + aes(y=12/1000*prem_FOC_base,x=12/1000*premBase) +
+plot = ggplot(prod_data[Firm!="OTHER"&!ST%in%c("ND","AK","UT"),]) + aes(y=12/1000*prem_FOC_base,x=12/1000*premBase) +
   geom_point() + 
   geom_abline(intercept=0,slope=1) + 
   geom_smooth(color="red",method="lm",se=FALSE) + 
@@ -56,13 +88,13 @@ print(plot)
 dev.off()
 
 png("Writing/Images/marginCheckRA.png",width=2000,height=1500,res=275)
-ggplot(prod_data[,]) + aes(x=12/1000*premBase,y=12/1000*prem_FOC_RA) +
+ggplot(prod_data[Firm!="OTHER"&!ST%in%c("ND","AK","UT"),]) + aes(x=12/1000*premBase,y=12/1000*prem_FOC_RA) +
   geom_point() + 
   geom_abline(intercept=0,slope=1) + 
   geom_smooth(color="red",method="lm",se=FALSE) + 
   scale_x_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
   scale_y_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
-  coord_cartesian(ylim=c(0,8)) + 
+  coord_cartesian(ylim=c(0,8)) +
   xlab("Observed Base Premium (000s)") + 
   ylab("Optimal Base Premium (000s)") + 
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),

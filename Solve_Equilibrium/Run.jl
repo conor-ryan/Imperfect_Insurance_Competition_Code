@@ -6,6 +6,7 @@ using JLD2
 #################### Loading and Cleaning Data #########################
 ########################################################################
 # Set Directory
+cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/")
 
 # Load Cost
 include("predictionData.jl")
@@ -26,7 +27,7 @@ for st in states
     #     run_st_equil(st,rundate,merger=true)
     # end
     # println("Check Margin")
-    Check_Margin(st)
+    Check_Margin(st,rundate)
 end
 
 
