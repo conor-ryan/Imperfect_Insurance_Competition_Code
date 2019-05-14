@@ -261,9 +261,15 @@ dev.off()
 
 ##### Create Rating Area Choice Sets #####
 comb$METAL = gsub(" $","",paste(comb$METAL,comb$CSR))
+comb$hix = comb$PLANMARKET%in%c(1,3)
 
 comb$count = 1
 comb$count_prod = ave(comb$count,with(comb,paste(ST,AREA,Firm,METAL)),FUN=sum)
+
+comb$count_hix = 0
+comb$count_hix[comb$hix] = 1
+comb$count_hix_prod = ave(comb$count_hix,with(comb,paste(ST,AREA,Firm,METAL)),FUN=sum)
+
 comb$count_all = ave(comb$count,with(comb,paste(ST,AREA)),FUN=sum)
 
 comb$premRank = ave(comb$PREMI27,with(comb,paste(ST,AREA,Firm,METAL)),
@@ -281,6 +287,35 @@ hixSilver$maxRank = floor(ave(hixSilver$premRank,with(hixSilver,paste(ST,AREA)),
 benchmark = hixSilver[with(hixSilver,premRank==2|maxRank==1),c("ST","AREA","PREMI27")]
 names(benchmark) = c("ST","AREA","bench27")
 write.csv(benchmark,"Intermediate_Output/Premiums/benchmark2015.csv",row.names=FALSE)
+
+#### Benchmark Test ####
+testSilver = choiceSet[with(choiceSet,METAL=="Silver"&count_hix_prod>0),]
+testSilver = testSilver[with(testSilver,order(ST,AREA,PREMI27)),]
+testSilver$premRank = ave(testSilver$count_hix_prod,with(testSilver,paste(ST,AREA)),
+                         FUN=function(x){return(cumsum(x))})
+testSilver$countRank= ave(testSilver$premRank,with(testSilver,paste(ST,AREA)),
+                          FUN=function(x){return(rank(x,ties.method="first"))})
+testSilver$minPremRank = floor(ave(testSilver$premRank,with(testSilver,paste(ST,AREA)),FUN=min))
+testSilver$maxCountRank = floor(ave(testSilver$countRank,with(testSilver,paste(ST,AREA)),FUN=max))
+
+benchTest= testSilver[with(testSilver,(minPremRank==1&countRank==2)|(minPremRank>=2&premRank==minPremRank)|(maxCountRank==1)),c("ST","AREA","PREMI27")]
+names(benchTest) = c("ST","AREA","benchTest")
+
+benchTest = merge(benchmark,benchTest,by=c("ST","AREA"))
+
+# benchTest$benchSim = benchTest$benchTest*.9712
+# benchTest$err=with(benchTest,(benchSim-bench27)^2)
+# mean(benchTest$err)
+# 
+# 
+# lm(bench27~-1+benchTest,data=benchTest)
+# 
+# 
+# ggplot(benchTest) + aes(x=benchSim,y=bench27) + 
+#   geom_point() + 
+#   geom_abline(slope=1) + 
+#   geom_smooth(method="lm")
+
 
 #### Check Valid Choice Sets ####
 counts_all = unique(comb[,c("ST","AREA","count_all")])
@@ -310,10 +345,9 @@ validAreas = validAreas[!with(validAreas,ST=="CA"&AREA%in%c("Rating Area 19")),]
 
 
 choiceSet$valid = with(choiceSet,paste(ST,AREA))%in%with(validAreas,paste(ST,AREA))
-choiceSet$hix = choiceSet$PLANMARKET%in%c(1,3)
 
 
-write.csv(choiceSet[,c("ST","AREA","Firm","METAL","PREMI27","MedDeduct","MedOOP","MedDeductFam","MedOOPFam","hix","valid")],
+write.csv(choiceSet[,c("ST","AREA","Firm","METAL","PREMI27","MedDeduct","MedOOP","MedDeductFam","MedOOPFam","hix","valid","count_hix_prod")],
           "Intermediate_Output/Premiums/choiceSets2015.csv",row.names=FALSE)
 
 

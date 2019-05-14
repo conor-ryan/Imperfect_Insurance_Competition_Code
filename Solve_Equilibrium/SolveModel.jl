@@ -159,7 +159,7 @@ function run_st_equil(st::String,rundate::String;merger=false)
     file1 = "Intermediate_Output/Equilibrium_Data/estimated_Data_$st$rundate.csv"
     df = CSV.read(file1,types=Dict("AGE"=>Float64,"Mandate"=>Float64,"MEMBERS"=>Float64), missingstring="NA")
     file2 = "Intermediate_Output/Equilibrium_Data/estimated_prodData_$st.csv"
-    df_mkt = CSV.read(file2)#,null="NA")
+    df_mkt = CSV.read(file2, missingstring="NA")
     #cost_pars = CSV.read("Intermediate_Output/Equilibrium_Data/cost_pars.csv",null="NA")
 
 
@@ -231,7 +231,7 @@ function Check_Margin(st::String,rundate::String)
     file1 = "Intermediate_Output/Equilibrium_Data/estimated_Data_$st$rundate.csv"
     df = CSV.read(file1,types=Dict("AGE"=>Float64,"Mandate"=>Float64,"MEMBERS"=>Float64), missingstring="NA")
     file2 = "Intermediate_Output/Equilibrium_Data/estimated_prodData_$st.csv"
-    df_mkt = CSV.read(file2)#,null="NA")
+    df_mkt = CSV.read(file2, missingstring="NA")#,null="NA")
     # cost_pars = CSV.read("Intermediate_Output/Equilibrium_Data/cost_pars.csv",null="NA")
     file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
     @load file est_stg2
@@ -244,7 +244,7 @@ function Check_Margin(st::String,rundate::String)
 
     model = EqData(c,df_mkt,ψ_AV)
 
-    evaluate_model!(model,init=true)
+    evaluate_model!(model,init=true,foc_check=true)
     # foc_Std, foc_RA, foc_RA_fix, S_m, dsdp_rev = eval_FOC(model)
     P_Std, P_RA, cost,share,rating = optimalPrice(model)
     # P_new = predict_price(foc_Std,foc_RA,foc_RA_fix,S_m,dsdp_rev,

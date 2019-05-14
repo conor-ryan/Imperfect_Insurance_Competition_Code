@@ -64,7 +64,7 @@ metalMoments[,c("bronzeCost"):=NULL]
 
 #### Plot Margin Check ####
 png("Writing/Images/marginCheckBase.png",width=2000,height=1500,res=275)
-plot = ggplot(prod_data[Firm!="OTHER"&!ST%in%c("ND","AK","UT"),]) + aes(y=12/1000*prem_FOC_base,x=12/1000*premBase) +
+plot = ggplot(prod_data[Firm!="OTHER",]) + aes(y=12/1000*prem_FOC_base,x=12/1000*premBase) +
   geom_point() + 
   geom_abline(intercept=0,slope=1) + 
   geom_smooth(color="red",method="lm",se=FALSE) + 
@@ -88,7 +88,7 @@ print(plot)
 dev.off()
 
 png("Writing/Images/marginCheckRA.png",width=2000,height=1500,res=275)
-ggplot(prod_data[Firm!="OTHER"&!ST%in%c("ND","AK","UT"),]) + aes(x=12/1000*premBase,y=12/1000*prem_FOC_RA) +
+ggplot(prod_data[Firm!="OTHER",]) + aes(x=12/1000*premBase,y=12/1000*prem_FOC_RA) +
   geom_point() + 
   geom_abline(intercept=0,slope=1) + 
   geom_smooth(color="red",method="lm",se=FALSE) + 

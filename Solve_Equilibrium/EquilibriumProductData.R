@@ -6,7 +6,7 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 
 ## Load Simulation Data
-simData = read.csv("Intermediate_Output/Simulated_BaseData/simchoiceData_discrete.csv")
+simData = as.data.table(read.csv("Intermediate_Output/Simulated_BaseData/simchoiceData_discrete.csv"))
 
 ## Load Risk Score Data
 load("Simulation_Risk_Output/FirmRiskScores_woSim.rData")
@@ -18,14 +18,15 @@ firm_RA[,RA_share:=1-max(oth_share,na.rm=TRUE),by="ST"]
 
 
 
-prod_data = unique(simData[,c("Product_std","Metal_std","ST","Market","Firm",
-                                   "premBase_std","AV_std")])
+prod_data = simData[,list(count_hix_prod= max(count_hix_prod)),
+                    by=c("Product_std","Metal_std","ST","Market","Firm",
+                                   "premBase_std","AV_std","benchBase")]
+
 names(prod_data) = c("Product","Metal_std","ST","Market","Firm",
-                     "premBase","AV_std")
+                     "premBase","AV_std","benchBase","count_hix_prod")
 
 prod_data = merge(prod_data,firm_RA[,c("ST","Firm","RA_share")],by=c("ST","Firm"),all=TRUE)
-prod_data = as.data.table(prod_data)
-names(prod_data) = c("ST","Firm","Product","Metal_std","Market","premBase","AV_std","RA_share")
+names(prod_data) = c("ST","Firm","Product","Metal_std","Market","premBase","AV_std","benchBase","count_hix_prod","RA_share")
 
 
 

@@ -141,7 +141,7 @@ acs = acs[acs$valid,]
 
 # Keep only relevant variables
 acs = acs[,c("ST","household","HHincomeFPL","HH_income","FAMILY_OR_INDIVIDUAL","MEMBERS","AGE",
-             "AREA","Firm","METAL","hix","PREMI27",
+             "AREA","Firm","METAL","hix","PREMI27","count_hix_prod",
              "PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age",
              "MedDeduct","MedOOP","ageRate","ageRate_avg","PERWT")]
 
@@ -244,7 +244,7 @@ acs = acs[,list(AGE = mean(AGE),
                 HHincomeFPL = sum(HHincomeFPL*PERWT)/sum(PERWT),
                 PERWT = sum(PERWT),
                 subsidy_mean= sum(subsidy*PERWT)/sum(PERWT)),
-          by=c("ST","AREA","FPL_bucket","AGE_bucket","Mem_bucket","FAMILY_OR_INDIVIDUAL","Firm","METAL","hix","CSR",
+          by=c("ST","AREA","FPL_bucket","AGE_bucket","Mem_bucket","FAMILY_OR_INDIVIDUAL","Firm","METAL","hix","count_hix_prod","CSR",
                "MedDeduct","MedOOP","High",
                #"MedDeductDiff","MedOOPDiff","HighDiff", 
                "benchBase","premBase")]
@@ -446,9 +446,9 @@ acs[,c("Age_Cat","Inc_Cat"):=NULL]
 #### Output Analogous Data ####
 choiceData = acs[,c("Person","Firm","ST","Firm_ST","Firm_Market","Firm_Market_Cat","Market","Product","PERWT","Price",
                     "MedDeduct","ExcOOP","High","AV","AV_std","AV_diff","Big","Gamma_j",
-                    "Mandate","subsidy","IncomeCont","mkt_density",
+                    "Mandate","subsidy","benchBase","IncomeCont","mkt_density",
                     "Family","Age","LowIncome","AGE",
-                    "METAL","premBase",
+                    "METAL","premBase","count_hix_prod",
                     "Metal_std","Product_std","premBase_std",
                     "ageRate","ageRate_avg","HCC_age","SilvHCC_Age","MEMBERS",
                     "mean_HCC_Platinum","mean_HCC_Gold","mean_HCC_Silver","mean_HCC_Bronze","mean_HCC_Catastrophic",

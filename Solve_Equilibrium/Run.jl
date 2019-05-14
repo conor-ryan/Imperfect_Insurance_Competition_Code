@@ -18,16 +18,18 @@ rundate = "2019-03-12"
 
 states = ["AK","NE","ND","OK","MD","IA","NM","UT",
 "OR","MO","IL","MI","GA","TX"]
+states = ["OK","MD","IA","NM","UT",
+"OR","MO","IL","MI","GA","TX"]
 # states = ["MI","GA","TX"]
 for st in states
-    # println("Solve Baseline Market Structure")
-    #     run_st_equil(st,rundate)
-    # if st in ["MO","IL","MI","GA"]
-    #     println("Solve Merger Market Structure")
-    #     run_st_equil(st,rundate,merger=true)
-    # end
-    # println("Check Margin")
-    Check_Margin(st,rundate)
+    println("Solve Baseline Market Structure")
+        run_st_equil(st,rundate)
+    if st in ["MO","IL","MI","GA"]
+        println("Solve Merger Market Structure")
+        run_st_equil(st,rundate,merger=true)
+    end
+    println("Check Margin")
+    # Check_Margin(st,rundate)
 end
 
 

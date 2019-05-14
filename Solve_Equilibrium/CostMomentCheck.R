@@ -29,9 +29,9 @@ for (f in simdataFiles){
 }
 
 ## Calculate Base Shares
-setkey(simData,Person)
+# setkey(simData,Person)
 simData[,s_hat:=util/(1+sum(util)),by="Person"]
-
+simData[,exp_sum:=1+sum(util),by="Person"]
 
 
 

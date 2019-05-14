@@ -1,9 +1,9 @@
 
-function evaluate_model!(e::EqData;init=false)
+function evaluate_model!(e::EqData;init=false,foc_check=false)
     ## Unpack Prices from Product sorted Data
     unpack_P!(e)
     ## Adjust Prices to Premium Paid
-    premPaid!(e)
+    premPaid!(e,foc_check=foc_check)
     # Sort prices by person
     e.price_ij = e.price_ij[e.data._prod_2_per_map]
 
@@ -45,30 +45,50 @@ function calcBenchmark(e::EqData)
     mkts = keys(e.mkt_index)
     benchmarkPrem = Vector{Float64}(undef,length(mkts))
     for m in mkts
-        prems = sort(e.premBase_j[e.silver_index[m]])
-        bench_index = min(2,length(prems))
-        benchmarkPrem[m] = prems[bench_index]
+        prems = e.premBase_j[e.mkt_index[m]][e.silver_index[m]]
+        hix_cnts = e.hix_cnt[e.mkt_index[m]][e.silver_index[m]]
+        ind = sortperm(prems)
+        if (hix_cnts[ind][1]>1) | (length(prems)==1)
+            bench_index = 1
+        else
+            bench_index = 2
+        end
+        benchmarkPrem[m] = prems[ind][bench_index]
     end
     benchLong = benchmarkPrem[e.mkt_index_long]
     return benchLong
 end
 
-function calcSubsidy!(e::EqData)
-    benchmarks = calcBenchmark(e)
+function origBenchmark(e::EqData)
+    mkts = keys(e.mkt_index)
+    benchmarkPrem = Vector{Float64}(undef,length(mkts))
+    for m in mkts
+        benchmarkPrem[m] = unique(e.bench_base[e.mkt_index[m]])[1]
+    end
+    benchLong = benchmarkPrem[e.mkt_index_long]
+    return benchLong
+end
+
+function calcSubsidy!(e::EqData;foc_check=false)
+    if foc_check
+        benchmarks = origBenchmark(e)
+    else
+        benchmarks = calcBenchmark(e)
+    end
     ageRate = e.data[:ageRate]
     incCont = e.data[:IncomeCont]
     N = length(e.subsidy_ij)
     for n in 1:N
-        e.subsidy_ij[n] = max(benchmarks[n]*ageRate[n]-incCont[n],0)
+        e.subsidy_ij[n] = max(benchmarks[n]*ageRate[n]-incCont[n]*1000/12,0)
     end
     return nothing
 end
 
 
-function premPaid!(e::EqData)
+function premPaid!(e::EqData;foc_check=false)
     Mandate = e.data[:Mandate]
     # subsidy = e.data[:subsidy]
-    calcSubsidy!(e)
+    calcSubsidy!(e,foc_check=foc_check)
     subsidy = e.subsidy_ij
 
     ageRate = e.data[:ageRate]
@@ -78,7 +98,7 @@ function premPaid!(e::EqData)
 
     for n in 1:N
         price = max(e.price_ij[n]*ageRate[n]-subsidy[n]*(1-catas[n]),0)
-        price = ((price/Mems[n]) - Mandate[n]/12)
+        price = ((price*12/Mems[n]) - Mandate[n])/1000
         e.price_ij[n] = price
     end
     return nothing
@@ -94,9 +114,10 @@ function calcShares!(e::EqData)
     for i in people
         idxitr = e.data._personDict[i]
         exp_sum = 1.0
+        # exp_sum = [1.0]
         util = Vector{Float64}(undef,length(idxitr))
         for (n,k) in enumerate(idxitr)
-            util[n] = other_util[k]*exp(alpha[k]*price[k])
+            util[n] = other_util[k]*exp(alpha[k]*1000/12*price[k])
             exp_sum+=util[n]
         end
         for (n,k) in enumerate(idxitr)

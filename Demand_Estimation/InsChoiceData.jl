@@ -382,8 +382,8 @@ getindex(m::ChoiceData, idx) = m.data[idx,:]
 getindex(m::ChoiceData, idx, cols) = m.data[idx, cols]
 getindex(m::ChoiceData, idx::Array{Int,1}) = m.data[idx,:]
 getindex(m::ChoiceData, idx::Array{Int,1}, cols::Array{Int,1}) = m.data[idx, cols]
-getindex(m::ChoiceData, idx::Symbols) = m.data[getindex.(m.index, idx),:]
-getindex(m::ChoiceData, idx::Symbols, cols) = m.data[getindex.(m.index, idx),cols]
+getindex(m::ChoiceData, idx::Symbol) = m.data[getindex(m.index, idx),:]
+getindex(m::ChoiceData, idx::Symbol, cols) = m.data[getindex(m.index, idx),cols]
 
 # Define other retrieval methods on ChoiceData
 person(m::ChoiceData)      = m[m._person]

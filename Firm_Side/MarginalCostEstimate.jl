@@ -45,36 +45,6 @@ costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk;
                 fixedEffects=[:Firm_ST])
 
 
-
-# ### State-Level Sampling Dictionary
-# data_choice = df
-# states = sort(unique(data_choice[:ST]))
-# st_vec = Vector{Int}(undef,length(data_choice[:ST]))
-# for (k,s) in enumerate(states)
-#     st_vec[data_choice[:ST].==s] .= k
-# end
-#
-# _stDict_temp = build_ProdDict(st_vec)
-# _stDict = Dict{Int,Array{Int,1}}()
-# person_vec = data_choice[:Person]
-# x = [0]
-# for (st,ind) in _stDict_temp
-#     _stDict[st] = unique(person_vec[ind])
-#     x[1] += length(unique(person_vec[ind]))
-# end
-#
-# draw = bootstrap_sample(m,costdf)
-# st_vec_bs = st_vec[draw]
-#
-# _stDict_temp = build_ProdDict(st_vec_bs)
-# _stDict_bs = Dict{Int,Array{Int,1}}()
-# person_vec_bs = person_vec[draw]
-# x_bs = [0]
-# for (st,ind) in _stDict_temp
-#     _stDict_bs[st] = unique(person_vec_bs[ind])
-#     x_bs[1] += length(unique(person_vec_bs[ind]))
-# end
-
 println("Data Loaded")
 
 #### Load Demand Estimation ####
@@ -104,6 +74,10 @@ W = Matrix(1.0I,costdf.mom_length,costdf.mom_length)
 p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2,rand(length(costdf._feIndex)).*3 .+1)
 est_stg1 = estimate_GMM(p0,par_est,m,costdf,W,fit=true)
 incase = est_stg1
+
+# p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2)
+# est_stg1 = estimate_NLOpt(p0,par_est,m,costdf,W)
+# incase = est_stg1
 # #
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
 @save file est_stg1
@@ -154,6 +128,7 @@ file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermed
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
 @load file est_stg1
 p_stg1, fval = est_stg1
+# flag,fval,p_stg1 = est_stg1
 #
 # p_test = fit_firm_moments(p_stg1[1:4],par_est,m,costdf)
 
@@ -163,7 +138,8 @@ println("###### Estimation 2 #######")
 println("#################")
 println("#################")
 
-
+# p_full1 = fit_firm_moments(p_stg1,par_est,m,costdf)
+# S,Σ,Δ,mom_long = aVar(costdf,m,p_full1,par_est)
 S,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
 # W = zeros(costdf.mom_length,costdf.mom_length)
 # for i in 1:costdf.mom_length
@@ -173,13 +149,14 @@ W = inv(S)
 # S,S_unwt,mom_est = var_bootstrap(costdf,m,p_stg1,par_est,draw_num=5000)
 # W = inv(S)
 
-p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2)
-# p0 = [0.0152152, 2.42283, -0.21084, 0.154506]
-flag,fval,p_init = estimate_NLOpt(p0,par_est,m,costdf,W)
-p_full0 = fit_firm_moments(p_init,par_est,m,costdf)
+# p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2)
+# # p0 = [0.0152152, 2.42283, -0.21084, 0.154506]
+# est_stg2 = estimate_NLOpt(p0,par_est,m,costdf,W)
+# x1,x2,p_init = est_stg2
+# p_full = fit_firm_moments(p_init,par_est,m,costdf)
 
 p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2,rand(length(costdf._feIndex)).*3 .+1)
-est_stg2 = estimate_GMM(p0,par_est,m,costdf,W,max_ga_itr=45)
+est_stg2 = estimate_GMM(p0,par_est,m,costdf,W,max_ga_itr=45,fit=true)
 p_stg2, fval = est_stg2
 
 # GMM_objective(p_fit,par_est,m,costdf,W,squared=true)
@@ -279,15 +256,18 @@ CSV.write(file1,out1)
 
 
 #### TEST OUTCOMES ####
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg4_$rundate.jld2"
-@load file est_stg4
-p ,fval = est_stg4
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
-@load file est_stg1
-p_stg1, fval = est_stg1
-S,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
-W = inv(S)
-
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
+@load file est_stg2
+p ,fval = est_stg2
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
+# @load file est_stg1
+# p_stg1, fval = est_stg1
+# S,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
+# W = inv(S)
+#
+# p=p_full
+# p = p_full[1:4]
+# p = fit_firm_moments(p,par_est,m,costdf)
 par = parMC(p,par_est,m,costdf)
 individual_costs(m,par)
 moments = costMoments(costdf,m,par)

@@ -70,7 +70,7 @@ individual_costs(m,par_est_mc)
 (K,M) = size(m.data.data)
 (N,Q) = size(m.draws)
 
-output_data = Matrix{Float64}(undef,21,Int(M*N/2))
+output_data = Matrix{Float64}(undef,23,Int(M*N/2))
 
 ### Count 0 HCC Individuals ####
 pos_HCC = sum(m.draws.>0,dims=1)
@@ -79,6 +79,7 @@ pos_HCC = sum(m.draws.>0,dims=1)
 person_long = person(m.data)
 # product_long = product(m.data)
 product_long = Float64.(df[:Product_std])
+price_long = m.data[:Price]
 riskInd_long = Int.(rInd(m.data))
 ageHCC_long = ageHCC(m.data)
 otherData = convert(Matrix{Float64},df[[:AGE,:ageRate,:ageRate_avg,:AV,:Gamma_j,:Mandate,:subsidy,:IncomeCont,:MEMBERS]])
@@ -101,6 +102,8 @@ for i in 1:M
     oth = otherData[i,:]
     catas = Catas_long[i]
     ageHCC = ageHCC_long[i]
+    s_pred = par_est_dem.s_hat[i]
+    p_base = price_long[i]
 
 
     dens_raw = density_long[i]/N
@@ -131,7 +134,7 @@ for i in 1:M
         μ_ij_nonprice = par_est_dem.μ_ij_nonprice[n,i]
         μ_ij = par_est_dem.μ_ij[n,i]
 
-        row = vcat([per,prd,catas,mkt_dens,wgt],oth,[α,μ_ij_nonprice,μ_ij,R,risk_draw,C,C_nonAV])
+        row = vcat([per,prd,catas,mkt_dens,wgt],oth,[α,μ_ij_nonprice,μ_ij,R,risk_draw,C,C_nonAV,s_pred,p_base])
         output_data[:,ind[1]] = row
         state_index[ind[1]] = state_long[i]
     end
@@ -142,7 +145,7 @@ state_index = state_index[1:ind[1]]
 states = unique(df[:ST])
 header = Symbol.(["Person","Product","Catastrophic","mkt_density","PERWT",
 "AGE","ageRate","ageRate_avg","AV","Gamma_j","Mandate","subsidy","IncomeCont","MEMBERS",
-"alpha","non_price_util","util","R","R_HCC","C","C_nonAV"])
+"alpha","non_price_util","util","R","R_HCC","C","C_nonAV","s_base","p_base"])
 for st in states
     println(st)
     file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Equilibrium_Data/estimated_Data_$st$rundate.csv"

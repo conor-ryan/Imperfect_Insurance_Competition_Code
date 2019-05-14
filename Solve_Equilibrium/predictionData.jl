@@ -176,9 +176,15 @@ mutable struct EqData
     Cost_base_j::Vector{Float64}
     C_AV_j::Vector{Float64}
 
+
     #Ownership Matrix
     ownMat::Matrix{Float64}
     ownMat_merge::Matrix{Float64}
+
+    # Firm Product Weight (Hix)
+    hix_cnt::Vector{Float64}
+    # Original Benchmark
+    bench_base::Vector{Float64}
 
     #Market Index
     mkt_index::Dict{Real,Array{Int64,1}}
@@ -236,6 +242,10 @@ function EqData(cdata::ChoiceData,mkt::DataFrame,ψ_AV::Float64)#,cpars::DataFra
         mkt_index[n] = findall(markets.==m)
         silv_index[n] = findall(metals[mkt_index[n]].=="SILVER")
     end
+
+    hix_cnt = Float64.(mkt[:count_hix_prod][mkt[:Firm].!="OTHER"])
+    bench_base = Float64.(mkt[:benchBase][mkt[:Firm].!="OTHER"])
+
 
     mkt_map = Dict{Real,Int64}()
     for (m,prod_num) in mkt_index
@@ -300,7 +310,7 @@ function EqData(cdata::ChoiceData,mkt::DataFrame,ψ_AV::Float64)#,cpars::DataFra
     avgPrem_fix = 0.0
 
     return EqData(cdata,pmat,index,prods, #cpars,
-    premBase,costBase,cost,ownMat,ownMat_merge,
+    premBase,costBase,cost,ownMat,ownMat_merge,hix_cnt,bench_base,
     mkt_index,mkt_map,silv_index,mkt_index_long,
     s_pred,s_pred_byperson,price_ij,subsidy,
     R_bench,RA_share,Other_R,
