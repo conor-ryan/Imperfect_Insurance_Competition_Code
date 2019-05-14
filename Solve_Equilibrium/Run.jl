@@ -16,9 +16,9 @@ include("EquilibriumFunctions.jl")
 # Check_Margin("NE")
 rundate = "2019-03-12"
 
-states = ["AK","NE","ND","OK","MD","IA","NM","UT",
-"OR","MO","IL","MI","GA","TX"]
-states = ["OK","MD","IA","NM","UT",
+# states = ["AK","NE","ND","OK","MD","IA","NM","UT",
+# "OR","MO","IL","MI","GA","TX"]
+states = ["AK","NE","OK","MD","IA","NM","UT",
 "OR","MO","IL","MI","GA","TX"]
 # states = ["MI","GA","TX"]
 for st in states
