@@ -89,82 +89,13 @@ function estimate!(d::InsuranceLogit, p0;method=:LD_TNEWTON_PRECOND_RESTART)
     return ret, minf, minx
 end
 
-function gradient_ascent(d,p0;max_step=1e-3,init_step=1e-9,max_itr=2000,grad_tol=1e2)
-    ## Initialize Parameter Vector
-    p_vec = p0
-    # Step Size
-    #max_step = 1e-7
-    step = init_step
-    # Likelihood Functions
-    ll(x) = log_likelihood(d,x)
-    # Tracking Variables
-    count = 0
-    grad_size = 1e8
-    tol = 1
-    f_eval_old = 1.0
-    # # Initialize δ
-    param_dict = parDict(d,p_vec)
-    contraction!(d,param_dict)
-    cfg = ForwardDiff.GradientConfig(ll, p_vec, ForwardDiff.Chunk{6}());
-    # Maximize by Gradient Ascent
-    while (grad_size>grad_tol) & (count<max_itr)
-        count+=1
-        # Compute δ with Contraction
-        println("Update δ")
-        param_dict = parDict(d,p_vec)
-        contraction!(d,param_dict)
-        # Evaluate Likelihood
-        f_eval = ll(p_vec)
-        println("likelihood equals $f_eval on iteration $count")
 
-        if ((count>1) & ((f_eval-f_eval_old)/f_eval_old > 0.02)) | isnan(f_eval)
-            step = step_old/10
-            p_vec = p_old + step.*grad_new
-            println("Reset Parameters to $p_vec")
-            step_old = copy(step)
-            continue
-        end
-
-        # Compute Gradient, holding δ fixed
-        grad_new = similar(p_vec)
-        ForwardDiff.gradient!(grad_new, ll, p_vec)
-        println("Gradient is $grad_new")
-
-        #Save Iteration
-        p_old = copy(p_vec)
-        f_eval_old = copy(f_eval)
-        step_old = copy(step)
-
-        # Update Parameters
-        p_vec += step.*grad_new
-        println("Update Parameters to $p_vec")
-
-
-        # New Step Size
-        if count>1
-            grad_diff = (grad_new-grad_old)
-            step = abs(dot(step.*grad_new,grad_diff)/dot(grad_diff,grad_diff))
-            println("New optimal step size: $step")
-        end
-        # Save Gradient
-        grad_old = copy(grad_new)
-
-        grad_size = sqrt(dot(grad_new,grad_new))
-        println("Gradient Size: $grad_size")
-
-        #Update step size
-        step = min(step,max_step)
-    end
-    return p_vec
-end
-
-
-function newton_raphson_ll(d,p0;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
+function gradient_ascent_ll(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2000,strict=false)
     ## Initialize Parameter Vector
     p_vec = p0
     N = length(p0)
 
-    count = 0
+    cnt = 0
     grad_size = 10000
     f_eval_old = 1.0
     # # Initialize δ
@@ -175,74 +106,281 @@ function newton_raphson_ll(d,p0;grad_tol=1e-8,step_tol=1e-8,max_itr=2000)
     hess_new = Matrix{Float64}(undef,length(p0),length(p0))
     f_final_val = 0.0
     max_trial_cnt = 0
+    p_last = copy(p_vec)
+    grad_last = copy(grad_new)
+    disp_length = min(length(p0),20)
+    f_min = -1e3
+    p_min  = similar(p_vec)
+    no_progress=0
+    flag = "empty"
+    if strict
+        mistake_thresh = 1.00
+    else
+        mistake_thresh = 1.25
+    end
+
+    ## Tolerance Counts
+    f_tol_cnt = 0
+    x_tol_cnt = 0
     # Maximize by Newtons Method
-    while (grad_size>grad_tol) & (count<max_itr) & (max_trial_cnt<20)
-        count+=1
+    while (cnt<max_itr)
+        cnt+=1
+        trial_cnt=0
+
+
+        # Compute Gradient, holding δ fixed
+        fval = log_likelihood!(grad_new,d,p_vec)
+        if (cnt==1) | (fval>f_min)
+            if abs(fval-f_min)<f_tol
+                f_tol_cnt += 1
+            end
+            if maximum(abs.(p_vec - p_min))<x_tol
+                x_tol_cnt += 1
+            end
+
+            f_min = copy(fval)
+            p_min[:] = p_vec[:]
+
+            no_progress=0
+        else
+            no_progress+=1
+        end
+
+
+        grad_size = maximum(abs.(grad_new))
+        if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1)
+            println("Got to Break Point")
+            println(grad_size)
+            println(f_tol_cnt)
+            println(x_tol_cnt)
+            flag = "converged"
+            break
+        end
+        if strict==false
+            if grad_size>.1
+                mistake_thresh = 1.25
+            else
+                mistake_thresh = 1.05
+            end
+        end
+
+        if cnt==1
+            step = 1/grad_size
+        else
+            g = p_vec - p_last
+            y = grad_new - grad_last
+            step = abs.(dot(g,g)/dot(g,y))
+        end
+
+        if no_progress>10
+            no_progress = 0
+            println("Return: Limit on No Progress")
+            p_vec = copy(p_min)
+            fval = log_likelihood!(grad_new,d,p_vec)
+            grad_size = maximum(abs.(grad_new))
+            step = 1/grad_size
+            mistake_thresh = 1.00
+        end
+
+
+
+        p_test = p_vec .+ step.*grad_new
+
+        f_test = log_likelihood(d,p_test)
+        println("Initial Step Size: $step")
+        while ((f_test<fval*mistake_thresh) | isnan(f_test)) & (step>1e-15)
+            p_test_disp = p_test[1:disp_length]
+            if trial_cnt==0
+                println("Trial: Got $f_test at parameters $p_test_disp")
+                println("Previous Iteration at $fval")
+                println("Reducing Step Size...")
+            end
+            step/= 20
+            p_test = p_vec .+ step.*grad_new
+            f_test = log_likelihood(d,p_test)
+            trial_cnt+=1
+        end
+
+        p_last = copy(p_vec)
+        p_vec = copy(p_test)
+        grad_last = copy(grad_new)
+        p_vec_disp = p_vec[1:20]
+        f_final_val = fval
+        println("Update Parameters to $p_vec_disp")
+
+
+        println("Gradient Size: $grad_size")
+        println("Step Size: $step")
+        println("Function Value is $f_test at iteration $cnt")
+        println("Steps since last improvement: $no_progress")
+    end
+    println("Lowest Function Value is $f_min at $p_min")
+    return p_min,f_min
+end
+
+
+function newton_raphson_ll(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2000,strict=true)
+    ## Initialize Parameter Vector
+    p_vec = p0
+    N = length(p0)
+
+    cnt = 0
+    grad_size = 10000
+    f_eval_old = 1.0
+    # # Initialize δ
+    param_dict = parDict(d,p_vec)
+
+    # Initialize Gradient
+    grad_new = similar(p0)
+    hess_new = Matrix{Float64}(undef,length(p0),length(p0))
+    f_final_val = 0.0
+    max_trial_cnt = 0
+    NaN_steps = 0
+    trial_end = 5
+    p_last = copy(p_vec)
+    grad_last = copy(grad_new)
+    disp_length = min(length(p0),20)
+    f_min = -1e3
+    p_min  = similar(p_vec)
+    no_progress=0
+    flag = "empty"
+    step = 1
+    if strict
+        mistake_thresh = 1.00
+    else
+        mistake_thresh = 1.25
+    end
+
+    ## Tolerance Counts
+    f_tol_cnt = 0
+    x_tol_cnt = 0
+    # Maximize by Newtons Method
+    while (grad_size>grad_tol) & (cnt<max_itr) & (max_trial_cnt<20)
+        cnt+=1
+        trial_cnt=0
 
         # Compute Gradient, holding δ fixed
 
         fval = log_likelihood!(hess_new,grad_new,d,p_vec)
 
-        grad_size = sqrt(dot(grad_new,grad_new))
-        if (grad_size<1e-8) & (count>10)
+        if (cnt==1) | (fval>f_min)
+            if abs(fval-f_min)<f_tol
+                f_tol_cnt += 1
+            end
+            if maximum(abs.(p_vec - p_min))<x_tol
+                x_tol_cnt += 1
+            end
+
+            f_min = copy(fval)
+            p_min[:] = p_vec[:]
+
+            no_progress=0
+        else
+            no_progress+=1
+        end
+
+
+        grad_size = maximum(abs.(grad_new))
+        if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1)
             println("Got to Break Point...?")
+            println(grad_size)
+            println(f_tol_cnt)
+            println(x_tol_cnt)
+            flag = "converged"
             break
         end
-
-        # ForwardDiff.gradient!(grad_new, ll, p_vec)
-        # println("Gradient is $grad_new")
-        #
-        #
-        # hess_new = Matrix{Float64}(N,N)
-        # ForwardDiff.hessian!(hess_new, ll, p_vec)
-        # println("Hessian is $hess_new")
-
-        step = - inv(hess_new)*grad_new
-        step_size = maximum(abs.(step))
-
-        p_test = p_vec .+ step
-        f_test = log_likelihood(d,p_test)
-        trial_cnt = 0
-        trial_max = 0
-        while ((f_test<fval) | isnan(f_test)) & (trial_max==0)
-            if (step_size>1e-8)
-                p_test_disp = p_test[1:20]
-                println("Trial: Got $f_test at parameters $p_test_disp")
-                println("Previous Iteration at $fval")
-                if trial_cnt <=2
-                    step/= 10
-                else
-                    step/= 100
-                end
-                step_size = maximum(abs.(step))
-                p_test = p_vec .+ step
-                f_test = log_likelihood(d,p_test)
-                trial_cnt+=1
-            elseif (grad_size>1e-5)
-                trial_max = 1
-                println("Algorithm Stalled: Random Step")
-                max_trial_cnt+=1
-                step = rand(length(step))/1000 .-.005
+        if strict==false
+            if grad_size>.1
+                mistake_thresh = 1.25
             else
-                trial_max = 1
-                println("Algorithm Stalled: Random Step")
-                max_trial_cnt+=1
-                step = rand(length(step))/10000 .-.005
+                mistake_thresh = 1.05
             end
         end
-        p_vec+= step
+
+        update = -inv(hess_new)*grad_new
+        if any(isnan.(update))
+            println("Step contains NaN")
+            #Check Hessian
+            eig = sort(abs.(eigvals(hess_new)))
+            sm_e = eig[1]
+            println("Smallest Eigenvalue: $sm_e ")
+            NaN_steps +=1
+            grad_size = sqrt(dot(grad_new,grad_new))
+            update = -(1/grad_size).*grad_new
+        else
+            NaN_steps = 0
+        end
+
+
+        if no_progress>5
+            no_progress = 0
+            println("Return: Limit on No Progress")
+            p_vec = copy(p_min)
+            fval = log_likelihood!(grad_new,d,p_vec)
+            grad_size = maximum(abs.(grad_new))
+            step = 1/grad_size
+            update = - step.*grad_new
+            mistake_thresh = 1.00
+        end
+
+        step_size = maximum(abs.(update))
+        if step_size>10
+        update = update./step_size
+        ind = findall(abs.(update).==1)
+        val_disp = p_vec[ind]
+            println("Max Parameter Adjustment: $ind, $val_disp")
+        step_size = 1
+        end
+
+
+        p_test = p_vec .+ update
+        f_test = log_likelihood(d,p_test)
+
+        trial_max = 0
+        while ((f_test<fval*mistake_thresh) | isnan(f_test)) & (trial_max==0)
+            if trial_cnt==0
+                p_test_disp = p_test[1:20]
+                println("Trial (Init): Got $f_test at parameters $p_test_disp")
+                println("Previous Iteration at $fval")
+            end
+            if (step_size>x_tol)
+                if trial_cnt<=2
+                    update/= 20
+                else
+                    update/= 200
+                end
+                step_size = maximum(abs.(update))
+                p_test = p_vec .+ update
+                f_test = log_likelihood(d,p_test)
+                p_test_disp = p_test[1:20]
+                println("Trial (NR): Got $f_test at parameters $p_test_disp")
+                println("Previous Iteration at $fval")
+                trial_cnt+=1
+            else
+                trial_max = 1
+                println("RUN ROUND OF GRADIENT ASCENT")
+                p_test, f_test = gradient_ascent_ll(d,p_vec,max_itr=5,strict=true)
+            end
+        end
+        if NaN_steps>5
+            println("Hessian might be singular")
+            println("RUN ROUND OF GRADIENT ASCENT")
+            p_test, f_test = gradient_ascent_ll(d,p_test,max_itr=20,strict=true)
+        end
+
+        p_last = copy(p_vec)
+        p_vec = copy(p_test)
+        grad_last = copy(grad_new)
         p_vec_disp = p_vec[1:20]
-        f_final_val = f_test
+        f_final_val = fval
         println("Update Parameters to $p_vec_disp")
 
 
         println("Gradient Size: $grad_size")
-        println("Function Value is $f_test at iteration $count")
+        println("Step Size: $step_size")
+        println("Function Value is $f_test at iteration $cnt")
+        println("Steps since last improvement: $no_progress")
     end
-    # if (grad_size>grad_tol)
-    #     println("Estimate Instead")
-    #     ret, f_final_val, p_vec = estimate!(d,p0)
-
-
-    return p_vec,f_final_val
+    println("Lowest Function Value is $f_min at $p_min")
+    return p_min,f_min
 end

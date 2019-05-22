@@ -35,9 +35,9 @@ c = ChoiceData(df,df_mkt,df_risk;
             :AgeFE_52_64,
             :Family,
             :LowIncome],
-    prodchars=[:Price,:AV,:Big],
-    prodchars_0=[:AV,:Big],
-    fixedEffects=[:Firm_Market])
+    prodchars=[:Price,:constant,:AV,:Big],
+    prodchars_0=[:constant,:AV,:Big],
+    fixedEffects=[:Firm])
 
 #2018 - 12 - 24 : Firm Specification
 #2019 - 03 - 7 : Firm Specification
@@ -46,7 +46,7 @@ c = ChoiceData(df,df_mkt,df_risk;
 
 
 # Fit into model
-m = InsuranceLogit(c,1000)
+m = InsuranceLogit(c,500)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
@@ -113,24 +113,24 @@ p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 #
 #p_ll = newton_raphson(m,p0)
 
-rundate = Dates.today()
-# rundate = "2019-03-07"
+# rundate = Dates.today()
+rundate = "2019-05-20"
 println("#################")
 println("#################")
 println("###### Estimation 1 #######")
 println("#################")
 println("#################")
-# Estimate
+# # Estimate
 # p_ll,ll = newton_raphson_ll(m,p0)
-# rundate = "2018-12-24"
-
+# # rundate = "2018-12-24"
+#
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_ll_$rundate.jld2"
 # @save file p_ll
 
 println("Load MLE")
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estresults_fe_rc_FMC_2019-03-16.jld2"
-@load file p_est
-p_ll = copy(p_est)
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_ll_$rundate.jld2"
+@load file p_ll
+# p_ll = copy(p_est)
 
 
 println("#################")
@@ -158,7 +158,7 @@ W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMom
 #  0.353456, -0.111014, -3.95334, -1.77059, -2.24438, -2.8546, -5.01624, -2.05154, -1.82248, -2.66176,
 #   -3.15346, -1.6959, -0.719817, -0.493211, -0.934829, -4.92727, -1.1841, -1.87416, -2.68204, -2.42847,
 #   -1.13669, -0.736661, -1.72, -1.26253, -3.16234, -0.963663, -3.0988, -3.00063, -3.9023, -4.54545, -0.0770832]
-
+p_ll[15]=0.0
 p_stg1, obj_1 = estimate_GMM(m,p_ll,W)
 # p_stg1 = [1.69666, -0.624074, 7.70532, -3.40489, -6.69419, -2.48158, 7.60393, -14.0308, -0.181931, 0.717822, 0.340304, 0.469169, -0.507845, 0.788595, 0.123226, -1.79194, -0.333285, -0.723316, -3.17282, -0.426228, -0.293929, -2.64561, -0.0784879, -1.35754, 3.21791, -1.88876,
 # -1.58925, -2.53687, -0.370789, -2.18622, -14.7182, 1.80582, -1.0009, -2.17884, 0.200387, 16.1311, 0.288741, 3.14, -0.860258, 4.10627, -1.70509, 1.49477, -3.3637, -2.42231, 24.7657, -20.5494, 2.2456, 19.4633, -2.92765,
@@ -215,9 +215,9 @@ println("#################")
 println("###### Save Results #######")
 println("#################")
 println("#################")
-rundate = "2019-03-12"
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
-@load file p_stg2
+# rundate = "2019-03-12"
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
+# @load file p_stg2
 Avar, se, t_stat, stars = GMM_var(m,p_stg2)
 
 out1 = DataFrame(pars=p_stg2,se=se,ts=t_stat,sig=stars)
@@ -261,11 +261,11 @@ individual_shares(m,par0)
 # # individual_shares(m,par0)
 # #
 # #
-# # grad_2 = Vector{Float64}(length(p0))
-# # grad = Vector{Float64}(length(p0))
-# # hess = Matrix{Float64}(length(p0),length(p0))
-# # hess_3 = Matrix{Float64}(length(p0),length(p0))
-# # llg =  log_likelihood!(grad_2,m,p0)
+grad_2 = Vector{Float64}(undef,length(p0))
+# grad = Vector{Float64}(length(p0))
+# hess = Matrix{Float64}(length(p0),length(p0))
+# hess_3 = Matrix{Float64}(length(p0),length(p0))
+llg =  log_likelihood!(grad_2,m,p0)
 # # llh =  log_likelihood!(hess_3,grad_3,m,par0)
 # #
 # # llh3 =  log_likelihood!(hess_3,m,p0)
@@ -278,18 +278,18 @@ individual_shares(m,par0)
 # # @time log_likelihood!(grad_2,m,p0)
 # # @time log_likelihood!(hess_2,m,p0)
 # #
-# println("Gradient Test")
-# # f_ll(x) = log_likelihood(m,x)
-# # #f_ll(x) = calc_risk_moments(m,x)
-# # grad_1 = Vector{Float64}(length(p0))
-# # hess_1 = Matrix{Float64}(length(p0),length(p0))
-# # fval_old = f_ll(p0)
-# # ForwardDiff.gradient!(grad_1,f_ll, p0)
-# # ForwardDiff.hessian!(hess_1,f_ll, p0)
+println("Gradient Test")
+f_ll(x) = log_likelihood(m,x)
+#f_ll(x) = calc_risk_moments(m,x)
+grad_1 = Vector{Float64}(undef,length(p0))
+hess_1 = Matrix{Float64}(undef,length(p0),length(p0))
+fval_old = f_ll(p0)
+ForwardDiff.gradient!(grad_1,f_ll, p0)
+# ForwardDiff.hessian!(hess_1,f_ll, p0)
 # #
 # #
-# # println(fval_old-llh)
-# # println(maximum(abs.(grad_1-grad_3)))
+println(fval_old-llg)
+println(maximum(abs.(grad_1-grad_2)))
 # # println(maximum(abs.(hess_1-hess_3)))
 #
 #grad = Matrix{Float64}(length(p0),length(m.data.tMoments))
@@ -309,18 +309,18 @@ individual_shares(m,par0)
 #
 # #
 # #
-# p0 = p_est
+p0 = p_est
 # W = eye(length(p0)+6)
-# grad_2 = Vector{Float64}(undef,length(p0))
-# hess_2 = Matrix{Float64}(undef,length(p0),length(p0))
-# using Profile
-# Profile.init(n=10^8,delay=.001)
-# Profile.clear()
-# #Juno.@profile add_obs_mat!(hess,grad,hess_obs,grad_obs,Pop)
-# # Juno.@profile log_likelihood!(thD_2,hess_2,grad_2,m,par0)
-# Juno.@profile res = GMM_objective(m,p0,W)
-# Juno.profiletree()
-# Juno.profiler()
+grad_2 = Vector{Float64}(undef,length(p0))
+hess_2 = Matrix{Float64}(undef,length(p0),length(p0))
+using Profile
+Profile.init(n=10^8,delay=.001)
+Profile.clear()
+#Juno.@profile add_obs_mat!(hess,grad,hess_obs,grad_obs,Pop)
+# Juno.@profile log_likelihood!(thD_2,hess_2,grad_2,m,par0)
+Juno.@profile res = GMM_objective(m,p0,W)
+Juno.profiletree()
+Juno.profiler()
 #
 # for (x,i) in enumerate([1,2,5])
 #     print(x)

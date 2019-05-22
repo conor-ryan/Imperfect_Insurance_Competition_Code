@@ -240,7 +240,7 @@ function estimate_GMM(d::InsuranceLogit, p0::Vector{Float64},W::Matrix{Float64})
     p_est, fval = gradient_ascent_BB(d,p0,W,max_itr=300)
     # Then run newtons method until better convergence
     println("Newtons Method")
-    p_est, fval = newton_raphson_GMM(m,p_est,W,grad_tol = 1e-8)
+    p_est, fval = newton_raphson_GMM(m,p_est,W,grad_tol = 1e-8,strict=true)
 
     return p_est,fval
 end
@@ -479,14 +479,14 @@ end
 
 
 
-function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2000,strict=false)
+function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
+    max_itr=2000,strict=false,Grad_Skip_Steps=5)
     ## Initialize Parameter Vector
     p_vec = p0
     N = length(p0)
 
     cnt = 0
     grad_size = 10000
-    f_eval_old = 1.0
     # # Initialize δ
     param_dict = parDict(d,p_vec)
 
@@ -495,10 +495,12 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
     hess_new = Matrix{Float64}(undef,length(p0),length(p0))
     f_final_val = 0.0
     max_trial_cnt = 0
+    grad_steps = 0
     p_last = copy(p_vec)
     grad_last = copy(grad_new)
     disp_length = min(length(p0),20)
-    f_min = -1e3
+    f_min = 1e3
+    fval = 1e3
     p_min  = similar(p_vec)
     no_progress=0
     flag = "empty"
@@ -507,6 +509,10 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
     else
         mistake_thresh = 1.25
     end
+
+    ## Initialize Step
+    step = 1
+    real_gradient=0
 
     ## Tolerance Counts
     f_tol_cnt = 0
@@ -518,14 +524,23 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
 
 
         # Compute Gradient, holding δ fixed
+        if grad_steps==0
+            println("Compute Gradient")
+            fval = GMM_objective!(grad_new,d,p_vec,W)
+            real_gradient=1
+        else
+            # fval = GMM_objective(d,p_vec,W)
+            real_gradient=0
+        end
 
-        fval = GMM_objective!(grad_new,d,p_vec,W)
         if (cnt==1) | (fval<f_min)
             if abs(fval-f_min)<f_tol
                 f_tol_cnt += 1
             end
-            if maximum(abs.(p_vec - p_min))<x_tol
-                x_tol_cnt += 1
+            if (grad_steps==1) | (Grad_Skip_Steps==0)
+                if (maximum(abs.(p_vec - p_min))<x_tol)
+                    x_tol_cnt += 1
+                end
             end
 
             f_min = copy(fval)
@@ -535,7 +550,6 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
         else
             no_progress+=1
         end
-
 
         grad_size = maximum(abs.(grad_new))
         if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1)
@@ -556,7 +570,7 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
 
         if cnt==1
             step = 1/grad_size
-        else
+        elseif (real_gradient==1)
             g = p_vec - p_last
             y = grad_new - grad_last
             step = abs.(dot(g,g)/dot(g,y))
@@ -577,6 +591,16 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
         p_test = p_vec .- step.*grad_new
 
         f_test = GMM_objective(d,p_test,W)
+
+        if (f_test>fval) & (real_gradient==0)
+            grad_steps=0
+            continue
+        elseif (grad_steps<Grad_Skip_Steps)
+            grad_steps+=1
+        else
+            grad_steps=0
+        end
+
         println("Initial Step Size: $step")
         while ((f_test>fval*mistake_thresh) | isnan(f_test)) & (step>1e-15)
             p_test_disp = p_test[1:disp_length]
@@ -588,11 +612,17 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
             step/= 20
             p_test = p_vec .- step.*grad_new
             f_test = GMM_objective(d,p_test,W)
+            if (step<x_tol) & (real_gradient==0)
+                println("Failed with Approximate Gradient")
+                break
+            end
         end
-
-        p_last = copy(p_vec)
+        if real_gradient==1
+            p_last = copy(p_vec)
+            grad_last = copy(grad_new)
+        end
         p_vec = copy(p_test)
-        grad_last = copy(grad_new)
+        fval = copy(f_test)
         p_vec_disp = p_vec[1:20]
         f_final_val = fval
         println("Update Parameters to $p_vec_disp")
@@ -608,7 +638,8 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
 end
 
 
-function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2000,strict=true)
+function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
+    max_itr=2000,strict=true,Hess_Skip_Steps=5)
     ## Initialize Parameter Vector
     p_vec = p0
     N = length(p0)
@@ -622,23 +653,29 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
     # Initialize Gradient
     grad_new = similar(p0)
     hess_new = Matrix{Float64}(undef,length(p0),length(p0))
+    Eye = Matrix{Float64}(1.0I,length(p0),length(p0))
     f_final_val = 0.0
     max_trial_cnt = 0
     NaN_steps = 0
     trial_end = 5
+    hess_steps = 0
     p_last = copy(p_vec)
     grad_last = copy(grad_new)
+    H_last = copy(hess_new)
     disp_length = min(length(p0),20)
     f_min = -1e3
     p_min  = similar(p_vec)
     no_progress=0
     flag = "empty"
-    step = 1
     if strict
         mistake_thresh = 1.00
     else
         mistake_thresh = 1.25
     end
+
+    ## Initialize Step
+    step = 1
+    real_hessian=0
 
     ## Tolerance Counts
     f_tol_cnt = 0
@@ -649,8 +686,27 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
         trial_cnt=0
 
         # Compute Gradient, holding δ fixed
-
-        fval = GMM_objective!(hess_new,grad_new,d,p_vec,W)
+        if hess_steps==0
+            println("Compute Hessian")
+            fval = GMM_objective!(hess_new,grad_new,d,p_vec,W)
+            H_k = inv(hess_new)
+            real_hessian=1
+        else
+            println("BFGS Approximation")
+            fval = GMM_objective!(grad_new,d,p_vec,W)
+            Δxk = p_vec - p_last
+            yk = grad_new - grad_last
+            # Δhess =  (yk*yk')./(yk'*Δxk) - (hess_new*Δxk*(hess_new*Δxk)')./(Δxk'*hess_new*Δxk)
+            # hess_new = hess_new + (yk*yk')./(yk'*Δxk) - (yk*yk')./(yk'*Δxk) - (hess_new*Δxk*(hess_new*Δxk)')./(Δxk'*hess_new*Δxk)
+            H_k = (Eye - (Δxk*yk')./(yk'*Δxk) )*H_last*(Eye - (yk*Δxk')./(yk'*Δxk) ) + (Δxk*Δxk')./(yk'*Δxk)
+            real_hessian=0
+        end
+        # Advance Hessian Approx Counter
+        if hess_steps<Hess_Skip_Steps
+            hess_steps+=1
+        else
+            hess_steps=0
+        end
 
         if (cnt==1) | (fval<f_min)
             if abs(fval-f_min)<f_tol
@@ -686,7 +742,8 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
             end
         end
 
-        update = -inv(hess_new)*grad_new
+
+        update = -H_k*grad_new
         if any(isnan.(update))
             println("Step contains NaN")
             #Check Hessian
@@ -713,11 +770,21 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
         end
 
 
+
+
+        step_size = maximum(abs.(update))
+        if step_size>10
+        update = update./step_size
+        ind = findall(abs.(update).==1)
+        val_disp = p_vec[ind]
+            println("Max Parameter Adjustment: $ind, $val_disp")
+        step_size = 1
+        end
+
         p_test = p_vec .+ update
 
         f_test = GMM_objective(d,p_test,W)
 
-        step_size = maximum(abs.(update))
         trial_max = 0
         while ((f_test>fval*mistake_thresh) | isnan(f_test)) & (trial_max==0)
             if trial_cnt==0
@@ -725,13 +792,13 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
                 println("Trial (Init): Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
             end
+            if trial_cnt<=2
+                update/= 20
+            else
+                update/= 200
+            end
+            step_size = maximum(abs.(update))
             if (step_size>x_tol)
-                if trial_cnt<=2
-                    update/= 20
-                else
-                    update/= 200
-                end
-                step_size = maximum(abs.(update))
                 p_test = p_vec .+ update
                 f_test = GMM_objective(d,p_test,W)
                 p_test_disp = p_test[1:20]
@@ -739,20 +806,22 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
                 println("Previous Iteration at $fval")
                 trial_cnt+=1
             else
+                hess_steps = 0
                 trial_max = 1
                 println("RUN ROUND OF GRADIENT ASCENT")
-                p_test, f_test = gradient_ascent_BB(d,p_vec,W,max_itr=5,strict=true)
+                p_test, f_test = gradient_ascent_BB(d,p_vec,W,max_itr=5,strict=true,Grad_Skip_Steps=0)
             end
         end
         if NaN_steps>5
             println("Hessian might be singular")
             println("RUN ROUND OF GRADIENT ASCENT")
-            p_test, f_test = gradient_ascent_BB(d,p_test,W,max_itr=20,strict=true)
+            p_test, f_test = gradient_ascent_BB(d,p_test,W,max_itr=20,strict=true,Grad_Skip_Steps=0)
         end
 
         p_last = copy(p_vec)
         p_vec = copy(p_test)
         grad_last = copy(grad_new)
+        H_last = copy(H_k)
         p_vec_disp = p_vec[1:20]
         f_final_val = fval
         println("Update Parameters to $p_vec_disp")

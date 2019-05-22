@@ -254,7 +254,7 @@ function individual_costs(d::InsuranceLogit,p::parMC{T}) where T
     # Store Parameters
     δ_long = p.pars.δ
     μ_ij_large = p.pars.μ_ij
-    risk_long = rInd(d.data)
+    risk_long = rIndS(d.data)
     cost_nonRisk = p.C_nonrisk
     anyHCC_ind = Float64.(d.draws.>0)
     for idxitr in values(d.data._personDict)

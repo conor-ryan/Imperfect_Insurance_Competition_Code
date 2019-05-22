@@ -410,6 +410,44 @@ function calc_derSums_x!(n::Int64,s_n::Vector{T},
     return dμ_ij_x_sums
 end
 
+function calc_derSums_x!(n::Int64,s_n::Vector{T},
+                    X_mat::Vector{Float64},
+                    μ_ij::Matrix{T},δ::Vector{T},
+                    μ_ij_sums_n::T) where T
+
+    dμ_ij_x_sums = 0.0
+
+    K = length(δ)
+    for k in 1:K
+        @inbounds @fastmath u = μ_ij[n,k]*δ[k]
+        @inbounds @fastmath x = X_mat[k]
+
+        @inbounds @fastmath s_n[k] = u/μ_ij_sums_n
+        @inbounds @fastmath dμ_ij_x_sums+= u*x
+    end
+
+    return dμ_ij_x_sums
+end
+
+function calc_derSums_x!(n::Int64,s_n::Vector{T},
+                    X_mat::Float64,
+                    μ_ij::Matrix{T},δ::Vector{T},
+                    μ_ij_sums_n::T) where T
+
+    dμ_ij_x_sums = 0.0
+
+    K = length(δ)
+    for k in 1:K
+        @inbounds @fastmath u = μ_ij[n,k]*δ[k]
+        @inbounds @fastmath x = X_mat
+
+        @inbounds @fastmath s_n[k] = u/μ_ij_sums_n
+        @inbounds @fastmath dμ_ij_x_sums+= u*x
+    end
+
+    return dμ_ij_x_sums
+end
+
 function calc_prodTerms_xyz!(n::Int64,dS_xyz::Vector{Float64},
                         X_mat::Matrix{Float64},Y::Matrix{Float64},
                         Z::Matrix{Float64},s_n::Vector{Float64},
@@ -501,6 +539,38 @@ function calc_prodTerms_x!(n::Int64,
     end
 end
 
+function calc_prodTerms_x!(n::Int64,
+                        dS_x::Vector{T},
+                        dR::Vector{T},risk::Matrix{Float64},
+                        risk_age::Vector{Float64},
+                        X_mat::Vector{Float64},
+                        s_n::Vector{T},
+                        Γ_x::T) where T
+
+    K = length(dS_x)
+    for k in 1:K
+        @inbounds @fastmath tx = s_n[k]*(X_mat[k] - Γ_x)
+        @inbounds @fastmath dS_x[k]+= tx
+        @inbounds @fastmath dR[k]+= tx*(risk[n,k]+risk_age[k])
+    end
+end
+
+function calc_prodTerms_x!(n::Int64,
+                        dS_x::Vector{T},
+                        dR::Vector{T},risk::Matrix{Float64},
+                        risk_age::Vector{Float64},
+                        X_mat::Float64,
+                        s_n::Vector{T},
+                        Γ_x::T) where T
+
+    K = length(dS_x)
+    for k in 1:K
+        @inbounds @fastmath tx = s_n[k]*(X_mat - Γ_x)
+        @inbounds @fastmath dS_x[k]+= tx
+        @inbounds @fastmath dR[k]+= tx*(risk[n,k]+risk_age[k])
+    end
+end
+
 function calc_prodTerms_x!(n::Int64,N::Int64,
                         dS_x::Vector{T},
                         dR::Vector{T},risk::Matrix{Float64},
@@ -517,6 +587,38 @@ function calc_prodTerms_x!(n::Int64,N::Int64,
     end
 end
 
+
+function calc_prodTerms_x!(n::Int64,N::Int64,
+                        dS_x::Vector{T},
+                        dR::Vector{T},risk::Matrix{Float64},
+                        risk_age::Vector{Float64},
+                        X_mat::Vector{Float64},
+                        s_n::Vector{T},
+                        Γ_x::T) where T
+
+    K = length(dS_x)
+    for k in 1:K
+        @inbounds @fastmath tx = s_n[k]*(X_mat[k] - Γ_x)
+        @inbounds @fastmath dS_x[k]+= N*tx
+        @inbounds @fastmath dR[k]+= N*tx*(risk[n,k]+risk_age[k])
+    end
+end
+
+function calc_prodTerms_x!(n::Int64,N::Int64,
+                        dS_x::Vector{T},
+                        dR::Vector{T},risk::Matrix{Float64},
+                        risk_age::Vector{Float64},
+                        X_mat::Float64,
+                        s_n::Vector{T},
+                        Γ_x::T) where T
+
+    K = length(dS_x)
+    for k in 1:K
+        @inbounds @fastmath tx = s_n[k]*(X_mat - Γ_x)
+        @inbounds @fastmath dS_x[k]+= N*tx
+        @inbounds @fastmath dR[k]+= N*tx*(risk[n,k]+risk_age[k])
+    end
+end
 
 
 
@@ -634,7 +736,7 @@ function grad_calc!(dS_x::Vector{T},
                     dR::Vector{T},risk::Matrix{Float64},
                     risk_age::Vector{Float64},
                     μ_ij::Matrix{T},δ::Vector{T},
-                    X_mat::Matrix{Float64},
+                    X_mat::Union{Matrix{Float64},Vector{Float64},Float64},
                     μ_ij_sums::Vector{T}) where T
 
     dS_x[:] .= 0.0
@@ -922,14 +1024,33 @@ function ll_obs_gradient!(grad::Vector{Float64},
 
 
         for (q_i,q) in enumerate(pars_relevant)
-            returnParameter!(q,X_mat,
-                            Z,X_0_t,X_t,draws,F_t,r_ind,
-                            γlen,β0len,βlen,σlen)
+            if q<0
+                X = 1.0
+            elseif q<=γlen
+                X = Z[q]
+            elseif q<=β0len
+                X = X_t[q-γlen,:]
+            elseif q<=βlen
+                # Characteristic Interactions
+                X = X_t[1,:].*Z[q-β0len]
+            elseif q<=σlen
+                #Quality Random Effect
+                for n in 1:N,k in 1:K
+                    @inbounds X_mat[n,k] = draws[n,r_ind]*X_0_t[q-(βlen),k]
+                end
+                X = X_mat
+            else
+                #Fixed Effect
+                X = F_t[q-σlen,:]
+            end
+            # returnParameter!(q,X_mat,
+            #                 Z,X_0_t,X_t,draws,F_t,r_ind,
+            #                 γlen,β0len,βlen,σlen)
 
             dS_x_all = grad_calc!(dS_x,s_n,
                         zero_draws,non_zero_draws,
                         dR_x,risk,r_age,
-                        μ_ij,δ,X_mat,
+                        μ_ij,δ,X,
                         μ_ij_sums)
 
             ## Calculate Gradient

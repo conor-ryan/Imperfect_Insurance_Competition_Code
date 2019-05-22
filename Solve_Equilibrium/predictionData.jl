@@ -167,6 +167,7 @@ mutable struct EqData
     p_index::Dict{Symbol, Int}
     # Products
     prods::Vector{Int64}
+    firms::Vector{Int64}
     # Cost Parameters
     #cost_pars::DataFrame
 
@@ -195,6 +196,11 @@ mutable struct EqData
     # ij pairs of market shares
     s_pred::Vector{Float64}
     s_pred_byperson::Vector{Float64}
+
+    # ij pairs of Insurance shares
+    s_ins::Vector{Float64}
+    s_ins_byperson::Vector{Float64}
+
     # ij pairs of prices
     price_ij::Vector{Float64}
     subsidy_ij::Vector{Float64}
@@ -226,6 +232,10 @@ function EqData(cdata::ChoiceData,mkt::DataFrame,ψ_AV::Float64)#,cpars::DataFra
     (N,L) = size(cdata.data)
     s_pred = Vector{Float64}(undef,N)
     s_pred_byperson = Vector{Float64}(undef,N)
+
+    s_ins = Vector{Float64}(undef,N)
+    s_ins_byperson = Vector{Float64}(undef,N)
+
     price_ij = Vector{Float64}(undef,N)
     subsidy = Vector{Float64}(undef,N)
 
@@ -277,9 +287,12 @@ function EqData(cdata::ChoiceData,mkt::DataFrame,ψ_AV::Float64)#,cpars::DataFra
 
     ## Build Ownership Matrix
     firms = mkt[:Firm][mkt[:Firm].!="OTHER"]
+    firms_unique = unique(firms)
+    firm_vec = Vector{Int64}(undef,J)
     ownMat = Matrix{Float64}(undef,J,J)
     for j in 1:J
         f = firms[j]
+        firm_vec[j] = findall(firms_unique.==f)[1]
         for i in 1:J
             if firms[i]==f
                 ownMat[j,i]=1
@@ -309,10 +322,10 @@ function EqData(cdata::ChoiceData,mkt::DataFrame,ψ_AV::Float64)#,cpars::DataFra
     ST_A_fix = 0.0
     avgPrem_fix = 0.0
 
-    return EqData(cdata,pmat,index,prods, #cpars,
+    return EqData(cdata,pmat,index,prods,firm_vec, #cpars,
     premBase,costBase,cost,ownMat,ownMat_merge,hix_cnt,bench_base,
     mkt_index,mkt_map,silv_index,mkt_index_long,
-    s_pred,s_pred_byperson,price_ij,subsidy,
+    s_pred,s_pred_byperson,s_ins,s_ins_byperson,price_ij,subsidy,
     R_bench,RA_share,Other_R,
     ST_R_fix,ST_A_fix,avgPrem_fix)
 end

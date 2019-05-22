@@ -15,6 +15,7 @@ include("EQ_RandomCoefficients.jl")
 include("$load_path/Demand_Estimation/utility.jl")
 include("$load_path/Demand_Estimation/Contraction.jl")
 include("$load_path/Firm_Side/MC_parameters.jl")
+include("$load_path/Firm_Side/Firm_Inner_Loop.jl")
 
 #Equilibrium Functions
 # include("predictionData_New.jl")
@@ -58,9 +59,13 @@ individual_shares(m,par_est_dem)
 
 ### Load Marginal Cost Estimation
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
+# @load file est_stg2
+# p_stg2 ,fval = est_stg2
+# mc_est = copy(p_stg2)
 @load file est_stg2
-p_stg2 ,fval = est_stg2
-mc_est = copy(p_stg2)
+flag,fval,p_stg2 = est_stg2
+mc_est = fit_firm_moments(p_stg2,par_est_dem,m,costdf)
+
 
 #### Compute Marginal Costs
 par_est_mc = parMC(mc_est,par_est_dem,m,costdf)
@@ -70,7 +75,7 @@ individual_costs(m,par_est_mc)
 (K,M) = size(m.data.data)
 (N,Q) = size(m.draws)
 
-output_data = Matrix{Float64}(undef,23,Int(M*N/2))
+output_data = Matrix{Float64}(undef,Int(M*N/2),23)
 
 ### Count 0 HCC Individuals ####
 pos_HCC = sum(m.draws.>0,dims=1)
@@ -81,6 +86,7 @@ person_long = person(m.data)
 product_long = Float64.(df[:Product_std])
 price_long = m.data[:Price]
 riskInd_long = Int.(rInd(m.data))
+riskIndS_long = Int.(rIndS(m.data))
 ageHCC_long = ageHCC(m.data)
 otherData = convert(Matrix{Float64},df[[:AGE,:ageRate,:ageRate_avg,:AV,:Gamma_j,:Mandate,:subsidy,:IncomeCont,:MEMBERS]])
 density_long = df[:mkt_density]
@@ -97,6 +103,7 @@ for i in 1:M
     end
     zero_draw_flag = 0
     r_ind = riskInd_long[i]
+    r_indS = riskIndS_long[i]
     per_raw = person_long[i]
     prd = product_long[i]
     oth = otherData[i,:]
@@ -113,7 +120,8 @@ for i in 1:M
     C_AV = C_AV_long[i]
     for n in 1:N
         risk_draw = m.draws[n,r_ind]
-        if risk_draw>0
+        risk_HCC = m.draws[n,r_indS]
+        if risk_HCC>0
             mkt_dens = dens_raw
             wgt = wgt_raw
         elseif zero_draw_flag==0
@@ -126,20 +134,19 @@ for i in 1:M
         ind[1]+=1
 
         per = per_raw*N + n
-
         R = risk_draw + ageHCC
-        C = C_nonrisk*par_est_mc.risks[n,r_ind]
+        C = C_nonrisk*par_est_mc.risks[n,r_indS]
         C_nonAV = C/C_AV
         α = par_est_dem.α[n,i]
         μ_ij_nonprice = par_est_dem.μ_ij_nonprice[n,i]
         μ_ij = par_est_dem.μ_ij[n,i]
 
-        row = vcat([per,prd,catas,mkt_dens,wgt],oth,[α,μ_ij_nonprice,μ_ij,R,risk_draw,C,C_nonAV,s_pred,p_base])
-        output_data[:,ind[1]] = row
+        row = vcat([per,prd,catas,mkt_dens,wgt],oth,[α,μ_ij_nonprice,μ_ij,R,risk_HCC,C,C_nonAV,s_pred,p_base])
+        output_data[ind[1],:] = row
         state_index[ind[1]] = state_long[i]
     end
 end
-output_data = output_data[:,1:ind[1]]
+output_data = output_data[1:ind[1],:]
 state_index = state_index[1:ind[1]]
 
 states = unique(df[:ST])
@@ -150,7 +157,7 @@ for st in states
     println(st)
     file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Equilibrium_Data/estimated_Data_$st$rundate.csv"
     st_subset = state_index.==st
-    df_st = convert(DataFrame,permutedims(output_data[:,st_subset],(2,1)))
+    df_st = convert(DataFrame,output_data[st_subset,:])
     names!(df_st,header)
     # sort!(df_st,(:Person,:Product))
     sort!(df_st,(:Product,:Person))

@@ -30,20 +30,50 @@ for (f in simdataFiles){
 
 ## Calculate Base Shares
 # setkey(simData,Person)
-simData[,s_hat:=util/(1+sum(util)),by="Person"]
-simData[,exp_sum:=1+sum(util),by="Person"]
+simData[,exp_sum:=sum(util),by="Person"]
+simData[,s_hat:=util/(1+exp_sum),by="Person"]
+simData[,s_ins:=exp_sum/(1+exp_sum)]
 
 
 
 #### Load Product Data ####
 load("Simulation_Risk_Output/prodData.rData")
-load("Intermediate_Output/Average_Claims/FirmAvgCost.rData")
+
+# simData[,c("goldCost","bronzeCost"):=NULL]
+# simData[Product==1597,goldCost:=C]
+# simData[,goldCost:=max(goldCost,na.rm=TRUE),by="Person"]
+# 
+# simData[Product==1586,bronzeCost:=C]
+# simData[,bronzeCost:=max(bronzeCost,na.rm=TRUE),by="Person"]
+# simData[,diff_test:= goldCost-bronzeCost]
+
+simData = merge(simData,prod_data[,c("ST","Product","Firm","Market","Metal_std")],by="Product")
+
+prod_test = simData[,list(avgCost=sum(C*s_hat*PERWT)/sum(s_hat*PERWT),
+                          avgAllCost=sum(C*s_ins*PERWT)/sum(s_ins*PERWT),
+                          share = sum(s_hat*PERWT)/sum(PERWT),
+                          c1 = mean(C),
+                          s1 = mean(s_ins),
+                          c2 =sum(C*PERWT)/sum(PERWT)),
+                    by=c("ST","Product","Firm","Metal_std","Market")]
+
 
 metalClaims = as.data.table(read.csv("Intermediate_Output/Average_Claims/firmClaims.csv"))
-metalClaims[,ST:=STATE]
-metalClaims[,Metal_std:=METAL]
-metalClaims[EXP_INC_CLM_PMPM==0,EXP_INC_CLM_PMPM:=NA]
-setkey(metalClaims,ST,Firm,Metal_std)
+prod_test = merge(prod_test,metalClaims,by.x=c("ST","Firm","Metal_std"),by.y=c("STATE","Firm","METAL"))
+
+
+#### Firm Moment Data ####
+load("Intermediate_Output/Average_Claims/FirmAvgCost.rData")
+firm_test = simData[,list(avgCost=sum(C*s_hat*PERWT)/sum(s_hat*PERWT),
+                          avgAllCost=sum(C*s_ins*PERWT)/sum(s_ins*PERWT)),
+                    by=c("ST","Firm")]
+firm_test = merge(firm_test,firmClaims,by=c("ST","Firm"))
+
+
+
+
+
+
 
 ## Drop Claims for firms that only have one purchased product in the state
 metalClaims[ST=="IL"&Firm=="ASSURANT_HEALTH",EXP_INC_CLM_PMPM:=NA]
@@ -58,6 +88,8 @@ prod_data = merge(prod_data,metalClaims[,c("ST","Firm","Metal_std","EXP_INC_CLM_
 prod_data = merge(prod_data,firmClaims[,c("ST","Firm","AvgCost")],by=c("ST","Firm"))
 
 names(prod_data) = c("ST","Firm","Metal_std","Product","Market","premBase","AV_std","RA_share","MetalAvgCost","EXP_MM","FirmAvgCost")
+
+
 
 #### Estimated Product Data ####
 setkey(simData,Product)

@@ -92,7 +92,8 @@ function ChoiceData(data_choice::DataFrame,
 
     println("Create Fixed Effects")
     bigFirm = :Big in prodchars
-    F, feNames = build_FE(data_choice,fixedEffects,bigFirm = bigFirm)
+    constInProds = :constant in prodchars
+    F, feNames = build_FE(data_choice,fixedEffects,bigFirm = bigFirm,constInProds=constInProds)
     F = permutedims(F,(2,1))
 
 
@@ -142,7 +143,8 @@ function ChoiceData(data_choice::DataFrame,
 
         r_silv_var = [:riskIndex_Silver]
         r_var = [:riskIndex]
-        #df[r_var] = R_index
+        r_any = [:Any_HCC]
+        any_vec = convert(Matrix{Float64},data_choice[r_any])
     else
         r_silv_var = [:riskIndex_Silver]
         r_var = [:riskIndex]
@@ -154,8 +156,8 @@ function ChoiceData(data_choice::DataFrame,
     # Create a data matrix, only including person id
     println("Put Together Data non FE data together")
     k = 0
-    for (d, var) in zip([i,j,w,R_metal_index,R_index, y, X, Z, rm, s0],
-        [person,product, wgt, r_var,r_silv_var, choice, prodchars, demoRaw,riskChars,unins])
+    for (d, var) in zip([i,j,w,R_metal_index,R_index, y, X, Z, rm, s0,any_vec],
+        [person,product, wgt, r_var,r_silv_var, choice, prodchars, demoRaw,riskChars,unins,r_any])
         for l=1:size(d,2)
             k+=1
             dmat = hcat(dmat, d[:,l])
@@ -290,7 +292,7 @@ function build_ProdDict(j::Array{T,N}) where {T,N}
     return _productDict
 end
 
-function build_FE(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false) where T
+function build_FE(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false,constInProds=false) where T
     # Create Fixed Effects
     n, k = size(data_choice)
     L = 0
@@ -308,7 +310,7 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false) where
         factor_list = sort(unique(fac_variables))
         if fe==:constant
             num_effects=1
-        elseif (!(:constant in fe_list)) & (fe==fe_list[1])
+        elseif (!(:constant in fe_list)) & (!constInProds) & (fe==fe_list[1])
             num_effects = length(factor_list)
             # if fe==:Market
             #     num_effects = length(factor_list) - 3
@@ -336,7 +338,7 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false) where
         end
         fac_variables = data_choice[fe]
         factor_list = sort(unique(fac_variables))
-        if (!(:constant in fe_list)) & (fe==fe_list[1])
+        if (!(:constant in fe_list))  & (!constInProds) & (fe==fe_list[1])
             st_ind = 1
         else
             st_ind = 2
@@ -398,6 +400,7 @@ ageHCC(m::ChoiceData)      = m[m._ageHCC]
 unins(m::ChoiceData)       = m[m._unins]
 rInd(m::ChoiceData)       = m[m._rInd]
 rIndS(m::ChoiceData)       = m[m._rIndS]
+anyHCC(m::ChoiceData)       = m[:Any_HCC]
 
 
 fixedEffects(m::ChoiceData)= m.fixedEffects

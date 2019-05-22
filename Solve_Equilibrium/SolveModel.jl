@@ -57,16 +57,16 @@ function update_Prices!(P_new::Vector{Float64},
     ## Error in Prices
     foc_err = (P_new - e.premBase_j)./100
 
-    ### MLR Constraint
-    MLR_const = e[:C]./0.7
-    constrained_bool = (P_new.>=MLR_const).& (e[:S_j].>=(1e-5))
-    if any( constrained_bool )
-        constrained = findall( constrained_bool )
-        println("Hit MLR Constraint at products $constrained")
-        P_const = MLR_const[constrained]
-        println("Constrained prices: $P_const")
-        foc_err[constrained] .= 0.0
-    end
+    # ### MLR Constraint
+    # MLR_const = e[:C]./0.7
+    # constrained_bool = (P_new.>=MLR_const).& (e[:S_j].>=(1e-5))
+    # if any( constrained_bool )
+    #     constrained = findall( constrained_bool )
+    #     println("Hit MLR Constraint at products $constrained")
+    #     P_const = MLR_const[constrained]
+    #     println("Constrained prices: $P_const")
+    #     foc_err[constrained] .= 0.0
+    # end
     #P_new = min.(P_new,MLR_const)
 
 
@@ -84,18 +84,18 @@ function update_Prices!(P_new::Vector{Float64},
 
 
     P_update = e.premBase_j.*(1-step) + step.*P_new
-    P_update[P_new.>=MLR_const] = MLR_const[P_new.>MLR_const]
+    # P_update[P_new.>=MLR_const] = MLR_const[P_new.>MLR_const]
     # Contrain Prices at 0
     #P_update = max.(P_update,0)
 
-    e.premBase_j = P_update
+    e.premBase_j[:] = P_update[:]
 
     return foc_err, err_new
 end
 
 function optimalPrice(e::EqData)
 
-    P_Std, P_RA, P_RAτ, τ = eval_FOC(e)
+    P_Std, P_RA, mkup, mc_Std, mc_RA, Tsfr = eval_FOC(e)
     costs = e[:C]
     share = e[:S_j]
     rating = e[:ageRate_avg]
@@ -103,9 +103,22 @@ function optimalPrice(e::EqData)
     # MLR_const = costs./0.8
     # P_Std[(P_Std.>MLR_const)] = MLR_const[(P_Std.>MLR_const)]
     # P_RA[(P_RA.>MLR_const)] = MLR_const[(P_RA.>MLR_const)]
+    no_transfers = zeros(length(P_Std))
+    P_Std= MLR_Constraint_Run(P_Std,mkup,mc_Std,no_transfers,e)
+    P_RA = MLR_Constraint_Run(P_RA,mkup,mc_RA,Tsfr,e)
 
+    ### Check Constraint at Observed Prices ###
+    ind = MLR_check(e.premBase_j,no_transfers,e)
+    if length(ind)>0
+        println("Constrained at Obs Price w/o Transfers")
+    end
 
-    return P_Std,P_RA,costs,share,rating
+    ind = MLR_check(e.premBase_j,Tsfr,e)
+    if length(ind)>0
+        println("Constrained at Obs Price including Transfers")
+    end
+
+    return P_Std,P_RA,costs,share,rating,mkup,mc_Std,mc_RA
 end
 
 function solve_model!(e::EqData,tol::Float64=.5;sim="Base")
@@ -122,13 +135,16 @@ function solve_model!(e::EqData,tol::Float64=.5;sim="Base")
         # foc_Std, foc_RA, foc_RA_fix, foc_merge,S_m, dsdp_rev = eval_FOC(e)
         # P_new = predict_price(foc_Std,foc_RA,foc_RA_fix,foc_merge,S_m,dsdp_rev,
         #                         e,sim=sim)
-        P_Std, P_RA, P_RAτ, τ = eval_FOC(e)
+        P_Std, P_RA, mkup, mc_Std, mc_RA, Tsfr = eval_FOC(e)
+
+        ### Satisfy MLR Constraints for Appropriate FOC ###
         if sim=="Base"
-            P_new = P_Std
+            no_transfers = zeros(length(P_Std))
+            P_new = MLR_Constraint_Run(P_Std,mkup,mc_Std,no_transfers,e)
         elseif sim=="RA"
-            P_new = P_RA
-        elseif sim=="RAτ"
-            P_new = P_RAτ .+ τ
+            P_new = MLR_Constraint_Run(P_RA,mkup,mc_RA,Tsfr,e)
+        # elseif sim=="RAτ"
+        #     P_new = P_RAτ .+ τ
         else
             error("Missspecified First Order Condition")
         end
@@ -165,7 +181,8 @@ function run_st_equil(st::String,rundate::String;merger=false)
 
     file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
     @load file est_stg2
-    p_stg2 ,fval = est_stg2
+    # p_stg2 ,fval = est_stg2
+    flag,fval,p_stg2 = est_stg2
     ψ_AV = p_stg2[2]
     # Solve Model
     println("Build Model")
@@ -235,7 +252,8 @@ function Check_Margin(st::String,rundate::String)
     # cost_pars = CSV.read("Intermediate_Output/Equilibrium_Data/cost_pars.csv",null="NA")
     file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
     @load file est_stg2
-    p_stg2 ,fval = est_stg2
+    # p_stg2 ,fval = est_stg2
+    flag,fval,p_stg2 = est_stg2
     ψ_AV = p_stg2[2]
 
     # Solve Model
@@ -246,7 +264,7 @@ function Check_Margin(st::String,rundate::String)
 
     evaluate_model!(model,init=true,foc_check=true)
     # foc_Std, foc_RA, foc_RA_fix, S_m, dsdp_rev = eval_FOC(model)
-    P_Std, P_RA, cost,share,rating = optimalPrice(model)
+    P_Std,P_RA,costs,share,rating,mkup,mc_Std,mc_RA = optimalPrice(model)
     # P_new = predict_price(foc_Std,foc_RA,foc_RA_fix,S_m,dsdp_rev,
     #                         model,sim="Base")
 
@@ -261,9 +279,12 @@ function Check_Margin(st::String,rundate::String)
                         Price_orig=model.premBase_j,
                         Price_Std =P_Std,
                         Price_RA = P_RA,
-                        AvgCost = cost,
+                        AvgCost = costs,
                         Share = share,
-                        AgeRate= rating)
+                        AgeRate= rating,
+                        Markup = mkup,
+                        MC_Std = mc_Std,
+                        mc_RA = mc_RA)
 
 
     file3 = "Estimation_Output/focMargin_$st$rundate.csv"

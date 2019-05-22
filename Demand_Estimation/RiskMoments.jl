@@ -450,7 +450,7 @@ function risk_moments_Avar(d::InsuranceLogit,p::parDict{T}) where T
     return mom_grad
 end
 
-function test_Avar(moments::Vector{T},d::InsuranceLogit) where T
+function riskmom_Avar(moments::Vector{T},d::InsuranceLogit) where T
     num_prods = length(d.prods)
     s_hat_2_j = moments[1:num_prods]
     r_hat_2_j = moments[(num_prods+1):num_prods*2]
@@ -461,9 +461,17 @@ function test_Avar(moments::Vector{T},d::InsuranceLogit) where T
     for (m,idx_mom) in d.data._tMomentDict
         mom_value[m] = sum(r_hat_2_j[idx_mom])/sum(s_hat_2_j[idx_mom])
     end
-    return mom_value[5]
+    return mom_value
 end
 
+function risk_Δavar(moments::Vector{T},d::InsuranceLogit) where T
+    f_obj(x) = riskmom_Avar(x,d)
+
+    grad = Matrix{Float64}(undef,length(d.data.tMoments),length(moments))
+    ForwardDiff.jacobian!(grad, f_obj, moments)
+
+    return grad
+end
 
 # Calculate Standard Errors
 # Hiyashi, p. 491
@@ -474,6 +482,7 @@ function calc_mom_Avar(d::InsuranceLogit,p0::Vector{Float64})
     individual_shares(d,p)
 
     Pop =sum(weight(d.data).*choice(d.data))
+    N = length(unique(person(d.data)))
     ageRate_long = ageRate(d.data)[1,:]
     wgts = weight(d.data)
 
@@ -516,8 +525,12 @@ function calc_mom_Avar(d::InsuranceLogit,p0::Vector{Float64})
     breakflag = false
     idx_all = 1:length(mean_moments)
 
-    Σ_hold = mean_moments*mean_moments'
-    Σ = mean_moments*mean_moments'
+    # Σ_hold = mean_moments*mean_moments'
+    # Σ = mean_moments*mean_moments'
+    Σ = zeros(mom_length,mom_length)
+    Σ_hold = zeros(mom_length,mom_length)
+
+
     for app in eachperson(d.data)
         g_n[:].= 0.0
         grad_obs[:] .= 0.0
@@ -553,13 +566,14 @@ function calc_mom_Avar(d::InsuranceLogit,p0::Vector{Float64})
 
     # Σ = Σ./(Pop) Currently normalizing all weights in computing COV matrix
     Σ = Σ./(1-w_cov_sumsq[1])
+    Σ = Σ./N
     (N,M) = size(Σ)
     aVar = zeros(d.parLength[:All] + length(d.data.tMoments),M)
     (Q,R) = size(aVar)
-    aVar[1:length(d.data.tMoments),(1:num_prods*2)] = risk_moments_Avar(mean_moments,d)
+    aVar[1:length(d.data.tMoments),1:(num_prods*2)] = risk_Δavar(mean_moments[1:(num_prods*2)],d)
     aVar[(length(d.data.tMoments)+1):Q,(num_prods*2 + 1):R] = Matrix{Float64}(I,d.parLength[:All],d.parLength[:All])
 
-    S_est = aVar*Σ*aVar'
+    S_est = N.*(aVar*Σ*aVar')
 
     return S_est
 end

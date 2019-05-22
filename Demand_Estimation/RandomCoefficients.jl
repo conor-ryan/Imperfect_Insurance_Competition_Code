@@ -265,6 +265,11 @@ function individual_shares(d::InsuranceLogit,p::parDict{T}) where T
         p.s_hat[idxitr] = s
         p.r_hat[idxitr] = r
     end
+
+    #### Print Insurance Rate ###
+    # ins_rate = sum(p.s_hat.*weight(d.data)[:])/sum(weight(d.data).*choice(d.data))
+    # println("Aggregate Insurance Rate: $ins_rate")
+
     return Nothing
 end
 
