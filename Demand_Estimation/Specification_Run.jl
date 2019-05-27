@@ -121,20 +121,20 @@ function run_specification_GMM(filename::String,
         prodchars_0=spec_prodchars_0,
         fixedEffects=spec_fixedEffects)
 
-    m = InsuranceLogit(c_data,haltonDim,nested=nested)
+    m_GMM = InsuranceLogit(c_data,haltonDim,nested=nested)
 
     ## Initialize Starting Parameters
-    ind1 = 1:(m.parLength[:γ]*2+m.parLength[:β])
-    ind2 = (1 + maximum(ind1) + m.parLength[:σ]):m.parLength[:All]
+    ind1 = 1:(m_GMM.parLength[:γ]*2+m_GMM.parLength[:β])
+    ind2 = (1 + maximum(ind1) + m_GMM.parLength[:σ]):m_GMM.parLength[:All]
 
-    p0 = zeros(m.parLength[:All])
+    p0 = zeros(m_GMM.parLength[:All])
     p0[ind1] = p_ll[ind1]
-    p0[ind2] = p_ll[ind2.-m.parLength[:σ]]
+    p0[ind2] = p_ll[ind2.-m_GMM.parLength[:σ]]
     println("#### Estimate GMM First Stage ####")
 
-    W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
+    W = Matrix(1.0I,length(p0)+length(m_GMM.data.tMoments),length(p0)+length(m_GMM.data.tMoments))
     ## Estimate
-    p_stg1, obj_1 = estimate_GMM(m,p0,W)
+    p_stg1, obj_1 = estimate_GMM(m_GMM,p0,W)
 
     println("Save First Stage Result")
     file = "$filename-$rundate-stg1.jld2"
@@ -157,7 +157,7 @@ function run_specification_GMM(filename::String,
     file1 = "$filename-$rundate.csv"
     CSV.write(file1,out1)
 
-    out2 = DataFrame(delta=m.deltas,prods=m.prods)
+    out2 = DataFrame(delta=m_GMM.deltas,prods=m_GMM.prods)
     file2 = "$filename-$rundate-deltas.csv"
     CSV.write(file2,out2)
 

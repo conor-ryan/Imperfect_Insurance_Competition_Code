@@ -237,10 +237,10 @@ end
 function estimate_GMM(d::InsuranceLogit, p0::Vector{Float64},W::Matrix{Float64})
     # First run a gradient ascent method to get close to optimum
     println("Gradient Ascent Method")
-    p_est, fval = gradient_ascent_BB(d,p0,W,max_itr=500)
+    p_est, fval = gradient_ascent_BB(d,p0,W,max_itr=400)
     # Then run newtons method until better convergence
     println("Newtons Method")
-    p_est, fval = newton_raphson_GMM(m,p_est,W,grad_tol = 1e-8,strict=true)
+    p_est, fval = newton_raphson_GMM(d,p_est,W,grad_tol = 1e-8,strict=true,checkin=true)
 
     return p_est,fval
 end
@@ -543,7 +543,7 @@ end
 
 
 function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
-    max_itr=2000,strict=true,Hess_Skip_Steps=5)
+    max_itr=2000,strict=true,Hess_Skip_Steps=5,checkin=false)
     ## Initialize Parameter Vector
     p_vec = p0
     N = length(p0)
@@ -651,9 +651,9 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         if any(isnan.(update))
             println("Step contains NaN")
             #Check Hessian
-            eig = sort(abs.(eigvals(hess_new)))
-            sm_e = eig[1]
-            println("Smallest Eigenvalue: $sm_e ")
+            # eig = sort(abs.(eigvals(hess_new)))
+            # sm_e = eig[1]
+            # println("Smallest Eigenvalue: $sm_e ")
             NaN_steps +=1
             grad_size = sqrt(dot(grad_new,grad_new))
             update = -(1/grad_size).*grad_new
@@ -710,7 +710,7 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 hess_steps = 0
                 trial_max = 1
                 println("RUN ROUND OF GRADIENT ASCENT")
-                p_test, f_test = gradient_ascent_BB(d,p_vec,W,max_itr=5,strict=true,Grad_Skip_Steps=0)
+                p_test, f_test = gradient_ascent_BB(d,p_vec,W,max_itr=10,strict=true,Grad_Skip_Steps=0)
             else
                 hess_steps = 0
                 println("No Update")
@@ -737,6 +737,11 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         println("Step Size: $step_size")
         println("Function Value is $f_test at iteration $cnt")
         println("Steps since last improvement: $no_progress")
+
+        if checkin & (cnt%5==0)
+            file = "checkin_$cnt.jld2"
+            @save file grad_size, p_vec, f_test, no_progress
+        end
     end
     println("Lowest Function Value is $f_min at $p_min")
     return p_min,f_min
