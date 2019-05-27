@@ -130,7 +130,6 @@ function run_specification_GMM(filename::String,
     p0 = zeros(m.parLength[:All])
     p0[ind1] = p_ll[ind1]
     p0[ind2] = p_ll[ind2.-m.parLength[:σ]]
-    println(p0)
     println("#### Estimate GMM First Stage ####")
 
     W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
