@@ -569,13 +569,16 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
             μ_risk = c_data.rMoments[mom,3]
             std_risk = sqrt(c_data.rMoments[mom,4])
             for ind in 1:haltonDim
-                if draws[ind]<any
-                    risk_draws[ind,mom] = 0
-                else
-                    d = (draws[ind] - any)/(1-any)
-                    log_r = norminvcdf(d)*std_risk + μ_risk
-                    risk_draws[ind,mom] = exp(log_r)
-                end
+                d = (draws[ind])
+                log_r = norminvcdf(d)*std_risk + μ_risk
+                risk_draws[ind,mom] = exp(log_r)
+                # if draws[ind]<any
+                #     risk_draws[ind,mom] = 0
+                # else
+                #     d = (draws[ind] - any)/(1-any)
+                #     log_r = norminvcdf(d)*std_risk + μ_risk
+                #     risk_draws[ind,mom] = exp(log_r)
+                # end
             end
         end
     else

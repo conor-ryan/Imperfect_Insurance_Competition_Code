@@ -219,7 +219,8 @@ function gradient_ascent_ll(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=200
 end
 
 
-function newton_raphson_ll(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2000,strict=true)
+function newton_raphson_ll(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
+    max_itr=2000,strict=true,Hess_Skip_Steps=5)
     ## Initialize Parameter Vector
     p_vec = p0
     N = length(p0)
@@ -233,23 +234,29 @@ function newton_raphson_ll(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2000
     # Initialize Gradient
     grad_new = similar(p0)
     hess_new = Matrix{Float64}(undef,length(p0),length(p0))
+    Eye = Matrix{Float64}(1.0I,length(p0),length(p0))
     f_final_val = 0.0
     max_trial_cnt = 0
     NaN_steps = 0
     trial_end = 5
+    hess_steps = 0
     p_last = copy(p_vec)
     grad_last = copy(grad_new)
+    H_last = copy(hess_new)
     disp_length = min(length(p0),20)
     f_min = -1e3
     p_min  = similar(p_vec)
     no_progress=0
     flag = "empty"
-    step = 1
     if strict
         mistake_thresh = 1.00
     else
         mistake_thresh = 1.25
     end
+
+    ## Initialize Step
+    step = 1
+    real_hessian=0
 
     ## Tolerance Counts
     f_tol_cnt = 0
@@ -260,8 +267,21 @@ function newton_raphson_ll(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2000
         trial_cnt=0
 
         # Compute Gradient, holding δ fixed
-
-        fval = log_likelihood!(hess_new,grad_new,d,p_vec)
+        if hess_steps==0
+            println("Compute Hessian")
+            fval = log_likelihood!(hess_new,grad_new,d,p_vec)
+            H_k = inv(hess_new)
+            real_hessian=1
+        else
+            println("BFGS Approximation")
+            fval = log_likelihood!(grad_new,d,p_vec)
+            Δxk = p_vec - p_last
+            yk = grad_new - grad_last
+            # Δhess =  (yk*yk')./(yk'*Δxk) - (hess_new*Δxk*(hess_new*Δxk)')./(Δxk'*hess_new*Δxk)
+            # hess_new = hess_new + (yk*yk')./(yk'*Δxk) - (yk*yk')./(yk'*Δxk) - (hess_new*Δxk*(hess_new*Δxk)')./(Δxk'*hess_new*Δxk)
+            H_k = (Eye - (Δxk*yk')./(yk'*Δxk) )*H_last*(Eye - (yk*Δxk')./(yk'*Δxk) ) + (Δxk*Δxk')./(yk'*Δxk)
+            real_hessian=0
+        end
 
         if (cnt==1) | (fval>f_min)
             if abs(fval-f_min)<f_tol
@@ -297,16 +317,19 @@ function newton_raphson_ll(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2000
             end
         end
 
-        update = -inv(hess_new)*grad_new
+        update = -H_k*grad_new
         if any(isnan.(update))
             println("Step contains NaN")
-            #Check Hessian
-            eig = sort(abs.(eigvals(hess_new)))
-            sm_e = eig[1]
-            println("Smallest Eigenvalue: $sm_e ")
-            NaN_steps +=1
-            grad_size = sqrt(dot(grad_new,grad_new))
-            update = -(1/grad_size).*grad_new
+            println("Algorithm Failed")
+            return p_min,f_min
+
+            # #Check Hessian
+            # eig = sort(abs.(eigvals(hess_new)))
+            # sm_e = eig[1]
+            # println("Smallest Eigenvalue: $sm_e ")
+            # NaN_steps +=1
+            # grad_size = sqrt(dot(grad_new,grad_new))
+            # update = -(1/grad_size).*grad_new
         else
             NaN_steps = 0
         end
@@ -336,6 +359,12 @@ function newton_raphson_ll(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2000
         p_test = p_vec .+ update
         f_test = log_likelihood(d,p_test)
 
+        if hess_steps<Hess_Skip_Steps
+            hess_steps+=1
+        else
+            hess_steps=0
+        end
+
         trial_max = 0
         while ((f_test<fval*mistake_thresh) | isnan(f_test)) & (trial_max==0)
             if trial_cnt==0
@@ -343,23 +372,28 @@ function newton_raphson_ll(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2000
                 println("Trial (Init): Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
             end
+            if trial_cnt<=2
+                update/= 20
+            else
+                update/= 200
+            end
+            step_size = maximum(abs.(update))
             if (step_size>x_tol)
-                if trial_cnt<=2
-                    update/= 20
-                else
-                    update/= 200
-                end
-                step_size = maximum(abs.(update))
                 p_test = p_vec .+ update
                 f_test = log_likelihood(d,p_test)
                 p_test_disp = p_test[1:20]
                 println("Trial (NR): Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
                 trial_cnt+=1
-            else
+            elseif real_hessian==1
+                hess_steps = 0
                 trial_max = 1
                 println("RUN ROUND OF GRADIENT ASCENT")
                 p_test, f_test = gradient_ascent_ll(d,p_vec,max_itr=5,strict=true)
+            else
+                println("No Advancement")
+                p_test = copy(p_vec)
+                break
             end
         end
         if NaN_steps>5
@@ -371,6 +405,7 @@ function newton_raphson_ll(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2000
         p_last = copy(p_vec)
         p_vec = copy(p_test)
         grad_last = copy(grad_new)
+        H_last = copy(H_k)
         p_vec_disp = p_vec[1:20]
         f_final_val = fval
         println("Update Parameters to $p_vec_disp")

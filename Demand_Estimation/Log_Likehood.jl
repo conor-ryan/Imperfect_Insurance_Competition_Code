@@ -91,8 +91,8 @@ function calc_Avar(d::InsuranceLogit,p::parDict{T}) where T
 end
 
 
-function log_likelihood!(grad::Vector{Float64},
-                            d::InsuranceLogit,p::parDict{T};cont_flag::Bool=false) where T
+function log_likelihood!(grad::Vector{S},
+                            d::InsuranceLogit,p::parDict{T};cont_flag::Bool=false) where {S,T}
     Q = d.parLength[:All]
     N = size(d.draws,1)
     grad[:] .= 0.0

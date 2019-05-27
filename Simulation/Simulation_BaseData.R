@@ -182,7 +182,7 @@ acs[,SILVER:=grepl("SILVER",METAL)]
 
 ## Create Character Difference Variables 
 acs$High = 0 
-acs$High[with(acs,METAL%in%c("GOLD","PLATINUM")|CSR%in%c("94","87"))] = 1
+acs$High[with(acs,METAL%in%c("GOLD","PLATINUM"))] = 1
 
 # acs[CSR=="",MedDeductStandard:=MedDeduct,by=c("ST","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
 # acs[,MedDeductStandard:=max(MedDeductStandard,na.rm=TRUE),by=c("ST","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]

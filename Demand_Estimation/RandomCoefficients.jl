@@ -22,6 +22,8 @@ mutable struct parDict{T}
     δ::Vector{T}
     # Non-delta utility for (ij) pairs and draws
     μ_ij::Matrix{T}
+    # Non-delta, non-risk utility for (ij) pairs and draws
+    μ_ij_nonRisk::Vector{T}
     # Shares for (ij) pairs
     s_hat::Vector{T}
     r_hat::Vector{T}
@@ -85,6 +87,7 @@ function parDict(m::InsuranceLogit,x::Array{T}) where T
     #Initialize (ij) pairs of deltas
     L, M = size(m.data.data)
     μ_ij = Matrix{T}(undef,S,M)
+    μ_ij_nonRisk = Vector{T}(undef,M)
     s_hat = Vector{T}(undef,M)
     r_hat = Vector{T}(undef,M)
 
@@ -102,7 +105,7 @@ function parDict(m::InsuranceLogit,x::Array{T}) where T
     # d2Sdθ_j = Array{T,3}(undef,1,1,J)
     # d2Rdθ_j = Array{T,3}(undef,1,1,J)
 
-    return parDict{T}(γ_0,γ,β_0,β,σ,FE,randCoeffs,δ,μ_ij,s_hat,r_hat,
+    return parDict{T}(γ_0,γ,β_0,β,σ,FE,randCoeffs,δ,μ_ij,μ_ij_nonRisk,s_hat,r_hat,
                             dSdθ_j,dRdθ_j,d2Sdθ_j,d2Rdθ_j)
 end
 
@@ -136,17 +139,12 @@ end
 #     return β_i, γ_i
 # end
 
-function calc_indCoeffs(p::parDict{T},β::Array{T,1},d::T,r_ind::Int) where T
-    Q = length(β)
-    (N,K) = size(p.randCoeffs)
-    β_i = Array{T,2}(undef,N,Q)
+function calc_indCoeffs(p::parDict{T},d::T,r_ind::Int) where T
+    (N,K,R) = size(p.randCoeffs)
+    β_i = Array{T,2}(undef,N,K)
     γ_i = d
-    for n in 1:N
-        β_i[n,1] = β[1]
-    end
-
     for k in 1:K, n in 1:N
-        β_i[n,k] = β[k] + p.randCoeffs[n,k,r_ind]
+        β_i[n,k] = p.randCoeffs[n,k,r_ind]
     end
 
     β_i = permutedims(β_i,(2,1))
@@ -179,10 +177,10 @@ function util_value!(app::ChoiceData,p::parDict{T}) where T
 
     β_z = β*Z
     demos = γ_0 + dot(γ,Z)
-    β_i, γ_i = calc_indCoeffs(p,β_z,demos,r_ind)
+    β_i, γ_i = calc_indCoeffs(p,demos,r_ind)
 
     chars = X*β_i
-    chars_0 = X*β_0
+    chars_0 = X*(β_0+β_z)
 
     # FE is a row Vector
     if T== Float64
@@ -201,11 +199,15 @@ function util_value!(app::ChoiceData,p::parDict{T}) where T
         @fastmath u = exp(chars[k,n] + chars_0[k] + controls[k] + γ_i)
         p.μ_ij[n,idxitr[k]] = u
     end
+    for k = 1:K
+        @fastmath u = exp(chars_0[k] + controls[k] + demos)
+        p.μ_ij_nonRisk[idxitr[k]] = u
+    end
 
     return Nothing
 end
 
-function calc_shares(μ_ij::Array{T},δ::Vector{T},r::Matrix{Float64},r_age::Vector{Float64}) where T
+function calc_shares(μ_ij::Matrix{T},δ::Vector{T},r::Matrix{Float64},r_age::Vector{Float64}) where T
     (N,K) = size(μ_ij)
     util = Matrix{T}(undef,K,N)
     s_hat = Matrix{T}(undef,K,N)
@@ -228,6 +230,25 @@ function calc_shares(μ_ij::Array{T},δ::Vector{T},r::Matrix{Float64},r_age::Vec
     s_mean = mean(s_hat,dims=2)
     r_mean = sum(r_hat,dims=2)./sum(s_hat,dims=2)
     return s_mean, r_mean
+end
+
+function calc_shares(μ_ij::Vector{T},δ::Vector{T}) where T
+    (K) = length(μ_ij)
+    util = Vector{T}(undef,K)
+    s_hat = Vector{T}(undef,K)
+
+    expsum = 1.0
+    #r_score = r[n,:]
+    for i in 1:K
+        a = μ_ij[i]*δ[i]
+        util[i] = a
+        expsum += a
+    end
+    for i in 1:K
+        s = util[i]/expsum
+        s_hat[i] = s
+    end
+    return s_hat
 end
 
 function calc_shares(μ_ij::Array{T},δ::Vector{T}) where T
@@ -253,17 +274,24 @@ function individual_shares(d::InsuranceLogit,p::parDict{T}) where T
     # Store Parameters
     δ_long = p.δ
     μ_ij_large = p.μ_ij
+    μ_ij_nr_large = p.μ_ij_nonRisk
     risk_long = rInd(d.data)
     ageHCC_long = ageHCC(d.data)
-    for idxitr in values(d.data._personDict)
+    any_long = anyHCC(d.data)
+    for i in d.data._personIDs
+        idxitr = d.data._personDict[i]
+        anyR = any_long[idxitr][1]
         δ = δ_long[idxitr]
         u = μ_ij_large[:,idxitr]
+        u_nr= μ_ij_nr_large[idxitr]
         r_ind = Int.(risk_long[idxitr])
         r_scores = d.draws[:,r_ind]
         r_age_scores = ageHCC_long[idxitr]
         s,r = calc_shares(u,δ,r_scores,r_age_scores)
-        p.s_hat[idxitr] = s
-        p.r_hat[idxitr] = r
+        s_nr = calc_shares(u_nr,δ)
+        s_mean = anyR .* s + (1-anyR) .* s_nr
+        p.s_hat[idxitr] = s_mean
+        p.r_hat[idxitr] =( (anyR.*s.*r) + ((1-anyR).*s_nr.*r_age_scores) )./s_mean
     end
 
     #### Print Insurance Rate ###

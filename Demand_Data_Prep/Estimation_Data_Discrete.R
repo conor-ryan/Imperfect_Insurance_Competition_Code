@@ -287,7 +287,7 @@ choices[SILVER==TRUE,hix:= any(hix),by=c("APP_RECORD_NUM","Firm")]
 
 ## Create Character Difference Variables 
 choices$High = 0 
-choices$High[with(choices,METAL%in%c("GOLD","PLATINUM")|CSR%in%c("94","87"))] = 1
+choices$High[with(choices,METAL%in%c("GOLD","PLATINUM"))] = 1
 
 # choices[CSR=="",MedDeductStandard:=MedDeduct,by=c("STATE","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
 # choices[,MedDeductStandard:=max(MedDeductStandard,na.rm=TRUE),by=c("STATE","AREA","Firm","METAL","FAMILY_OR_INDIVIDUAL")]
