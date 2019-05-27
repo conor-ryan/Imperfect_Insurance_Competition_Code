@@ -59,7 +59,7 @@ rundate = Dates.today()
 # #### Run Specification 1 ####
 println("#### Run Specification2  - Firm-Market-Category Fixed Effects ####")
 filename = "GMM_Estimate_Firm"
-spec1 = run_specification(filename,rundate,
+spec1 = run_specification_GMM(filename,rundate,
                 df,df_mkt,df_risk,
                 haltonDim = halton_draws,
                 spec_demoRaw=spec_demoRaw,
