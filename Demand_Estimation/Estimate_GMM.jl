@@ -237,7 +237,7 @@ end
 function estimate_GMM(d::InsuranceLogit, p0::Vector{Float64},W::Matrix{Float64})
     # First run a gradient ascent method to get close to optimum
     println("Gradient Ascent Method")
-    p_est, fval = gradient_ascent_BB(d,p0,W,max_itr=400)
+    p_est, fval,conv = gradient_ascent_BB(d,p0,W,max_itr=200)
     # Then run newtons method until better convergence
     println("Newtons Method")
     p_est, fval = newton_raphson_GMM(d,p_est,W,grad_tol = 1e-8,strict=true,checkin=true)
@@ -422,6 +422,7 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     ## Tolerance Counts
     f_tol_cnt = 0
     x_tol_cnt = 0
+    conv_flag = 0
     # Maximize by Newtons Method
     while (cnt<max_itr)
         cnt+=1
@@ -440,11 +441,12 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
 
         grad_size = maximum(abs.(grad_new))
         if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1)
+            conv_flag = 1
             println("Got to Break Point")
             println(grad_size)
             println(f_tol_cnt)
             println(x_tol_cnt)
-            flag = "converged"
+            println(conv_flag)
             break
         end
         if strict==false
@@ -538,7 +540,7 @@ function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         println("Steps since last improvement: $no_progress")
     end
     println("Lowest Function Value is $f_min at $p_min")
-    return p_min,f_min
+    return p_min,f_min,conv_flag
 end
 
 
@@ -584,6 +586,7 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     ## Tolerance Counts
     f_tol_cnt = 0
     x_tol_cnt = 0
+    ga_conv_cnt = 0
     # Maximize by Newtons Method
     while (grad_size>grad_tol) & (cnt<max_itr) & (max_trial_cnt<20)
         cnt+=1
@@ -630,11 +633,12 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
 
 
         grad_size = maximum(abs.(grad_new))
-        if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1)
+        if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1) | (ga_conv_cnt>2)
             println("Got to Break Point...?")
             println(grad_size)
             println(f_tol_cnt)
             println(x_tol_cnt)
+            println(ga_conv_cnt)
             flag = "converged"
             break
         end
@@ -710,7 +714,10 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 hess_steps = 0
                 trial_max = 1
                 println("RUN ROUND OF GRADIENT ASCENT")
-                p_test, f_test = gradient_ascent_BB(d,p_vec,W,max_itr=10,strict=true,Grad_Skip_Steps=0)
+                p_test, f_test,ga_conv = gradient_ascent_BB(d,p_vec,W,max_itr=10,strict=true,Grad_Skip_Steps=0)
+                if ga_conv==1
+                    ga_conv_cnt+=1
+                end
             else
                 hess_steps = 0
                 println("No Update")
@@ -740,7 +747,7 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
 
         if checkin & (cnt%5==0)
             file = "checkin_$cnt.jld2"
-            @save file grad_size, p_vec, f_test, no_progress
+            @save file grad_size p_vec f_test no_progress
         end
     end
     println("Lowest Function Value is $f_min at $p_min")

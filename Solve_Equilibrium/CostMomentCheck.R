@@ -34,7 +34,11 @@ simData[,exp_sum:=sum(util),by="Person"]
 simData[,s_hat:=util/(1+exp_sum),by="Person"]
 simData[,s_ins:=exp_sum/(1+exp_sum)]
 
+simData[,dsdp_own:=alpha*s_hat*(1-s_hat)]
+simData[,avg_wgt:= s_hat*PERWT/sum(s_hat*PERWT),by="Product"]
+simData[,marg_wgt:= dsdp_own*PERWT/sum(dsdp_own*PERWT),by="Product"]
 
+simData[R_HCC>0,plot(C,avg_wgt-marg_wgt)]
 
 #### Load Product Data ####
 load("Simulation_Risk_Output/prodData.rData")

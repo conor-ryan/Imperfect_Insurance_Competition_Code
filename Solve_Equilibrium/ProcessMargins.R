@@ -26,6 +26,9 @@ for (file in focFiles){
   prod_data[Product%in%temp$Products,avgCost:= temp$AvgCost]
   prod_data[Product%in%temp$Products,share_base:= temp$Share]
   prod_data[Product%in%temp$Products,ageRate:= temp$AgeRate]
+  prod_data[Product%in%temp$Products,Markup:= temp$Markup]
+  prod_data[Product%in%temp$Products,MC_Std:= temp$MC_Std]
+  prod_data[Product%in%temp$Products,MC_RA:= temp$mc_RA]
 }
 
 
@@ -33,6 +36,14 @@ for (file in focFiles){
 load("Intermediate_Output/Simulated_BaseData/simMarketSize.rData")
 prod_data = merge(prod_data,marketSize,by="Market")
 prod_data[,lives:=share_base*size]
+
+## Test against moments
+share_moment = read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv")
+prod_data = merge(prod_data,share_moment[,c("Product","unins_rate","Share")],by=c("Product"),all=TRUE)
+
+prod_data[,plot(share_base,Share)]
+prod_data[,unins_base:=1-sum(share_base),by="Market"]
+
 
 #### Merge Firm Costs ####
 load("Intermediate_Output/Average_Claims/AvgCostMoments.rData")

@@ -104,8 +104,8 @@ function optimalPrice(e::EqData)
     # P_Std[(P_Std.>MLR_const)] = MLR_const[(P_Std.>MLR_const)]
     # P_RA[(P_RA.>MLR_const)] = MLR_const[(P_RA.>MLR_const)]
     no_transfers = zeros(length(P_Std))
-    P_Std= MLR_Constraint_Run(P_Std,mkup,mc_Std,no_transfers,e)
-    P_RA = MLR_Constraint_Run(P_RA,mkup,mc_RA,Tsfr,e)
+    # P_Std= MLR_Constraint_Run(P_Std,mkup,mc_Std,no_transfers,e)
+    # P_RA = MLR_Constraint_Run(P_RA,mkup,mc_RA,Tsfr,e)
 
     ### Check Constraint at Observed Prices ###
     ind = MLR_check(e.premBase_j,no_transfers,e)
