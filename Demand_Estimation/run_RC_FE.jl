@@ -37,7 +37,8 @@ c = ChoiceData(df,df_mkt,df_risk;
             :Family,
             :LowIncome],
     prodchars=[:Price,:constant,:AV,:Big],
-    prodchars_0=[:AV,:Big],
+    # prodchars_0=[:AV,:Big],
+    prodchars_0=Vector{Symbol}(undef,0),
     fixedEffects=[:Firm])
 
 #2018 - 12 - 24 : Firm Specification
@@ -47,7 +48,7 @@ c = ChoiceData(df,df_mkt,df_risk;
 
 
 # Fit into model
-m = InsuranceLogit(c,500)
+m = InsuranceLogit(c,1)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
@@ -59,8 +60,7 @@ println("Data Loaded")
 FEstart = rand(m.parLength[:FE])/100 .-.005
 
 p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
-#
-
+par0 = parDict(m,p0)
 
 # ll = log_likelihood(m,par0)
 
@@ -212,6 +212,15 @@ CSV.write(file2,out2)
 #
 #
 # ##### TEST ######
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/checkin_60.jld2"
+@load file p_vec
+println(grad_size)
+println(p_vec[1:20])
+println(f_test)
+println(no_progress)
+
+
+
 rundate = "2019-03-12"
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
 @load file p_stg2
