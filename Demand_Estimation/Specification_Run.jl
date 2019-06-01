@@ -141,17 +141,17 @@ function run_specification_GMM(filename::String,
     @save file p_stg1
 
     println("#### Estimate GMM Second Stage ####")
-    S = calc_mom_Avar(m,p_stg1)
+    S = calc_mom_Avar(m_GMM,p_stg1)
     W2 = inv(S)
     ## Estimate
-    p_stg2, obj_2 = estimate_GMM(m,p0,W2)
+    p_stg2, obj_2 = estimate_GMM(m_GMM,p0,W2)
 
     println("Save Second Stage Result")
     file = "$filename-$rundate-stg1.jld2"
     @save file p_stg2
 
     println("#### Calculate Standard Errors and Save Results ####")
-    AsVar, stdErr,t_stat, stars = res_process(m,p_stg2)
+    AsVar, stdErr,t_stat, stars = res_process(m_GMM,p_stg2)
 
     out1 = DataFrame(pars=p_stg2,se=stdErr,ts=t_stat,sig=stars)
     file1 = "$filename-$rundate.csv"
