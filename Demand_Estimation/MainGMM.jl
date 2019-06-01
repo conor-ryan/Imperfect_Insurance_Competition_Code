@@ -43,7 +43,7 @@ spec_prodchars=[:Price,:constant,:AV,:Big]
 spec_prodchars_0=[:AV,:Big]
 
 rundate = Dates.today()
-
+println("Running on $rundate")
 #### Run Specification 1 ####
 # println("#### Run Specification 1  - Firm Fixed Effects ####")
 # filename = "GMM_Estimate_Firm"
