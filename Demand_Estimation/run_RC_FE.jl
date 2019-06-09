@@ -37,8 +37,8 @@ c = ChoiceData(df,df_mkt,df_risk;
             :Family,
             :LowIncome],
     prodchars=[:Price,:constant,:AV,:Big],
-    # prodchars_0=[:AV,:Big],
-    prodchars_0=Vector{Symbol}(undef,0),
+    prodchars_0=[:AV,:Big],
+    # prodchars_0=Vector{Symbol}(undef,0),
     fixedEffects=[:Firm])
 
 #2018 - 12 - 24 : Firm Specification
@@ -212,21 +212,32 @@ CSV.write(file2,out2)
 #
 #
 # ##### TEST ######
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/checkin_60.jld2"
-@load file p_vec
-println(grad_size)
-println(p_vec[1:20])
-println(f_test)
-println(no_progress)
-
+f_old = [100.0]
+for check in 5:5:285
+    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/checkin_$check.jld2"
+    @load file grad_size p_vec f_test no_progress
+    println("Test Results: $check")
+    improvement = (f_test-f_old[1])/f_old[1]
+    println(improvement)
+    f_old[1] = copy(f_test)
+    # println(grad_size)
+    println(p_vec[1:20])
+    println(maximum(abs.(p_vec)))
+    println(f_test)
+    # println(no_progress)
+end
 
 
 rundate = "2019-03-12"
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
-@load file p_stg2
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_fe_rc_$rundate.jld"
-# p_est = load(file)["est_res"][3]
-#
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_Firm-2019-05-31-stg1.jld2"
+@load file p_stg1
+m = InsuranceLogit(c,500)
+W = Matrix(1.0I,length(p_stg1)+length(m.data.tMoments),length(p_stg1)+length(m.data.tMoments))
+
+res =  GMM_objective(m,p_stg1,W)
+
+
+
 p_est = p_stg2
 par0 = parDict(m,p_est)
 

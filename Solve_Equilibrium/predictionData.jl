@@ -272,7 +272,7 @@ function EqData(cdata::ChoiceData,mkt::DataFrame,ψ_AV::Float64)#,cpars::DataFra
 
     ### Create Product Avg Data
     index = Dict{Symbol, Int}()
-    varNames = [:C,:ageRate_avg,
+    varNames = [:C,:ageRate_avg,:R,
                 :R_Gamma_j,:A_Gamma_j,:Catastrophic,
                 :S_j,:lives]
     for (l,var) in enumerate(varNames)

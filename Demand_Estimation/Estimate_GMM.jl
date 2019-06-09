@@ -237,152 +237,14 @@ end
 function estimate_GMM(d::InsuranceLogit, p0::Vector{Float64},W::Matrix{Float64})
     # First run a gradient ascent method to get close to optimum
     println("Gradient Ascent Method")
-    p_est, fval,conv = gradient_ascent_BB(d,p0,W,max_itr=200)
+    p_ga, fval,conv = gradient_ascent_BB(d,p0,W,max_itr=200)
     # Then run newtons method until better convergence
     println("Newtons Method")
-    p_est, fval = newton_raphson_GMM(d,p_est,W,grad_tol = 1e-8,strict=true,checkin=true)
+    p_final, fval = newton_raphson_GMM(d,p_ga,W,grad_tol = 1e-8,strict=true,checkin=true)
 
-    return p_est,fval
+    return p_final,fval
 end
 
-
-
-#
-# function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,x_tol=1e-8,f_tol=1e-8,max_itr=2000)
-#     ## Initialize Parameter Vector
-#     p_vec = p0
-#     N = length(p0)
-#
-#
-#     grad_size = 10000
-#     f_eval_old = 1.0
-#     # # Initialize δ
-#     param_dict = parDict(d,p_vec)
-#
-#     # Initialize Gradient
-#     grad_new = similar(p0)
-#     hess_new = Matrix{Float64}(undef,length(p0),length(p0))
-#
-#     cnt = 0
-#     ga_cnt = 0
-#     stall_cnt = 0
-#
-#     # Save Minimizing Function Value and Parameter Vector
-#     f_min=0.0
-#     p_min = Vector{Float64}(undef,length(p0))
-#     p_last = copy(p_vec)
-#
-#     f_tol_cnt = 0
-#     x_tol_cnt = 0
-#
-#     # Maximize by Newtons Method
-#     while (grad_size>grad_tol) & (cnt<max_itr)
-#         cnt+=1
-#         # Compute Gradient, holding δ fixed
-#
-#         fval = GMM_objective!(hess_new,grad_new,d,p_vec,W)
-#
-#         grad_size = sqrt(dot(grad_new,grad_new))
-#         if (grad_size<1e-8) & (cnt>10)
-#             println("Gradient Near Zero, Local Minimum Found")
-#             println("Gradient Size: $grad_size")
-#             println("Function Value is $f_min at iteration $p_min")
-#             break
-#         end
-#
-#         # if (stall_cnt>5)
-#         #     println("No Better Point Found")
-#         #     println("Nearby Gradient Size: $grad_size")
-#         #     println("Function Value is $f_min at $p_min")
-#         #     break
-#         # end
-#
-#         step_size = 1/grad_size
-#
-#         # ForwardDiff.gradient!(grad_new, ll, p_vec)
-#         # println("Gradient is $grad_new")
-#         #
-#         #
-#         # hess_new = Matrix{Float64}(N,N)
-#         # ForwardDiff.hessian!(hess_new, ll, p_vec)
-#         # println("Hessian is $hess_new")
-#
-#         update = -inv(hess_new)*grad_new
-#
-#         if any(isnan.(update))
-#             p_vec = p_last.*(1 .+ rand(length(update))/100 .-.005)
-#             println("Algorithm Went to Undefined Area: Random Step")
-#             grad_size = 1
-#             continue
-#         end
-#         # evals = eigvals(hess_new)
-#         # min_e = minimum(evals)
-#         # max_e = maximum(evals)
-#         # println("Eiganvalues range from $min_e to $max_e")
-#
-#         p_test = p_vec .+ update
-#         f_test = GMM_objective(d,p_test,W)
-#         trial_cnt = 0
-#         trial_end = 4
-#         while ((f_test>fval) | isnan(f_test)) & (trial_cnt<=trial_end)
-#             if trial_cnt==0
-#                 p_test_disp = p_test[1:20]
-#                 println("Trial (Init): Got $f_test at parameters $p_test_disp")
-#                 println("Previous Iteration at $fval")
-#             end
-#             if trial_cnt<trial_end
-#                 update/= 10
-#                 p_test = p_vec .+ update
-#                 f_test = GMM_objective(d,p_test,W)
-#                 p_test_disp = p_test[1:20]
-#                 println("Trial (NR): Got $f_test at parameters $p_test_disp")
-#                 println("Previous Iteration at $fval")
-#                 trial_cnt+=1
-#             else
-#                 ga_cnt+=1
-#                 println("RUN ROUND OF GRADIENT ASCENT")
-#                 p_test, f_test = gradient_ascent_GMM(d,p_vec,W,max_itr=5,strict=true)
-#                 trial_cnt+=1
-#             end
-#         end
-#         ### Update Minimum Vector Value
-#         if (f_test<f_min) | (cnt<3)
-#             stall_cnt = 0
-#             f_min = f_test
-#             p_min[:] = p_test[:]
-#         else
-#             stall_cnt+=1
-#             println("STALL COUNT: $stall_cnt")
-#         end
-#
-#
-#         if trial_cnt<=trial_end
-#             ga_cnt = 0
-#         elseif ga_cnt>2
-#             ga_cnt = 0
-#             println("Algorithm Stalled: Random Step")
-#             update = rand(length(update))/10000 .-.0005
-#             p_test = p_test .+update
-#         end
-#
-#
-#         # update = p_test - p_vec
-#         p_last = copy(p_vec)
-#         p_vec = copy(p_test)
-#         p_vec_disp = p_vec[1:20]
-#         println("Update Parameters to $p_vec_disp")
-#
-#
-#         println("Gradient Size: $grad_size")
-#         println("Function Value is $f_test at iteration $cnt")
-#     end
-#     # if (grad_size>grad_tol)
-#     #     println("Estimate Instead")
-#     #     ret, f_final_val, p_vec = estimate!(d,p0)
-#
-#
-#     return p_min,f_min
-# end
 
 function gradient_ascent_BB(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     max_itr=2000,strict=false,Grad_Skip_Steps=5)
@@ -679,11 +541,11 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
 
         step_size = maximum(abs.(update))
         if step_size>10
-        update = update./step_size
+        update = (update./step_size).*10
         ind = findall(abs.(update).==1)
         val_disp = p_vec[ind]
             println("Max Parameter Adjustment: $ind, $val_disp")
-        step_size = 1
+        step_size = 10
         end
 
         p_test = p_vec .+ update

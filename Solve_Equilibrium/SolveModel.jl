@@ -268,7 +268,7 @@ function Check_Margin(st::String,rundate::String)
     # P_new = predict_price(foc_Std,foc_RA,foc_RA_fix,S_m,dsdp_rev,
     #                         model,sim="Base")
 
-
+    R_avg = model[:R]
 
 
 
@@ -284,7 +284,8 @@ function Check_Margin(st::String,rundate::String)
                         AgeRate= rating,
                         Markup = mkup,
                         MC_Std = mc_Std,
-                        mc_RA = mc_RA)
+                        mc_RA = mc_RA,
+                        R_avg = R_avg)
 
 
     file3 = "Estimation_Output/focMargin_$st$rundate.csv"

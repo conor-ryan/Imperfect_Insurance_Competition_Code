@@ -1,6 +1,7 @@
 rm(list = ls())
 library(doBy)
 library(noncensus)
+library(data.table)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 ##### Firm IDs  ####
 firms = read.csv("Data/2015_MLR/MR_Submission_Template_Header.csv",stringsAsFactors=FALSE)
@@ -13,29 +14,54 @@ claims = read.csv("Data/2015_MLR/Part1_2_Summary_Data_Premium_Claims.csv")
 payments = claims[claims$ROW_LOOKUP_CODE=="FED_RISK_ADJ_NET_PAYMENTS",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1","CMM_INDIVIDUAL_RC")]
 names(payments) = c("ï..MR_SUBMISSION_TEMPLATE_ID","Payments1","Payments2")
 
-enroll =claims[claims$ROW_LOOKUP_CODE=="NUMBER_OF_LIFE_YEARS",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1","CMM_INDIVIDUAL_RC")]
+enroll =claims[claims$ROW_LOOKUP_CODE=="MEMBER_MONTHS",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1","CMM_INDIVIDUAL_RC")]
 names(enroll) = c("ï..MR_SUBMISSION_TEMPLATE_ID","Enrollment","EnrollmentQHP")
 
+revenue =claims[claims$ROW_LOOKUP_CODE=="TOTAL_DIRECT_PREMIUM_EARNED",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1","CMM_INDIVIDUAL_RC")]
+names(revenue) = c("ï..MR_SUBMISSION_TEMPLATE_ID","Revenue","RevenueQHP")
+
+costs =claims[claims$ROW_LOOKUP_CODE=="TOTAL_INCURRED_CLAIMS_PT2",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1","CMM_INDIVIDUAL_RC")]
+names(costs) = c("ï..MR_SUBMISSION_TEMPLATE_ID","Cost","CostQHP")
+
 indMarket = merge(payments,enroll,by="ï..MR_SUBMISSION_TEMPLATE_ID")
+indMarket = merge(indMarket,revenue,by="ï..MR_SUBMISSION_TEMPLATE_ID")
+indMarket = merge(indMarket,costs,by="ï..MR_SUBMISSION_TEMPLATE_ID")
 
 # Remove non-Individual Market Insurers
 indMarket$absent1 = is.na(indMarket$Enrollment) | indMarket$Enrollment==0
 indMarket$absent2 = is.na(indMarket$EnrollmentQHP) | indMarket$EnrollmentQHP==0
-indMarket = indMarket[!(indMarket$absent1&indMarket$absent2),c("ï..MR_SUBMISSION_TEMPLATE_ID","Payments1","Payments2","Enrollment","EnrollmentQHP")]
+indMarket = indMarket[!(indMarket$absent1&indMarket$absent2),]
 
 
 #### Merge-in Firm Info ####
 
 indMarket = merge(indMarket,firms,by="ï..MR_SUBMISSION_TEMPLATE_ID",all.x=TRUE)
+indMarket = as.data.table(indMarket)
+
+crosswalk = read.csv("Intermediate_Output/FirmCrosswalk.csv")
+crosswalk = unique(crosswalk[,c("ï..MR_SUBMISSION_TEMPLATE_ID","Firm","STATE")])
+indMarket = merge(indMarket,crosswalk,by="ï..MR_SUBMISSION_TEMPLATE_ID")
+
+choiceData = read.csv("Intermediate_Output/Simulated_BaseData/simchoiceData_discrete.csv")
+choiceData = as.data.table(choiceData)
+choiceData[,Metal_std:=gsub(" [0-9]+","",METAL)]
+
+firmData = unique(choiceData[,c("ST","Firm")])
+
+indMarket = merge(indMarket,firmData,by.x=c("STATE","Firm"),by.y=c("ST","Firm"))
+
+#### Evidence for Across Firm Selection ####
+indMarket[,risk_pmpm:=Payments1/Enrollment]
+indMarket[,prem_pmpm:=Revenue/Enrollment]
+indMarket[,claims_pmpm:=Cost/Enrollment]
+indMarket[prem_pmpm<=0,prem_pmpm:=NA]
+indMarket[claims_pmpm<=0,claims_pmpm:=NA]
 
 
-indMarket$TOTAL_LIVES = ave(indMarket$Enrollment,indMarket$BUSINESS_STATE,FUN=function(x){sum(x,na.rm=TRUE)})
-indMarket$MARKET_SHARE1 = with(indMarket,Enrollment/TOTAL_LIVES)
-indMarket$TOTAL_LIVES = ave(indMarket$EnrollmentQHP,indMarket$BUSINESS_STATE,FUN=function(x){sum(x,na.rm=TRUE)})
-indMarket$MARKET_SHARE2 = with(indMarket,EnrollmentQHP/TOTAL_LIVES)
-indMarket = indMarket[with(indMarket,order(BUSINESS_STATE,-MARKET_SHARE2)),]
+indMarket[,lm(prem_pmpm~claims_pmpm+risk_pmpm+BUSINESS_STATE+GROUP_AFFILIATION)]
+indMarket[!is.na(claims_pmpm)&!is.na(risk_pmpm),claims_pred:=predict(lm(claims_pmpm~risk_pmpm))]
 
-
+indMarket[,plot(claims_pmpm~claims_pred)]
 
 
 #### Share Analysis ####
