@@ -449,6 +449,10 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     f_tol_cnt = 0
     x_tol_cnt = 0
     ga_conv_cnt = 0
+    ga_itr = 10
+    ga_skip = 0
+    ga_strict = true
+    ga_cnt = 0
     # Maximize by Newtons Method
     while (grad_size>grad_tol) & (cnt<max_itr) & (max_trial_cnt<20)
         cnt+=1
@@ -542,7 +546,7 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         step_size = maximum(abs.(update))
         if step_size>10
         update = (update./step_size).*10
-        ind = findall(abs.(update).==1)
+        ind = findall(abs.(update).==10)
         val_disp = p_vec[ind]
             println("Max Parameter Adjustment: $ind, $val_disp")
         step_size = 10
@@ -576,7 +580,12 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 hess_steps = 0
                 trial_max = 1
                 println("RUN ROUND OF GRADIENT ASCENT")
-                p_test, f_test,ga_conv = gradient_ascent_BB(d,p_vec,W,max_itr=10,strict=true,Grad_Skip_Steps=0)
+                if ga_cnt<=2
+                    p_test, f_test,ga_conv = gradient_ascent_BB(d,p_vec,W,max_itr=10,strict=true,Grad_Skip_Steps=2)
+                    ga_cnt+=1
+                else
+                    p_test, f_test,ga_conv = gradient_ascent_BB(d,p_vec,W,ma_itr=50,strict=false,Grad_Skip_Steps=10)
+                end
                 if ga_conv==1
                     ga_conv_cnt+=1
                 end
@@ -587,10 +596,15 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 break
             end
         end
+
+        if step_size>x_tol
+            ga_cnt = 0
+        end
+
         if NaN_steps>5
             println("Hessian might be singular")
             println("RUN ROUND OF GRADIENT ASCENT")
-            p_test, f_test = gradient_ascent_BB(d,p_test,W,max_itr=20,strict=true,Grad_Skip_Steps=0)
+            p_test, f_test = gradient_ascent_BB(d,p_test,W,max_itr=20,strict=true,Grad_Skip_Steps=2)
         end
 
         p_last = copy(p_vec)
@@ -606,6 +620,7 @@ function newton_raphson_GMM(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         println("Step Size: $step_size")
         println("Function Value is $f_test at iteration $cnt")
         println("Steps since last improvement: $no_progress")
+        println("Repeated GA Steps: $ga_cnt")
 
         if checkin & (cnt%5==0)
             file = "checkin_$cnt.jld2"

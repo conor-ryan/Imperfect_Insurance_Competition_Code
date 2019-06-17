@@ -29,7 +29,14 @@ for (file in focFiles){
   prod_data[Product%in%temp$Products,Markup:= temp$Markup]
   prod_data[Product%in%temp$Products,MC_Std:= temp$MC_Std]
   prod_data[Product%in%temp$Products,MC_RA:= temp$mc_RA]
+  prod_data[Product%in%temp$Products,R_avg:= temp$R_avg]
 }
+
+
+firms = prod_data[,list(R_avg=sum(share_base*size*R_avg)/sum(share_base*size),
+                        Revenue=sum(share_base*size*premBase*ageRate)/sum(share_base*size)),
+                  by=c("ST","Firm")]
+
 
 
 #### Market Size ####

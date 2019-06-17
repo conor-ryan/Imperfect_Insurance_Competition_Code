@@ -213,18 +213,18 @@ CSV.write(file2,out2)
 #
 # ##### TEST ######
 f_old = [100.0]
-for check in 5:5:285
+for check in 5:5:255
     file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/checkin_$check.jld2"
     @load file grad_size p_vec f_test no_progress
-    println("Test Results: $check")
+    println("###### Test Results: $check #######")
     improvement = (f_test-f_old[1])/f_old[1]
-    println(improvement)
+    println("Percent Improvement: $improvement")
     f_old[1] = copy(f_test)
-    # println(grad_size)
+    println("Gradient Size: $grad_size")
     println(p_vec[1:20])
     println(maximum(abs.(p_vec)))
-    println(f_test)
-    # println(no_progress)
+    println("Function Value: $f_test")
+    println("No Progress: $no_progress")
 end
 
 

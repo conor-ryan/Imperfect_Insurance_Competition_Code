@@ -9,6 +9,7 @@ firms = firms[,c("ï..MR_SUBMISSION_TEMPLATE_ID","BUSINESS_STATE","GROUP_AFFILIAT
 
 ##### Individual Market Shares #####
 claims = read.csv("Data/2015_MLR/Part1_2_Summary_Data_Premium_Claims.csv")
+rebates = read.csv("Data/2015_MLR/Part3_MLR_Rebate_Calculation.csv")
 
 
 payments = claims[claims$ROW_LOOKUP_CODE=="FED_RISK_ADJ_NET_PAYMENTS",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1","CMM_INDIVIDUAL_RC")]
@@ -20,12 +21,20 @@ names(enroll) = c("ï..MR_SUBMISSION_TEMPLATE_ID","Enrollment","EnrollmentQHP")
 revenue =claims[claims$ROW_LOOKUP_CODE=="TOTAL_DIRECT_PREMIUM_EARNED",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1","CMM_INDIVIDUAL_RC")]
 names(revenue) = c("ï..MR_SUBMISSION_TEMPLATE_ID","Revenue","RevenueQHP")
 
+premiums =claims[claims$ROW_LOOKUP_CODE=="DIRECT_PREMIUM_WRITTEN",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1","CMM_INDIVIDUAL_RC")]
+names(premiums) = c("ï..MR_SUBMISSION_TEMPLATE_ID","Premiums","PremiumsQHP")
+
 costs =claims[claims$ROW_LOOKUP_CODE=="TOTAL_INCURRED_CLAIMS_PT2",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1","CMM_INDIVIDUAL_RC")]
 names(costs) = c("ï..MR_SUBMISSION_TEMPLATE_ID","Cost","CostQHP")
 
+constrained =rebates[rebates$ROW_LOOKUP_CODE=="REBATE_AMT_CREDIBILITY_ADJ_MLR",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_TOTAL")]
+names(constrained) = c("ï..MR_SUBMISSION_TEMPLATE_ID","Const2")
+
 indMarket = merge(payments,enroll,by="ï..MR_SUBMISSION_TEMPLATE_ID")
 indMarket = merge(indMarket,revenue,by="ï..MR_SUBMISSION_TEMPLATE_ID")
+indMarket = merge(indMarket,premiums,by="ï..MR_SUBMISSION_TEMPLATE_ID")
 indMarket = merge(indMarket,costs,by="ï..MR_SUBMISSION_TEMPLATE_ID")
+indMarket = merge(indMarket,constrained,by="ï..MR_SUBMISSION_TEMPLATE_ID")
 
 # Remove non-Individual Market Insurers
 indMarket$absent1 = is.na(indMarket$Enrollment) | indMarket$Enrollment==0
@@ -50,19 +59,24 @@ firmData = unique(choiceData[,c("ST","Firm")])
 
 indMarket = merge(indMarket,firmData,by.x=c("STATE","Firm"),by.y=c("ST","Firm"))
 
+#### Constrained ####
+indMarket[,MLR:=Cost/Revenue]
+
+
 #### Evidence for Across Firm Selection ####
 indMarket[,risk_pmpm:=Payments1/Enrollment]
-indMarket[,prem_pmpm:=Revenue/Enrollment]
+indMarket[,prem_pmpm:=Premiums/Enrollment]
 indMarket[,claims_pmpm:=Cost/Enrollment]
 indMarket[prem_pmpm<=0,prem_pmpm:=NA]
 indMarket[claims_pmpm<=0,claims_pmpm:=NA]
 
 
-indMarket[,lm(prem_pmpm~claims_pmpm+risk_pmpm+BUSINESS_STATE+GROUP_AFFILIATION)]
-indMarket[!is.na(claims_pmpm)&!is.na(risk_pmpm),claims_pred:=predict(lm(claims_pmpm~risk_pmpm))]
+indMarket[!is.na(claims_pmpm)&!is.na(risk_pmpm),claims_pred:=predict(lm(claims_pmpm~risk_pmpm+BUSINESS_STATE))]
 
-indMarket[,plot(claims_pmpm~claims_pred)]
 
+summary(indMarket[,lm(prem_pmpm~claims_pred+GROUP_AFFILIATION+BUSINESS_STATE)])
+summary(indMarket[,lm(prem_pmpm~risk_pmpm+GROUP_AFFILIATION+BUSINESS_STATE)])
+summary(indMarket[,lm(prem_pmpm~claims_pmpm+risk_pmpm+GROUP_AFFILIATION+BUSINESS_STATE)])
 
 #### Share Analysis ####
 stateShares = summaryBy(MARKET_SHARE1~BUSINESS_STATE+GROUP_AFFILIATION,data=indMarket,FUN=sum,keep.names=TRUE)

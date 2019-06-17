@@ -22,7 +22,7 @@ for (f in simdataFiles){
   #                   PERWT = sum(PERWT),
   #                   mkt_density=sum(mkt_density)),
   #             by=c("Person","Product","AGE")]
-  temp = temp[,c("Person","Product","AGE","C","PERWT","R_HCC","util")]
+  temp = temp[,c("Person","Product","AGE","C","PERWT","R")]
   simData = rbind(simData,temp)
   rm(temp)
   gc()
