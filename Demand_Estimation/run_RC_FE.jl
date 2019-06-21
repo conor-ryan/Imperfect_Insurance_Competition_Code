@@ -31,26 +31,26 @@ println("Code Loaded")
 # Load the Data
 include("load.jl")
 #Structure the data
-c = ChoiceData(df,df_mkt,df_risk;
-    demoRaw=[:AgeFE_31_39,
-            :AgeFE_40_51,
-            :AgeFE_52_64,
-            :Family,
-            :LowIncome],
-    prodchars=[:Price,:constant,:AV,:Big],
-    # prodchars_0=[:AV,:Big],
-    prodchars_0=Vector{Symbol}(undef,0),
-    fixedEffects=[:Firm_Market_Cat])
-
-#2018 - 12 - 24 : Firm Specification
-#2019 - 03 - 7 : Firm Specification
-#2019 - 03 - 12: Firm - Market Specification
-#2019 - 03 - 24: Firm - Market - Cat Specification
-
-
-# Fit into model
-m = InsuranceLogit(c,1)
-println("Data Loaded")
+# c = ChoiceData(df,df_mkt,df_risk;
+#     demoRaw=[:AgeFE_31_39,
+#             :AgeFE_40_51,
+#             :AgeFE_52_64,
+#             :Family,
+#             :LowIncome],
+#     prodchars=[:Price,:constant,:AV,:Big],
+#     # prodchars_0=[:AV,:Big],
+#     prodchars_0=Vector{Symbol}(undef,0),
+#     fixedEffects=[:Firm])
+#
+# #2018 - 12 - 24 : Firm Specification
+# #2019 - 03 - 7 : Firm Specification
+# #2019 - 03 - 12: Firm - Market Specification
+# #2019 - 03 - 24: Firm - Market - Cat Specification
+#
+#
+# # Fit into model
+# m = InsuranceLogit(c,1)
+# println("Data Loaded")
 
 #γ0start = rand(1)-.5
 # γstart = rand(m.parLength[:γ])/10 .-.05
@@ -58,33 +58,33 @@ println("Data Loaded")
 # βstart = rand(m.parLength[:γ])/10 .- .05
 # # σstart = rand(m.parLength[:σ])/10 .- .05
 # σstart = zeros(m.parLength[:σ])
-# FEstart = rand(m.parLength[:FE])/100 .-.005
-#
+# FEstart = rand(m.parLength[:FE])/100 #.-.005
+# #
 # p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 # par0 = parDict(m,p0)
 
 # ll = log_likelihood(m,par0)
 
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_Firm-2019-06-03-ll.jld2"
-@load file p_ll
-p0=copy(p_ll)
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_Firm-2019-06-03-ll.jld2"
+# @load file p_ll
+# p0=copy(p_ll)
 # # #
 # # #
 # W = Matrix{Float64}(I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
 # # # # W = eye(length(p0))
-grad_2 = Vector{Float64}(undef,length(p0))
-grad_3 = Vector{Float64}(undef,length(p0))
-hess_2 = Matrix{Float64}(undef,length(p0),length(p0))
+# grad_2 = Vector{Float64}(undef,length(p0))
+# grad_3 = Vector{Float64}(undef,length(p0))
+# hess_2 = Matrix{Float64}(undef,length(p0),length(p0))
 #
 #
 # obj_grad = Vector{Float64}(undef,length(p0))
 # grad = Vector{Float64}(undef,length(p0))
 # hess = Matrix{Float64}(undef,length(p0),length(p0))
-par0 = parDict(m,p_ll)
-ll = log_likelihood!(hess_2,grad_2,m,par0)
-println(maximum(abs.(grad_2)))
-println(ll)
-println(p_ll[1:20])
+# par0 = parDict(m,p0)
+# ll = log_likelihood!(hess_2,grad_2,m,par0)
+# println(maximum(abs.(grad_2)))
+# println(ll)
+# println(p0[1:20])
 #
 # mom_grad = Matrix{Float64}(undef,length(p0),length(m.data.tMoments))
 # # mom_hess = Array{Float64,3}(undef,length(p0),length(p0),length(m.data.tMoments))
@@ -99,20 +99,20 @@ println(p_ll[1:20])
 # # W = Matrix{Float64}(I,length(m.prods),length(m.prods))
 # # res = GMM_objective!(hess_2,grad_2,m,p_stg1,W)
 # res = GMM_objective!(grad_3,m,p_ll,W)
-f_obj(x) = log_likelihood(m,x)
+# f_obj(x) = log_likelihood(m,x)
 # # p_test = p0[1:20]
-grad_1 = Vector{Float64}(undef,length(p0))
-hess_1 = Matrix{Float64}(undef,length(p0),length(p0))
-fval_old = f_obj(p0)
+# grad_1 = Vector{Float64}(undef,length(p0))
+# hess_1 = Matrix{Float64}(undef,length(p0),length(p0))
+# fval_old = f_obj(p0)
 # # # #
-println("Grad")
-ForwardDiff.gradient!(grad_1,f_obj, p0)#, cfg)
-println(fval_old-ll)
-println(maximum(abs.(grad_1-grad_2)))
-println("Hessian")
+# println("Grad")
+# ForwardDiff.gradient!(grad_1,f_obj, p0)#, cfg)
+# println(fval_old-ll)
+# println(maximum(abs.(grad_1-grad_2)))
+# println("Hessian")
 # cfg = ForwardDiff.HessianConfig(f_obj, p0, ForwardDiff.Chunk{8}())
-ForwardDiff.hessian!(hess_1,f_obj, p0)#,cfg)
-#
+# ForwardDiff.hessian!(hess_1,f_obj, p0)#,cfg)
+
 
 println(maximum(abs.(hess_1-hess_2)))
 
@@ -154,7 +154,7 @@ c = ChoiceData(df,df_mkt,df_risk;
     prodchars_0=[:AV,:Big],
     fixedEffects=[:Firm_Market_Cat])
 # Fit into model
-m_GMM = InsuranceLogit(c,500)
+m_GMM = InsuranceLogit(c,20)
 ind1 = 1:(m_GMM.parLength[:γ]*2+m_GMM.parLength[:β])
 ind2 = (1 + maximum(ind1) + m_GMM.parLength[:σ]):m_GMM.parLength[:All]
 

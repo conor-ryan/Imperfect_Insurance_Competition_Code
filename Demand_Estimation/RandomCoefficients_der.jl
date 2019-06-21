@@ -125,7 +125,8 @@ function ll_obs_hessian!(thD::Array{Float64,3},hess::Matrix{Float64},grad::Vecto
 
         # Pre-Calculate Squares
         μ_ij_sums = preCalcμ(μ_ij,δ)
-        μ_ij_nr_sum = 1 .+ sum(μ_ij_nr,dims=2)[:]
+        # μ_ij_nr_sum = 1 .+ sum(μ_ij_nr,dims=2)[:]
+        μ_ij_nr_sum = 1 .+ μ_ij_nr*δ
 
         # Pre-Calculate Log-Likelihood Terms for Gradient
         # Also Calculate Log-Likelihood itself
@@ -594,7 +595,7 @@ function ll_obs_hessian!(hess::Matrix{Float64},grad::Vector{Float64},
 
         # Pre-Calculate Squares
         μ_ij_sums = preCalcμ(μ_ij,δ)
-        μ_ij_nr_sum = 1 .+ sum(μ_ij_nr,dims=2)[:]
+        μ_ij_nr_sum = 1 .+ μ_ij_nr*δ
 
         # Pre-Calculate Log-Likelihood Terms for Gradient
         # Also Calculate Log-Likelihood itself
@@ -738,7 +739,7 @@ function ll_obs_gradient!(grad::Vector{S},
 
         # Pre-Calculate Squares
         μ_ij_sums = preCalcμ(μ_ij,δ)
-        μ_ij_nr_sum = 1 .+ sum(μ_ij_nr,dims=2)[:]
+        μ_ij_nr_sum = 1 .+ μ_ij_nr*δ
         # Pre-Calculate Log-Likelihood Terms for Gradient
         # Also Calculate Log-Likelihood itself
         gll_t1, gll_t2, gll_t3, gll_t4,gll_t5,gll_t6, ll_obs = ll_Terms(wgt,S_ij,urate,s_hat,s_insured)
