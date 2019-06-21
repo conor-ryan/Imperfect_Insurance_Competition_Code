@@ -49,11 +49,13 @@ end
 function relPar(app::ChoiceData,d::InsuranceLogit,F_t::SubArray,ind::Float64,feFlag::Int64)
     Q = d.parLength[:All]
     Q_0 = Q - size(F_t,1)
+    Q_no_σ = Q_0 - d.parLength[:σ]
     ## Relevant Parameters for this observation
     if feFlag==0
         pars_relevant = vcat(1:Q_0)
     elseif feFlag==1
-        pars_relevant = vcat(Q_0 .+ app._rel_fe_Dict[ind])
+        # pars_relevant = vcat(Q_0 .+ app._rel_fe_Dict[ind])
+        pars_relevant = vcat(1:Q_no_σ,Q_0 .+ app._rel_fe_Dict[ind])
     else
         pars_relevant = vcat(1:Q_0,Q_0 .+ app._rel_fe_Dict[ind])
     end

@@ -109,6 +109,51 @@ function parDict(m::InsuranceLogit,x::Array{T}) where T
                             dSdθ_j,dRdθ_j,d2Sdθ_j,d2Rdθ_j)
 end
 
+function update_par(par::parDict{T},x::Vector{T}) where T
+    γ_0 = 0.0
+    γ = x[1:γlen]
+    β_0 = x[(γlen+1):β0len]
+    β_vec = x[(β0len+1):βlen]
+    σ_vec = x[(βlen+1):σlen]
+    FE_vec = x[(σlen+1):FElen]
+
+    # Store FE as row Vector
+    FE = Matrix{T}(undef,1,length(FE_vec))
+    FE[1,:] = FE_vec
+
+    # Fill in σ
+    σ = Vector{T}(undef,m.parLength[:β])
+    σ[:] .= 0.0
+    σ[m.data._randCoeffs] = σ_vec
+
+    # Stack Beta into a matrix
+    K = m.parLength[:β]
+    N = m.parLength[:γ]
+    β = Matrix{T}(undef,K,N)
+
+
+    ind = 0
+    for i in 1:N, j in 1:K
+        if j==1
+            ind+=1
+            β[j,i] = β_vec[ind]
+        else
+            β[j,i] = 0
+        end
+    end
+
+    #Update
+    par.γ = γ
+    par.β_0 = β_0
+    par.β = β
+    par.σ = σ
+    par.FE = FE
+
+    return nothing
+
+end
+
+
 function calcRC!(randCoeffs::Array{S},σ::Array{T},draws::Array{Float64,2}) where {T,S}
     (N,K,R) = size(randCoeffs)
     #randCoeffs[:,1] = draws[:,1].*σ[1]
@@ -139,16 +184,15 @@ end
 #     return β_i, γ_i
 # end
 
-function calc_indCoeffs(p::parDict{T},d::T,r_ind::Int) where T
+function calc_indCoeffs(p::parDict{T},r_ind::Int) where T
     (N,K,R) = size(p.randCoeffs)
     β_i = Array{T,2}(undef,N,K)
-    γ_i = d
     for k in 1:K, n in 1:N
         β_i[n,k] = p.randCoeffs[n,k,r_ind]
     end
 
     β_i = permutedims(β_i,(2,1))
-    return β_i, γ_i
+    return β_i
 end
 
 function individual_values!(d::InsuranceLogit,p::parDict{T}) where T
@@ -177,7 +221,7 @@ function util_value!(app::ChoiceData,p::parDict{T}) where T
 
     β_z = β*Z
     demos = γ_0 + dot(γ,Z)
-    β_i, γ_i = calc_indCoeffs(p,demos,r_ind)
+    β_i= calc_indCoeffs(p,r_ind)
 
     chars = X*β_i
     chars_0 = X*(β_0+β_z)
@@ -196,17 +240,18 @@ function util_value!(app::ChoiceData,p::parDict{T}) where T
 
     (K,N) = size(chars)
     for k = 1:K,n = 1:N
-        @fastmath u = exp(chars[k,n] + chars_0[k]  + γ_i) #+ controls[k]
+        @fastmath u = exp(chars[k,n])# + chars_0[k]  + demos) #+ controls[k]
         p.μ_ij[n,idxitr[k]] = u
     end
 
-    for k = 1:K
-        @fastmath u = exp(chars_0[k] + demos) #+ controls[k]
-        p.μ_ij_nonRisk[idxitr[k]] = u
-    end
+    # for k = 1:K
+    #     @fastmath u = exp(chars_0[k] + demos) #+ controls[k]
+    #     p.μ_ij_nonRisk[idxitr[k]] = u
+    # end
+    p.μ_ij_nonRisk[idxitr].=1.0
 
     for k = 1:K
-        @fastmath d = exp(controls[k])
+        @fastmath d = exp(chars_0[k] + demos + controls[k])
         p.δ[idxitr[k]] = d
     end
 
@@ -222,14 +267,25 @@ function compute_controls!(d::InsuranceLogit,p::parDict{T}) where T
 end
 
 function control_value!(app::ChoiceData,p::parDict{T}) where T
-
+    γ_0 = p.γ_0
+    γ = p.γ
+    β_0= p.β_0
+    β = p.β
     fe = p.FE
+    randIndex = app._randCoeffs
 
     ind = person(app)[1]
+    r_ind = Int(rIndS(app)[1])
     idxitr = app._personDict[ind]
+    X = permutedims(prodchars(app),(2,1))
+    Z = demoRaw(app)[:,1]
+    #F = fixedEffects(app)
     F = fixedEffects(app,idxitr)
 
-    K = length(idxitr)
+    β_z = β*Z
+    demos = γ_0 + dot(γ,Z)
+
+    chars_0 = X*(β_0+β_z)
 
     # FE is a row Vector
     if T== Float64
@@ -244,7 +300,7 @@ function control_value!(app::ChoiceData,p::parDict{T}) where T
     end
 
     for k = 1:K
-        @fastmath d = exp(controls[k])
+        @fastmath d = exp(chars_0[k] + demos + controls[k])
         p.δ[idxitr[k]] = d
     end
 

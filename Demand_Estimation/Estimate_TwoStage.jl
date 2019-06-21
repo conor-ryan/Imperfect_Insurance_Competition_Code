@@ -58,7 +58,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     p_vec,fe_itrs = reOpt_FE(d,p_vec,FE_ind)
 
     # Maximize by Newtons Method
-    while (grad_size>grad_tol) & (cnt<max_itr) & (max_trial_cnt<20)
+    while (grad_size>0) & (cnt<max_itr) & (max_trial_cnt<20)
         cnt+=1
         trial_cnt=0
 
@@ -68,6 +68,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 println("Converged in two stages!")
                 break
             end
+            flag = "empty"
             f_tol_cnt = 0
             x_tol_cnt = 0
             ga_conv_cnt = 0
@@ -260,7 +261,7 @@ function reOpt_FE(d::InsuranceLogit,p_vec::Vector{Float64},FE_ind::Union{Vector{
     return p_vec,cnt
 end
 
-function NR_fixedEffects(d,par;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
+function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     max_itr=30,strict=true,Hess_Skip_Steps=5)
 
     # Initialize Gradient
@@ -268,20 +269,21 @@ function NR_fixedEffects(d,par;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     hess_new = Matrix{Float64}(undef,d.parLength[:All],d.parLength[:All])
     Eye = Matrix{Float64}(1.0I,length(p0),length(p0))
 
-    FE_ind = (d.parLength[:All]-d.parLength[:FE]+1):d.parLength[:All]
-    Eye = Matrix{Float64}(1.0I,d.parLength[:FE],d.parLength[:FE])
+    FE_ind = vcat(1:(d.parLength[:All]-d.parLength[:FE]-d.parLength[:σ]),(d.parLength[:All]-d.parLength[:FE]+1):d.parLength[:All])
+    p_len = length(FE_ind)
+    Eye = Matrix{Float64}(1.0I,p_len,p_len)
     f_final_val = 0.0
     max_trial_cnt = 0
     NaN_steps = 0
     trial_end = 5
     hess_steps = 0
-    p_vec = par.FE[:]
+    p_vec = copy(p0)
     p_last = copy(p_vec)
     grad_last = copy(grad_new)
     H_last = copy(hess_new)
     disp_length = min(length(p0),20)
     f_min = -1e3
-    p_min  = similar(par.FE[:])
+    p_min  = similar(p0)
     no_progress=0
     flag = "empty"
     if strict
@@ -289,6 +291,11 @@ function NR_fixedEffects(d,par;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     else
         mistake_thresh = 1.25
     end
+
+    ## Initialize Par Dict
+    par = parDict(d,p_vec)
+    individual_values!(d,par)
+    individual_shares(d,par)
 
     ## Initialize Step
     step = 1
@@ -307,7 +314,8 @@ function NR_fixedEffects(d,par;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         cnt+=1
         trial_cnt=0
 
-        p_vec = par.FE[:]
+        # p_vec = par.FE[:]
+        update_par(par,p_vec)
         # Compute Gradient, holding δ fixed
         if hess_steps==0
             println("Compute Hessian")
@@ -317,7 +325,7 @@ function NR_fixedEffects(d,par;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         else
             println("BFGS Approximation")
             fval = log_likelihood!(grad_new,d,par,feFlag=1)
-            Δxk = (p_vec - p_last)
+            Δxk = (p_vec - p_last)[FE_ind]
             yk = (grad_new - grad_last)[FE_ind]
             # Δhess =  (yk*yk')./(yk'*Δxk) - (hess_new*Δxk*(hess_new*Δxk)')./(Δxk'*hess_new*Δxk)
             # hess_new = hess_new + (yk*yk')./(yk'*Δxk) - (yk*yk')./(yk'*Δxk) - (hess_new*Δxk*(hess_new*Δxk)')./(Δxk'*hess_new*Δxk)
@@ -397,9 +405,9 @@ function NR_fixedEffects(d,par;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         step_size = 1
         end
 
-
-        p_test = p_vec .+ update
-        par.FE[:] = p_test
+        p_test = copy(p_vec)
+        p_test[FE_ind] = p_vec[FE_ind] .+ update
+        update_par(par,p_test)
         f_test = log_likelihood(d,par,feFlag=1)
 
         if hess_steps<Hess_Skip_Steps
@@ -422,8 +430,9 @@ function NR_fixedEffects(d,par;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             end
             step_size = maximum(abs.(update))
             if (step_size>x_tol)
-                p_test = p_vec .+ update
-                par.FE[:] = p_test
+                p_test = copy(p_vec)
+                p_test[FE_ind] = p_vec[FE_ind] .+ update
+                update_par(par,p_test)
                 f_test = log_likelihood(d,par,feFlag=1)
                 p_test_disp = p_test[1:20]
                 println("Trial (NR): Got $f_test at parameters $p_test_disp")
