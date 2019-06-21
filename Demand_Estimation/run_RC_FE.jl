@@ -160,9 +160,9 @@ p0[ind2] = p_ll[ind2.-m_GMM.parLength[:σ]]
 #
 # S = calc_mom_Avar(m,p_ll)
 # W = inv(S)
-W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
+W = Matrix(1.0I,length(p0)+length(m_GMM.data.tMoments),length(p0)+length(m_GMM.data.tMoments))
 
-p_stg1, obj_1 = two_stage_est(m,p0,W)
+p_stg1, obj_1 = two_stage_est(m_GMM,p0,W)
 
 
 # rundate = "2019-03-07"
