@@ -66,6 +66,15 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         cnt+=1
         trial_cnt=0
 
+        if cnt%10==0
+            println("## RE-Optimize Fixed Effects ##")
+            par = parDict(d,p_vec)
+            individual_values!(d,par)
+            individual_shares(d,par)
+            res = NR_fixedEffects(d,par,Hess_Skip_Steps=30,max_itr=30)
+            p_vec[FE_ind] = par.FE[:]
+        end
+
         # Compute Gradient, holding δ fixed
         if hess_steps==0
             println("Compute Hessian")
@@ -108,7 +117,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         end
 
 
-        grad_size = maximum(abs.(grad_new))
+        grad_size = maximum(abs.(grad_new[15:16]))
         println(maximum(findall(abs.(grad_new).>1e-10)))
         println(grad_new[par_ind])
         if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1) | (ga_conv_cnt>2)
@@ -502,7 +511,7 @@ function ga_twostage(d,p0,W,par_ind::Union{Vector{Int64},UnitRange{Int64}};grad_
             real_gradient=0
         end
 
-        grad_size = maximum(abs.(grad_new))
+        grad_size = maximum(abs.(grad_new[par_ind]))
         if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1)
             conv_flag = 1
             println("Got to Break Point")
