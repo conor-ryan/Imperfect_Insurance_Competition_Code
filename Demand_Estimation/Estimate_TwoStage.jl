@@ -253,12 +253,12 @@ end
 
 function reOpt_FE(d::InsuranceLogit,p_vec::Vector{Float64},FE_ind::Union{Vector{Int64},UnitRange{Int64}})
     println("## RE-Optimize Fixed Effects ##")
-    par = parDict(d,p_vec)
-    individual_values!(d,par)
-    individual_shares(d,par)
-    p_min,f_min,cnt = NR_fixedEffects(d,par,Hess_Skip_Steps=30,max_itr=30)
-    p_vec[FE_ind] = par.FE[:]
-    return p_vec,cnt
+    # par = parDict(d,p_vec)
+    # individual_values!(d,par)
+    # individual_shares(d,par)
+    p_min,f_min,cnt = NR_fixedEffects(d,p_vec,Hess_Skip_Steps=30,max_itr=30)
+    # p_vec[FE_ind] = par.FE[:]
+    return p_min,cnt
 end
 
 function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
