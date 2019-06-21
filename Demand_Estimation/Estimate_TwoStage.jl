@@ -447,7 +447,7 @@ end
 
 
 
-function ga_twostage(d,p0,W,par_ind::Vector{Int64};grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
+function ga_twostage(d,p0,W,par_ind::Union{Vector{Int64},UnitRange{Int64}};grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     max_itr=2000,strict=false,Grad_Skip_Steps=5)
     ## Initialize Parameter Vector
     p_vec = p0
