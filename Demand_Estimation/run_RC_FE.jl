@@ -67,6 +67,7 @@ println("Data Loaded")
 
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_Firm-2019-06-03-ll.jld2"
 @load file p_ll
+p0=copy(p_ll)
 # # #
 # # #
 # W = Matrix{Float64}(I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
