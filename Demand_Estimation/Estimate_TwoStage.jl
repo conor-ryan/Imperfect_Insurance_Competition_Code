@@ -451,7 +451,7 @@ function NR_fixedEffects(d,par;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         println("Function Value is $f_test at iteration $cnt")
         println("Steps since last improvement: $no_progress")
     end
-    println("Lowest Function Value is $f_min at $p_min")
+    # println("Lowest Function Value is $f_min at $p_min")
     return p_min,f_min
 end
 
