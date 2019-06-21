@@ -83,6 +83,8 @@ hess_2 = Matrix{Float64}(undef,length(p0),length(p0))
 par0 = parDict(m,p_ll)
 ll = log_likelihood!(hess_2,grad_2,m,par0)
 println(maximum(abs.(grad_2)))
+println(ll)
+println(p_ll[1:20])
 #
 # mom_grad = Matrix{Float64}(undef,length(p0),length(m.data.tMoments))
 # # mom_hess = Array{Float64,3}(undef,length(p0),length(p0),length(m.data.tMoments))
@@ -101,7 +103,7 @@ f_obj(x) = log_likelihood(m,x)
 # # p_test = p0[1:20]
 grad_1 = Vector{Float64}(undef,length(p0))
 hess_1 = Matrix{Float64}(undef,length(p0),length(p0))
-# fval_old = f_obj(p0)
+fval_old = f_obj(p0)
 # # # #
 println("Grad")
 ForwardDiff.gradient!(grad_1,f_obj, p0)#, cfg)
