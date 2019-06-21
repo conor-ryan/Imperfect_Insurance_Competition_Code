@@ -1,14 +1,15 @@
 # using NLopt
 using ForwardDiff
 
-function GMM_objective!(obj_grad::Vector{Float64},d::InsuranceLogit,p0::Array{T},W::Matrix{Float64}) where T
+function GMM_objective!(obj_grad::Vector{Float64},d::InsuranceLogit,p0::Array{T},
+                        W::Matrix{Float64};feFlag::Int64=-1) where T
     grad = Vector{Float64}(undef,length(p0))
     hess = Matrix{Float64}(undef,length(p0),length(p0))
     par0 = parDict(d,p0)
-    ll = log_likelihood!(hess,grad,d,par0)
+    ll = log_likelihood!(hess,grad,d,par0,feFlag=feFlag)
 
     mom_grad = Matrix{Float64}(undef,length(p0),length(d.data.tMoments))
-    mom = calc_risk_moments!(mom_grad,d,par0)
+    mom = calc_risk_moments!(mom_grad,d,par0,feFlag=feFlag)
 
     moments = vcat(mom,grad)
     moments_grad = hcat(mom_grad,hess)
@@ -40,17 +41,18 @@ function GMM_objective!(obj_grad::Vector{Float64},d::InsuranceLogit,p0::Array{T}
 end
 
 
-function GMM_objective!(obj_hess::Matrix{Float64},obj_grad::Vector{Float64},d::InsuranceLogit,p0::Array{T},W::Matrix{Float64}) where T
+function GMM_objective!(obj_hess::Matrix{Float64},obj_grad::Vector{Float64},d::InsuranceLogit,p0::Array{T},
+                        W::Matrix{Float64};feFlag::Int64=-1) where T
     grad = Vector{Float64}(undef,length(p0))
     hess = Matrix{Float64}(undef,length(p0),length(p0))
     thD = Array{Float64,3}(undef,length(p0),length(p0),length(p0))
     par0 = parDict(d,p0)
-    ll = log_likelihood!(thD,hess,grad,d,par0)
+    ll = log_likelihood!(thD,hess,grad,d,par0,feFlag=feFlag)
 
 
     mom_grad = Matrix{Float64}(undef,length(p0),length(d.data.tMoments))
     mom_hess = Array{Float64,3}(undef,length(p0),length(p0),length(d.data.tMoments))
-    mom = calc_risk_moments!(mom_hess,mom_grad,d,par0)
+    mom = calc_risk_moments!(mom_hess,mom_grad,d,par0,feFlag=feFlag)
 
     moments = vcat(mom,grad)
     moments_grad = hcat(mom_grad,hess)
@@ -67,11 +69,11 @@ function GMM_objective!(obj_hess::Matrix{Float64},obj_grad::Vector{Float64},d::I
     return obj
 end
 
-function GMM_objective(d::InsuranceLogit,p0::Array{T},W::Matrix{Float64}) where T
+function GMM_objective(d::InsuranceLogit,p0::Array{T},W::Matrix{Float64};feFlag::Int64=-1) where T
 
     par0 = parDict(d,p0)
     grad = Vector{T}(undef,length(p0))
-    ll = log_likelihood!(grad,d,par0)
+    ll = log_likelihood!(grad,d,par0,feFlag=feFlag)
     # individual_values!(d,par0)
     mom = calc_risk_moments(d,par0)
 

@@ -22,6 +22,7 @@ include("Log_Likehood.jl")
 include("RiskMoments.jl")
 include("Estimate_Basic.jl")
 include("Estimate_GMM.jl")
+include("Estimate_TwoStage.jl")
 include("GMM_Var.jl")
 include("utility.jl")
 include("DerivFunctions.jl")
@@ -30,16 +31,16 @@ println("Code Loaded")
 # Load the Data
 include("load.jl")
 # Structre the data
-c = ChoiceData(df,df_mkt,df_risk;
-    demoRaw=[:AgeFE_31_39,
-            :AgeFE_40_51,
-            :AgeFE_52_64,
-            :Family,
-            :LowIncome],
-    prodchars=[:Price,:constant,:AV,:Big],
-    prodchars_0=[:AV,:Big],
-    # prodchars_0=Vector{Symbol}(undef,0),
-    fixedEffects=[:Firm])
+# c = ChoiceData(df,df_mkt,df_risk;
+#     demoRaw=[:AgeFE_31_39,
+#             :AgeFE_40_51,
+#             :AgeFE_52_64,
+#             :Family,
+#             :LowIncome],
+#     prodchars=[:Price,:constant,:AV,:Big],
+#     prodchars_0=[:AV,:Big],
+#     # prodchars_0=Vector{Symbol}(undef,0),
+#     fixedEffects=[:Firm])
 
 #2018 - 12 - 24 : Firm Specification
 #2019 - 03 - 7 : Firm Specification
@@ -48,19 +49,19 @@ c = ChoiceData(df,df_mkt,df_risk;
 
 
 # Fit into model
-m = InsuranceLogit(c,1)
-println("Data Loaded")
+# m = InsuranceLogit(c,500)
+# println("Data Loaded")
 
 #γ0start = rand(1)-.5
-γstart = rand(m.parLength[:γ])/10 .-.05
-β0start = rand(m.parLength[:β])/10 .-.05
-βstart = rand(m.parLength[:γ])/10 .- .05
-# σstart = rand(m.parLength[:σ])/10 .- .05
-σstart = zeros(m.parLength[:σ])
-FEstart = rand(m.parLength[:FE])/100 .-.005
-
-p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
-par0 = parDict(m,p0)
+# γstart = rand(m.parLength[:γ])/10 .-.05
+# β0start = rand(m.parLength[:β])/10 .-.05
+# βstart = rand(m.parLength[:γ])/10 .- .05
+# # σstart = rand(m.parLength[:σ])/10 .- .05
+# σstart = zeros(m.parLength[:σ])
+# FEstart = rand(m.parLength[:FE])/100 .-.005
+#
+# p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
+# par0 = parDict(m,p0)
 
 # ll = log_likelihood(m,par0)
 
@@ -128,7 +129,7 @@ println("#################")
 # @save file p_ll
 
 println("Load MLE")
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_ll_$rundate.jld2"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_Firm-2019-06-03-ll.jld2"
 @load file p_ll
 # p_ll = copy(p_est)
 
@@ -145,20 +146,23 @@ c = ChoiceData(df,df_mkt,df_risk;
             :Family,
             :LowIncome],
     prodchars=[:Price,:constant,:AV,:Big],
-    prodchars_0=[:constant,:AV,:Big],
-    fixedEffects=[:Firm])
+    prodchars_0=[:AV,:Big],
+    fixedEffects=[:Firm_Market_Cat])
 # Fit into model
-m = InsuranceLogit(c,500)
-p0 = zeros(m.parLength[:All])
-p0[1:14] = p_ll[1:14]
-p0[16:length(p0)] = p_ll[15:length(p_ll)]
+m.GMM = InsuranceLogit(c,20)
+ind1 = 1:(m_GMM.parLength[:γ]*2+m_GMM.parLength[:β])
+ind2 = (1 + maximum(ind1) + m_GMM.parLength[:σ]):m_GMM.parLength[:All]
+
+p0 = zeros(m_GMM.parLength[:All])
+p0[ind1] = p_ll[ind1]
+p0[ind2] = p_ll[ind2.-m_GMM.parLength[:σ]]
 
 #
 # S = calc_mom_Avar(m,p_ll)
 # W = inv(S)
 W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
 
-p_stg1, obj_1 = estimate_GMM(m,p0,W)
+p_stg1, obj_1 = two_stage_est(m,p0,W)
 
 
 # rundate = "2019-03-07"

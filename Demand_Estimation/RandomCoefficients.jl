@@ -196,12 +196,56 @@ function util_value!(app::ChoiceData,p::parDict{T}) where T
 
     (K,N) = size(chars)
     for k = 1:K,n = 1:N
-        @fastmath u = exp(chars[k,n] + chars_0[k] + controls[k] + γ_i)
+        @fastmath u = exp(chars[k,n] + chars_0[k]  + γ_i) #+ controls[k]
         p.μ_ij[n,idxitr[k]] = u
     end
+
     for k = 1:K
-        @fastmath u = exp(chars_0[k] + controls[k] + demos)
+        @fastmath u = exp(chars_0[k] + demos) #+ controls[k]
         p.μ_ij_nonRisk[idxitr[k]] = u
+    end
+
+    for k = 1:K
+        @fastmath d = exp(controls[k])
+        p.δ[idxitr[k]] = d
+    end
+
+    return Nothing
+end
+
+function compute_controls!(d::InsuranceLogit,p::parDict{T}) where T
+    # Calculate μ_ij, which depends only on parameters
+    for app in eachperson(d.data)
+        control_value!(app,p)
+    end
+    return Nothing
+end
+
+function control_value!(app::ChoiceData,p::parDict{T}) where T
+
+    fe = p.FE
+
+    ind = person(app)[1]
+    idxitr = app._personDict[ind]
+    F = fixedEffects(app,idxitr)
+
+    K = length(idxitr)
+
+    # FE is a row Vector
+    if T== Float64
+        controls = zeros(size(F,2))
+        for k in 1:length(controls)
+            for j in app._rel_fe_Dict[ind]
+                controls[k]+= fe[j]*F[j,k]
+            end
+        end
+    else
+        controls = fe*F
+    end
+
+    for k = 1:K
+        @fastmath d = exp(controls[k])
+        p.δ[idxitr[k]] = d
     end
 
     return Nothing
@@ -305,11 +349,18 @@ function individual_shares_norisk(d::InsuranceLogit,p::parDict{T}) where T
     # Store Parameters
     δ_long = p.δ
     μ_ij_large = p.μ_ij
-    for idxitr in values(d.data._personDict)
+    μ_ij_nr_large = p.μ_ij_nonRisk
+    any_long = anyHCC(d.data)
+    for i in d.data._personIDs
+        idxitr = d.data._personDict[i]
+        anyR = any_long[idxitr][1]
         δ = δ_long[idxitr]
         u = μ_ij_large[:,idxitr]
+        u_nr= μ_ij_nr_large[idxitr]
         s = calc_shares(u,δ)
-        p.s_hat[idxitr] = s
+        s_nr = calc_shares(u_nr,δ)
+        s_mean = anyR .* s + (1-anyR) .* s_nr
+        p.s_hat[idxitr] = s_mean
     end
     return Nothing
 end

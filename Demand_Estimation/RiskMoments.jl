@@ -1,6 +1,8 @@
 
 
-function calc_risk_moments!(hess::Array{Float64,3},grad::Matrix{Float64},d::InsuranceLogit,p::parDict{T}) where T
+function calc_risk_moments!(hess::Array{Float64,3},grad::Matrix{Float64},d::InsuranceLogit,p::parDict{T};feFlag=-1) where T
+    grad[:].=0.0
+    hess[:].=0.0
     wgts = weight(d.data)[1,:]
     wgts_share = wgts.*p.s_hat
     num_prods = length(d.prods)
@@ -18,7 +20,7 @@ function calc_risk_moments!(hess::Array{Float64,3},grad::Matrix{Float64},d::Insu
 
     calc_Mom!(mom_value,s_hat_j,r_hat_j,d,p)
 
-    calc_Mom_Der!(grad,hess,dSdθ_j,d2Sdθ_j,mom_value,s_hat_j,r_hat_j,d,p)
+    calc_Mom_Der!(grad,hess,dSdθ_j,d2Sdθ_j,mom_value,s_hat_j,r_hat_j,d,p,feFlag=feFlag)
 
 
     mom_disp = mom_value[1:6]
@@ -28,7 +30,8 @@ function calc_risk_moments!(hess::Array{Float64,3},grad::Matrix{Float64},d::Insu
 end
 
 
-function calc_risk_moments!(grad::Matrix{Float64},d::InsuranceLogit,p::parDict{T}) where T
+function calc_risk_moments!(grad::Matrix{Float64},d::InsuranceLogit,p::parDict{T};feFlag=-1) where T
+    grad[:].=0.0
     wgts = weight(d.data)[1,:]
     wgts_share = wgts.*p.s_hat
     num_prods = length(d.prods)
@@ -45,7 +48,7 @@ function calc_risk_moments!(grad::Matrix{Float64},d::InsuranceLogit,p::parDict{T
 
     calc_Mom!(mom_value,s_hat_j,r_hat_j,d,p)
 
-    calc_Mom_Der!(grad,dSdθ_j,mom_value,s_hat_j,r_hat_j,d,p)
+    calc_Mom_Der!(grad,dSdθ_j,mom_value,s_hat_j,r_hat_j,d,p,feFlag=feFlag)
 
 
     mom_disp = mom_value[1:6]
@@ -97,10 +100,17 @@ function calc_Mom_Der!(grad::Matrix{Float64},
                     mom_value::Vector{Float64},
                     s_hat_j::Vector{Float64},
                     r_hat_j::Vector{Float64},
-                    d::InsuranceLogit,p::parDict{T}) where T
-    Q = d.parLength[:All]
+                    d::InsuranceLogit,p::parDict{T};feFlag::Int64=-1) where T
+    if feFlag==0
+        parList = 1:(d.parLength[:All] - d.parLength[:FE])
+    elseif feFlag==1
+        parList = (d.parLength[:All] - d.parLength[:FE] + 1):d.parLength[:All]
+    else
+        parList = 1:d.parLength[:All]
+    end
+
     for (m,idx_mom) in d.data._tMomentDict
-        for q in 1:Q
+        for q in parList
             t1 = 0.0
             s_mom = sum(s_hat_j[idx_mom])
             dS_q_mom = sum(dSdθ_j[q,idx_mom])
@@ -108,7 +118,7 @@ function calc_Mom_Der!(grad::Matrix{Float64},
                 t1+= p.dRdθ_j[q,j]
             end
             grad[q,m] = t1/s_mom - (dS_q_mom)/s_mom*mom_value[m]
-            for l in 1:q
+            for l in parList[parList.<=q]
                 dS_l_mom = sum(dSdθ_j[l,idx_mom])
                 d2S_mom = sum(d2Sdθ_j[q,l,idx_mom])
                 t2 = 0.0
@@ -128,10 +138,16 @@ function calc_Mom_Der!(grad::Matrix{Float64},
                     mom_value::Vector{Float64},
                     s_hat_j::Vector{Float64},
                     r_hat_j::Vector{Float64},
-                    d::InsuranceLogit,p::parDict{T}) where T
-    Q = d.parLength[:All]
+                    d::InsuranceLogit,p::parDict{T};feFlag::Int64=-1) where T
+    if feFlag==0
+        parList = 1:(d.parLength[:All] - d.parLength[:FE])
+    elseif feFlag==1
+        parList = (d.parLength[:All] - d.parLength[:FE] + 1):d.parLength[:All]
+    else
+        parList = 1:d.parLength[:All]
+    end
     for (m,idx_mom) in d.data._tMomentDict
-        for q in 1:Q
+        for q in parList
             t1 = 0.0
             s_mom = sum(s_hat_j[idx_mom])
             dS_q_mom = sum(dSdθ_j[q,idx_mom])

@@ -46,12 +46,17 @@ function sumShares!(s_hat::Vector{T},ind::Float64) where T
     return s_insured
 end
 
-function relPar(app::ChoiceData,d::InsuranceLogit,F_t::SubArray,ind::Float64)
+function relPar(app::ChoiceData,d::InsuranceLogit,F_t::SubArray,ind::Float64,feFlag::Int64)
     Q = d.parLength[:All]
     Q_0 = Q - size(F_t,1)
     ## Relevant Parameters for this observation
-    pars_relevant = vcat(1:Q_0,Q_0 .+ app._rel_fe_Dict[ind])
-
+    if feFlag==0
+        pars_relevant = vcat(1:Q_0)
+    elseif feFlag==1
+        pars_relevant = vcat(Q_0 .+ app._rel_fe_Dict[ind])
+    else
+        pars_relevant = vcat(1:Q_0,Q_0 .+ app._rel_fe_Dict[ind])
+    end
     return pars_relevant
 end
 
@@ -91,7 +96,7 @@ end
 
 
 function ll_obs_hessian!(thD::Array{Float64,3},hess::Matrix{Float64},grad::Vector{Float64},
-                            app::ChoiceData,d::InsuranceLogit,p::parDict{T}) where T
+                            app::ChoiceData,d::InsuranceLogit,p::parDict{T};feFlag=-1) where T
 
         ind, r_ind, r_ind_metal, S_ij, wgt, urate, idxitr, X_t, X_0_t, Z, F_t, r_age = unPackChars(app,d)
         wgt = convert(Array{Float64,2},wgt)
@@ -116,7 +121,7 @@ function ll_obs_hessian!(thD::Array{Float64,3},hess::Matrix{Float64},grad::Vecto
 
         # Initialize Gradient
         #(Q,N,K) = size(dμ_ij)
-        pars_relevant = relPar(app,d,F_t,ind)
+        pars_relevant = relPar(app,d,F_t,ind,feFlag)
 
         # Pre-Calculate Squares
         μ_ij_sums = preCalcμ(μ_ij,δ)
@@ -560,7 +565,7 @@ function returnParameterX!(q::Int64,X_mat::Matrix{Float64},
 end
 
 function ll_obs_hessian!(hess::Matrix{Float64},grad::Vector{Float64},
-                            app::ChoiceData,d::InsuranceLogit,p::parDict{T}) where T
+                            app::ChoiceData,d::InsuranceLogit,p::parDict{T};feFlag=-1) where T
 
         ind, r_ind, r_ind_metal, S_ij, wgt, urate, idxitr, X_t, X_0_t, Z, F_t, r_age = unPackChars(app,d)
         wgt = convert(Array{Float64,2},wgt)
@@ -585,7 +590,7 @@ function ll_obs_hessian!(hess::Matrix{Float64},grad::Vector{Float64},
 
         # Initialize Gradient
         #(Q,N,K) = size(dμ_ij)
-        pars_relevant = relPar(app,d,F_t,ind)
+        pars_relevant = relPar(app,d,F_t,ind,feFlag)
 
         # Pre-Calculate Squares
         μ_ij_sums = preCalcμ(μ_ij,δ)
@@ -705,7 +710,7 @@ end
 
 
 function ll_obs_gradient!(grad::Vector{S},
-                            app::ChoiceData,d::InsuranceLogit,p::parDict{T}) where {S,T}
+                            app::ChoiceData,d::InsuranceLogit,p::parDict{T};feFlag=-1) where {S,T}
 
         ind, r_ind, r_ind_metal, S_ij, wgt, urate, idxitr, X_t, X_0_t, Z, F_t, r_age = unPackChars(app,d)
         wgt = convert(Array{Float64,2},wgt)
@@ -729,7 +734,7 @@ function ll_obs_gradient!(grad::Vector{S},
 
         # Initialize Gradient
         #(Q,N,K) = size(dμ_ij)
-        pars_relevant = relPar(app,d,F_t,ind)
+        pars_relevant = relPar(app,d,F_t,ind,feFlag)
 
         # Pre-Calculate Squares
         μ_ij_sums = preCalcμ(μ_ij,δ)

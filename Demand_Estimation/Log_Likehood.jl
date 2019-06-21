@@ -2,13 +2,14 @@
 using ForwardDiff
 
 # Calculate Log Likelihood
-function log_likelihood(d::InsuranceLogit,p::parDict{T};cont_flag=false) where T
+function log_likelihood(d::InsuranceLogit,p::parDict{T};cont_flag=false,feFlag=-1) where T
     ll = 0.0
     Pop = 0.0
     #α = p.α[1]
     # Calculate μ_ij, which depends only on parameters
-    if cont_flag
-        contraction!(d,p)
+    if feFlag==1
+        compute_controls!(d,p)
+        individual_shares_norisk(d,p)
     else
         individual_values!(d,p)
         individual_shares(d,p)
@@ -54,14 +55,16 @@ end
 function log_likelihood(d::InsuranceLogit,p::Array{T};cont_flag=false) where T
     params = parDict(d,p)
     ll = log_likelihood(d,params,cont_flag = cont_flag)
-    convert_δ!(d)
+    # convert_δ!(d)
     return ll
 end
 
-function log_likelihood!(grad::Vector{Float64},d::InsuranceLogit,p::Array{T};cont_flag=false) where T
+function log_likelihood!(grad::Vector{Float64},d::InsuranceLogit,p::Array{T};
+                        cont_flag::Bool=false,
+                        feFlag=-1) where T
     params = parDict(d,p)
-    ll = log_likelihood!(grad,d,params,cont_flag = cont_flag)
-    convert_δ!(d)
+    ll = log_likelihood!(grad,d,params,cont_flag = cont_flag,feFlag=feFlag)
+    # convert_δ!(d)
     return ll
 end
 
@@ -79,7 +82,7 @@ function calc_Avar(d::InsuranceLogit,p::parDict{T}) where T
 
     for app in eachperson(d.data)
         grad_obs[:].=0
-        ll_obs,pars_relevant = ll_obs_gradient!(grad_obs,app,d,p)
+        ll_obs,pars_relevant = ll_obs_gradient!(grad_obs,app,d,p,feFlag=feFlag)
         S_n = grad_obs*grad_obs'
         Σ+= S_n
     end
@@ -92,7 +95,9 @@ end
 
 
 function log_likelihood!(grad::Vector{S},
-                            d::InsuranceLogit,p::parDict{T};cont_flag::Bool=false) where {S,T}
+                            d::InsuranceLogit,p::parDict{T};
+                            cont_flag::Bool=false,
+                            feFlag=-1) where {S,T}
     Q = d.parLength[:All]
     N = size(d.draws,1)
     grad[:] .= 0.0
@@ -105,15 +110,16 @@ function log_likelihood!(grad::Vector{S},
     # p.d2Sdθ_j[:] .= 0.0
     # p.d2Rdθ_j[:] .= 0.0
 
-    if cont_flag
-        contraction!(d,p)
+    if feFlag==1
+        compute_controls!(d,p)
+        individual_shares_norisk(d,p)
     else
         individual_values!(d,p)
         individual_shares(d,p)
     end
     #shell_full = zeros(Q,N,38)
     for app in eachperson(d.data)
-        ll_obs,pars_relevant = ll_obs_gradient!(grad,app,d,p)
+        ll_obs,pars_relevant = ll_obs_gradient!(grad,app,d,p,feFlag=feFlag)
         ll+=ll_obs
     end
     if isnan(ll)
@@ -128,7 +134,8 @@ end
 
 
 function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
-                            d::InsuranceLogit,p::parDict{T};cont_flag::Bool=false) where T
+                            d::InsuranceLogit,p::parDict{T};
+                            feFlag=-1) where T
     Q = d.parLength[:All]
     N = size(d.draws,1)
     hess[:] .= 0.0
@@ -142,8 +149,9 @@ function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
     p.d2Sdθ_j[:] .= 0.0
     p.d2Rdθ_j[:] .= 0.0
 
-    if cont_flag
-        contraction!(d,p)
+    if feFlag==1
+        compute_controls!(d,p)
+        individual_shares_norisk(d,p)
     else
         individual_values!(d,p)
         individual_shares(d,p)
@@ -156,7 +164,7 @@ function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
         #     k_max = K
         # end
         #shell = shell_full[:,:,1:K]
-        ll_obs,pars_relevant = ll_obs_hessian!(hess,grad,app,d,p)
+        ll_obs,pars_relevant = ll_obs_hessian!(hess,grad,app,d,p,feFlag=feFlag)
 
         ll+=ll_obs
 
@@ -177,10 +185,10 @@ function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
 end
 
 function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
-                            d::InsuranceLogit,p::Array{T}) where T
+                            d::InsuranceLogit,p::Array{T};feFlag=-1) where T
     params = parDict(d,p)
-    ll = log_likelihood!(hess,grad,d,params)
-    convert_δ!(d)
+    ll = log_likelihood!(hess,grad,d,params,feFlag=feFlag)
+    # convert_δ!(d)
     return ll
 end
 
@@ -188,7 +196,8 @@ end
 
 function log_likelihood!(thD::Array{Float64,3},
                             hess::Matrix{Float64},grad::Vector{Float64},
-                            d::InsuranceLogit,p::parDict{T};cont_flag::Bool=false) where T
+                            d::InsuranceLogit,p::parDict{T};
+                            feFlag=-1) where T
     Q = d.parLength[:All]
     N = size(d.draws,1)
 
@@ -208,8 +217,9 @@ function log_likelihood!(thD::Array{Float64,3},
     # hess_obs = Matrix{Float64}(Q,Q)
     # grad_obs = Vector{Float64}(Q)
 
-    if cont_flag
-        contraction!(d,p)
+    if feFlag==1
+        compute_controls!(d,p)
+        individual_shares_norisk(d,p)
     else
         individual_values!(d,p)
         individual_shares(d,p)
@@ -222,7 +232,7 @@ function log_likelihood!(thD::Array{Float64,3},
         #     k_max = K
         # end
         #shell = shell_full[:,:,1:K]
-        ll_obs,pars_relevant = ll_obs_hessian!(thD,hess,grad,app,d,p)
+        ll_obs,pars_relevant = ll_obs_hessian!(thD,hess,grad,app,d,p,feFlag=feFlag)
 
         ll+=ll_obs
 
@@ -247,9 +257,10 @@ end
 
 function log_likelihood!(thD::Array{Float64,3},
                             hess::Matrix{Float64},grad::Vector{Float64},
-                            d::InsuranceLogit,p::Array{T}) where T
+                            d::InsuranceLogit,p::Array{T};
+                            feFlag=-1) where T
     params = parDict(d,p)
-    ll = log_likelihood!(thD,hess,grad,d,params)
-    convert_δ!(d)
+    ll = log_likelihood!(thD,hess,grad,d,params,feFlag=feFlag)
+    # convert_δ!(d)
     return ll
 end
