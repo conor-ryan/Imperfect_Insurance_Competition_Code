@@ -63,8 +63,14 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         trial_cnt=0
 
         if (cnt%10==0) | (flag=="converged")
-            flag="empty"
             p_vec,fe_itrs = reOpt_FE(d,p_vec,FE_ind)
+            if (flag=="converged") & (fe_itrs<2)
+                println("Converged in two stages!")
+                break
+            end
+            f_tol_cnt = 0
+            x_tol_cnt = 0
+            ga_conv_cnt = 0
         end
 
         # Compute Gradient, holding δ fixed
@@ -118,13 +124,8 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             println(f_tol_cnt)
             println(x_tol_cnt)
             println(ga_conv_cnt)
-            p_vec,fe_itrs = reOpt_FE(d,p_vec,FE_ind)
-            if fe_itrs>1
-                continue
-            else
-                flag="converged"
-                break
-            end
+            flag = "converged"
+            continue
         end
         if strict==false
             if grad_size>.1
