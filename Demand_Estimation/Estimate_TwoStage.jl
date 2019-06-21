@@ -55,7 +55,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     grad_size = maximum(abs.(grad_new))
     println(grad_size)
 
-    p_vec = reOpt_FE(d,p_vec,FE_ind)
+    p_vec,fe_itrs = reOpt_FE(d,p_vec,FE_ind)
 
     # Maximize by Newtons Method
     while (grad_size>grad_tol) & (cnt<max_itr) & (max_trial_cnt<20)
@@ -64,7 +64,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
 
         if (cnt%10==0) | (flag=="converged")
             flag="empty"
-            p_vec = reOpt_FE(d,p_vec,FE_ind)
+            p_vec,fe_itrs = reOpt_FE(d,p_vec,FE_ind)
         end
 
         # Compute Gradient, holding δ fixed
@@ -118,8 +118,13 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             println(f_tol_cnt)
             println(x_tol_cnt)
             println(ga_conv_cnt)
-            flag = "converged"
-            continue
+            p_vec,fe_itrs = reOpt_FE(d,p_vec,FE_ind)
+            if fe_itrs>1
+                continue
+            else
+                flag="converged"
+                break
+            end
         end
         if strict==false
             if grad_size>.1
@@ -241,7 +246,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         # end
     end
     println("Lowest Function Value is $f_min at $p_min")
-    return p_min,f_min
+    return p_min,f_min,cnt
 end
 
 function reOpt_FE(d::InsuranceLogit,p_vec::Vector{Float64},FE_ind::Union{Vector{Int64},UnitRange{Int64}})
@@ -249,9 +254,9 @@ function reOpt_FE(d::InsuranceLogit,p_vec::Vector{Float64},FE_ind::Union{Vector{
     par = parDict(d,p_vec)
     individual_values!(d,par)
     individual_shares(d,par)
-    res = NR_fixedEffects(d,par,Hess_Skip_Steps=30,max_itr=30)
+    p_min,f_min,cnt = NR_fixedEffects(d,par,Hess_Skip_Steps=30,max_itr=30)
     p_vec[FE_ind] = par.FE[:]
-    return p_vec
+    return p_vec,cnt
 end
 
 function NR_fixedEffects(d,par;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
