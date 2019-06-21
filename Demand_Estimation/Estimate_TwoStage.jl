@@ -315,7 +315,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         trial_cnt=0
 
         # p_vec = par.FE[:]
-        update_par(par,p_vec)
+        update_par(d,par,p_vec)
         # Compute Gradient, holding δ fixed
         if hess_steps==0
             println("Compute Hessian")
@@ -407,7 +407,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
 
         p_test = copy(p_vec)
         p_test[FE_ind] = p_vec[FE_ind] .+ update
-        update_par(par,p_test)
+        update_par(d,par,p_test)
         f_test = log_likelihood(d,par,feFlag=1)
 
         if hess_steps<Hess_Skip_Steps
@@ -432,7 +432,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             if (step_size>x_tol)
                 p_test = copy(p_vec)
                 p_test[FE_ind] = p_vec[FE_ind] .+ update
-                update_par(par,p_test)
+                update_par(d,par,p_test)
                 f_test = log_likelihood(d,par,feFlag=1)
                 p_test_disp = p_test[1:20]
                 println("Trial (NR): Got $f_test at parameters $p_test_disp")

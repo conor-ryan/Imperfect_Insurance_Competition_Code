@@ -109,7 +109,13 @@ function parDict(m::InsuranceLogit,x::Array{T}) where T
                             dSdθ_j,dRdθ_j,d2Sdθ_j,d2Rdθ_j)
 end
 
-function update_par(par::parDict{T},x::Vector{T}) where T
+function update_par(m::InsuranceLogit,par::parDict{T},x::Vector{T}) where T
+    γlen = m.parLength[:γ]
+    β0len = γlen + m.parLength[:β]
+    βlen = β0len + m.parLength[:γ]
+    σlen = βlen  + m.parLength[:σ]
+    FElen = σlen + m.parLength[:FE]
+    
     γ_0 = 0.0
     γ = x[1:γlen]
     β_0 = x[(γlen+1):β0len]
