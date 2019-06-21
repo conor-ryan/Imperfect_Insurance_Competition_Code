@@ -440,7 +440,7 @@ function NR_fixedEffects(d,par;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         p_vec = copy(p_test)
         grad_last = copy(grad_new)
         H_last = copy(H_k)
-        p_vec_disp = p_vec[par_ind]
+        p_vec_disp = p_vec[1:10]
         f_final_val = fval
         println("Update Parameters to $p_vec_disp")
 
@@ -602,7 +602,7 @@ function ga_twostage(d,p0,W,par_ind::Union{Vector{Int64},UnitRange{Int64}};grad_
         end
         p_vec = copy(p_test)
         fval = copy(f_test)
-        p_vec_disp = p_vec[1:20]
+        p_vec_disp = p_vec[par_ind]
         f_final_val = fval
         println("Update Parameters to $p_vec_disp")
 
