@@ -246,7 +246,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         # end
     end
     println("Lowest Function Value is $f_min at $p_min")
-    return p_min,f_min,cnt
+    return p_min,f_min
 end
 
 function reOpt_FE(d::InsuranceLogit,p_vec::Vector{Float64},FE_ind::Union{Vector{Int64},UnitRange{Int64}})
@@ -457,7 +457,7 @@ function NR_fixedEffects(d,par;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         println("Steps since last improvement: $no_progress")
     end
     # println("Lowest Function Value is $f_min at $p_min")
-    return p_min,f_min
+    return p_min,f_min, cnt
 end
 
 
