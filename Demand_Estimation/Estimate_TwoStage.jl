@@ -11,7 +11,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     # par_ind = 1:parLen
     par_ind = 15:16
     parLen = 2
-    FE_ind = (parLen+1):d.parLength[:All]
+    FE_ind = (d.parLength[:All] - d.parLength[:FE]+1):d.parLength[:All]
     p_vec = copy(p0)
     update = zeros(N)
     # Initialize Gradient
