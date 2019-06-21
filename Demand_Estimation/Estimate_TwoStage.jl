@@ -539,8 +539,8 @@ function ga_twostage(d,p0,W,par_ind::Union{Vector{Int64},UnitRange{Int64}};grad_
         end
 
 
-
-        p_test = p_vec .- step.*grad_new[par_ind]
+        p_test = copy(p_vec)
+        p_test[par_ind] = p_vec[par_ind] .- step.*grad_new[par_ind]
 
         f_test = GMM_objective(d,p_test,W)
 
@@ -562,7 +562,8 @@ function ga_twostage(d,p0,W,par_ind::Union{Vector{Int64},UnitRange{Int64}};grad_
                 println("Reducing Step Size...")
             end
             step/= 20
-            p_test = p_vec .- step.*grad_new
+            p_test = copy(p_vec)
+            p_test[par_ind] = p_vec[par_ind] .- step.*grad_new[par_ind]
             f_test = GMM_objective(d,p_test,W)
             if (step<x_tol) & (real_gradient==0)
                 println("Failed with Approximate Gradient")
