@@ -30,7 +30,7 @@ println("Code Loaded")
 
 # Load the Data
 include("load.jl")
-Structre the data
+#Structure the data
 c = ChoiceData(df,df_mkt,df_risk;
     demoRaw=[:AgeFE_31_39,
             :AgeFE_40_51,
