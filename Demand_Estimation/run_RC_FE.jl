@@ -114,7 +114,7 @@ include("load.jl")
 # ForwardDiff.hessian!(hess_1,f_obj, p0)#,cfg)
 
 
-println(maximum(abs.(hess_1-hess_2)))
+# println(maximum(abs.(hess_1-hess_2)))
 
 # println(fval_old-res)
 # println(maximum(abs.(grad_1-grad_2)))
