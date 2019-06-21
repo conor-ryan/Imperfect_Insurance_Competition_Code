@@ -30,17 +30,17 @@ println("Code Loaded")
 
 # Load the Data
 include("load.jl")
-# Structre the data
-# c = ChoiceData(df,df_mkt,df_risk;
-#     demoRaw=[:AgeFE_31_39,
-#             :AgeFE_40_51,
-#             :AgeFE_52_64,
-#             :Family,
-#             :LowIncome],
-#     prodchars=[:Price,:constant,:AV,:Big],
-#     prodchars_0=[:AV,:Big],
-#     # prodchars_0=Vector{Symbol}(undef,0),
-#     fixedEffects=[:Firm])
+Structre the data
+c = ChoiceData(df,df_mkt,df_risk;
+    demoRaw=[:AgeFE_31_39,
+            :AgeFE_40_51,
+            :AgeFE_52_64,
+            :Family,
+            :LowIncome],
+    prodchars=[:Price,:constant,:AV,:Big],
+    # prodchars_0=[:AV,:Big],
+    prodchars_0=Vector{Symbol}(undef,0),
+    fixedEffects=[:Firm_Market_Cat])
 
 #2018 - 12 - 24 : Firm Specification
 #2019 - 03 - 7 : Firm Specification
@@ -49,8 +49,8 @@ include("load.jl")
 
 
 # Fit into model
-# m = InsuranceLogit(c,500)
-# println("Data Loaded")
+m = InsuranceLogit(c,1)
+println("Data Loaded")
 
 #γ0start = rand(1)-.5
 # γstart = rand(m.parLength[:γ])/10 .-.05
@@ -65,22 +65,23 @@ include("load.jl")
 
 # ll = log_likelihood(m,par0)
 
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_ll_2018-12-17.jld2"
-# @load file p_ll
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_Firm-2019-06-03-ll.jld2"
+@load file p_ll
 # # #
 # # #
 # W = Matrix{Float64}(I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
 # # # # W = eye(length(p0))
-# grad_2 = Vector{Float64}(undef,length(p0))
-# grad_3 = Vector{Float64}(undef,length(p0))
-# hess_2 = Matrix{Float64}(undef,length(p0),length(p0))
+grad_2 = Vector{Float64}(undef,length(p0))
+grad_3 = Vector{Float64}(undef,length(p0))
+hess_2 = Matrix{Float64}(undef,length(p0),length(p0))
 #
 #
 # obj_grad = Vector{Float64}(undef,length(p0))
 # grad = Vector{Float64}(undef,length(p0))
 # hess = Matrix{Float64}(undef,length(p0),length(p0))
-# par0 = parDict(m,p_ll)
-# ll = log_likelihood!(hess_2,grad_2,m,par0)
+par0 = parDict(m,p_ll)
+ll = log_likelihood!(hess_2,grad_2,m,par0)
+println(maximum(abs.(grad_2)))
 #
 # mom_grad = Matrix{Float64}(undef,length(p0),length(m.data.tMoments))
 # # mom_hess = Array{Float64,3}(undef,length(p0),length(p0),length(m.data.tMoments))
@@ -95,21 +96,22 @@ include("load.jl")
 # # W = Matrix{Float64}(I,length(m.prods),length(m.prods))
 # # res = GMM_objective!(hess_2,grad_2,m,p_stg1,W)
 # res = GMM_objective!(grad_3,m,p_ll,W)
-# f_obj(x) = log_likelihood(m,x)
+f_obj(x) = log_likelihood(m,x)
 # # p_test = p0[1:20]
-# grad_1 = Vector{Float64}(undef,length(p0))
-# hess_1 = Matrix{Float64}(undef,length(p0),length(p0))
+grad_1 = Vector{Float64}(undef,length(p0))
+hess_1 = Matrix{Float64}(undef,length(p0),length(p0))
 # fval_old = f_obj(p0)
 # # # #
-# println("Grad")
-# ForwardDiff.gradient!(grad_1,f_obj, p0)#, cfg)
-# println("Hessian")
+println("Grad")
+ForwardDiff.gradient!(grad_1,f_obj, p0)#, cfg)
+println(fval_old-ll)
+println(maximum(abs.(grad_1-grad_2)))
+println("Hessian")
 # cfg = ForwardDiff.HessianConfig(f_obj, p0, ForwardDiff.Chunk{8}())
-# ForwardDiff.hessian!(hess_1,f_obj, p0)#,cfg)
+ForwardDiff.hessian!(hess_1,f_obj, p0)#,cfg)
 #
-# println(fval_old-ll)
-# println(maximum(abs.(grad_1-grad_2)))
-# println(maximum(abs.(hess_1-hess_2)))
+
+println(maximum(abs.(hess_1-hess_2)))
 
 # println(fval_old-res)
 # println(maximum(abs.(grad_1-grad_2)))
@@ -149,7 +151,7 @@ c = ChoiceData(df,df_mkt,df_risk;
     prodchars_0=[:AV,:Big],
     fixedEffects=[:Firm_Market_Cat])
 # Fit into model
-m_GMM = InsuranceLogit(c,20)
+m_GMM = InsuranceLogit(c,500)
 ind1 = 1:(m_GMM.parLength[:γ]*2+m_GMM.parLength[:β])
 ind2 = (1 + maximum(ind1) + m_GMM.parLength[:σ]):m_GMM.parLength[:All]
 
