@@ -269,6 +269,7 @@ function NR_fixedEffects(d,par;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     ## Initialize Step
     step = 1
     real_hessian=0
+    grad_size = 1
 
     ## Tolerance Counts
     cnt=0
