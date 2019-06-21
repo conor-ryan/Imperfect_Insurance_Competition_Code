@@ -149,7 +149,7 @@ c = ChoiceData(df,df_mkt,df_risk;
     prodchars_0=[:AV,:Big],
     fixedEffects=[:Firm_Market_Cat])
 # Fit into model
-m.GMM = InsuranceLogit(c,20)
+m_GMM = InsuranceLogit(c,20)
 ind1 = 1:(m_GMM.parLength[:γ]*2+m_GMM.parLength[:β])
 ind2 = (1 + maximum(ind1) + m_GMM.parLength[:σ]):m_GMM.parLength[:All]
 
