@@ -2,6 +2,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     max_itr=2000,strict=true,Hess_Skip_Steps=5,checkin=false)
     ## Initialize Parameter Vector
 
+    N = length(p0)
     cnt = 0
     grad_size = 10000
     f_eval_old = 1.0
@@ -11,7 +12,6 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     FE_ind = (parLen+1):d.parLength[:All]
     p_vec = copy(p0)
     update = zeros(N)
-    N = length(p0)
     # Initialize Gradient
     grad_new = similar(p0)
     hess_new = Matrix{Float64}(undef,N,N)
