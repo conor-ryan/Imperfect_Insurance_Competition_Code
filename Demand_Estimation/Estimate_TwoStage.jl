@@ -216,7 +216,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         if NaN_steps>5
             println("Hessian might be singular")
             println("RUN ROUND OF GRADIENT ASCENT")
-            p_test, f_test = gradient_ascent_BB(d,p_test,W,max_itr=20,strict=true,Grad_Skip_Steps=2)
+            p_test, f_test = ga_twostage(d,p_test,W,15:16,max_itr=20,strict=true,Grad_Skip_Steps=2)
         end
 
         p_last = copy(p_vec)
@@ -431,7 +431,7 @@ function NR_fixedEffects(d,par;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         p_vec = copy(p_test)
         grad_last = copy(grad_new)
         H_last = copy(H_k)
-        p_vec_disp = p_vec[1:20]
+        p_vec_disp = p_vec[par_ind]
         f_final_val = fval
         println("Update Parameters to $p_vec_disp")
 
@@ -443,4 +443,165 @@ function NR_fixedEffects(d,par;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     end
     println("Lowest Function Value is $f_min at $p_min")
     return p_min,f_min
+end
+
+
+
+function ga_twostage(d,p0,W,par_ind::Vector{Int64};grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
+    max_itr=2000,strict=false,Grad_Skip_Steps=5)
+    ## Initialize Parameter Vector
+    p_vec = p0
+    N = length(p0)
+
+    cnt = 0
+    grad_size = 10000
+    # # Initialize δ
+    param_dict = parDict(d,p_vec)
+
+    # Initialize Gradient
+    grad_new = similar(p0)
+    hess_new = Matrix{Float64}(undef,length(p0),length(p0))
+    f_final_val = 0.0
+    max_trial_cnt = 0
+    grad_steps = 0
+    p_last = copy(p_vec)
+    grad_last = copy(grad_new)
+    disp_length = min(length(p0),20)
+    f_min = 1e3
+    fval = 1e3
+    p_min  = similar(p_vec)
+    no_progress=0
+    flag = "empty"
+    if strict
+        mistake_thresh = 1.00
+    else
+        mistake_thresh = 1.25
+    end
+
+    ## Initialize Step
+    step = 1
+    real_gradient=0
+
+    ## Tolerance Counts
+    f_tol_cnt = 0
+    x_tol_cnt = 0
+    conv_flag = 0
+    # Maximize by Newtons Method
+    while (cnt<max_itr)
+        cnt+=1
+        trial_cnt=0
+
+
+        # Compute Gradient, holding δ fixed
+        if grad_steps==0
+            println("Compute Gradient")
+            fval = GMM_objective!(grad_new,d,p_vec,W)
+            real_gradient=1
+        else
+            # fval = GMM_objective(d,p_vec,W)
+            real_gradient=0
+        end
+
+        grad_size = maximum(abs.(grad_new))
+        if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1)
+            conv_flag = 1
+            println("Got to Break Point")
+            println(grad_size)
+            println(f_tol_cnt)
+            println(x_tol_cnt)
+            println(conv_flag)
+            break
+        end
+        if strict==false
+            if grad_size>.1
+                mistake_thresh = 1.25
+            else
+                mistake_thresh = 1.05
+            end
+        end
+
+        if cnt==1
+            step = 1/grad_size
+        elseif (real_gradient==1)
+            g = (p_vec - p_last)[par_ind]
+            y = (grad_new - grad_last)[par_ind]
+            step = abs.(dot(g,g)/dot(g,y))
+        end
+
+        if no_progress>10
+            no_progress = 0
+            println("Return: Limit on No Progress")
+            p_vec = copy(p_min)
+            fval = GMM_objective!(grad_new,d,p_vec,W)
+            grad_size = maximum(abs.(grad_new))
+            step = 1/grad_size
+            mistake_thresh = 1.00
+        end
+
+
+
+        p_test = p_vec .- step.*grad_new[par_ind]
+
+        f_test = GMM_objective(d,p_test,W)
+
+        if (f_test>fval) & (real_gradient==0)
+            grad_steps=0
+            continue
+        elseif (grad_steps<Grad_Skip_Steps)
+            grad_steps+=1
+        else
+            grad_steps=0
+        end
+
+        println("Initial Step Size: $step")
+        while ((f_test>fval*mistake_thresh) | isnan(f_test)) & (step>1e-15)
+            p_test_disp = p_test[1:disp_length]
+            if trial_cnt==0
+                println("Trial: Got $f_test at parameters $p_test_disp")
+                println("Previous Iteration at $fval")
+                println("Reducing Step Size...")
+            end
+            step/= 20
+            p_test = p_vec .- step.*grad_new
+            f_test = GMM_objective(d,p_test,W)
+            if (step<x_tol) & (real_gradient==0)
+                println("Failed with Approximate Gradient")
+                break
+            end
+        end
+
+        ## Update Minimum Value
+        if (cnt==1) | (f_test<f_min)
+            if (abs(f_test-f_min)<f_tol) & (real_gradient==1)
+                f_tol_cnt += 1
+            end
+            if (maximum(abs.(p_test - p_min))<x_tol) & (real_gradient==1)
+                    x_tol_cnt += 1
+            end
+            f_min = copy(f_test)
+            p_min[:] = p_test[:]
+            no_progress=0
+        else
+            no_progress+=1
+        end
+
+
+        if real_gradient==1
+            p_last = copy(p_vec)
+            grad_last = copy(grad_new)
+        end
+        p_vec = copy(p_test)
+        fval = copy(f_test)
+        p_vec_disp = p_vec[1:20]
+        f_final_val = fval
+        println("Update Parameters to $p_vec_disp")
+
+
+        println("Gradient Size: $grad_size")
+        println("Step Size: $step")
+        println("Function Value is $f_test at iteration $cnt")
+        println("Steps since last improvement: $no_progress")
+    end
+    println("Lowest Function Value is $f_min at $p_min")
+    return p_min,f_min,conv_flag
 end
