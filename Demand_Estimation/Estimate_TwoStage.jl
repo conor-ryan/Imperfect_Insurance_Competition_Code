@@ -1,5 +1,5 @@
 function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
-    max_itr=2000,strict=true,Hess_Skip_Steps=5,checkin=false)
+    max_itr=2000,strict=true,Hess_Skip_Steps=15,checkin=false)
     ## Initialize Parameter Vector
 
     N = length(p0)
@@ -49,10 +49,14 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     ga_cnt = 0
 
     ### Initialize Fixed Effects
+    fval = log_likelihood!(hess_new,grad_new,d,p_vec)
+    grad_size = maximum(abs.(grad_new))
+    println(grad_size)
+
     par = parDict(d,p_vec)
     individual_values!(d,par)
     individual_shares(d,par)
-    res = NR_fixedEffects(d,par,Hess_Skip_Steps=30,max_itr=30)
+    res = NR_fixedEffects(d,par,Hess_Skip_Steps=30,max_itr=5)
     p_vec[FE_ind] = par.FE[:]
 
     # Maximize by Newtons Method
@@ -103,6 +107,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
 
 
         grad_size = maximum(abs.(grad_new))
+        println(maximum(findall(abs.(grad_new).>1e-10)))
         if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1) | (ga_conv_cnt>2)
             println("Got to Break Point...?")
             println(grad_size)
@@ -276,6 +281,8 @@ function NR_fixedEffects(d,par;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     f_tol_cnt = 0
     x_tol_cnt = 0
     skip_x_tol=0
+
+
     # Maximize by Newtons Method
     while (grad_size>grad_tol) & (cnt<max_itr) & (max_trial_cnt<20)
         cnt+=1
@@ -286,6 +293,7 @@ function NR_fixedEffects(d,par;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         if hess_steps==0
             println("Compute Hessian")
             fval = log_likelihood!(hess_new,grad_new,d,par,feFlag=1)
+            println(grad_new[1:20])
             H_k = inv(hess_new[FE_ind,FE_ind])
             real_hessian=1
         else
