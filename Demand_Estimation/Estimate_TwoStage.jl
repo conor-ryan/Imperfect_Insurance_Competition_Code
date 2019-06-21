@@ -193,10 +193,10 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 trial_max = 1
                 println("RUN ROUND OF GRADIENT ASCENT")
                 if ga_cnt<=2
-                    p_test, f_test,ga_conv = gradient_ascent_BB(d,p_vec,W,max_itr=10,strict=true,Grad_Skip_Steps=2)
+                    p_test, f_test,ga_conv = ga_twostage(d,p_vec,W,par_ind,max_itr=10,strict=true,Grad_Skip_Steps=2)
                     ga_cnt+=1
                 else
-                    p_test, f_test,ga_conv = gradient_ascent_BB(d,p_vec,W,max_itr=50,strict=false,Grad_Skip_Steps=10)
+                    p_test, f_test,ga_conv = ga_twostage(d,p_vec,W,par_ind,max_itr=50,strict=false,Grad_Skip_Steps=10)
                 end
                 if ga_conv==1
                     ga_conv_cnt+=1
