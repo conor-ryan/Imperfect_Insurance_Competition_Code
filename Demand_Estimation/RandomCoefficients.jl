@@ -115,7 +115,7 @@ function update_par(m::InsuranceLogit,par::parDict{T},x::Vector{T}) where T
     βlen = β0len + m.parLength[:γ]
     σlen = βlen  + m.parLength[:σ]
     FElen = σlen + m.parLength[:FE]
-    
+
     γ_0 = 0.0
     γ = x[1:γlen]
     β_0 = x[(γlen+1):β0len]
@@ -304,6 +304,8 @@ function control_value!(app::ChoiceData,p::parDict{T}) where T
     else
         controls = fe*F
     end
+
+    K = length(idxitr)
 
     for k = 1:K
         @fastmath d = exp(chars_0[k] + demos + controls[k])
