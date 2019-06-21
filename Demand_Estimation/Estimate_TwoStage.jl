@@ -7,8 +7,10 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     grad_size = 10000
     f_eval_old = 1.0
 
-    parLen = d.parLength[:All] - d.parLength[:FE]
-    par_ind = 1:parLen
+    # parLen = d.parLength[:All] - d.parLength[:FE]
+    # par_ind = 1:parLen
+    par_ind = 15:16
+    parLen = 2
     FE_ind = (parLen+1):d.parLength[:All]
     p_vec = copy(p0)
     update = zeros(N)
@@ -294,7 +296,6 @@ function NR_fixedEffects(d,par;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         if hess_steps==0
             println("Compute Hessian")
             fval = log_likelihood!(hess_new,grad_new,d,par,feFlag=1)
-            println(grad_new[1:20])
             H_k = inv(hess_new[FE_ind,FE_ind])
             real_hessian=1
         else
