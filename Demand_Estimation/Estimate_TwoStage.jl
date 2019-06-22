@@ -73,6 +73,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             f_tol_cnt = 0
             x_tol_cnt = 0
             ga_conv_cnt = 0
+            ga_cnt = 0
         end
 
         # Compute Gradient, holding δ fixed
@@ -509,7 +510,7 @@ function ga_twostage(d,p0,W,par_ind::Union{Vector{Int64},UnitRange{Int64}};grad_
         # Compute Gradient, holding δ fixed
         if grad_steps==0
             println("Compute Gradient")
-            fval = GMM_objective!(grad_new,d,p_vec,W)
+            fval = GMM_objective!(grad_new,d,p_vec,W,feFlag=0)
             real_gradient=1
         else
             # fval = GMM_objective(d,p_vec,W)
@@ -546,7 +547,7 @@ function ga_twostage(d,p0,W,par_ind::Union{Vector{Int64},UnitRange{Int64}};grad_
             no_progress = 0
             println("Return: Limit on No Progress")
             p_vec = copy(p_min)
-            fval = GMM_objective!(grad_new,d,p_vec,W)
+            fval = GMM_objective!(grad_new,d,p_vec,W,feFlag=0)
             grad_size = maximum(abs.(grad_new))
             step = 1/grad_size
             mistake_thresh = 1.00
@@ -556,7 +557,7 @@ function ga_twostage(d,p0,W,par_ind::Union{Vector{Int64},UnitRange{Int64}};grad_
         p_test = copy(p_vec)
         p_test[par_ind] = p_vec[par_ind] .- step.*grad_new[par_ind]
 
-        f_test = GMM_objective(d,p_test,W)
+        f_test = GMM_objective(d,p_test,W,feFlag=0)
 
         if (f_test>fval) & (real_gradient==0)
             grad_steps=0
@@ -578,7 +579,7 @@ function ga_twostage(d,p0,W,par_ind::Union{Vector{Int64},UnitRange{Int64}};grad_
             step/= 20
             p_test = copy(p_vec)
             p_test[par_ind] = p_vec[par_ind] .- step.*grad_new[par_ind]
-            f_test = GMM_objective(d,p_test,W)
+            f_test = GMM_objective(d,p_test,W,feFlag=0)
             if (step<x_tol) & (real_gradient==0)
                 println("Failed with Approximate Gradient")
                 break

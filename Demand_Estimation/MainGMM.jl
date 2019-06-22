@@ -34,14 +34,14 @@ include("load.jl")
 
 #### General Specification ####
 
-halton_draws = 50
+halton_draws = 500
 spec_demoRaw = [:AgeFE_31_39,
         :AgeFE_40_51,
         :AgeFE_52_64,
         :Family,
         :LowIncome]
 spec_prodchars=[:Price,:constant,:AV,:Big]
-spec_prodchars_0=[:AV,:Big]
+spec_prodchars_0=[:constant,:AV,:Big]
 
 rundate = Dates.today()
 println("Running on $rundate")
