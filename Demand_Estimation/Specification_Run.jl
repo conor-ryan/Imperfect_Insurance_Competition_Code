@@ -145,18 +145,22 @@ function run_specification_GMM(filename::String,
 
     println("Save First Stage Result")
     file = "$filename-$rundate-stg1.jld2"
-    @save file p_stg1, obj_1
+    @save file p_stg1 obj_1
 
     println("#### Estimate GMM Second Stage ####")
     S = calc_mom_Avar(m_GMM,p_stg1)
     W2 = inv(S[σ_ind,σ_ind])
     W[σ_ind,σ_ind] = W2
+    println(S[σ_ind,σ_ind])
+    println(W2)
+    println(W)
+
     ## Estimate
     p_stg2, obj_2 = two_stage_est(m_GMM,p0,W)
 
     println("Save Second Stage Result")
     file = "$filename-$rundate-stg2.jld2"
-    @save file p_stg2, obj_2
+    @save file p_stg2 obj_2
 
     println("#### Calculate Standard Errors and Save Results ####")
     AsVar, stdErr,t_stat, stars = res_process(m_GMM,p_stg2)
