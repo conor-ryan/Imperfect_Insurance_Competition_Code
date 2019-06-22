@@ -117,8 +117,8 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         end
 
 
-        grad_size = maximum(abs.(grad_new[15:16]))
-        println(maximum(findall(abs.(grad_new).>1e-10)))
+        grad_size = maximum(abs.(grad_new[par_ind]))
+        # println(maximum(findall(abs.(grad_new).>1e-10)))
         println(grad_new[par_ind])
         if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1) | (ga_conv_cnt>2)
             println("Got to Break Point...?")
