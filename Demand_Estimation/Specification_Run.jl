@@ -86,31 +86,31 @@ function run_specification_GMM(filename::String,
 
     cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/")
     ## Build Log_Likehood Model
-    # println("Build LL Model")
-    # c_ll = ChoiceData(df,df_mkt,df_risk;
-    #     demoRaw=spec_demoRaw,
-    #     prodchars=spec_prodchars,
-    #     prodchars_0=Vector{Symbol}(undef,0),
-    #     fixedEffects=spec_fixedEffects)
-    #
-    # m_ll = InsuranceLogit(c_ll,1,nested=nested)
-    #
-    # ## Initialize Starting Parameters
-    # γstart = rand(m_ll.parLength[:γ])/10 .-.05
-    # β0start = rand(m_ll.parLength[:β])/10 .-.05
-    # βstart = rand(m_ll.parLength[:γ])/10 .- .05
-    # σstart = rand(m_ll.parLength[:σ])/10 .- .05
-    # FEstart = rand(m_ll.parLength[:FE])/100 .-.005
-    #
-    # p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
-    # println("#### Estimate LL Starting Point ####")
-    #
-    # ## Estimate
-    # p_ll, fval = newton_raphson_ll(m_ll,p0)
-    #
-    # println("Save LL Result")
-    # file = "$filename-$rundate-ll.jld2"
-    # @save file p_ll
+    println("Build LL Model")
+    c_ll = ChoiceData(df,df_mkt,df_risk;
+        demoRaw=spec_demoRaw,
+        prodchars=spec_prodchars,
+        prodchars_0=Vector{Symbol}(undef,0),
+        fixedEffects=spec_fixedEffects)
+
+    m_ll = InsuranceLogit(c_ll,1,nested=nested)
+
+    ## Initialize Starting Parameters
+    γstart = rand(m_ll.parLength[:γ])/10 .-.05
+    β0start = rand(m_ll.parLength[:β])/10 .-.05
+    βstart = rand(m_ll.parLength[:γ])/10 .- .05
+    σstart = rand(m_ll.parLength[:σ])/10 .- .05
+    FEstart = rand(m_ll.parLength[:FE])/100 .-.005
+
+    p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
+    println("#### Estimate LL Starting Point ####")
+
+    ## Estimate
+    p_ll, fval = newton_raphson_ll(m_ll,p0)
+
+    println("Save LL Result")
+    file = "$filename-$rundate-ll.jld2"
+    @save file p_ll
 
 
     ## Build GMM Model
@@ -128,9 +128,9 @@ function run_specification_GMM(filename::String,
     ind2 = (1 + maximum(ind1) + m_GMM.parLength[:σ]):m_GMM.parLength[:All]
     σ_ind = (1 + maximum(ind1)):(minimum(ind2))
 
-    # p0 = zeros(m_GMM.parLength[:All])
-    # p0[ind1] = p_ll[ind1]
-    # p0[ind2] = p_ll[ind2.-m_GMM.parLength[:σ]]
+    p0 = zeros(m_GMM.parLength[:All])
+    p0[ind1] = p_ll[ind1]
+    p0[ind2] = p_ll[ind2.-m_GMM.parLength[:σ]]
     println("#### Estimate GMM First Stage ####")
 
     # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/checkin_265.jld2"
@@ -141,12 +141,12 @@ function run_specification_GMM(filename::String,
     ## Estimate
     # p_stg1, obj_1 = estimate_GMM(m_GMM,p0,W)
     # p_stg1, obj_1 = newton_raphson_GMM(m_GMM,p0,W,grad_tol = 1e-8,strict=true,checkin=true)
-    # p_stg1, obj_1 = two_stage_est(m_GMM,p0,W)
+    p_stg1, obj_1 = two_stage_est(m_GMM,p0,W)
 
     println("Save First Stage Result")
     file = "$filename-$rundate-stg1.jld2"
-    # @save file p_stg1 obj_1
-    @load file p_stg1 obj_1
+    @save file p_stg1 obj_1
+    # @load file p_stg1 obj_1
 
     println("#### Estimate GMM Second Stage ####")
     mom_pars = vcat(1:length(m_GMM.data.tMoments),(length(m_GMM.data.tMoments)+1).+σ_ind)
