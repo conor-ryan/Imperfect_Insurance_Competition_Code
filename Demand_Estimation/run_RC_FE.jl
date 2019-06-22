@@ -166,14 +166,14 @@ p0[ind2] = p_ll[ind2.-m_GMM.parLength[:σ]]
 # W = inv(S)
 W = Matrix(1.0I,length(p0)+length(m_GMM.data.tMoments),length(p0)+length(m_GMM.data.tMoments))
 
-p_stg1, obj_1 = two_stage_est(m_GMM,p0,W)
+# p_stg1, obj_1 = two_stage_est(m_GMM,p0,W)
 
 
 # rundate = "2019-03-07"
 # println("Load GMM - Stage 1")
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage1_$rundate.jld2"
-@save file p_stg1
-# @load file p_stg1
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-2019-06-22-stg1.jld2"
+# @save file p_stg1
+@load file p_stg1 obj_1
 # est_res = load(file)["est_res"]
 #
 # p_est = est_res[3]
@@ -186,9 +186,11 @@ println("###### Estimation 3 #######")
 println("#################")
 println("#################")
 
-m = InsuranceLogit(c,1000)
+m = InsuranceLogit(c,50)
+
 S = calc_mom_Avar(m,p_stg1)
-W2 = inv(S)
+W2 = inv(S[mom_pars,mom_pars])
+W[mom_pars]
 p_stg2, obj_2 = estimate_GMM(m,p_stg1,W2)
 
 # #est_pre = newton_raphson(m,p_est,W2)

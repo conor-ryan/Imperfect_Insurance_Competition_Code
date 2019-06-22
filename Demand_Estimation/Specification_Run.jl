@@ -148,12 +148,14 @@ function run_specification_GMM(filename::String,
     @save file p_stg1 obj_1
 
     println("#### Estimate GMM Second Stage ####")
+    mom_pars = vcat(1:length(m_GMM.data.tMoments),(length(m_GMM.data.tMoments)+1).+σ_ind)
     S = calc_mom_Avar(m_GMM,p_stg1)
-    W2 = inv(S[σ_ind,σ_ind])
-    W[σ_ind,σ_ind] = W2
-    println(S[σ_ind,σ_ind])
+    W2 = inv(S[mom_pars,mom_pars])
+    W[mom_pars,mom_pars] = W2
+
+    println(S[mom_pars,mom_pars])
     println(W2)
-    println(W)
+    println(W[mom_pars,mom_pars])
 
     ## Estimate
     p_stg2, obj_2 = two_stage_est(m_GMM,p0,W)
