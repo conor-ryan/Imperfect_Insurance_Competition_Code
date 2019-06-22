@@ -105,12 +105,12 @@ function run_specification_GMM(filename::String,
     p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
     println("#### Estimate LL Starting Point ####")
 
-    # ## Estimate
-    # p_ll, fval = newton_raphson_ll(m_ll,p0)
-    #
-    # println("Save LL Result")
-    # file = "$filename-$rundate-ll.jld2"
-    # @save file p_ll
+    ## Estimate
+    p_ll, fval = newton_raphson_ll(m_ll,p0)
+
+    println("Save LL Result")
+    file = "$filename-$rundate-ll.jld2"
+    @save file p_ll
 
 
     ## Build GMM Model
@@ -124,12 +124,13 @@ function run_specification_GMM(filename::String,
     m_GMM = InsuranceLogit(c_data,haltonDim,nested=nested)
 
     ## Initialize Starting Parameters
-    # ind1 = 1:(m_GMM.parLength[:γ]*2+m_GMM.parLength[:β])
-    # ind2 = (1 + maximum(ind1) + m_GMM.parLength[:σ]):m_GMM.parLength[:All]
-    #
-    # p0 = zeros(m_GMM.parLength[:All])
-    # p0[ind1] = p_ll[ind1]
-    # p0[ind2] = p_ll[ind2.-m_GMM.parLength[:σ]]
+    ind1 = 1:(m_GMM.parLength[:γ]*2+m_GMM.parLength[:β])
+    ind2 = (1 + maximum(ind1) + m_GMM.parLength[:σ]):m_GMM.parLength[:All]
+    σ_ind = (1 + maximum(ind1)):(minimum(ind2))
+
+    p0 = zeros(m_GMM.parLength[:All])
+    p0[ind1] = p_ll[ind1]
+    p0[ind2] = p_ll[ind2.-m_GMM.parLength[:σ]]
     println("#### Estimate GMM First Stage ####")
 
     file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/checkin_265.jld2"
@@ -139,7 +140,8 @@ function run_specification_GMM(filename::String,
     W = Matrix(1.0I,length(p0)+length(m_GMM.data.tMoments),length(p0)+length(m_GMM.data.tMoments))
     ## Estimate
     # p_stg1, obj_1 = estimate_GMM(m_GMM,p0,W)
-    p_stg1, obj_1 = newton_raphson_GMM(m_GMM,p0,W,grad_tol = 1e-8,strict=true,checkin=true)
+    # p_stg1, obj_1 = newton_raphson_GMM(m_GMM,p0,W,grad_tol = 1e-8,strict=true,checkin=true)
+    p_stg1, obj_1 = two_stage_est(m_GMM,p0,W)
 
     println("Save First Stage Result")
     file = "$filename-$rundate-stg1.jld2"
@@ -147,9 +149,10 @@ function run_specification_GMM(filename::String,
 
     println("#### Estimate GMM Second Stage ####")
     S = calc_mom_Avar(m_GMM,p_stg1)
-    W2 = inv(S)
+    W2 = inv(S[σ_ind,σ_ind])
+    W[σ_ind,σ_ind] = W2
     ## Estimate
-    p_stg2, obj_2 = estimate_GMM(m_GMM,p0,W2)
+    p_stg2, obj_2 = two_stage_est(m_GMM,p0,W)
 
     println("Save Second Stage Result")
     file = "$filename-$rundate-stg2.jld2"
