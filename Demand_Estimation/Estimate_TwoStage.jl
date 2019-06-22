@@ -27,7 +27,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     grad_last = copy(grad_new)
     H_last = copy(hess_new)
     disp_length = min(parLen,20)
-    f_min = -1e3
+    f_min = 1e3
     p_min  = similar(p_vec)
     no_progress=0
     flag = "empty"
@@ -51,9 +51,9 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     ga_cnt = 0
 
     ### Initialize Fixed Effects
-    fval = log_likelihood!(hess_new,grad_new,d,p_vec)
-    grad_size = maximum(abs.(grad_new))
-    println(grad_size)
+    # fval = log_likelihood!(hess_new,grad_new,d,p_vec)
+    # grad_size = maximum(abs.(grad_new))
+    # println(grad_size)
 
     p_vec,fe_itrs = reOpt_FE(d,p_vec,FE_ind)
 
@@ -62,12 +62,13 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         cnt+=1
         trial_cnt=0
 
-        if (cnt%10==0) | (flag=="converged")
+        if (cnt%8==0) | (flag=="converged")
             p_vec,fe_itrs = reOpt_FE(d,p_vec,FE_ind)
             if (flag=="converged") & (fe_itrs<2)
                 println("Converged in two stages!")
                 break
             end
+            f_min = 1e3
             flag = "empty"
             f_tol_cnt = 0
             x_tol_cnt = 0
@@ -149,18 +150,6 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             update = -(1/grad_size).*grad_new
         else
             NaN_steps = 0
-        end
-
-
-        if no_progress>5
-            no_progress = 0
-            println("Return: Limit on No Progress")
-            p_vec = copy(p_min)
-            fval = GMM_objective!(grad_new,d,p_vec,W)
-            grad_size = maximum(abs.(grad_new))
-            step = 1/grad_size
-            update = - step.*grad_new
-            mistake_thresh = 1.00
         end
 
         step_size = maximum(abs.(update))

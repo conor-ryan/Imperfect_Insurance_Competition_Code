@@ -101,12 +101,15 @@ function calc_Mom_Der!(grad::Matrix{Float64},
                     s_hat_j::Vector{Float64},
                     r_hat_j::Vector{Float64},
                     d::InsuranceLogit,p::parDict{T};feFlag::Int64=-1) where T
+    Q = d.parLength[:All]
+    Q_0 = Q - d.parLength[:FE]
+    Q_no_σ = Q_0 - d.parLength[:σ]
     if feFlag==0
-        parList = 1:(d.parLength[:All] - d.parLength[:FE])
+        parList = (Q_no_σ+1):Q_0
     elseif feFlag==1
-        parList = (d.parLength[:All] - d.parLength[:FE] + 1):d.parLength[:All]
+        parList = vcat(1:Q_no_σ,(Q_0 + 1):Q)
     else
-        parList = 1:d.parLength[:All]
+        parList = 1:Q
     end
 
     for (m,idx_mom) in d.data._tMomentDict
@@ -139,12 +142,15 @@ function calc_Mom_Der!(grad::Matrix{Float64},
                     s_hat_j::Vector{Float64},
                     r_hat_j::Vector{Float64},
                     d::InsuranceLogit,p::parDict{T};feFlag::Int64=-1) where T
+    Q = d.parLength[:All]
+    Q_0 = Q - d.parLength[:FE]
+    Q_no_σ = Q_0 - d.parLength[:σ]
     if feFlag==0
-        parList = 1:(d.parLength[:All] - d.parLength[:FE])
+        parList = (Q_no_σ+1):Q_0
     elseif feFlag==1
-        parList = (d.parLength[:All] - d.parLength[:FE] + 1):d.parLength[:All]
+        parList = vcat(1:Q_no_σ,(Q_0 + 1):Q)
     else
-        parList = 1:d.parLength[:All]
+        parList = 1:Q
     end
     for (m,idx_mom) in d.data._tMomentDict
         for q in parList
