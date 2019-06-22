@@ -126,7 +126,7 @@ function run_specification_GMM(filename::String,
     ## Initialize Starting Parameters
     ind1 = 1:(m_GMM.parLength[:γ]*2+m_GMM.parLength[:β])
     ind2 = (1 + maximum(ind1) + m_GMM.parLength[:σ]):m_GMM.parLength[:All]
-    σ_ind = (1 + maximum(ind1)):(minimum(ind2))
+    σ_ind = (1 + maximum(ind1)):(minimum(ind2)-1)
 
     p0 = zeros(m_GMM.parLength[:All])
     p0[ind1] = p_ll[ind1]

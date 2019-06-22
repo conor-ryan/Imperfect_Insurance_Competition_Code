@@ -7,13 +7,15 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     grad_size = 10000
     f_eval_old = 1.0
 
-    # parLen = d.parLength[:All] - d.parLength[:FE]
-    # par_ind = 1:parLen
-    par_ind = 15:16
-    parLen = 2
-    FE_ind = (d.parLength[:All] - d.parLength[:FE]+1):d.parLength[:All]
+    # Par Indices
+    Q = d.parLength[:All]
+    Q_0 = Q - d.parLength[:FE]
+    Q_no_σ = Q_0 - d.parLength[:σ]
+    par_ind = (Q_no_σ+1):Q_0
+    parLen = length(par_ind)
     p_vec = copy(p0)
     update = zeros(N)
+
     # Initialize Gradient
     grad_new = similar(p0)
     hess_new = Matrix{Float64}(undef,N,N)
@@ -55,7 +57,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     # grad_size = maximum(abs.(grad_new))
     # println(grad_size)
 
-    p_vec,fe_itrs = reOpt_FE(d,p_vec,FE_ind)
+    p_vec,fe_itrs = reOpt_FE(d,p_vec)
 
     # Maximize by Newtons Method
     while (grad_size>0) & (cnt<max_itr) & (max_trial_cnt<20)
@@ -63,7 +65,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         trial_cnt=0
 
         if (cnt%8==0) | (flag=="converged")
-            p_vec,fe_itrs = reOpt_FE(d,p_vec,FE_ind)
+            p_vec,fe_itrs = reOpt_FE(d,p_vec)
             if (flag=="converged") & (fe_itrs<2)
                 println("Converged in two stages!")
                 break
@@ -214,7 +216,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         if NaN_steps>5
             println("Hessian might be singular")
             println("RUN ROUND OF GRADIENT ASCENT")
-            p_test, f_test = ga_twostage(d,p_test,W,15:16,max_itr=20,strict=true,Grad_Skip_Steps=2)
+            p_test, f_test = ga_twostage(d,p_test,W,par_ind,max_itr=20,strict=true,Grad_Skip_Steps=2)
         end
 
         p_last = copy(p_vec)
@@ -241,7 +243,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     return p_min,f_min
 end
 
-function reOpt_FE(d::InsuranceLogit,p_vec::Vector{Float64},FE_ind::Union{Vector{Int64},UnitRange{Int64}})
+function reOpt_FE(d::InsuranceLogit,p_vec::Vector{Float64})
     println("## RE-Optimize Fixed Effects ##")
     # par = parDict(d,p_vec)
     # individual_values!(d,par)
@@ -618,6 +620,6 @@ function ga_twostage(d,p0,W,par_ind::Union{Vector{Int64},UnitRange{Int64}};grad_
         println("Function Value is $f_test at iteration $cnt")
         println("Steps since last improvement: $no_progress")
     end
-    println("Lowest Function Value is $f_min at $p_min")
+    # println("Lowest Function Value is $f_min at $p_min")
     return p_min,f_min,conv_flag
 end
