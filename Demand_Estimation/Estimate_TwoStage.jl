@@ -70,12 +70,15 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 println("Converged in two stages!")
                 break
             end
+            println("Gradient Conditioning")
+            p_vec, f_null,ga_null = ga_twostage(d,p_vec,W,par_ind,max_itr=10,strict=true,Grad_Skip_Steps=0)
             f_min = 1e3
             flag = "empty"
             f_tol_cnt = 0
             x_tol_cnt = 0
             ga_conv_cnt = 0
             ga_cnt = 0
+            hess_steps=0
         end
 
         # Compute Gradient, holding δ fixed
