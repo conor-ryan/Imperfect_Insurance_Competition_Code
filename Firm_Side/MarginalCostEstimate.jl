@@ -31,13 +31,13 @@ chdf = ChoiceData(df,df_mkt,df_risk;
             :AgeFE_52_64,
             :Family,
             :LowIncome],
-    prodchars=[:Price,:AV,:Big],
-    prodchars_0=[:AV,:Big],
-    fixedEffects=[:Firm_Market],
+    prodchars=[:Price,:constant,:AV,:Big],
+    prodchars_0=[:constant,:AV,:Big],
+    fixedEffects=[:Firm_Market_Cat],
     wgt=[:PERWT])
 
 # Fit into model
-m = InsuranceLogit(chdf,1000)
+m = InsuranceLogit(chdf,500)
 
 # Cost Data
 costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk;
@@ -48,10 +48,12 @@ costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk;
 println("Data Loaded")
 
 #### Load Demand Estimation ####
-rundate = "2019-03-12"
+# rundate = "2019-03-12"
 # resDF = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_$rundate.csv")
 # p_est = Float64.(resDF[:pars])
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
+# @load file p_stg2
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-2019-06-23-stg2.jld2"
 @load file p_stg2
 p_est = copy(p_stg2)
 
