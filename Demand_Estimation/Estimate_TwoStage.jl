@@ -366,7 +366,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         if any(isnan.(update))
             println("Step contains NaN")
             println("Algorithm Failed")
-            return p_min,f_min
+            return p_min,f_min, cnt
 
             # #Check Hessian
             # eig = sort(abs.(eigvals(hess_new)))
@@ -380,16 +380,11 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         end
 
 
-        # if no_progress>5
-        #     no_progress = 0
-        #     println("Return: Limit on No Progress")
-        #     p_vec = copy(p_min)
-        #     fval = log_likelihood!(grad_new,d,p_vec)
-        #     grad_size = maximum(abs.(grad_new))
-        #     step = 1/grad_size
-        #     update = - step.*grad_new
-        #     mistake_thresh = 1.00
-        # end
+        if no_progress>5
+            no_progress = 0
+            println("Return: Limit on No Progress")
+            update = -(1/grad_size).*grad_new[FE_ind]
+        end
 
         step_size = maximum(abs.(update))
         if step_size>10
@@ -424,7 +419,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 update/= 200
             end
             step_size = maximum(abs.(update))
-            if (step_size>x_tol)
+            if (step_size>x_tol) | (real_hessian==1 & trial_cnt<5)
                 p_test = copy(p_vec)
                 p_test[FE_ind] = p_vec[FE_ind] .+ update
                 update_par(d,par,p_test)
@@ -436,8 +431,8 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             else
                 println("No Advancement")
                 p_test = copy(p_vec)
-                hess_steps=0
                 skip_x_tol = 1
+                hess_steps=0
                 break
             end
         end
