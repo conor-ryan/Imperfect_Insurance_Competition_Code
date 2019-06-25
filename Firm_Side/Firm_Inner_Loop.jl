@@ -165,7 +165,7 @@ function estimate_NLOpt(p0::Vector{Float64},p_est::parDict{Float64},
     ftol_rel!(opt,1e-4)
 
     lb = repeat([-50],inner=length(p0))
-    # # lb[14] = 0.0
+    # lb[2:3] .= 0.0
     ub = repeat([50],inner=length(p0))
     # # ub[14] = .99
     #

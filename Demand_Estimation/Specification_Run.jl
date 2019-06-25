@@ -41,18 +41,42 @@ end
 
 
 
-function res_process(model::InsuranceLogit,p_est::Vector{Float64})
+function res_process(model::InsuranceLogit,p_est::Vector{Float64},GMM_pars::Union{Vector{Int64},UnitRange{Int64}})
     ## Create Param Dictionary
 
     paramFinal = parDict(model,p_est)
 
-    AsVar = calc_Avar(model,paramFinal)
+    #### Likelihood Errors ####
+    AsVar_ll = calc_Avar(model,paramFinal)
     if any(diag(AsVar.<0))
         println("Some negative variances")
         stdErr = sqrt.(abs.(diag(AsVar)))
     else
         stdErr = sqrt.(diag(AsVar))
     end
+
+    #### GMM Errors ####
+    S = calc_mom_Avar(model,p_est)
+
+    ## Derivative of Moments wrt Parameters
+    grad = Vector{Float64}(undef,length(p_est))
+    hess = Matrix{Float64}(undef,length(p_est),length(p_est))
+    par0 = parDict(d,p_est)
+    ll = log_likelihood!(hess,grad,model,par0)
+    mom_grad = Matrix{Float64}(undef,length(p_est),length(model.data.tMoments))
+    mom = calc_risk_moments!(mom_grad,model,par0)
+    G = hcat(mom_grad,hess)
+
+    ## Calculate Variance
+    AsVar_GMM = inv(G*inv(S)*G')
+    if any(diag(AsVar_GMM.<0))
+        println("Some negative variances")
+        stdErr[GMM_pars] = sqrt.(abs.(diag(AsVar)))[GMM_pars]
+    else
+        stdErr[GMM_pars] = sqrt.(diag(AsVar))[GMM_pars]
+    end
+
+
     t_stat = p_est./stdErr
 
     stars = Vector{String}(undef,length(t_stat))
@@ -166,7 +190,7 @@ function run_specification_GMM(filename::String,
     @save file p_stg2 obj_2
 
     println("#### Calculate Standard Errors and Save Results ####")
-    AsVar, stdErr,t_stat, stars = res_process(m_GMM,p_stg2)
+    AsVar, stdErr,t_stat, stars = res_process(m_GMM,p_stg2,σ_ind)
 
     out1 = DataFrame(pars=p_stg2,se=stdErr,ts=t_stat,sig=stars)
     file1 = "$filename-$rundate.csv"

@@ -35,7 +35,7 @@ mutable struct parDict{T}
     d2Rdθ_j::Array{T,3}
 end
 
-function parDict(m::InsuranceLogit,x::Array{T}) where T
+function parDict(m::InsuranceLogit,x::Array{T};no2Der=false) where T
     # Parameter Lengths from model
     #γlen = 1 + m.parLength[:γ]
     γlen = m.parLength[:γ]
@@ -100,11 +100,15 @@ function parDict(m::InsuranceLogit,x::Array{T}) where T
     J = length(m.prods)
     dSdθ_j = Matrix{T}(undef,Q,J)
     dRdθ_j = Matrix{T}(undef,Q,J)
-    d2Sdθ_j = Array{T,3}(undef,Q,Q,J)
-    d2Rdθ_j = Array{T,3}(undef,Q,Q,J)
-    # d2Sdθ_j = Array{T,3}(undef,1,1,J)
-    # d2Rdθ_j = Array{T,3}(undef,1,1,J)
-
+    # d2Sdθ_j = Array{T,3}(undef,Q,Q,J)
+    # d2Rdθ_j = Array{T,3}(undef,Q,Q,J)
+    if no2Der
+        d2Sdθ_j = Array{T,3}(undef,1,1,J)
+        d2Rdθ_j = Array{T,3}(undef,1,1,J)
+    else
+        d2Sdθ_j = Array{T,3}(undef,Q,Q,J)
+        d2Rdθ_j = Array{T,3}(undef,Q,Q,J)
+    end
     return parDict{T}(γ_0,γ,β_0,β,σ,FE,randCoeffs,δ,μ_ij,μ_ij_nonRisk,s_hat,r_hat,
                             dSdθ_j,dRdθ_j,d2Sdθ_j,d2Rdθ_j)
 end

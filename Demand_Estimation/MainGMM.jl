@@ -67,3 +67,14 @@ spec1 = run_specification_GMM(filename,rundate,
                 spec_prodchars=spec_prodchars,
                 spec_prodchars_0=spec_prodchars_0,
                 spec_fixedEffects=[:Firm_Market_Cat])
+
+
+println("#### Run Specification2  - Firm-Market-Category Fixed Effects ####")
+filename = "GMM_Estimate_FMCA"
+spec1 = run_specification_GMM(filename,rundate,
+                df,df_mkt,df_risk,
+                haltonDim = halton_draws,
+                spec_demoRaw=spec_demoRaw,
+                spec_prodchars=spec_prodchars,
+                spec_prodchars_0=spec_prodchars_0,
+                spec_fixedEffects=[:Firm_Market_Cat_Age])

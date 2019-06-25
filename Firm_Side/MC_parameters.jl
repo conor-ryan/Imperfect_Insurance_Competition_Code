@@ -254,19 +254,22 @@ function individual_costs(d::InsuranceLogit,p::parMC{T}) where T
     # Store Parameters
     δ_long = p.pars.δ
     μ_ij_large = p.pars.μ_ij
+    μnr_ij_large = p.pars.μ_ij_nonRisk
     risk_long = rIndS(d.data)
     cost_nonRisk = p.C_nonrisk
     anyHCC_ind = Float64.(d.draws.>0)
     for idxitr in values(d.data._personDict)
         δ = δ_long[idxitr]
         @inbounds u = μ_ij_large[:,idxitr]
+        @inbounds u_nr = μnr_ij_large[idxitr]
         r_ind = Int.(risk_long[idxitr])
         @inbounds r_cost = p.risks[:,r_ind]
         @inbounds r_scores = d.draws[:,r_ind]
         @inbounds anyHCC_scores = anyHCC_ind[:,r_ind]
         c_nr = cost_nonRisk[idxitr]
-        s,s_r,s_nr,c,c_HCC,dc,dc_HCC,d2c,d2c_HCC = calc_cost(u,δ,r_cost,r_scores,c_nr,anyHCC_scores)
-        p.pars.s_hat[idxitr] = s
+        s_r,c,c_HCC,dc,dc_HCC,d2c,d2c_HCC = calc_cost(u,δ,r_cost,r_scores,c_nr,anyHCC_scores)
+        s_nr = calc_shares(u_nr,δ)
+        # p.pars.s_hat[idxitr] = s
         p.C[idxitr] = c
         p.C_HCC[idxitr] = c_HCC
         p.dCdr[idxitr] = dc
@@ -332,10 +335,9 @@ function calc_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},r_sc::
     d2c_mean_risk = sum(d2c_hat_risk,dims=2)./s_risk_sum
 
     s_mean = s_sum./N
-    s_mean_risk = s_risk_sum./N_r
-    s_mean_nonrisk = (s_sum - s_risk_sum)./(N-N_r)
+    # s_mean_risk = s_risk_sum./N_r
 
-    return s_mean, s_mean_risk, s_mean_nonrisk, c_mean, c_mean_risk, dc_mean, dc_mean_risk, d2c_mean, d2c_mean_risk
+    return s_mean, c_mean, c_mean_risk, dc_mean, dc_mean_risk, d2c_mean, d2c_mean_risk
 end
 
 
@@ -364,7 +366,7 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     ## Firm Moments
     for (m,m_idx) in c._firmMomentDict
         c_avg = sliceMean_wgt(c_hat,wgts_share,m_idx)
-        fmom[m] = log(c_avg) - c.firmMoments[m]
+        fmom[m] = log(c_avg) #- c.firmMoments[m]
         # t = sum(test[m_idx])
         # if t>0.0
         #     println(m)
@@ -381,7 +383,7 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
             continue
         else
             c_avg = sliceMean_wgt(c_hat,wgts_share,m_idx)
-            mmom[m-1] = c_avg/refval[1] - c.metalMoments[m]
+            mmom[m-1] = c_avg/refval[1] #- c.metalMoments[m]
         end
     end
 
@@ -396,7 +398,7 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
             # println(avg_act)
             c_avg = sliceMean_wgt(c_hat,wgts_share,m_idx)
             #println("$m: $c_avg")
-            amom[m-1] = c_avg/refval[1] - c.ageMoments[m]
+            amom[m-1] = c_avg/refval[1] #- c.ageMoments[m]
         end
     end
 
@@ -408,7 +410,7 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
         else
             c_avg = sliceMean_wgt(c_hat_nonHCC,none_share,m_idx)
             # println("$m: $c_avg")
-            nmom[m-1] = c_avg/refval[1] - c.agenoMoments[m]
+            nmom[m-1] = c_avg/refval[1] #- c.agenoMoments[m]
         end
     end
 
@@ -417,10 +419,13 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     all_idx = Int.(1:length(s_hat))
     HCC_avg = sliceMean_wgt(c_hat_HCC,any_share,all_idx)
     non_avg = sliceMean_wgt(c_hat_nonHCC,none_share,all_idx)
-    rmom = HCC_avg/non_avg - c.riskMoment
+    rmom = HCC_avg/non_avg #- c.riskMoment
 
-    # return vcat(fmom,mmom,amom,nmom,rmom)
-    return vcat(fmom,mmom,nmom,rmom)
+    est_moments = vcat(fmom,mmom,nmom,rmom)
+    targ_moments = vcat(c.firmMoments,c.metalMoments[2:length(c.metalMoments)],
+                    c.agenoMoments[2:length(c.agenoMoments)],c.riskMoment)
+    return est_moments .- targ_moments
+    # return est_moments,targ_moments
 end
 
 

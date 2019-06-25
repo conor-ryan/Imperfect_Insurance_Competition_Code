@@ -319,7 +319,7 @@ acs[,Person:=as.factor(paste(Market,FPL_bucket,AGE_bucket,Mem_bucket))]
 acs[,Person:=as.numeric(Person)]
 
 acs[,prodCat:="Low"]
-acs[METAL%in%c("SILVER 87","SILVER 94","GOLD","PLATINUM"),prodCat:="High"]
+acs[METAL%in%c("GOLD","PLATINUM"),prodCat:="High"]
 acs[,Firm_Market:=paste(Firm,Market,sep="_")]
 acs[,Firm_Market_Cat:=paste(Firm,Market,prodCat,sep="_")]
 acs[,Firm_ST:=paste(Firm,ST,sep="_")]

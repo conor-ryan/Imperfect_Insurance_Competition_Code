@@ -48,18 +48,20 @@ costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk;
 println("Data Loaded")
 
 #### Load Demand Estimation ####
-# rundate = "2019-03-12"
+rundate = "2019-06-23"
 # resDF = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_$rundate.csv")
 # p_est = Float64.(resDF[:pars])
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
 # @load file p_stg2
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-2019-06-23-stg2.jld2"
-@load file p_stg2
-p_est = copy(p_stg2)
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-$rundate-stg1.jld2"
+@load file p_stg1
+p_est = copy(p_stg1)
 
 #### Compute Demand Estimation
-par_est = parDict(m,p_est)
+par_est = parDict(m,p_est,no2Der=true)
 individual_values!(m,par_est)
+individual_shares(m,par_est)
+
 
 #### Load Starting Parameter
 # parStart = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/MC_Moments/linregpars_$rundate.csv")
@@ -139,7 +141,7 @@ println("#################")
 println("###### Estimation 2 #######")
 println("#################")
 println("#################")
-
+p_stg1 = [0.313535, -2.57428, 0.62655, 0.140377]
 p_full1 = fit_firm_moments(p_stg1,par_est,m,costdf)
 S,Σ,Δ,mom_long = aVar(costdf,m,p_full1,par_est)
 # S,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
@@ -163,83 +165,13 @@ est_stg2 = estimate_NLOpt(p0,par_est,m,costdf,W)
 
 # GMM_objective(p_fit,par_est,m,costdf,W,squared=true)
 #
+
+p_stg2 = fit_firm_moments(est_stg2[3],par_est,m,costdf)
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
-@save file est_stg2
+@save file p_stg2
 
 # @load file est_stg2
-p_stg2 ,fval = est_stg2
-
-
-
-println("#################")
-println("#################")
-println("###### Estimation 3 #######")
-println("#################")
-println("#################")
-
-
-S2,Σ,Δ,mom_long = aVar(costdf,m,p_stg2,par_est)
-W = inv(S2)
-# S,S_unwt,mom_est = var_bootstrap(costdf,m,p_stg1,par_est,draw_num=5000)
-# W = inv(S)
-
-#
-# p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2)
-# flag,fval,p_init = estimate_NLOpt(p0,par_est,m,costdf,W)
-# p_full0 = fit_firm_moments(p_init,par_est,m,costdf)
-p_full0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2,rand(length(costdf._feIndex)).*3 .+1)
-est_stg3 = estimate_GMM(p_full0,par_est,m,costdf,W)
-p_stg3, fval = est_stg3
-
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg3_$rundate.jld2"
-@save file est_stg3
-
-println("#################")
-println("#################")
-println("###### Estimation 4 #######")
-println("#################")
-println("#################")
-
-
-S3,Σ,Δ,mom_long = aVar(costdf,m,p_stg3,par_est)
-W = inv(S3)
-# S,S_unwt,mom_est = var_bootstrap(costdf,m,p_stg1,par_est,draw_num=5000)
-# W = inv(S)
-
-# p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2)
-# # p0 = [0.0152152, 2.42283, -0.21084, 0.154506]
-# flag,fval,p_init = estimate_NLOpt(p0,par_est,m,costdf,W)
-# p_full0 = fit_firm_moments(p_init,par_est,m,costdf)
-p_full0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2,rand(length(costdf._feIndex)).*3 .+1)
-est_stg4 = estimate_GMM(p_full0,par_est,m,costdf,W)
-p_stg4, fval = est_stg4
-
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg4_$rundate.jld2"
-@save file est_stg4
-
-println("#################")
-println("#################")
-println("###### Estimation 5 #######")
-println("#################")
-println("#################")
-
-
-S4,Σ,Δ,mom_long = aVar(costdf,m,p_stg4,par_est)
-W = inv(S4)
-# S,S_unwt,mom_est = var_bootstrap(costdf,m,p_stg1,par_est,draw_num=5000)
-# W = inv(S)
-
-# p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2)
-# # p0 = [0.0152152, 2.42283, -0.21084, 0.154506]
-# flag,fval,p_init = estimate_NLOpt(p0,par_est,m,costdf,W)
-# p_full0 = fit_firm_moments(p_init,par_est,m,costdf)
-
-p_full0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2,rand(length(costdf._feIndex)).*3 .+1)
-est_stg5 = estimate_GMM(p_full0,par_est,m,costdf,W)
-p_stg5, fval = est_stg5
-
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg5_$rundate.jld2"
-@save file est_stg5
+# p_stg2 ,fval = est_stg2
 
 
 println("#################")
@@ -249,11 +181,11 @@ println("#################")
 println("#################")
 
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
-@load file est_stg2
-p_stg5 ,fval = est_stg2
-Avar, se, t_stat, stars = GMM_var(costdf,m,p_stg5,par_est)
+@load file p_stg2
+# flag ,fval, p_stg2 = est_stg2
+Avar, se, t_stat, stars = GMM_var(costdf,m,p_stg2,par_est)
 
-out1 = DataFrame(pars=p_stg5,se=se,ts=t_stat,sig=stars)
+out1 = DataFrame(pars=p_stg2,se=se,ts=t_stat,sig=stars)
 file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_$rundate.csv"
 CSV.write(file1,out1)
 
@@ -300,9 +232,12 @@ W = Matrix(1.0I,costdf.mom_length,costdf.mom_length)
 # for i in M2:M3
 #         W[i,i]=1.0
 # end
+# p0 = est_stg1[3]
+p0= [0.313535, -2.57428, 0.62655, 0.140377]
+p = fit_firm_moments(p0,par_est,m,costdf)
 par = parMC(p,par_est,m,costdf)
 individual_costs(m,par)
-moments = costMoments(costdf,m,par)
+moments,targets = costMoments(costdf,m,par)
 
 S,Σ,Δ,mom_long = aVar(costdf,m,p,par_est)
 moments_test = moments_Avar(costdf,m,mom_long)

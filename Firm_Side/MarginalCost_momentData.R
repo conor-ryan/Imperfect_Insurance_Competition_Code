@@ -132,6 +132,7 @@ metalAvg[,bronzeCost:=max(bronzeCost,na.rm=TRUE)]#,by=c("ST","Firm")]
 metalAvg[,costIndex:=expAvgCost/bronzeCost]
 metalAvg[,c("bronzeCost","expAvgCost"):=NULL]
 # metalAvg = metalAvg[,list(costIndex=sum(costIndex*PRJ_MM)/sum(PRJ_MM)),by="Metal_std"]
+setkey(metalAvg,costIndex)
 
 metalAvg[,M_num:=1:nrow(metalAvg)]
 
