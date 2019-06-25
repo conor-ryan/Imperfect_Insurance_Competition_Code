@@ -58,7 +58,7 @@ println("Running on $rundate")
 
 
 # #### Run Specification 1 ####
-println("#### Run Specification2  - Firm-Market-Category Fixed Effects ####")
+println("#### Run Specification 2  - Firm-Market-Category Fixed Effects ####")
 filename = "GMM_Estimate_FMC"
 spec1 = run_specification_GMM(filename,rundate,
                 df,df_mkt,df_risk,
@@ -69,7 +69,7 @@ spec1 = run_specification_GMM(filename,rundate,
                 spec_fixedEffects=[:Firm_Market_Cat])
 
 
-println("#### Run Specification2  - Firm-Market-Category Fixed Effects ####")
+println("#### Run Specification 3  - Firm-Market-Category-Age Fixed Effects ####")
 filename = "GMM_Estimate_FMCA"
 spec1 = run_specification_GMM(filename,rundate,
                 df,df_mkt,df_risk,

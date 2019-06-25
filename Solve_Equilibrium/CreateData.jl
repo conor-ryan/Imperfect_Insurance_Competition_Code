@@ -25,7 +25,7 @@ include("EQ_RandomCoefficients.jl")
 include("EQ_load.jl")
 
 
-rundate = "2019-03-12"
+rundate = "2019-06-23"
 
 chdf = ChoiceData(df,df_mkt,df_risk;
     demoRaw=[:AgeFE_31_39,
@@ -33,12 +33,12 @@ chdf = ChoiceData(df,df_mkt,df_risk;
             :AgeFE_52_64,
             :Family,
             :LowIncome],
-    prodchars=[:Price,:AV,:Big],
-    prodchars_0=[:AV,:Big],
-    fixedEffects=[:Firm_Market],
+    prodchars=[:Price,:constant,:AV,:Big],
+    prodchars_0=[:constant,:AV,:Big],
+    fixedEffects=[:Firm_Market_Cat],
     wgt=[:PERWT])
 
-m = InsuranceLogit(chdf,1000)
+m = InsuranceLogit(chdf,500)
 
 costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk;
                 baseSpec=[:AGE,:AV_std,:AV_diff],
@@ -52,7 +52,7 @@ file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermed
 p_est = copy(p_stg2)
 
 #### Compute Demand Estimation
-par_est_dem = parDict(m,p_est)
+par_est_dem = parDict(m,p_est,no2Der=true)
 individual_values_nonprice!(m,par_est_dem)
 individual_values_price!(m,par_est_dem)
 individual_shares(m,par_est_dem)

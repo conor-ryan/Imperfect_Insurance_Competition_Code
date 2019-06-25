@@ -613,7 +613,7 @@ rm(gcf)
 
 #### Categorical Variables for Later Dummy Creation
 choices[,prodCat:="Low"]
-choices[METAL%in%c("SILVER 87","SILVER 94","GOLD","PLATINUM"),prodCat:="High"]
+choices[METAL%in%c("GOLD","PLATINUM"),prodCat:="High"]
 choices[,Firm_Market_Cat:=paste(Firm,Market,prodCat,sep="_")]
 choices[,Firm_Market:=paste(Firm,Market,sep="_")]
 choices[,Firm_Market_Age:=paste(Firm,Market,Age,sep="_")]
