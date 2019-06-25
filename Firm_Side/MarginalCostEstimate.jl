@@ -41,14 +41,14 @@ m = InsuranceLogit(chdf,500)
 
 # Cost Data
 costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk;
-                baseSpec=[:AGE,:AV_std,:AV_diff],
+                baseSpec=[:AGE,:AV_std],
                 fixedEffects=[:Firm_ST])
 
 
 println("Data Loaded")
 
 #### Load Demand Estimation ####
-rundate = "2019-06-23"
+rundate = "2019-06-25"
 # resDF = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_$rundate.csv")
 # p_est = Float64.(resDF[:pars])
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
@@ -79,7 +79,7 @@ W = Matrix(1.0I,costdf.mom_length,costdf.mom_length)
 # est_stg1 = estimate_GMM(p0,par_est,m,costdf,W,fit=true)
 # incase = est_stg1
 
-p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2)
+p0 = vcat(rand(1)*.2,rand(1).*4,rand(1)*.2)
 est_stg1 = estimate_NLOpt(p0,par_est,m,costdf,W)
 incase = est_stg1
 # #
@@ -141,7 +141,7 @@ println("#################")
 println("###### Estimation 2 #######")
 println("#################")
 println("#################")
-p_stg1 = [0.313535, -2.57428, 0.62655, 0.140377]
+# p_stg1 = [0.313535, -2.57428, 0.62655, 0.140377]
 p_full1 = fit_firm_moments(p_stg1,par_est,m,costdf)
 S,Σ,Δ,mom_long = aVar(costdf,m,p_full1,par_est)
 # S,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)

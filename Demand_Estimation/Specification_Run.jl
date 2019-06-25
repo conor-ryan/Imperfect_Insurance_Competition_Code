@@ -164,8 +164,8 @@ function run_specification_GMM(filename::String,
     # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/checkin_265.jld2"
     # @load file p_vec
     # p0 = copy(p_vec)
+    W = Matrix(1.0I,m_GMM.parLength[:All]+length(m_GMM.data.tMoments),m_GMM.parLength[:All]+length(m_GMM.data.tMoments))
     if spec_fixedEffects!= [:Firm_Market_Cat]
-        W = Matrix(1.0I,m_GMM.parLength[:All]+length(m_GMM.data.tMoments),m_GMM.parLength[:All]+length(m_GMM.data.tMoments))
         ## Estimate
         # p_stg1, obj_1 = estimate_GMM(m_GMM,p0,W)
         # p_stg1, obj_1 = newton_raphson_GMM(m_GMM,p0,W,grad_tol = 1e-8,strict=true,checkin=true)
