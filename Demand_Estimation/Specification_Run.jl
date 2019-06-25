@@ -152,9 +152,13 @@ function run_specification_GMM(filename::String,
     ind2 = (1 + maximum(ind1) + m_GMM.parLength[:σ]):m_GMM.parLength[:All]
     σ_ind = (1 + maximum(ind1)):(minimum(ind2)-1)
 
+
     p0 = zeros(m_GMM.parLength[:All])
     p0[ind1] = p_ll[ind1]
     p0[ind2] = p_ll[ind2.-m_GMM.parLength[:σ]]
+    if spec_fixedEffects== [:Firm_Market_Cat]
+        p0[σ_ind] = [-0.125391,0.375388,0.0252852]
+    end
     println("#### Estimate GMM First Stage ####")
 
     # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/checkin_265.jld2"
@@ -182,6 +186,7 @@ function run_specification_GMM(filename::String,
     println(W2)
     println(W[mom_pars,mom_pars])
 
+    p0[σ_ind]=rand(length(σ_ind)).*0.5
     ## Estimate
     p_stg2, obj_2 = two_stage_est(m_GMM,p0,W)
 
