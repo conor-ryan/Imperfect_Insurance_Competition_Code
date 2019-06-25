@@ -44,6 +44,10 @@ filings = filings[,c("STATE","MARKET","COMPANY","ISSUER_ID","PLAN_ID","METAL","e
                      "PRJ_PLN_ADJ_INDX","PRJ_RSK_ADJ","PRJ_INC_CLM_PMPM","PRJ_ALWD_CLM_PMPM","PRJ_MM")]
 
 ### Save Metal Avg Costs ###
+metalAvg = filings[!is.na(EXP_ALWD_CLM_PMPM)&EXP_MM>0,list(expAvgCost=sum(expAvgCost*EXP_MM)/sum(EXP_MM),EXP_MM=sum(EXP_MM)),by=c("METAL","STATE","MARKET","COMPANY")]
+metalAvg[METAL=="BRONZE",bronzeCost:=expAvgCost]
+metalAvg[,bronzeCost:=max(bronzeCost,na.rm=TRUE),by=c("METAL","STATE","MARKET","COMPANY")]
+
 metalAvg = filings[!is.na(EXP_ALWD_CLM_PMPM)&EXP_MM>0,list(expAvgCost=sum(expAvgCost*EXP_MM)/sum(EXP_MM),EXP_MM=sum(EXP_MM)),by=c("METAL")]
 metalAvg[METAL=="PLATINUM",METAL:="GOLD"]
 metalAvg = metalAvg[,list(expAvgCost=sum(expAvgCost*EXP_MM)/sum(EXP_MM)),by=c("METAL")]

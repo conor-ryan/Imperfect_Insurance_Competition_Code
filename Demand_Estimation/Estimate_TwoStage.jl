@@ -30,7 +30,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     H_last = copy(hess_new)
     disp_length = min(parLen,20)
     f_min = 1e3
-    p_min  = similar(p_vec)
+    p_min  = copy(p_vec)
     no_progress=0
     flag = "empty"
     if strict
@@ -278,7 +278,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     H_last = copy(hess_new)
     disp_length = min(length(p0),20)
     f_min = -1e3
-    p_min  = similar(p0)
+    p_min  = copy(p0)
     no_progress=0
     flag = "empty"
     if strict
@@ -484,7 +484,7 @@ function ga_twostage(d,p0,W,par_ind::Union{Vector{Int64},UnitRange{Int64}};grad_
     disp_length = min(length(p0),20)
     f_min = 1e3
     fval = 1e3
-    p_min  = similar(p_vec)
+    p_min  = copy(p_vec)
     no_progress=0
     flag = "empty"
     if strict

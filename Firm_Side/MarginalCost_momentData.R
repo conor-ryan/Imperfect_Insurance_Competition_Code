@@ -128,16 +128,23 @@ firmClaims$M_num = 1:nrow(firmClaims)
 ### Bronze Cost Ratio
 load("Intermediate_Output/Average_Claims/fullMarketMetalAvg.rData")
 metalAvg[METAL=="BRONZE",bronzeCost:=expAvgCost]
-metalAvg[,bronzeCost:=max(bronzeCost,na.rm=TRUE)]#,by=c("ST","Firm")]
-metalAvg[,costIndex:=expAvgCost/bronzeCost]
-metalAvg[,c("bronzeCost","expAvgCost"):=NULL]
+metalAvg[,bronzeCost:=max(bronzeCost,na.rm=TRUE),by=c("STATE","MARKET","COMPANY")]
+metalAvg[bronzeCost<0,bronzeCost:=NA]
+metalAvg[!is.na(bronzeCost),costRatio:=expAvgCost/bronzeCost]
+metalAvg = metalAvg[!is.na(costRatio),list(costIndex=sum(costRatio*EXP_MM)/sum(EXP_MM)),by="METAL"]
+metalAvg = metalAvg[METAL!="CATASTROPHIC",]
+
+# metalAvg[METAL=="BRONZE",bronzeCost:=expAvgCost]
+# metalAvg[,bronzeCost:=max(bronzeCost,na.rm=TRUE)]#,by=c("ST","Firm")]
+# metalAvg[,costIndex:=expAvgCost/bronzeCost]
+# metalAvg[,c("bronzeCost","expAvgCost"):=NULL]
 # metalAvg = metalAvg[,list(costIndex=sum(costIndex*PRJ_MM)/sum(PRJ_MM)),by="Metal_std"]
 setkey(metalAvg,costIndex)
 
 metalAvg[,M_num:=1:nrow(metalAvg)]
 
 prod_data[,Metal_merge:=Metal_std]
-prod_data[Metal_std=="PLATINUM",Metal_merge:="GOLD"]
+# prod_data[Metal_std=="PLATINUM",Metal_merge:="GOLD"]
 
 metalMoments = merge(metalAvg,prod_data[,c("Product","Metal_merge")],by.x="METAL",by.y="Metal_merge")
 metalMoments[,c("METAL"):=NULL]
