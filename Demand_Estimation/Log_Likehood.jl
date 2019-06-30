@@ -53,7 +53,7 @@ end
 
 
 function log_likelihood(d::InsuranceLogit,p::Array{T};cont_flag=false) where T
-    params = parDict(d,p)
+    params = parDict(d,p,no2Der=true)
     ll = log_likelihood(d,params,cont_flag = cont_flag)
     # convert_δ!(d)
     return ll
@@ -62,7 +62,7 @@ end
 function log_likelihood!(grad::Vector{Float64},d::InsuranceLogit,p::Array{T};
                         cont_flag::Bool=false,
                         feFlag=-1) where T
-    params = parDict(d,p)
+    params = parDict(d,p,no2Der=true)
     ll = log_likelihood!(grad,d,params,cont_flag = cont_flag,feFlag=feFlag)
     # convert_δ!(d)
     return ll
@@ -187,7 +187,7 @@ end
 function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
                             d::InsuranceLogit,p::Array{T};feFlag=-1) where T
     params = parDict(d,p)
-    ll = log_likelihood!(hess,grad,d,params,feFlag=feFlag)
+    ll = log_likelihood!(hess,grad,d,params,feFlag=feFlag,no2Der=true)
     # convert_δ!(d)
     return ll
 end

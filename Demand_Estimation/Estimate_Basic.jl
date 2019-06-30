@@ -229,7 +229,7 @@ function newton_raphson_ll(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     grad_size = 10000
     f_eval_old = 1.0
     # # Initialize δ
-    param_dict = parDict(d,p_vec)
+    param_dict = parDict(d,p_vec,no2Der=true)
 
     # Initialize Gradient
     grad_new = similar(p0)
