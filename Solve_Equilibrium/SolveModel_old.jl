@@ -180,10 +180,11 @@ function run_st_equil(st::String,rundate::String;merger=false)
 
 
     file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
-    @load file est_stg2
+    @load file p_stg2
     # p_stg2 ,fval = est_stg2
-    flag,fval,p_stg2 = est_stg2
+    # flag,fval,p_stg2 = est_stg2
     ψ_AV = p_stg2[2]
+
     # Solve Model
     println("Build Model")
     c = ChoiceData(df,df_mkt)
@@ -251,9 +252,9 @@ function Check_Margin(st::String,rundate::String)
     df_mkt = CSV.read(file2, missingstring="NA")#,null="NA")
     # cost_pars = CSV.read("Intermediate_Output/Equilibrium_Data/cost_pars.csv",null="NA")
     file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
-    @load file est_stg2
+    @load file p_stg2
     # p_stg2 ,fval = est_stg2
-    flag,fval,p_stg2 = est_stg2
+    # flag,fval,p_stg2 = est_stg2
     ψ_AV = p_stg2[2]
 
     # Solve Model

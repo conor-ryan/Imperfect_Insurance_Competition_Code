@@ -1,261 +1,142 @@
-using DataFrames
-import Base.getindex, Base.setindex!
+mutable struct firmData
+    ## Demand parameters
+    par_dem::parDict{Float64}
 
-abstract type
-    EstData
-end
+    ## Cost parameters
+    par_cost::parMC{Float64}
 
-
-# Make a type to interface with the data for discrete choice models
-struct ChoiceData <: EstData
-    # Matrix of the data (transposed, pre-sorted)
-    data::Matrix{Float64}
-    data_byperson::Matrix{Float64}
-    # Index of the data column names
+    ## Supplemental Data
+    data:: Matrix{Float64}
     index::Dict{Symbol,Int}
 
-    # ID Lookup Mappings
-    _personIDs::Array{Float64,1}
-    _personDict::Dict{Int, UnitRange{Int}}
-    _productDict::Dict{Int, Array{Int,1}}
-    _person_prod_Dict::Dict{Int,Dict{Real,Int}}
-    _prod_person_Dict::Dict{Int,Dict{Real,Array{Int}}}
+    ## Individual Level Values
+    P_ij::Vector{Float64} # Individual Level Product Prices, paid by enrollees
+    Rev_ij::Vector{Float64} # Individual-Product level revenue - monthly premium to firms.
+    subsidy_ij::Vector{Float64} # Individual Level Subsidies
+    zero_ij::Vector{Float64} # Does this individual/product have 0 premium?
 
-    _prod_2_per_map::Vector{Int64}
-    _per_2_prod_map::Vector{Int64}
-
-    _crossprod_Dict::Array{Int,2}
-end
-
-
-function ChoiceData(data_est::DataFrame,df_mkt::DataFrame)
-
-    # Get the size of the data
-    n, k = size(data_est)
-
-    index = Dict{Symbol, Int}()
-    dmat = Matrix{Float64}(undef,n,0)
-
-    ## Set Catastrophic Gamma_j Values to -100
-    data_est[:Gamma_j][findall(ismissing.(data_est[:Gamma_j]))] .= -100
-    ## Get Benchmark
-    #R_bench = df_mkt[:R_bench][df_mkt[:Firm].=="OTHER"][1]
-
-    data_est[:R_Gamma_j] = data_est[:Gamma_j].*data_est[:R]  #./R_bench
-    data_est[:A_Gamma_j] = data_est[:Gamma_j].*data_est[:ageRate_avg].*data_est[:AV]
-
-    ## Adjust Alpha for Monthly Prices
-    data_est[:alpha] = data_est[:alpha].*(12/1000)
-
-    # Create a data matrix, only including person id
-    println("Construct Data")
-    varNames = [:Person,:Product,:R,:alpha,:AGE,:mkt_density,:ageRate,:ageRate_avg,
-                :Mandate,:subsidy,:IncomeCont,:MEMBERS,:non_price_util,
-                :R_Gamma_j,:A_Gamma_j,:C,:C_nonAV,
-                :Catastrophic,:AV,:Gamma_j,:PERWT]
-    for (l,var) in enumerate(varNames)
-        mat_temp = Array{Float64}(data_est[var])
-        dmat = hcat(dmat,mat_temp)
-        index[var]=l
-    end
-
-    println("Product ID Mapping")
-    _productDict = Dict{Real, UnitRange{Int}}()
-    _prod_person_Dict = Dict{Int,Dict{Real,Array{Int}}}()
-    allids = data_est[:Product]
-    prodids = Int.(sort(unique(allids)))
-
-    for id in prodids
-        idx1 = searchsortedfirst(allids,id)
-        idxJ = searchsortedlast(allids,id)
-        _productDict[id] = idx1:idxJ
-        # _prod_person_Dict[id] = build_IdxDict(dmat[idx1:idxJ,index[:Person]])
-    end
-
-    println("Person Mapping")
-    _prod_2_per_map = sortperm(dmat[:,index[:Person]])
-    dmat_per = dmat[_prod_2_per_map,:]
-
-    # Reverse Sort
-    _per_2_prod_map = sortperm(_prod_2_per_map)
-
-    _personDict = Dict{Real, UnitRange{Int}}()
-    _person_prod_Dict = Dict{Int,Dict{Real,Int64}}()
-    allids = dmat_per[:,index[:Person]]
-    uniqids = sort(unique(allids))
-    for id in uniqids
-        idx1 = searchsortedfirst(allids,id)
-        idxJ = searchsortedlast(allids,id)
-        _personDict[id] = idx1:idxJ
-        _person_prod_Dict[id] = build_IdxDict(dmat_per[idx1:idxJ,index[:Product]])
-    end
+    δ_nonprice::Vector{Float64} # Fixed non-price product chars
+    δ_price::Vector{Float64} # Updated Price Characteristics
+    s_pred:: Vector{Float64} # Updated Person-Product Shares
+    c_pred:: Vector{Float64} # Updated Person-Product Costs
+    c_pool:: Vector{Float64} # Updated Person-Product Costs, after RA transfers
 
 
-    # #Create Product Dictionary
-    # println("Product Dictionary")
-    # _productDict = build_ProdDict(data_est[:Product])
-
-    #Build Cross Product Dict
-    _crossprod_Dict = Array{Int64,2}(undef,n,length(prodids))
-    for (q,j) in enumerate(sort(prodids))
-        idx = Vector{Int64}(undef,n)
-        _crossprod_Dict[:,q] = crossprod_index!(idx,j,
-                                uniqids,
-                                _personDict,
-                                _person_prod_Dict)
-    end
+    ## Firm Level Values
+    P_j::Vector{Float64} #Price
+    SA_j::Vector{Float64} #Price
+    S_j::Vector{Float64} #Shares
+    Mkt_j::Vector{Float64} # Average Revenue
+    C_j::Vector{Float64} # Average Cost
+    PC_j::Vector{Float64} # Pooled Average Cost
 
 
-    # Make the data object
-    m = ChoiceData(dmat,dmat_per,index,
-    uniqids,_personDict,_productDict,
-    _person_prod_Dict,_prod_person_Dict,
-    _prod_2_per_map,_per_2_prod_map,
-    _crossprod_Dict)
-    return m
-end
+    hix_cnt::Vector{Float64} # Firm Product Weight (Hix)
+    bench_base::Vector{Float64} # Original Benchmark
 
+    ## Values Used in Computing Equilibrium
+    dSdp_j::Matrix{Float64} # Demand Derivative
+    dSAdp_j::Matrix{Float64} # Demand Derivative
+    dRdp_j::Matrix{Float64} # Demand Derivative
+    dCdp_j::Matrix{Float64} # Cost Derivative
+    dMdp_j::Matrix{Float64} # Market Lives Derivatives
+    dCdp_pl_j::Matrix{Float64} # Pooled Cost Derivative
 
-function crossprod_index!(cross_idx::Vector{Int64},
-                prod::Int64,
-                _personIDs::Array{Float64,1},
-                _personDict::Dict{Real, UnitRange{Int}},
-                _person_prod_Dict::Dict{Int,Dict{Real,Int}})
-
-    for i in _personIDs
-        idxitr = _personDict[i]
-        k = get(_person_prod_Dict[i],prod,-1)
-        if k>0
-            cross_idx[idxitr] .= idxitr[k]
-        else
-            cross_idx[idxitr] .= -1
-        end
-    end
-    return cross_idx
-end
-
-
-
-function build_IdxDict(j::Array{T,N}) where {T,N}
-    ids = unique(j)
-    dict = build_IdxDict(j,ids)
-    return dict
-end
-
-function build_IdxDict(j::Array{T,N},ids::Vector{T}) where {T,N}
-    sort!(ids)
-    _productDict = Dict{Real,Int64}()
-
-    for id in ids
-        _productDict[id] = findall(j.==id)[1]
-    end
-    return _productDict
-end
-
-getindex(m::ChoiceData, idx::Symbol) = m.data[:,m.index[idx]]
-
-function setindex!(m::ChoiceData,x::T,idx::Symbol) where T
-    m.data[:,m.index[idx]] .= x
-end
-
-
-mutable struct EqData
-    # Choice Data
-    data::ChoiceData
-    # Product Data
-    p_avg::Matrix{Float64}
-    p_index::Dict{Symbol, Int}
-    # Products
+    ## Market Organization
+    stdMap::Vector{Int64}
     prods::Vector{Int64}
-    firms::Vector{Int64}
-    # Cost Parameters
-    #cost_pars::DataFrame
+    _productDict::Dict{Int, Array{Int,1}}
 
-    # Firm Prices
-    premBase_j::Vector{Float64}
-    # Firm Base Cost
-    Cost_base_j::Vector{Float64}
-    C_AV_j::Vector{Float64}
-
-
-    #Ownership Matrix
-    ownMat::Matrix{Float64}
-    ownMat_merge::Matrix{Float64}
-
-    # Firm Product Weight (Hix)
-    hix_cnt::Vector{Float64}
-    # Original Benchmark
-    bench_base::Vector{Float64}
-
-    #Market Index
     mkt_index::Dict{Real,Array{Int64,1}}
-    mkt_map::Dict{Real,Int64}
     silver_index::Dict{Real,Array{Int64,1}}
     mkt_index_long::Array{Int64,1}
 
-    # ij pairs of market shares
-    s_pred::Vector{Float64}
-    s_pred_byperson::Vector{Float64}
-
-    # ij pairs of Insurance shares
-    s_ins::Vector{Float64}
-    s_ins_byperson::Vector{Float64}
-
-    # ij pairs of prices
-    price_ij::Vector{Float64}
-    subsidy_ij::Vector{Float64}
-
-    # Benchmark Risk Score, RA Share
-    R_bench::Float64
-    RA_share::Float64
-    Other_R::Float64
-
-    # Fixed RA Properties
-    ST_R_fix::Float64
-    ST_A_fix::Float64
-    avgPrem_fix::Float64
+    ownMat::Matrix{Float64}
+    ownMat_merge::Matrix{Float64}
+    poolMat::Matrix{Float64}
 end
 
-function EqData(cdata::ChoiceData,mkt::DataFrame,ψ_AV::Float64)#,cpars::DataFrame)
-    J = sum([mkt[:Firm].!="OTHER"][1])
-    premBase = Vector{Float64}(undef,J)
-    premBase[:] = mkt[:premBase][mkt[:Firm].!="OTHER"]
+function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
+                    par_dem::parDict,par_cost::parMC)
 
+    println("Compute Demand and Cost")
+    individual_values!(m,par_dem)
+    individual_shares(m,par_dem)
+    individual_costs(m,par_cost)
 
-    costBase = Vector{Float64}(undef,J)
-    #cost = Vector{Float64}(J)
-    cost = exp.(mkt[:AV_std][mkt[:Firm].!="OTHER"].*ψ_AV)
-    #costBase[:] = mkt[:Cost_prod][mkt[:Firm].!="OTHER"]
+    J = length(m.prods)
+    M = size(m.data.data,2)
 
-    prods = Vector{Int64}(undef,J)
-    prods[:] = sort(mkt[:Product][mkt[:Firm].!="OTHER"])
-    (N,L) = size(cdata.data)
-    s_pred = Vector{Float64}(undef,N)
-    s_pred_byperson = Vector{Float64}(undef,N)
+    println("Product Map/Dict")
+    ### Standard Products
+    prodMap = unique(df[[:Product,:Product_std]])
+    sort!(prodMap,:Product)
+    prodMap = convert(Vector{Int64},prodMap[:Product_std])
+    prod_std = unique(prodMap)
 
-    s_ins = Vector{Float64}(undef,N)
-    s_ins_byperson = Vector{Float64}(undef,N)
+    prod_vec = df[:Product_std]
+    _productDict = build_ProdDict(prod_vec)
 
-    price_ij = Vector{Float64}(undef,N)
-    subsidy = Vector{Float64}(undef,N)
-
-    #R_bench = mkt[:R_bench][1]
-    R_bench = 1.0
-    RA_share = mkt[:RA_share][1]
-
-    mkt_index = Dict{Real,Array{Int64,1}}()
-    silv_index = Dict{Real,Array{Int64,1}}()
-    markets = mkt[:Market][mkt[:Firm].!="OTHER"]
-    metals = mkt[:Metal_std][mkt[:Firm].!="OTHER"]
-    uniq_mkts = sort(unique(markets))
-    for (n,m) in enumerate(uniq_mkts)
-        mkt_index[n] = findall(markets.==m)
-        silv_index[n] = findall(metals[mkt_index[n]].=="SILVER")
+    println("Supplemental Data")
+    df[:Catastrophic] = Float64.(df[:Metal_std].=="CATASTROPHIC")
+    df[:Rev_foc] = df[:premBase].*df[:ageRate]./df[:MEMBERS]
+    dataNames = [:ageRate,:ageRate_avg,:IncomeCont,:Mandate,:MEMBERS,:Catastrophic,:subsidy,:Rev_foc]
+    data = convert(Matrix{Float64},df[dataNames])
+    index = Dict{Symbol, Int}()
+    for (l,var) in enumerate(dataNames)
+        index[var] = l
     end
 
-    hix_cnt = Float64.(mkt[:count_hix_prod][mkt[:Firm].!="OTHER"])
-    bench_base = Float64.(mkt[:benchBase][mkt[:Firm].!="OTHER"])
 
+    println("Personal and Product Characteristics")
+    #### Individual Values
+    P_ij= price(m.data) # Individual Level Product Prices
+    Rev_ij=Vector{Float64}(undef,M)
+    subsidy_ij=Vector{Float64}(undef,M) # Updated Subsidies
+    zero_ij=Vector{Float64}(undef,M)
+
+    δ_nonprice=Vector{Float64}(undef,M) # Fixed non-price product chars
+    δ_price=Vector{Float64}(undef,M) # Updated Price Characteristics
+    s_pred= Vector{Float64}(undef,M) # Updated Person-Product Shares
+    c_pred= Vector{Float64}(undef,M) # Update Person-Product Costs
+    c_pool= Vector{Float64}(undef,M) # Update Person-Product Costs, after transfer
+
+    #### Firm Values
+    # P_j = mkt[:premBase][mkt[:Firm].!="OTHER"]
+    P_j = Vector{Float64}(undef,J)
+    P_j[prod_std] = mkt[:premBase]
+    SA_j = Vector{Float64}(undef,J)
+    S_j = Vector{Float64}(undef,J)
+    Mkt_j = Vector{Float64}(undef,J)
+    C_j = Vector{Float64}(undef,J)
+    PC_j = Vector{Float64}(undef,J)
+
+    hix_cnt = Vector{Float64}(undef,J)
+    hix_cnt[prod_std] = Float64.(mkt[:count_hix_prod])
+    bench_base = Vector{Float64}(undef,J)
+    bench_base[prod_std] = Float64.(mkt[:benchBase])
+
+
+    dSdp_j = Matrix{Float64}(undef,J,J)
+    dSAdp_j = Matrix{Float64}(undef,J,J)
+    dRdp_j = Matrix{Float64}(undef,J,J)
+    dCdp_j = Matrix{Float64}(undef,J,J)
+    dMdp_j = Matrix{Float64}(undef,J,J)
+    dCdp_pl_j = Matrix{Float64}(undef,J,J)
+
+
+    println("Compute Market Organzation Maps")
+    #### Dictionary/Mappings
+    mkt_index = Dict{Real,Array{Int64,1}}()
+    silv_index = Dict{Real,Array{Int64,1}}()
+    markets = mkt[:Market]
+    metals = mkt[:Metal_std]
+    uniq_mkts = sort(unique(markets))
+    for (n,mt) in enumerate(uniq_mkts)
+        m_ind = findall(markets.==mt)
+        mkt_index[n] = mkt[:Product][m_ind]
+        silv_index[n] = mkt[:Product][findall(metals[m_ind].=="SILVER")]
+    end
 
     mkt_map = Dict{Real,Int64}()
     for (m,prod_num) in mkt_index
@@ -264,49 +145,31 @@ function EqData(cdata::ChoiceData,mkt::DataFrame,ψ_AV::Float64)#,cpars::DataFra
         end
     end
 
-    mkt_index_long = Vector{Int64}(undef,length(cdata[:Product]))
-    for (n,prod) in enumerate(cdata[:Product])
-        j = findall(prods.==prod)[1]
-        mkt_index_long[n] = mkt_map[j]
+    mkt_index_long = Vector{Int64}(undef,M)
+    for (n,prod) in enumerate(df[:Product_std])
+        mkt_index_long[n] = mkt_map[prod]
     end
 
-    ### Create Product Avg Data
-    index = Dict{Symbol, Int}()
-    varNames = [:C,:ageRate_avg,:R,
-                :R_Gamma_j,:A_Gamma_j,:Catastrophic,
-                :S_j,:lives]
-    for (l,var) in enumerate(varNames)
-        index[var]=l
-    end
-
-    pmat = Matrix{Float64}(undef,length(prods),length(varNames))
-
-    prod_data = 0
-    # Other_R = mkt[:R_f][mkt[:Firm].=="OTHER"][1]
-    Other_R = 0.0
-
+    #### Ownership Matrix
     ## Build Ownership Matrix
-    firms = mkt[:Firm][mkt[:Firm].!="OTHER"]
-    firms_unique = unique(firms)
-    firm_vec = Vector{Int64}(undef,J)
-    ownMat = Matrix{Float64}(undef,J,J)
-    for j in 1:J
+    firms = Vector{Union{Missing,String}}(missing,J)
+    # firms[prod_std] = mkt[:Firm]
+    firms[prod_std] = mkt[:Market]
+    ownMat = zeros(J,J)
+    for j in prod_std
         f = firms[j]
-        firm_vec[j] = findall(firms_unique.==f)[1]
-        for i in 1:J
+        for i in prod_std
             if firms[i]==f
                 ownMat[j,i]=1
-            else
-                ownMat[j,i]=0
             end
         end
     end
     firms_merge_1 = ["AETNA","HUMANA"]
     firms_merge_2 = ["ANTHEM_BLUE_CROSS_AND_BLUE_SHIELD","BLUE_CROSS_BLUE_SHIELD_OF_GEORGIA","CIGNA_HEALTH_AND_LIFE_INSURANCE_COMPANY"]
-    ownMat_merge = Matrix{Float64}(undef,J,J)
-    for j in 1:J
+    ownMat_merge = zeros(J,J)
+    for j in prod_std
         f = firms[j]
-        for i in 1:J
+        for i in prod_std
             if (f in firms_merge_1) & (firms[i] in firms_merge_1)
                 ownMat_merge[j,i]=1
             elseif (f in firms_merge_2) & (firms[i] in firms_merge_2)
@@ -317,17 +180,65 @@ function EqData(cdata::ChoiceData,mkt::DataFrame,ψ_AV::Float64)#,cpars::DataFra
         end
     end
 
-    # Initialize Fixed RA Properties
-    ST_R_fix  = 0.0
-    ST_A_fix = 0.0
-    avgPrem_fix = 0.0
+    ### Pooled Cost Areas
+    states = Vector{Union{Missing,String}}(missing,J)
+    states[prod_std] = mkt[:Market]
+    poolMat = zeros(J,J)
+    for j in prod_std
+        st = states[j]
+        for i in prod_std
+            if states[i]==st
+                poolMat[j,i]=1
+            end
+        end
+    end
 
-    return EqData(cdata,pmat,index,prods,firm_vec, #cpars,
-    premBase,costBase,cost,ownMat,ownMat_merge,hix_cnt,bench_base,
-    mkt_index,mkt_map,silv_index,mkt_index_long,
-    s_pred,s_pred_byperson,s_ins,s_ins_byperson,price_ij,subsidy,
-    R_bench,RA_share,Other_R,
-    ST_R_fix,ST_A_fix,avgPrem_fix)
+
+
+
+    firm = firmData(par_dem,par_cost,
+    data,index,
+    P_ij,Rev_ij,subsidy_ij,zero_ij,
+    δ_nonprice,δ_price,s_pred,c_pred,c_pool,
+    P_j,SA_j,S_j,Mkt_j,C_j,PC_j,hix_cnt,bench_base,
+    dSdp_j,dSAdp_j,dRdp_j,dCdp_j,dMdp_j,dCdp_pl_j,
+    prodMap,prod_std,_productDict,
+    mkt_index,silv_index,mkt_index_long,
+    ownMat,ownMat_merge,poolMat)
+
+    println("Initialize Shares/Derivatives")
+
+    compute_nonprice!(m,firm)
+
+    # evaluate_model!(m,firm,foc_check=true)
+
+    return firm
 end
 
-getindex(e::EqData, idx::Symbol) = e.p_avg[:,e.p_index[idx]]
+function evaluate_model!(m::InsuranceLogit,f::firmData;foc_check=false)
+    #Clear Derivative Values
+    f.dSdp_j[:].=0.0
+    f.dSAdp_j[:].=0.0
+    f.dMdp_j[:].=0.0
+    f.dRdp_j[:].=0.0
+    f.dCdp_j[:].=0.0
+    f.dCdp_pl_j[:].=0.0
+    f.PC_j[:].=0.0
+    f.S_j[:].=0.0
+    f.SA_j[:].=0.0
+    f.Mkt_j[:].=0.0
+
+    if foc_check==false
+        premPaid!(firm)
+    else
+        f.Rev_ij = f[:Rev_foc]
+        f.P_ij   = price(m.data)
+        f.zero_ij = Float64.((f.P_ij .+ f[:Mandate]/1000 .- 1e-6).<0.0)
+    end
+
+    compute_price!(m,f)
+    update_derivatives(m,f)
+    return nothing
+end
+
+getindex(f::firmData, idx::Symbol) = f.data[:,f.index[idx]]

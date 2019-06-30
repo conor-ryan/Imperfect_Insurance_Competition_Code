@@ -50,3 +50,7 @@ for (st in sort(unique(prod_data$ST))){
   
 }
 
+write.csv(prod_data[Firm!="OTHER",],
+          file=paste("Intermediate_Output/Equilibrium_Data/estimated_prodData_full.csv",sep=""),
+          row.names=FALSE)
+

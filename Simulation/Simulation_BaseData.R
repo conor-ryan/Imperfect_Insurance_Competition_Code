@@ -5,7 +5,7 @@ library(data.table)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
 
 ## Run
-run = "2019-03-12"
+# run = "2019-03-12"
 
 #### 2015 Subsidy Percentage Function ####
 
@@ -260,7 +260,8 @@ acs[is.na(HHincomeFPL)|HHincomeFPL>4|HHcont==1,subsidy:=0]
 #acs[,diff:=subsidy-subsidy_mean]
 
 acs[,Quote:= premBase*ageRate]
-acs[,PremPaid:= pmax(premBase*ageRate - subsidy,0)]
+acs[,subsidy:= pmin(premBase*ageRate,subsidy)]
+acs[,PremPaid:= premBase*ageRate - subsidy]
 acs$PremPaid[acs$METAL=="CATASTROPHIC"] = with(acs[acs$METAL=="CATASTROPHIC",],premBase*ageRate)
 
 

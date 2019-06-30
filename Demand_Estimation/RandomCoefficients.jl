@@ -93,7 +93,7 @@ function parDict(m::InsuranceLogit,x::Array{T};no2Der=false) where T
 
     # Deltas are turned off
     δ = Vector{T}(undef,M)
-    unpack_δ!(δ,m)
+    # unpack_δ!(δ,m)
     #δ = ones(M)
 
     Q = m.parLength[:All]
@@ -213,7 +213,7 @@ function individual_values!(d::InsuranceLogit,p::parDict{T}) where T
     return Nothing
 end
 
-function util_value!(app::ChoiceData,p::parDict{T}) where T
+function util_value!(app::ChoiceData,p::parDict{T};non_price=false) where T
     γ_0 = p.γ_0
     γ = p.γ
     β_0= p.β_0
@@ -232,6 +232,10 @@ function util_value!(app::ChoiceData,p::parDict{T}) where T
     β_z = β*Z
     demos = γ_0 + dot(γ,Z)
     β_i= calc_indCoeffs(p,r_ind)
+
+    if non_price
+        X[:,1].= 0.0
+    end
 
     chars = X*β_i
     chars_0 = X*(β_0+β_z)
@@ -363,7 +367,7 @@ function calc_shares(μ_ij::Vector{T},δ::Vector{T}) where T
     return s_hat
 end
 
-function calc_shares(μ_ij::Array{T},δ::Vector{T}) where T
+function calc_shares(μ_ij::Matrix{T},δ::Vector{T}) where T
     (N,K) = size(μ_ij)
     util = Matrix{T}(undef,K,N)
     s_hat = Matrix{T}(undef,K,N)

@@ -7,7 +7,7 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 
 ## Estimation Run 
-run = "2019-03-12"
+run = "2019-06-25"
 
 #Load Product Data
 predFile = paste("Simulation_Risk_Output/prodData.rData",sep="")
@@ -33,9 +33,9 @@ for (file in focFiles){
 }
 
 
-firms = prod_data[,list(R_avg=sum(share_base*size*R_avg)/sum(share_base*size),
-                        Revenue=sum(share_base*size*premBase*ageRate)/sum(share_base*size)),
-                  by=c("ST","Firm")]
+# firms = prod_data[,list(R_avg=sum(share_base*size*R_avg)/sum(share_base*size),
+#                         Revenue=sum(share_base*size*premBase*ageRate)/sum(share_base*size)),
+#                   by=c("ST","Firm")]
 
 
 
@@ -50,7 +50,9 @@ prod_data = merge(prod_data,share_moment[,c("Product","unins_rate","Share")],by=
 
 prod_data[,plot(share_base,Share)]
 prod_data[,unins_base:=1-sum(share_base),by="Market"]
+unins_test = prod_data[,list(unins_base=1-sum(share_base)),by=c("Market","size","unins_rate")]
 
+prod_data[,plot(unins_base,unins_rate)]
 
 #### Merge Firm Costs ####
 load("Intermediate_Output/Average_Claims/AvgCostMoments.rData")

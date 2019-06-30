@@ -4,6 +4,7 @@ using LinearAlgebra
 using Statistics
 using BenchmarkTools
 using JLD2
+using PyPlot
 ########################################################################
 #################### Loading and Cleaning Data #########################
 ########################################################################
@@ -11,84 +12,104 @@ load_path = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Cod
 # Data Structure
 include("$load_path/Demand_Estimation/InsChoiceData.jl")
 include("$load_path/Demand_Estimation/Halton.jl")
-include("EQ_RandomCoefficients.jl")
+include("$load_path/Demand_Estimation/RandomCoefficients.jl")
 include("$load_path/Demand_Estimation/utility.jl")
 include("$load_path/Demand_Estimation/Contraction.jl")
 include("$load_path/Firm_Side/MC_parameters.jl")
+include("$load_path/Firm_Side/Firm_Inner_Loop.jl")
 
 #Equilibrium Functions
-# include("predictionData_New.jl")
-include("EQ_RandomCoefficients.jl")
-
+include("predictionData.jl")
+include("EvaluateModel.jl")
+include("PriceUpdate.jl")
+include("FirmFunctions.jl")
 #Load Data
 include("EQ_load.jl")
 
 
-rundate = "2019-03-12"
-
-
-# AK_df = df[(df[:ST].=="AK"),:]
-# AK_df_mkt = df_mkt[df_mkt[:STATE].=="AK",:]
-# cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/")
-# st = "AK"
-# file2 = "Intermediate_Output/Equilibrium_Data/estimated_prodData_$st.csv"
-# AK_eq_df_mkt = CSV.read(file2)
-
-# chdf = ChoiceData(df,df_mkt,df_risk;
-#     demoRaw=[:AgeFE_31_39,
-#             :AgeFE_40_51,
-#             :AgeFE_52_64,
-#             :Family,
-#             :LowIncome],
-#     prodchars=[:Price,:AV,:Big],
-#     prodchars_0=[:AV,:Big],
-#     fixedEffects=[:Firm_Market],
-#     wgt=[:PERWT])
+rundate = "2019-06-25"
 
 chdf = ChoiceData(df,df_mkt,df_risk;
-demoRaw=[:AgeFE_31_39,
-    :AgeFE_40_51,
-    :AgeFE_52_64,
-    :Family,
-    :LowIncome],
-prodchars=[:Price,:AV,:Big],
-prodchars_0=[:AV,:Big],
-fixedEffects=[:Firm_Market])
+    demoRaw=[:AgeFE_31_39,
+            :AgeFE_40_51,
+            :AgeFE_52_64,
+            :Family,
+            :LowIncome],
+    prodchars=[:Price,:constant,:AV,:Big],
+    prodchars_0=[:constant,:AV,:Big],
+    fixedEffects=[:Firm_Market_Cat],
+    wgt=[:PERWT],
+    constMoments=false)
 
-m = InsuranceLogit(chdf,1000)
+model = InsuranceLogit(chdf,500)
 
-costdf = MC_Data(df,mom_avg,mom_age,mom_risk;
-                baseSpec=[:AGE,:AV_std,:AV_diff],
+costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk;
+                baseSpec=[:AGE,:AV_std],
                 fixedEffects=[:Firm_ST],
-                constMoments=false)
+                constMoments=true)
 
 
 
 ## Load Demand Estimation
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-$rundate-stg2.jld2"
 @load file p_stg2
 p_est = copy(p_stg2)
 
 #### Compute Demand Estimation
-par_est_dem = parDict(m,p_est)
-individual_values_nonprice!(m,par_est_dem)
-individual_values_price!(m,par_est_dem)
+par_dem = parDict(model,p_est,no2Der=true)
+individual_values!(model,par_dem)
+individual_shares(model,par_dem)
 
 ### Load Marginal Cost Estimation
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
-@load file est_stg2
-p_stg2 ,fval = est_stg2
+@load file p_stg2
+# p_stg2 = est_stg1[3]
+# p_stg2 = fit_firm_moments(p_stg2,par_dem,m,costdf)
 mc_est = copy(p_stg2)
 
 #### Compute Marginal Costs
-par_est_mc = parMC(mc_est,par_est_dem,m,costdf)
-individual_costs(m,par_est_mc)
+par_cost = parMC(mc_est,par_dem,model,costdf)
+
 
 
 
 ####### TESTING GROUND #####
-individual_values_price!(m,par_est_dem)
-individual_shares(m,par_est_dem)
+firm = firmData(model,df,eq_mkt,par_dem,par_cost)
+
+evaluate_model!(model,firm)
+
+R, C, S, PC = compute_profit(model,firm)
+
+dR, dC,dS,dPC = test_MR(model,firm)
+
+ind = findall(dPC.!=0.0)
 
 
-app = iterate(eachperson(m.data),1)[1]
+P_std, P_RA = evaluate_FOC(firm)
+
+MR, MC, MC_pl = prof_margin(firm)
+
+
+figure()
+plot(-MR,-MC,linestyle="",marker="o")
+plot([0,3e5],[0,3e5],linestyle="-")
+gcf()
+
+figure()
+plot(-MR,-MC_pl,linestyle="",marker="o")
+plot([0,3e5],[0,3e5],linestyle="-")
+gcf()
+
+
+figure()
+plot(firm.P_j[firm.prods],P_RA[firm.prods],linestyle="",marker="o")
+gcf()
+
+
+
+using Profile
+Profile.init(n=10^8,delay=.001)
+Profile.clear()
+Juno.@profile evaluate_model!(model,firm)
+Juno.profiletree()
+Juno.profiler()

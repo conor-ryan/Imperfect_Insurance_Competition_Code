@@ -402,6 +402,8 @@ rInd(m::ChoiceData)       = m[m._rInd]
 rIndS(m::ChoiceData)       = m[m._rIndS]
 anyHCC(m::ChoiceData)       = m[:Any_HCC]
 
+price(m::ChoiceData)   = m[m._prodchars[1]]
+
 
 fixedEffects(m::ChoiceData)= m.fixedEffects
 fixedEffects(m::ChoiceData,idx)= view(m.fixedEffects,:,idx)

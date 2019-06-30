@@ -45,14 +45,19 @@ filings = filings[,c("STATE","MARKET","COMPANY","ISSUER_ID","PLAN_ID","METAL","e
 
 ### Save Metal Avg Costs ###
 metalAvg = filings[!is.na(EXP_ALWD_CLM_PMPM)&EXP_MM>0,list(expAvgCost=sum(expAvgCost*EXP_MM)/sum(EXP_MM),EXP_MM=sum(EXP_MM)),by=c("METAL","STATE","MARKET","COMPANY")]
-metalAvg[METAL=="BRONZE",bronzeCost:=expAvgCost]
-metalAvg[,bronzeCost:=max(bronzeCost,na.rm=TRUE),by=c("METAL","STATE","MARKET","COMPANY")]
-
-metalAvg = filings[!is.na(EXP_ALWD_CLM_PMPM)&EXP_MM>0,list(expAvgCost=sum(expAvgCost*EXP_MM)/sum(EXP_MM),EXP_MM=sum(EXP_MM)),by=c("METAL")]
-metalAvg[METAL=="PLATINUM",METAL:="GOLD"]
-metalAvg = metalAvg[,list(expAvgCost=sum(expAvgCost*EXP_MM)/sum(EXP_MM)),by=c("METAL")]
-
 save(metalAvg,file="Intermediate_Output/Average_Claims/fullMarketMetalAvg.rData")
+
+# metalAvg[METAL=="BRONZE",bronzeCost:=expAvgCost]
+# metalAvg[,bronzeCost:=max(bronzeCost,na.rm=TRUE),by=c("STATE","MARKET","COMPANY")]
+# metalAvg[bronzeCost<0,bronzeCost:=NA]
+# metalAvg[!is.na(bronzeCost),costRatio:=expAvgCost/bronzeCost]
+# metalAvg = metalAvg[!is.na(costRatio),list(costRatio=sum(costRatio*EXP_MM)/sum(EXP_MM)),by="METAL"]
+# 
+# metalAvg = filings[!is.na(EXP_ALWD_CLM_PMPM)&EXP_MM>0,list(expAvgCost=sum(expAvgCost*EXP_MM)/sum(EXP_MM),EXP_MM=sum(EXP_MM)),by=c("METAL")]
+# metalAvg[METAL=="PLATINUM",METAL:="GOLD"]
+# metalAvg = metalAvg[,list(expAvgCost=sum(expAvgCost*EXP_MM)/sum(EXP_MM)),by=c("METAL")]
+
+
 
 #### Cost by metal level... ####
 crosswalk = read.csv("Intermediate_Output/FirmCrosswalk.csv")

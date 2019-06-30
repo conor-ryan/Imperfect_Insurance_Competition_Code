@@ -15,11 +15,11 @@ include("EquilibriumFunctions.jl")
 include("MLR_Functions.jl")
 # run_st_equil("NE")
 # Check_Margin("NE")
-rundate = "2019-06-23"
-
-states = ["AK","NE","ND","OK","MD","IA","NM","UT",
-"OR","MO","IL","MI","GA","TX"]
-# states = ["MI","GA","TX"]
+rundate = "2019-06-25"
+#
+# states = ["AK","NE","ND","OK","MD","IA","NM","UT",
+# "OR","MO","IL","MI","GA","TX"]
+states = ["TX"]
 for st in states
     # println("Solve Baseline Market Structure")
     # run_st_equil(st,rundate)

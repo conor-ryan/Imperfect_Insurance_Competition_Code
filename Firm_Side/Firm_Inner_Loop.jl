@@ -162,7 +162,8 @@ function estimate_NLOpt(p0::Vector{Float64},p_est::parDict{Float64},
 
     #maxeval!(opt_stage1,20000)
     maxtime!(opt, 580000)
-    ftol_rel!(opt,1e-4)
+    ftol_rel!(opt,1e-8)
+    xtol_rel!(opt,1e-8)
 
     lb = repeat([-50],inner=length(p0))
     # lb[2:3] .= 0.0

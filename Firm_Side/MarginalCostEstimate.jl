@@ -53,9 +53,9 @@ rundate = "2019-06-25"
 # p_est = Float64.(resDF[:pars])
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
 # @load file p_stg2
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-$rundate-stg1.jld2"
-@load file p_stg1
-p_est = copy(p_stg1)
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-$rundate-stg2.jld2"
+@load file p_stg2
+p_est = copy(p_stg2)
 
 #### Compute Demand Estimation
 par_est = parDict(m,p_est,no2Der=true)
@@ -83,7 +83,7 @@ p0 = vcat(rand(1)*.2,rand(1).*4,rand(1)*.2)
 est_stg1 = estimate_NLOpt(p0,par_est,m,costdf,W)
 incase = est_stg1
 # #
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
 @save file est_stg1
 
 # p0 = [.1,4,.1,.1]
@@ -153,7 +153,7 @@ W = inv(S)
 # S,S_unwt,mom_est = var_bootstrap(costdf,m,p_stg1,par_est,draw_num=5000)
 # W = inv(S)
 
-p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2)
+p0 = vcat(rand(1)*.2,rand(1).*4,rand(1)*.2)
 # # p0 = [0.0152152, 2.42283, -0.21084, 0.154506]
 est_stg2 = estimate_NLOpt(p0,par_est,m,costdf,W)
 # x1,x2,p_init = est_stg2
@@ -192,8 +192,8 @@ CSV.write(file1,out1)
 
 #### TEST OUTCOMES ####
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
-@load file est_stg2
-p ,fval = est_stg2
+@load file p_stg2
+p=  copy(p_stg2)
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
 # @load file est_stg1
 # p_stg1, fval = est_stg1
@@ -232,8 +232,8 @@ W = Matrix(1.0I,costdf.mom_length,costdf.mom_length)
 # for i in M2:M3
 #         W[i,i]=1.0
 # end
-# p0 = est_stg1[3]
-p0= [0.313535, -2.57428, 0.62655, 0.140377]
+p0 = est_stg2[3]
+
 p = fit_firm_moments(p0,par_est,m,costdf)
 par = parMC(p,par_est,m,costdf)
 individual_costs(m,par)

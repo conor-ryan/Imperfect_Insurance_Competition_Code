@@ -4,12 +4,12 @@ library(Matrix)
 library(doBy)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
-run = "2019-03-12"
+run = "2019-06-25"
 #### Load Estimated Data ####
 simdataFiles = focFiles = list.files("Intermediate_Output/Equilibrium_Data")[grep(paste("estimated_Data.*",run,sep=""),list.files("Intermediate_Output/Equilibrium_Data"))]
 
 simData = NULL
-for (f in simdataFiles){
+for (f in simdataFiles[1]){
   print(f)
   temp = as.data.table(read.csv(paste("Intermediate_Output/Equilibrium_Data",f,sep="/")))
   # temp[R_HCC==0,C_noHCC:=C]
@@ -22,7 +22,7 @@ for (f in simdataFiles){
   #                   PERWT = sum(PERWT),
   #                   mkt_density=sum(mkt_density)),
   #             by=c("Person","Product","AGE")]
-  temp = temp[,c("Person","Product","AGE","C","PERWT","R")]
+  temp = temp[,c("Person","Product","AGE","C","PERWT","util","R")]
   simData = rbind(simData,temp)
   rm(temp)
   gc()

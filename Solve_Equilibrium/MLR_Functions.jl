@@ -30,7 +30,7 @@ function MLR_check(P_new::Vector{Float64},Transfer::Vector{Float64},e::EqData)
     Rev_f  = e.ownMat*(Rev_j.*L_j)
     MLR = Cost_f./Rev_f
 
-    ind_constrained = findall(MLR.<0.8)
+    ind_constrained = findall(MLR.<0.5)
     return ind_constrained
 end
 
@@ -57,7 +57,7 @@ function MLR_Const_FOC(f::Int64,Markup::Vector{Float64},margCost::Vector{Float64
     C_f = sum( (Cost_j.*L_j)[ind_firm] )
     Mkup_f = sum( (Markup.*LA_j)[ind_firm] )
     MC_f = sum( (margCost.*LA_j)[ind_firm] )
-    λ = ((1/0.8)*C_f - Mkup_f)/MC_f
+    λ = ((1/0.5)*C_f - Mkup_f)/MC_f
 
     P = Markup[ind_firm] + margCost[ind_firm]*λ
 
