@@ -324,19 +324,49 @@ function update_derivatives(d::InsuranceLogit,firm::firmData)
             end
         end
     end
+
+    non_catas = firm.prods[.!(inlist(firm.prods,firm.catas_prods))]
+
+
     firm.PC_j[firm.prods] = firm.PC_j[firm.prods]./firm.Mkt_j[firm.prods]#.*firm.S_j
 
-    TotalCosts = firm.poolMat_merge*firm.C_j
-    PooledCosts = firm.poolMat_merge*(firm.PC_j.*firm.S_j)
-    Adj_j = TotalCosts./PooledCosts
+    firm.Mkt_j = firm.poolMat*firm.S_j
+    TotalCosts = firm.C_j[:]
+    TotalCosts[firm.catas_prods].=0.0
+    PooledCosts = (firm.PC_j[:].*firm.S_j[:])
+    PooledCosts[firm.catas_prods].=0.0
+
+    TotalCosts = firm.poolMat*TotalCosts
+    PooledCosts = firm.poolMat*PooledCosts
+    firm.Adj_j = zeros(length(firm.PC_j))
+    firm.Adj_j[non_catas] = (TotalCosts./PooledCosts)[non_catas]
+
 
 
     for j in firm.prods, k in firm.prods
-        firm.dCdp_pl_j[j,k] = Adj_j[k]*(firm.dCdp_pl_j[j,k]/firm.Mkt_j[k]*firm.S_j[k] +
+        firm.dCdp_pl_j[j,k] = (firm.dCdp_pl_j[j,k]/firm.Mkt_j[k]*firm.S_j[k] +
                                         firm.dSdp_j[j,k]*firm.PC_j[k] -
                                        (firm.dMdp_j[j,k]/firm.Mkt_j[k])*firm.PC_j[k]*firm.S_j[k])
     end
-    firm.PC_j[firm.prods] = firm.PC_j[firm.prods].*Adj_j[firm.prods]
+    # firm.PC_j[firm.prods] = firm.PC_j[firm.prods].*Adj_j[firm.prods]
+    # dAdj_dp = firm.poolMat
+    dC_pool = copy(firm.dCdp_j)
+    dC_pool[:,firm.catas_prods].=0.0
+
+    dPC_pool = copy(firm.dCdp_pl_j)
+    dPC_pool[:,firm.catas_prods].=0.0
+
+    dAdj_dp = zeros(length(firm.PC_j))
+    dAdj_dp[firm.catas_prods] = (sum(dC_pool,dims=2)./PooledCosts - (sum(dPC_pool,dims=2)./PooledCosts).*firm.Adj_j)[firm.catas_prods]
+    dAdj_dp = dAdj_dp.*firm.poolMat
+
+    for j in firm.prods, k in firm.prods
+        firm.dCdp_pl_j[j,k] = firm.Adj_j[k]*firm.dCdp_pl_j[j,k] + dAdj_dp[j,k]*firm.PC_j[k]*firm.S_j[k]
+    end
+
+    firm.dCdp_pl_j[:,firm.catas_prods] = firm.dCdp_j[:,firm.catas_prods]
+    firm.PC_j[firm.catas_prods] = firm.C_j[firm.catas_prods]./firm.S_j[firm.catas_prods]
+    firm.C_j = firm.C_j./firm.S_j
 
     return nothing
 end

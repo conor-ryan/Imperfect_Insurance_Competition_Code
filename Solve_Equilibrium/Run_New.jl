@@ -72,44 +72,145 @@ par_cost = parMC(mc_est,par_dem,model,costdf)
 
 
 
+#### Solve Equilibrium ####
+firm = firmData(model,df,eq_mkt,par_dem,par_cost)
+m = model
+f = firm
+
+P_Obs = Vector{Float64}(undef,length(m.prods))
+P_Base = Vector{Float64}(undef,length(m.prods))
+P_RA = Vector{Float64}(undef,length(m.prods))
+P_man = Vector{Float64}(undef,length(m.prods))
+P_RAman = Vector{Float64}(undef,length(m.prods))
+P_Base_m = Vector{Float64}(undef,length(m.prods))
+P_RA_m = Vector{Float64}(undef,length(m.prods))
+P_man_m = Vector{Float64}(undef,length(m.prods))
+P_RAman_m = Vector{Float64}(undef,length(m.prods))
+
+P_Obs[:] = f.P_j[:]
+
+#### Solve Baseline - With Risk Adjustment and Mandate ####
+solve_model!(m,f,sim="RA")
+P_Base[:] = f.P_j[:]
+f.ownMat = f.ownMat_merge
+solve_model!(m,f,sim="RA")
+P_Base_m[:] = f.P_j[:]
+
+#### Solve without Risk Adjustment ####
+f.P_j[:] = P_Obs[:]
+solve_model!(m,f,sim="Base")
+P_RA[:] = f.P_j[:]
+f.ownMat = f.ownMat_merge
+solve_model!(m,f,sim="Base")
+P_RA_m[:] = f.P_j[:]
+
+#### Solve without mandate ####
+f.P_j[:] = P_Obs[:]
+f[:Mandate].=0.0
+solve_model!(m,f,sim="RA")
+P_man[:] = f.P_j[:]
+f.ownMat = f.ownMat_merge
+solve_model!(m,f,sim="RA")
+P_man_m[:] = f.P_j[:]
+
+#### Solve without mandate NOR risk adjustment  ####
+f.P_j[:] = P_Obs[:]
+f[:Mandate].=0.0
+solve_model!(m,f,sim="Base")
+P_man[:] = f.P_j[:]
+f.ownMat = f.ownMat_merge
+solve_model!(m,f,sim="Base")
+P_man_m[:] = f.P_j[:]
+
+
+
+
+output =  DataFrame(Products=model.prods,
+                    Price_base=P_Base,
+                    Price_RA =P_RA,
+                    Price_man=P_man,
+                    Price_RAman=P_RAman,
+                    Price_base_m=P_Base_m,
+                    Price_RA_m =P_RA_m,
+                    Price_man_m=P_man_m,
+                    Price_RAman_m=P_RAman_m)
+
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_$rundate.csv"
+CSV.write(file,output)
+
+
+
+
+
 
 ####### TESTING GROUND #####
-firm = firmData(model,df,eq_mkt,par_dem,par_cost)
-
-evaluate_model!(model,firm)
-
-R, C, S, PC = compute_profit(model,firm)
-
-dR, dC,dS,dPC = test_MR(model,firm)
-
-ind = findall(dPC.!=0.0)
-
-
-P_std, P_RA = evaluate_FOC(firm)
-
-MR, MC, MC_pl = prof_margin(firm)
-
-
-figure()
-plot(-MR,-MC,linestyle="",marker="o")
-plot([0,3e5],[0,3e5],linestyle="-")
-gcf()
-
-figure()
-plot(-MR,-MC_pl,linestyle="",marker="o")
-plot([0,3e5],[0,3e5],linestyle="-")
-gcf()
-
-
-figure()
-plot(firm.P_j[firm.prods],P_RA[firm.prods],linestyle="",marker="o")
-gcf()
-
-
-
-using Profile
-Profile.init(n=10^8,delay=.001)
-Profile.clear()
-Juno.@profile evaluate_model!(model,firm)
-Juno.profiletree()
-Juno.profiler()
+#
+# # evaluate_model!(model,firm,foc_check=true)
+#
+# solve_model!(model,firm)
+#
+#
+# TotalCosts = firm.poolMat*firm.C_j
+# PooledCosts = firm.poolMat*(firm.PC_j.*firm.S_j)
+# dAdj_dp = sum(firm.dCdp_j,dims=2)./PooledCosts - (sum(firm.dCdp_pl_j,dims=2)./PooledCosts).*firm.Adj_j
+#
+#
+# R, C, S, PC = compute_profit(model,firm)
+#
+# dR, dC,dS,dPC,dAdj = test_MR(model,firm)
+# ind = findall(dS.!=0.0)
+# println(maximum(abs.(firm.dRdp_j[57,ind] - dR[ind])))
+# println(maximum(abs.(firm.dCdp_j[57,ind] - dC[ind])))
+# println(maximum(abs.(firm.dSdp_j[57,ind] - dS[ind])))
+# println(maximum(abs.(firm.dCdp_pl_j[57,ind] - dPC[ind])))
+#
+#
+#
+# P_std, P_RA = evaluate_FOC(firm)
+#
+# MR, MC, MC_pl = prof_margin(firm)
+#
+# # MR = MR./firm.Mkt_j
+# # MC = MC./firm.Mkt_j
+# # MC_pl = MC_pl./firm.Mkt_j
+#
+# figure()
+# plot(firm.P_j[firm.prods]-MR,MC_pl,linestyle="",marker="o")
+# plot([0,500],[0,500],linestyle="-")
+# gcf()
+#
+# figure()
+# plot(MR,MC,linestyle="",marker="o")
+# # plot([0,0.6],[0,0.6],linestyle="-")
+# gcf()
+#
+# figure()
+# plot(MR,MC_pl,linestyle="",marker="o")
+# plot([0,3e5],[0,3e5],linestyle="-")
+# gcf()
+#
+# figure()
+# plot(MC,firm.C_j[firm.prods],linestyle="",marker="o")
+# plot([0,5e3],[0,5e3],linestyle="-")
+# gcf()
+#
+# figure()
+# plot(MC_pl,firm.PC_j[firm.prods],linestyle="",marker="o")
+# plot([0,5e3],[0,5e3],linestyle="-")
+# gcf()
+#
+#
+#
+#
+# figure()
+# plot(firm.P_j[firm.prods],P_RA[firm.prods],linestyle="",marker="o")
+# gcf()
+#
+#
+#
+# using Profile
+# Profile.init(n=10^8,delay=.001)
+# Profile.clear()
+# Juno.@profile evaluate_model!(model,firm)
+# Juno.profiletree()
+# Juno.profiler()

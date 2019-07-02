@@ -29,6 +29,7 @@ mutable struct firmData
     Mkt_j::Vector{Float64} # Average Revenue
     C_j::Vector{Float64} # Average Cost
     PC_j::Vector{Float64} # Pooled Average Cost
+    Adj_j::Vector{Float64} # Pooled Average Cost
 
 
     hix_cnt::Vector{Float64} # Firm Product Weight (Hix)
@@ -45,6 +46,7 @@ mutable struct firmData
     ## Market Organization
     stdMap::Vector{Int64}
     prods::Vector{Int64}
+    catas_prods::Vector{Int64}
     _productDict::Dict{Int, Array{Int,1}}
 
     mkt_index::Dict{Real,Array{Int64,1}}
@@ -73,6 +75,8 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     sort!(prodMap,:Product)
     prodMap = convert(Vector{Int64},prodMap[:Product_std])
     prod_std = unique(prodMap)
+
+    catas_prods = Int.(mkt[:Product][mkt[:Metal_std].=="CATASTROPHIC"])
 
     prod_vec = df[:Product_std]
     _productDict = build_ProdDict(prod_vec)
@@ -110,6 +114,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     Mkt_j = Vector{Float64}(undef,J)
     C_j = Vector{Float64}(undef,J)
     PC_j = Vector{Float64}(undef,J)
+    Adj_j = Vector{Float64}(undef,J)
 
     hix_cnt = Vector{Float64}(undef,J)
     hix_cnt[prod_std] = Float64.(mkt[:count_hix_prod])
@@ -153,8 +158,8 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     #### Ownership Matrix
     ## Build Ownership Matrix
     firms = Vector{Union{Missing,String}}(missing,J)
-    # firms[prod_std] = mkt[:Firm]
-    firms[prod_std] = mkt[:Market]
+    firms[prod_std] = mkt[:Firm]
+    # firms[prod_std] = mkt[:Market]
     ownMat = zeros(J,J)
     for j in prod_std
         f = firms[j]
@@ -182,7 +187,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
 
     ### Pooled Cost Areas
     states = Vector{Union{Missing,String}}(missing,J)
-    states[prod_std] = mkt[:Market]
+    states[prod_std] = mkt[:ST]
     poolMat = zeros(J,J)
     for j in prod_std
         st = states[j]
@@ -200,9 +205,10 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     data,index,
     P_ij,Rev_ij,subsidy_ij,zero_ij,
     δ_nonprice,δ_price,s_pred,c_pred,c_pool,
-    P_j,SA_j,S_j,Mkt_j,C_j,PC_j,hix_cnt,bench_base,
+    P_j,SA_j,S_j,Mkt_j,C_j,PC_j,Adj_j,
+    hix_cnt,bench_base,
     dSdp_j,dSAdp_j,dRdp_j,dCdp_j,dMdp_j,dCdp_pl_j,
-    prodMap,prod_std,_productDict,
+    prodMap,prod_std,catas_prods,_productDict,
     mkt_index,silv_index,mkt_index_long,
     ownMat,ownMat_merge,poolMat)
 
@@ -225,7 +231,9 @@ function evaluate_model!(m::InsuranceLogit,f::firmData;foc_check=false)
     f.dCdp_pl_j[:].=0.0
     f.PC_j[:].=0.0
     f.S_j[:].=0.0
+    f.C_j[:].=0.0
     f.SA_j[:].=0.0
+    f.Adj_j[:].=0.0
     f.Mkt_j[:].=0.0
 
     if foc_check==false

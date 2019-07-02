@@ -77,6 +77,7 @@ setkey(acs,household)
 acs$MEMBERS=1
 #Age of HoH
 acs[,MaxAge:=max(AGE),by="household"]
+acs[,AvgAge:=AGE*PERWT]
 # Drop heads of household that are under 18 - 2,041
 acs = acs[MaxAge>=18,]
 
@@ -94,13 +95,13 @@ acs[,SilvHCC_Age:=SilvHCC_Age*PERWT]
 acs[,BronHCC_Age:=BronHCC_Age*PERWT]
 acs[,CataHCC_Age:=CataHCC_Age*PERWT]
 
-
 acs = acs[,lapply(.SD,sum),by=c("household","HHincomeFPL","HH_income","MaxAge","AREA","ST"),
-          .SDcols = c("MEMBERS","ageRate","ageRate_avg","PERWT","catas_cnt",
+          .SDcols = c("MEMBERS","AvgAge","ageRate","ageRate_avg","PERWT","catas_cnt",
                       "PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age")]
 
-names(acs) = c("household","HHincomeFPL","HH_income","AGE","AREA","ST","MEMBERS","ageRate","ageRate_avg","PERWT","catas_cnt",
+names(acs) = c("household","HHincomeFPL","HH_income","AGE","AREA","ST","MEMBERS","AvgAge","ageRate","ageRate_avg","PERWT","catas_cnt",
                "PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age")
+acs[,AvgAge:=AvgAge/PERWT]
 acs$ageRate_avg = with(acs,ageRate_avg/PERWT)
 acs[,PlatHCC_Age:=PlatHCC_Age/PERWT]
 acs[,GoldHCC_Age:=GoldHCC_Age/PERWT]
@@ -140,7 +141,7 @@ acs = acs[acs$valid,]
 
 
 # Keep only relevant variables
-acs = acs[,c("ST","household","HHincomeFPL","HH_income","FAMILY_OR_INDIVIDUAL","MEMBERS","AGE",
+acs = acs[,c("ST","household","HHincomeFPL","HH_income","FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","AvgAge",
              "AREA","Firm","METAL","hix","PREMI27","count_hix_prod",
              "PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age",
              "MedDeduct","MedOOP","ageRate","ageRate_avg","PERWT")]
@@ -231,6 +232,7 @@ acs[MEMBERS>=3,Mem_bucket:= "3+"]
 
 #test = as.data.frame(acs)
 acs = acs[,list(AGE = mean(AGE),
+                AvgAge = mean(AvgAge),
                 ageRate = sum(ageRate*PERWT)/sum(PERWT),
                 ageRate_avg = sum(ageRate_avg*PERWT)/sum(PERWT),
                 PlatHCC_Age = sum(PlatHCC_Age*PERWT)/sum(PERWT),
@@ -448,7 +450,7 @@ acs[,c("Age_Cat","Inc_Cat"):=NULL]
 choiceData = acs[,c("Person","Firm","ST","Firm_ST","Firm_Market","Firm_Market_Cat","Market","Product","PERWT","Price",
                     "MedDeduct","ExcOOP","High","AV","AV_std","AV_diff","Big","Gamma_j",
                     "Mandate","subsidy","benchBase","IncomeCont","mkt_density",
-                    "Family","Age","LowIncome","AGE",
+                    "Family","Age","LowIncome","AGE","AvgAge",
                     "METAL","premBase","count_hix_prod",
                     "Metal_std","Product_std","premBase_std",
                     "ageRate","ageRate_avg","HCC_age","SilvHCC_Age","MEMBERS",
@@ -461,6 +463,7 @@ choiceData = acs[,c("Person","Firm","ST","Firm_ST","Firm_Market","Firm_Market_Ca
 choiceData[,S_ij:=0]
 choiceData[,unins_rate:=0]
 choiceData[,AGE:=AGE/10]
+choiceData[,AvgAge:=AvgAge/10]
 setkey(choiceData,Person,Product)
 
 
