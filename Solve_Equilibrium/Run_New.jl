@@ -4,7 +4,6 @@ using LinearAlgebra
 using Statistics
 using BenchmarkTools
 using JLD2
-using PyPlot
 ########################################################################
 #################### Loading and Cleaning Data #########################
 ########################################################################
@@ -144,6 +143,7 @@ CSV.write(file,output)
 
 
 ####### TESTING GROUND #####
+# using PyPlot
 #
 # # evaluate_model!(model,firm,foc_check=true)
 #
