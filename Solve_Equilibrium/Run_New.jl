@@ -27,6 +27,9 @@ include("EQ_load.jl")
 
 
 rundate = "2019-06-25"
+mark_the_output_date = Dates.today()
+println("Running spec $rundate on $mark_the_output_date")
+
 
 chdf = ChoiceData(df,df_mkt,df_risk;
     demoRaw=[:AgeFE_31_39,
@@ -73,69 +76,18 @@ par_cost = parMC(mc_est,par_dem,model,costdf)
 
 #### Solve Equilibrium ####
 firm = firmData(model,df,eq_mkt,par_dem,par_cost)
-m = model
-f = firm
-
-P_Obs = Vector{Float64}(undef,length(m.prods))
-P_Base = Vector{Float64}(undef,length(m.prods))
-P_RA = Vector{Float64}(undef,length(m.prods))
-P_man = Vector{Float64}(undef,length(m.prods))
-P_RAman = Vector{Float64}(undef,length(m.prods))
-P_Base_m = Vector{Float64}(undef,length(m.prods))
-P_RA_m = Vector{Float64}(undef,length(m.prods))
-P_man_m = Vector{Float64}(undef,length(m.prods))
-P_RAman_m = Vector{Float64}(undef,length(m.prods))
-
-P_Obs[:] = f.P_j[:]
-
-#### Solve Baseline - With Risk Adjustment and Mandate ####
-solve_model!(m,f,sim="RA")
-P_Base[:] = f.P_j[:]
-f.ownMat = f.ownMat_merge
-solve_model!(m,f,sim="RA")
-P_Base_m[:] = f.P_j[:]
-
-#### Solve without Risk Adjustment ####
-f.P_j[:] = P_Obs[:]
-solve_model!(m,f,sim="Base")
-P_RA[:] = f.P_j[:]
-f.ownMat = f.ownMat_merge
-solve_model!(m,f,sim="Base")
-P_RA_m[:] = f.P_j[:]
-
-#### Solve without mandate ####
-f.P_j[:] = P_Obs[:]
-f[:Mandate].=0.0
-solve_model!(m,f,sim="RA")
-P_man[:] = f.P_j[:]
-f.ownMat = f.ownMat_merge
-solve_model!(m,f,sim="RA")
-P_man_m[:] = f.P_j[:]
-
-#### Solve without mandate NOR risk adjustment  ####
-f.P_j[:] = P_Obs[:]
-f[:Mandate].=0.0
-solve_model!(m,f,sim="Base")
-P_man[:] = f.P_j[:]
-f.ownMat = f.ownMat_merge
-solve_model!(m,f,sim="Base")
-P_man_m[:] = f.P_j[:]
-
-
-
-
-output =  DataFrame(Products=model.prods,
-                    Price_base=P_Base,
-                    Price_RA =P_RA,
-                    Price_man=P_man,
-                    Price_RAman=P_RAman,
-                    Price_base_m=P_Base_m,
-                    Price_RA_m =P_RA_m,
-                    Price_man_m=P_man_m,
-                    Price_RAman_m=P_RAman_m)
 
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_$rundate.csv"
-CSV.write(file,output)
+solveMain(model,firm,file)
+
+
+# m = model
+# f = firm
+
+# solve_model!(m,f,sim="RA")
+# evaluate_model!(m,f,"All")
+#
+# P,P_RA = evaluate_FOC(f)
 
 
 

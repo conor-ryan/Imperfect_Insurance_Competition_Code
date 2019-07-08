@@ -31,37 +31,37 @@ println("Code Loaded")
 # Load the Data
 include("load.jl")
 #Structure the data
-# c = ChoiceData(df,df_mkt,df_risk;
-#     # demoRaw=[:AgeFE_31_39,
-#     #         :AgeFE_40_51,
-#     #         :AgeFE_52_64,
-#     #         :Family,
-#     #         :LowIncome],
-#     demoRaw=Vector{Symbol}(undef,0),
-#     prodchars=[:Price,:AV,:Big],
-#     prodchars_0=[:AV,:Big],
-#     # prodchars_0=Vector{Symbol}(undef,0),
-#     fixedEffects=Vector{Symbol}(undef,0))
-#
-# #2018 - 12 - 24 : Firm Specification
-# #2019 - 03 - 7 : Firm Specification
-# #2019 - 03 - 12: Firm - Market Specification
-# #2019 - 03 - 24: Firm - Market - Cat Specification
-#
-#
-# # Fit into model
-# m = InsuranceLogit(c,20)
-# println("Data Loaded")
+c = ChoiceData(df,df_mkt,df_risk;
+    demoRaw=[:AgeFE_31_39,
+            :AgeFE_40_51,
+            :AgeFE_52_64,
+            :Family,
+            :LowIncome],
+    # demoRaw=Vector{Symbol}(undef,0),
+    prodchars=[:Price,:AV,:Big],
+    # prodchars_0=[:AV,:Big],
+    prodchars_0=Vector{Symbol}(undef,0),
+    fixedEffects=Vector{Symbol}(undef,0))
+
+#2018 - 12 - 24 : Firm Specification
+#2019 - 03 - 7 : Firm Specification
+#2019 - 03 - 12: Firm - Market Specification
+#2019 - 03 - 24: Firm - Market - Cat Specification
+
+
+# Fit into model
+m = InsuranceLogit(c,1)
+println("Data Loaded")
 
 #γ0start = rand(1)-.5
-# γstart = rand(m.parLength[:γ])/10 .-.05
-# β0start = rand(m.parLength[:β])/10 .-.05
-# βstart = rand(m.parLength[:γ])/10 .- .05
-# σstart = rand(m.parLength[:σ])/10 .- .05
-# # σstart = zeros(m.parLength[:σ])
-# FEstart = rand(m.parLength[:FE])/100 #.-.005
-# #
-# p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
+γstart = rand(m.parLength[:γ])/10 .-.05
+β0start = rand(m.parLength[:β])/10 .-.05
+βstart = rand(m.parLength[:γ])/10 .- .05
+σstart = rand(m.parLength[:σ])/10 .- .05
+# σstart = zeros(m.parLength[:σ])
+FEstart = rand(m.parLength[:FE])/100 #.-.005
+#
+p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 # par0 = parDict(m,p0)
 
 # ll = log_likelihood(m,par0)
@@ -79,10 +79,10 @@ include("load.jl")
 #
 #
 # obj_grad = Vector{Float64}(undef,length(p0))
-# grad = Vector{Float64}(undef,length(p0))
-# hess = Matrix{Float64}(undef,length(p0),length(p0))
+grad = Vector{Float64}(undef,length(p0))
+hess = Matrix{Float64}(undef,length(p0),length(p0))
 # par0 = parDict(m,p0)
-# ll = log_likelihood!(hess_2,grad_2,m,par0,feFlag=0)
+ll = log_likelihood!(grad,m,p0)
 # println(maximum(abs.(grad_2)))
 # println(ll)
 # println(p0)

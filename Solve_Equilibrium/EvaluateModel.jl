@@ -173,9 +173,6 @@ function calc_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},r_sc::
     end
 end
 
-
-
-
 function calc_der!(dsdp::Matrix{Float64},dcdp::Matrix{Float64},dcdp_pl::Matrix{Float64},
     s_hat::Matrix{Float64},c_hat::Matrix{Float64},
     der_ind::Int64,aα::Vector{Float64})
@@ -190,9 +187,40 @@ function calc_der!(dsdp::Matrix{Float64},dcdp::Matrix{Float64},dcdp_pl::Matrix{F
         dsi = alpha*s_der*(1-si)
         for i in 1:K
             if i==der_ind
-                @inbounds @fastmath ds = aα[der_ind]*s_der*(1-s_der)
+                @inbounds @fastmath ds = alpha*s_der*(1-s_der)
             else
-                @inbounds @fastmath ds = -aα[der_ind]*s_der*s_hat[i,n]
+                @inbounds @fastmath ds = -alpha*s_der*s_hat[i,n]
+            end
+            dsdp[i,n] = ds
+            dcdp[i,n] = ds*c_hat[i,n]
+            dcdp_pl[i,n] = dsi*c_hat[i,n]
+        end
+    end
+
+    ds_mean = mean(dsdp,dims=2)
+    dc_mean = mean(dcdp,dims=2)
+    dc_mean_pool = mean(dcdp_pl,dims=2)
+    return ds_mean, dc_mean, dc_mean_pool
+end
+
+
+function calc_der!(dsdp::Matrix{Float64},dcdp::Matrix{Float64},dcdp_pl::Matrix{Float64},
+    s_hat::Matrix{Float64},c_hat::Matrix{Float64},
+    der_ind::Int64,aα::Float64)
+    (K,N) = size(s_hat)
+
+    s_ins = sum(s_hat,dims=1)
+
+    alpha = aα
+    for n in 1:N
+        s_der = s_hat[der_ind,n]
+        si = s_ins[n]
+        dsi = alpha*s_der*(1-si)
+        for i in 1:K
+            if i==der_ind
+                @inbounds @fastmath ds = alpha*s_der*(1-s_der)
+            else
+                @inbounds @fastmath ds = -alpha*s_der*s_hat[i,n]
             end
             dsdp[i,n] = ds
             dcdp[i,n] = ds*c_hat[i,n]
@@ -231,8 +259,33 @@ function calc_der(s_hat::Vector{Float64},c_hat::Vector{Float64},
     return dsdp, dcdp, dcdp_pl
 end
 
+function calc_der(s_hat::Vector{Float64},c_hat::Vector{Float64},
+    der_ind::Int64,aα::Float64)
+    K = length(s_hat)
 
-function update_derivatives(d::InsuranceLogit,firm::firmData)
+    dsdp = Vector{Float64}(undef,K)
+    dcdp = Vector{Float64}(undef,K)
+    dcdp_pl = Vector{Float64}(undef,K)
+
+    s_der = s_hat[der_ind]
+    si = sum(s_hat)
+    dsi = aα*s_der*(1-si)
+    for i in 1:K
+        if i==der_ind
+            @inbounds @fastmath ds = aα*s_der*(1-s_der)
+        else
+            @inbounds @fastmath ds = -aα*s_der*s_hat[i]
+        end
+        dsdp[i] = ds
+        dcdp[i] = ds*c_hat[i]
+        dcdp_pl[i] = dsi*c_hat[i]
+    end
+
+    return dsdp, dcdp, dcdp_pl
+end
+
+
+function update_derivatives(d::InsuranceLogit,firm::firmData,ST::String;foc_check=false)
     # Store Parameters
     p_dem = firm.par_dem
     p_cost = firm.par_cost
@@ -249,8 +302,16 @@ function update_derivatives(d::InsuranceLogit,firm::firmData)
     mem_long = firm[:MEMBERS]
 
     N = size(d.draws,1)
-
-    for idxitr in values(d.data._personDict)
+    if ST=="All"
+        pers = d.data._personIDs
+        prod_ind = firm.prods
+    else
+        pers = firm._perSTDict[ST]
+        prod_ind = firm._prodSTDict[ST]
+    end
+# for idxitr in values(d.data._personDict)
+    for p in pers
+        idxitr = d.data._personDict[p]
         δ = δ_long[idxitr]
         @inbounds u = μ_ij_large[:,idxitr]
         @inbounds u_nr = μnr_ij_large[idxitr]
@@ -260,7 +321,6 @@ function update_derivatives(d::InsuranceLogit,firm::firmData)
         @inbounds any_r = any_long[idxitr[1]]
         wgt = wgt_long[idxitr]
         c_nr = cost_nonRisk[idxitr]
-        Ze_prem = firm.zero_ij[idxitr]
 
         s_r,c_r,c_r_pl,s_mat,c_mat = calc_cost(u,δ,r_cost,r_scores,c_nr,returnMat=true)
         s_nr = calc_shares(u_nr,δ)
@@ -281,7 +341,11 @@ function update_derivatives(d::InsuranceLogit,firm::firmData)
         @inbounds Z = demData[:,idxitr[1]]
         @inbounds a = age_long[idxitr[1]]
         @inbounds m = mem_long[idxitr[1]]
-        aα = ((12/1000)*(a/m)*(p_dem.β_0 + p_dem.β*Z)[1]).*(1 .-Ze_prem)
+        aα = ((12/1000)*(a/m)*(p_dem.β_0 + p_dem.β*Z)[1])#.*(1 .-Ze_prem)
+        if foc_check
+            Ze_prem = firm.zero_ij[idxitr]
+            aα = aα.*(1 .- Ze_prem)
+        end
 
         prod_ids = firm.stdMap[prod_long[idxitr]]
         rev = firm.Rev_ij[idxitr]
@@ -328,7 +392,7 @@ function update_derivatives(d::InsuranceLogit,firm::firmData)
     non_catas = firm.prods[.!(inlist(firm.prods,firm.catas_prods))]
 
 
-    firm.PC_j[firm.prods] = firm.PC_j[firm.prods]./firm.Mkt_j[firm.prods]#.*firm.S_j
+    firm.PC_j[prod_ind] = firm.PC_j[prod_ind]./firm.Mkt_j[prod_ind]#.*firm.S_j
 
     firm.Mkt_j = firm.poolMat*firm.S_j
     TotalCosts = firm.C_j[:]
@@ -343,7 +407,7 @@ function update_derivatives(d::InsuranceLogit,firm::firmData)
 
 
 
-    for j in firm.prods, k in firm.prods
+    for j in prod_ind, k in prod_ind
         firm.dCdp_pl_j[j,k] = (firm.dCdp_pl_j[j,k]/firm.Mkt_j[k]*firm.S_j[k] +
                                         firm.dSdp_j[j,k]*firm.PC_j[k] -
                                        (firm.dMdp_j[j,k]/firm.Mkt_j[k])*firm.PC_j[k]*firm.S_j[k])
@@ -357,10 +421,10 @@ function update_derivatives(d::InsuranceLogit,firm::firmData)
     dPC_pool[:,firm.catas_prods].=0.0
 
     dAdj_dp = zeros(length(firm.PC_j))
-    dAdj_dp[firm.catas_prods] = (sum(dC_pool,dims=2)./PooledCosts - (sum(dPC_pool,dims=2)./PooledCosts).*firm.Adj_j)[firm.catas_prods]
+    dAdj_dp[prod_ind] = (sum(dC_pool,dims=2)./PooledCosts - (sum(dPC_pool,dims=2)./PooledCosts).*firm.Adj_j)[prod_ind]
     dAdj_dp = dAdj_dp.*firm.poolMat
 
-    for j in firm.prods, k in firm.prods
+    for j in prod_ind, k in prod_ind
         firm.dCdp_pl_j[j,k] = firm.Adj_j[k]*firm.dCdp_pl_j[j,k] + dAdj_dp[j,k]*firm.PC_j[k]*firm.S_j[k]
     end
 

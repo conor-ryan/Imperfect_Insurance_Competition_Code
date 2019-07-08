@@ -56,6 +56,10 @@ mutable struct firmData
     ownMat::Matrix{Float64}
     ownMat_merge::Matrix{Float64}
     poolMat::Matrix{Float64}
+
+
+    _perSTDict::Dict{String, Array{Int,1}}
+    _prodSTDict::Dict{String, Array{Int,1}}
 end
 
 function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
@@ -198,6 +202,20 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
         end
     end
 
+    #### State Person Index ####
+    st_per = unique(df[[:Person,:ST]])
+    _perSTDict = Dict{String,Array{Int64,1}}()
+    states = unique(st_per[:ST])
+    for s in states
+        _perSTDict[s] = st_per[:Person][st_per[:ST].==s]
+    end
+
+
+    _prodSTDict = Dict{String,Array{Int64,1}}()
+    for s in states
+        _prodSTDict[s] = mkt[:Product][mkt[:ST].==s]
+    end
+
 
 
 
@@ -210,7 +228,8 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     dSdp_j,dSAdp_j,dRdp_j,dCdp_j,dMdp_j,dCdp_pl_j,
     prodMap,prod_std,catas_prods,_productDict,
     mkt_index,silv_index,mkt_index_long,
-    ownMat,ownMat_merge,poolMat)
+    ownMat,ownMat_merge,poolMat,
+    _perSTDict,_prodSTDict)
 
     println("Initialize Shares/Derivatives")
 
@@ -221,7 +240,36 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     return firm
 end
 
-function evaluate_model!(m::InsuranceLogit,f::firmData;foc_check=false)
+# function evaluate_model!(m::InsuranceLogit,f::firmData;foc_check=false)
+#     #Clear Derivative Values
+#     f.dSdp_j[:].=0.0
+#     f.dSAdp_j[:].=0.0
+#     f.dMdp_j[:].=0.0
+#     f.dRdp_j[:].=0.0
+#     f.dCdp_j[:].=0.0
+#     f.dCdp_pl_j[:].=0.0
+#     f.PC_j[:].=0.0
+#     f.S_j[:].=0.0
+#     f.C_j[:].=0.0
+#     f.SA_j[:].=0.0
+#     f.Adj_j[:].=0.0
+#     f.Mkt_j[:].=0.0
+#
+#     if foc_check==false
+#         premPaid!(firm)
+#     else
+#         f.Rev_ij = f[:Rev_foc]
+#         f.P_ij   = price(m.data)
+#         f.zero_ij = Float64.((f.P_ij .+ f[:Mandate]/1000 .- 1e-6).<0.0)
+#     end
+#
+#     compute_price!(m,f)
+#     update_derivatives(m,f)
+#     return nothing
+# end
+
+
+function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;foc_check=false)
     #Clear Derivative Values
     f.dSdp_j[:].=0.0
     f.dSAdp_j[:].=0.0
@@ -245,7 +293,7 @@ function evaluate_model!(m::InsuranceLogit,f::firmData;foc_check=false)
     end
 
     compute_price!(m,f)
-    update_derivatives(m,f)
+    update_derivatives(m,f,ST,foc_check=foc_check)
     return nothing
 end
 

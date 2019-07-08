@@ -82,6 +82,26 @@ function prof_margin(firm::firmData)
 end
 
 
+function evaluate_FOC(firm::firmData,ST::String)
+
+    P_std = zeros(length(firm.P_j))
+    P_RA = zeros(length(firm.P_j))
+
+    std_ind = firm._prodSTDict[ST]
+
+
+    dSdp = (firm.dSdp_j.*firm.ownMat)[std_ind,std_ind]
+    cost_std = sum(firm.dCdp_j.*firm.ownMat,dims=2)[std_ind]
+    cost_pl = sum(firm.dCdp_pl_j[std_ind,std_ind].*firm.ownMat[std_ind,std_ind],dims=2)
+    SA = firm.S_j[std_ind]
+
+
+    P_std[std_ind]= inv(dSdp)*(-SA + cost_std)
+    P_RA[std_ind] = inv(dSdp)*(-SA + cost_pl)
+
+    return P_std, P_RA
+end
+
 function evaluate_FOC(firm::firmData)
 
     P_std = zeros(length(firm.P_j))
@@ -92,19 +112,20 @@ function evaluate_FOC(firm::firmData)
 
     dSdp = (firm.dSdp_j.*firm.ownMat)[std_ind,std_ind]
     cost_std = sum(firm.dCdp_j.*firm.ownMat,dims=2)[std_ind]
-    cost_pl = sum(firm.dCdp_pl_j.*firm.ownMat,dims=2)[std_ind]
+    cost_pl = sum(firm.dCdp_pl_j[std_ind,std_ind].*firm.ownMat[std_ind,std_ind],dims=2)
     SA = firm.S_j[std_ind]
 
 
-    P_std[firm.prods]= inv(dSdp)*(-SA + cost_std)
-    P_RA[firm.prods] = inv(dSdp)*(-SA + cost_pl)
+    P_std[std_ind]= inv(dSdp)*(-SA + cost_std)
+    P_RA[std_ind] = inv(dSdp)*(-SA + cost_pl)
 
     return P_std, P_RA
 end
 
-function predict_price(firm::firmData;sim="Base")
+function predict_price(firm::firmData,ST::String;sim="Base")
 
-    P_std, P_RA = evaluate_FOC(firm)
+    P_std, P_RA = evaluate_FOC(firm,ST)
+    # println(P_std[firm._prodSTDict[ST]])
 
     if sim=="Base"
         P_new = copy(P_std)
@@ -115,21 +136,26 @@ function predict_price(firm::firmData;sim="Base")
 end
 
 
-function update_Prices!(firm::firmData;sim="Base")
+function foc_error(firm::firmData,ST::String,stp::Float64;sim="Base")
 
-    P_new = predict_price(firm,sim=sim)
-    tot_err = (P_new[firm.prods] - firm.P_j[firm.prods])./100
+    P_new = predict_price(firm,ST,sim=sim)
+    prod_ind = firm._prodSTDict[ST]
+    tot_err = (P_new[prod_ind] - firm.P_j[prod_ind])./100
+    # println(prod_ind)
+    # println(tot_err)
+    # println(P_new[prod_ind])
 
-    non_prods = .!(inlist(Int.(1:length(P_new)),firm.prods))
+    non_prods = .!(inlist(Int.(1:length(P_new)),prod_ind))
 
     ### 0 Market Share
-    ProdExit = firm.S_j.< 1.0
+    ProdExit = firm.S_j.< 1e-2
     P_new[ProdExit] = min.(firm.P_j[ProdExit],P_new[ProdExit])
 
 
-    if any(ProdExit[firm.prods])
-        exited = length(findall(ProdExit[firm.prods]))
-        println("Product Exits for $exited products")
+    if any(ProdExit[prod_ind])
+        exited = length(findall(ProdExit[prod_ind]))
+        all = length(prod_ind)
+        println("Product Exits for $exited products out of $all products")
     end
 
     ### Negative Prices
@@ -137,7 +163,7 @@ function update_Prices!(firm::firmData;sim="Base")
     P_new[P_new.<0] = 0.5.*firm.P_j[P_new.<0]
 
     ## Error in Prices
-    prod_ind = firm.prods[firm.S_j[firm.prods].>1.0]
+    prod_ind = prod_ind[firm.S_j[prod_ind].>1.0]
     foc_err = (P_new[prod_ind] - firm.P_j[prod_ind])./100
 
 
@@ -155,51 +181,182 @@ function update_Prices!(firm::firmData;sim="Base")
 
 
     err_new = sum(foc_err.^2)/length(prod_ind)
-    tot_err = sum(tot_err.^2)/length(m.prods)
+    tot_err = sum(tot_err.^2)/length(firm._prodSTDict[ST])
 
     ### New Prices
-    stp = 0.025
-    if err_new>5e-1
-        stp = 0.025
-    elseif err_new>1e-3
-        stp = 0.05
-    elseif err_new>1e-6
-        stp = 0.1
-    elseif err_new>1e-8
-        stp = 0.2
-    else
-        stp = 0.5
-    end
 
-
+    P_new[non_prods] = firm.P_j[non_prods]
     P_update = firm.P_j.*(1-stp) + stp.*P_new
-    P_update[non_prods].=0.0
+    P_update[non_prods] = firm.P_j[non_prods]
     # P_update[P_new.>=MLR_const] = MLR_const[P_new.>MLR_const]
     # Contrain Prices at 0
     #P_update = max.(P_update,0)
 
-    firm.P_j[:] = P_update[:]
+    # firm.P_j[:] = P_update[:]
 
-    return foc_err, err_new, tot_err
+    return foc_err, err_new, tot_err, P_new
 end
-
+#
+# function update_Prices!(firm::firmData,ST::String,stp::Float64;sim="Base")
+#
+#     P_new = predict_price(firm,ST,sim=sim)
+#     prod_ind = firm._prodSTDict[ST]
+#     tot_err = (P_new[prod_ind] - firm.P_j[prod_ind])./100
+#     # println(prod_ind)
+#     # println(tot_err)
+#     # println(P_new[prod_ind])
+#
+#     non_prods = .!(inlist(Int.(1:length(P_new)),prod_ind))
+#
+#     ### 0 Market Share
+#     ProdExit = firm.S_j.< 1.0
+#     P_new[ProdExit] = min.(firm.P_j[ProdExit],P_new[ProdExit])
+#
+#
+#     if any(ProdExit[prod_ind])
+#         exited = length(findall(ProdExit[prod_ind]))
+#         all = length(prod_ind)
+#         println("Product Exits for $exited products out of $all products")
+#     end
+#
+#     ### Negative Prices
+#     P_new[non_prods].=0.0
+#     P_new[P_new.<0] = 0.5.*firm.P_j[P_new.<0]
+#
+#     ## Error in Prices
+#     prod_ind = prod_ind[firm.S_j[prod_ind].>1.0]
+#     foc_err = (P_new[prod_ind] - firm.P_j[prod_ind])./100
+#
+#
+#     # ### MLR Constraint
+#     # MLR_const = e[:C]./0.7
+#     # constrained_bool = (P_new.>=MLR_const).& (e[:S_j].>=(1e-5))
+#     # if any( constrained_bool )
+#     #     constrained = findall( constrained_bool )
+#     #     println("Hit MLR Constraint at products $constrained")
+#     #     P_const = MLR_const[constrained]
+#     #     println("Constrained prices: $P_const")
+#     #     foc_err[constrained] .= 0.0
+#     # end
+#     #P_new = min.(P_new,MLR_const)
+#
+#
+#     err_new = sum(foc_err.^2)/length(prod_ind)
+#     tot_err = sum(tot_err.^2)/length(firm._prodSTDict[ST])
+#
+#     ### New Prices
+#
+#
+#     P_update = firm.P_j.*(1-stp) + stp.*P_new
+#     P_update[non_prods] = firm.P_j[non_prods]
+#     # P_update[P_new.>=MLR_const] = MLR_const[P_new.>MLR_const]
+#     # Contrain Prices at 0
+#     #P_update = max.(P_update,0)
+#
+#     firm.P_j[:] = P_update[:]
+#
+#     return foc_err, err_new, tot_err
+# end
 
 function solve_model!(m::InsuranceLogit,f::firmData;sim="Base")
+    P_res = zeros(length(f.P_j))
+    for s in keys(f._prodSTDict)
+        println("Solving for $s")
+        solve_model_st!(m,f,s,sim=sim)
+        P_res[f._prodSTDict[s]] = f.P_j[f._prodSTDict[s]]
+    end
+    f.P_j[:] = P_res[:]
+    return nothing
+end
+
+function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;sim="Base")
     err_new = 1
+    err_last = 1
     itr_cnt = 0
+    stp = 0.05
+    no_prog_cnt = 0
+    no_prog = 0
+    P_last = zeros(length(f.P_j[:]))
+    P_new_last = zeros(length(f.P_j[:]))
     while err_new>1e-10
         itr_cnt+=1
         println("Evaluate Model")
-        evaluate_model!(m,f)
+        evaluate_model!(m,f,ST)
         println("Update Price")
-        foc_err, err_new, tot_err = update_Prices!(f,sim=sim)
-        println("Iteration Count: $itr_cnt, Current Error: $err_new, Total Error: $tot_err ")
+
+
+        foc_err, err_new, tot_err,P_new = foc_error(f,ST,stp,sim=sim)
+
+        # if (err_last<1e-4) & (err_new>(err_last*2)) & (no_prog==0) #& (no_better==0)
+        #     println("Attempt to Find Better Step")
+        #     sub_cnt = 0
+        #     println("Sub Iteration Count: $sub_cnt, Current Error: $err_new, Step Size: $stp ")
+        #     println(f.P_j[f._prodSTDict[ST]])
+        #     println(P_new[f._prodSTDict[ST]])
+        #     # return P_last, P_new_last
+        #
+        #     stp = min(stp,.001)
+        #     while (err_new>err_last) & (stp>1e-8)
+        #         f.P_j[:] = (1-stp).*P_last[:] + stp.*P_new_last[:]
+        #         evaluate_model!(m,f,ST)
+        #         foc_err, err_new, tot_err,P_new = foc_error(f,ST,stp,sim=sim)
+        #         sub_cnt+=1
+        #
+        #         println("Sub Iteration Count: $sub_cnt, Current Error: $err_new, Step Size: $stp ")
+        #
+        #         println(f.P_j[f._prodSTDict[ST]])
+        #         println(P_new[f._prodSTDict[ST]])
+        #         stp/=10
+        #     end
+        #     if (stp<1e-10)
+        #         stp = 1.0
+        #     end
+        # end
+
+        P_last[:] = copy(f.P_j[:])
+        P_new_last[:] = copy(P_new[:])
+        f.P_j[:] = (1-stp).*f.P_j[:] + stp.*P_new[:]
+        println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
+        # println(foc_err)
+        # println(P_new[f._prodSTDict[ST]])
+        # println(f.P_j[f._prodSTDict[ST]])
+
+        if stp==1.0
+            stp = .001
+        end
+        stp = max(stp,1e-6)
+        if stp<.05
+            if err_new>1e-3
+                stp = stp*2
+            else
+                stp = stp*1.1
+            end
+        elseif stp<.25
+            stp = stp*(1.1)
+        elseif stp<.75
+            stp=stp*(1.1)
+        end
+
+        if ((err_new>err_last) & (no_prog==0)) | ((err_new<err_last) & (no_prog==1))
+            stp = .05
+            # if (itr_cnt>100) & (rand()<.2)
+            #     stp = 1.0
+            # end
+        end
+        if err_new>err_last
+            no_prog = 1
+        else
+            no_prog=0
+        end
+
+        err_last = copy(err_new)
+        # println(P_last)
     end
     return nothing
 end
 
 
-function solveMain(m::InsuranceLogit,f::firmData)
+function solveMain(m::InsuranceLogit,f::firmData,file::String)
     P_Obs = Vector{Float64}(undef,length(m.prods))
     P_Base = Vector{Float64}(undef,length(m.prods))
     P_RA = Vector{Float64}(undef,length(m.prods))
@@ -213,35 +370,51 @@ function solveMain(m::InsuranceLogit,f::firmData)
     P_Obs[:] = f.P_j[:]
 
     #### Solve Baseline - With Risk Adjustment and Mandate ####
+    println("####################################")
+    println("#### Solve Baseline - With Risk Adjustment and Mandate ####")
+    println("####################################")
     solve_model!(m,f,sim="RA")
     P_Base[:] = f.P_j[:]
     f.ownMat = f.ownMat_merge
+    println("###### Solve Merger Scenario ######")
     solve_model!(m,f,sim="RA")
     P_Base_m[:] = f.P_j[:]
 
     #### Solve without Risk Adjustment ####
+    println("####################################")
+    println("#### Solve without Risk Adjustment ####")
+    println("####################################")
     f.P_j[:] = P_Obs[:]
     solve_model!(m,f,sim="Base")
     P_RA[:] = f.P_j[:]
     f.ownMat = f.ownMat_merge
+    println("###### Solve Merger Scenario ######")
     solve_model!(m,f,sim="Base")
     P_RA_m[:] = f.P_j[:]
 
     #### Solve without mandate ####
+    println("####################################")
+    println("#### Solve without mandate ####")
+    println("####################################")
     f.P_j[:] = P_Obs[:]
     f[:Mandate].=0.0
     solve_model!(m,f,sim="RA")
     P_man[:] = f.P_j[:]
     f.ownMat = f.ownMat_merge
+    println("###### Solve Merger Scenario ######")
     solve_model!(m,f,sim="RA")
     P_man_m[:] = f.P_j[:]
 
     #### Solve without mandate NOR risk adjustment  ####
+    println("####################################")
+    println("#### Solve without mandate NOR risk adjustment  ####")
+    println("####################################")
     f.P_j[:] = P_Obs[:]
     f[:Mandate].=0.0
     solve_model!(m,f,sim="Base")
     P_man[:] = f.P_j[:]
     f.ownMat = f.ownMat_merge
+    println("###### Solve Merger Scenario ######")
     solve_model!(m,f,sim="Base")
     P_man_m[:] = f.P_j[:]
 
@@ -257,7 +430,7 @@ function solveMain(m::InsuranceLogit,f::firmData)
                         Price_RA_m =P_RA_m,
                         Price_man_m=P_man_m,
                         Price_RAman_m=P_RAman_m)
-    file = "Estimation_Output/solvedEquilibrium_$rundate.csv"
+
     CSV.write(file,output)
 
     return nothing
