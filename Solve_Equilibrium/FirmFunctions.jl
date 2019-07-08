@@ -148,14 +148,18 @@ function foc_error(firm::firmData,ST::String,stp::Float64;sim="Base")
     non_prods = .!(inlist(Int.(1:length(P_new)),prod_ind))
 
     ### 0 Market Share
-    ProdExit = firm.S_j.< 1e-2
-    P_new[ProdExit] = min.(firm.P_j[ProdExit],P_new[ProdExit])
+    exit_thresh = 1.0
+    ProdExit = firm.S_j.< exit_thresh
+    choke_point = 1e-3
+    ChokePrice = firm.S_j.< choke_point
+    P_new[ChokePrice] = min.(firm.P_j[ChokePrice],P_new[ChokePrice])
 
 
     if any(ProdExit[prod_ind])
         exited = length(findall(ProdExit[prod_ind]))
+        choked = length(findall(ChokePrice[prod_ind]))
         all = length(prod_ind)
-        println("Product Exits for $exited products out of $all products")
+        println("Product Exits for $exited out of $all products, $choked at choke price.")
     end
 
     ### Negative Prices
@@ -163,7 +167,7 @@ function foc_error(firm::firmData,ST::String,stp::Float64;sim="Base")
     P_new[P_new.<0] = 0.5.*firm.P_j[P_new.<0]
 
     ## Error in Prices
-    prod_ind = prod_ind[firm.S_j[prod_ind].>1.0]
+    prod_ind = prod_ind[firm.S_j[prod_ind].>exit_thresh]
     foc_err = (P_new[prod_ind] - firm.P_j[prod_ind])./100
 
 
@@ -196,67 +200,6 @@ function foc_error(firm::firmData,ST::String,stp::Float64;sim="Base")
 
     return foc_err, err_new, tot_err, P_new
 end
-#
-# function update_Prices!(firm::firmData,ST::String,stp::Float64;sim="Base")
-#
-#     P_new = predict_price(firm,ST,sim=sim)
-#     prod_ind = firm._prodSTDict[ST]
-#     tot_err = (P_new[prod_ind] - firm.P_j[prod_ind])./100
-#     # println(prod_ind)
-#     # println(tot_err)
-#     # println(P_new[prod_ind])
-#
-#     non_prods = .!(inlist(Int.(1:length(P_new)),prod_ind))
-#
-#     ### 0 Market Share
-#     ProdExit = firm.S_j.< 1.0
-#     P_new[ProdExit] = min.(firm.P_j[ProdExit],P_new[ProdExit])
-#
-#
-#     if any(ProdExit[prod_ind])
-#         exited = length(findall(ProdExit[prod_ind]))
-#         all = length(prod_ind)
-#         println("Product Exits for $exited products out of $all products")
-#     end
-#
-#     ### Negative Prices
-#     P_new[non_prods].=0.0
-#     P_new[P_new.<0] = 0.5.*firm.P_j[P_new.<0]
-#
-#     ## Error in Prices
-#     prod_ind = prod_ind[firm.S_j[prod_ind].>1.0]
-#     foc_err = (P_new[prod_ind] - firm.P_j[prod_ind])./100
-#
-#
-#     # ### MLR Constraint
-#     # MLR_const = e[:C]./0.7
-#     # constrained_bool = (P_new.>=MLR_const).& (e[:S_j].>=(1e-5))
-#     # if any( constrained_bool )
-#     #     constrained = findall( constrained_bool )
-#     #     println("Hit MLR Constraint at products $constrained")
-#     #     P_const = MLR_const[constrained]
-#     #     println("Constrained prices: $P_const")
-#     #     foc_err[constrained] .= 0.0
-#     # end
-#     #P_new = min.(P_new,MLR_const)
-#
-#
-#     err_new = sum(foc_err.^2)/length(prod_ind)
-#     tot_err = sum(tot_err.^2)/length(firm._prodSTDict[ST])
-#
-#     ### New Prices
-#
-#
-#     P_update = firm.P_j.*(1-stp) + stp.*P_new
-#     P_update[non_prods] = firm.P_j[non_prods]
-#     # P_update[P_new.>=MLR_const] = MLR_const[P_new.>MLR_const]
-#     # Contrain Prices at 0
-#     #P_update = max.(P_update,0)
-#
-#     firm.P_j[:] = P_update[:]
-#
-#     return foc_err, err_new, tot_err
-# end
 
 function solve_model!(m::InsuranceLogit,f::firmData;sim="Base")
     P_res = zeros(length(f.P_j))
