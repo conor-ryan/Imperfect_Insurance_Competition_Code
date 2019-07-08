@@ -84,8 +84,11 @@ solveMain(model,firm,file)
 
 # m = model
 # f = firm
+#
+# solve_model!(m,f,sim="Base")
 
-# solve_model!(m,f,sim="RA")
+
+
 # evaluate_model!(m,f,"All")
 #
 # P,P_RA = evaluate_FOC(f)

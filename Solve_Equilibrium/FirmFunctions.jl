@@ -359,7 +359,7 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     println("#### Solve without mandate ####")
     println("####################################")
     f.P_j[:] = P_Obs[:]
-    f[:Mandate].=0.0
+    f.data[:,f.index[:Mandate]].=0.0
     solve_model!(m,f,sim="RA")
     P_man[:] = f.P_j[:]
     evaluate_model!(m,f,"All")
@@ -377,7 +377,7 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     println("#### Solve without mandate NOR risk adjustment  ####")
     println("####################################")
     f.P_j[:] = P_Obs[:]
-    f[:Mandate].=0.0
+    f.data[:,f.index[:Mandate]].=0.0
     solve_model!(m,f,sim="Base")
     P_RAman[:] = f.P_j[:]
     evaluate_model!(m,f,"All")
@@ -393,7 +393,8 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
 
 
 
-    output =  DataFrame(Products=model.prods,
+    output =  DataFrame(Products=sort(model.prods),
+                        Price_data=P_Obs,
                         Price_base=P_Base,
                         Price_RA =P_RA,
                         Price_man=P_man,
