@@ -221,7 +221,7 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;sim="Base")
     no_prog = 0
     P_last = zeros(length(f.P_j[:]))
     P_new_last = zeros(length(f.P_j[:]))
-    while err_new>1e-10
+    while err_new>1e-12
         itr_cnt+=1
         println("Evaluate Model")
         evaluate_model!(m,f,ST)
@@ -310,6 +310,15 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     P_man_m = Vector{Float64}(undef,length(m.prods))
     P_RAman_m = Vector{Float64}(undef,length(m.prods))
 
+    S_Base = Vector{Float64}(undef,length(m.prods))
+    S_RA = Vector{Float64}(undef,length(m.prods))
+    S_man = Vector{Float64}(undef,length(m.prods))
+    S_RAman = Vector{Float64}(undef,length(m.prods))
+    S_Base_m = Vector{Float64}(undef,length(m.prods))
+    S_RA_m = Vector{Float64}(undef,length(m.prods))
+    S_man_m = Vector{Float64}(undef,length(m.prods))
+    S_RAman_m = Vector{Float64}(undef,length(m.prods))
+
     P_Obs[:] = f.P_j[:]
 
     #### Solve Baseline - With Risk Adjustment and Mandate ####
@@ -318,10 +327,15 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     println("####################################")
     solve_model!(m,f,sim="RA")
     P_Base[:] = f.P_j[:]
+    evaluate_model!(m,f,"All")
+    S_Base[:] = f.S_j[:]
+
     f.ownMat = f.ownMat_merge
     println("###### Solve Merger Scenario ######")
     solve_model!(m,f,sim="RA")
     P_Base_m[:] = f.P_j[:]
+    evaluate_model!(m,f,"All")
+    S_Base_m[:] = f.S_j[:]
 
     #### Solve without Risk Adjustment ####
     println("####################################")
@@ -330,10 +344,15 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     f.P_j[:] = P_Obs[:]
     solve_model!(m,f,sim="Base")
     P_RA[:] = f.P_j[:]
+    evaluate_model!(m,f,"All")
+    S_RA[:] = f.S_j[:]
+
     f.ownMat = f.ownMat_merge
     println("###### Solve Merger Scenario ######")
     solve_model!(m,f,sim="Base")
     P_RA_m[:] = f.P_j[:]
+    evaluate_model!(m,f,"All")
+    S_RA_m[:] = f.S_j[:]
 
     #### Solve without mandate ####
     println("####################################")
@@ -343,10 +362,15 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     f[:Mandate].=0.0
     solve_model!(m,f,sim="RA")
     P_man[:] = f.P_j[:]
+    evaluate_model!(m,f,"All")
+    S_man[:] = f.S_j[:]
+
     f.ownMat = f.ownMat_merge
     println("###### Solve Merger Scenario ######")
     solve_model!(m,f,sim="RA")
     P_man_m[:] = f.P_j[:]
+    evaluate_model!(m,f,"All")
+    S_man_m[:] = f.S_j[:]
 
     #### Solve without mandate NOR risk adjustment  ####
     println("####################################")
@@ -355,11 +379,16 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     f.P_j[:] = P_Obs[:]
     f[:Mandate].=0.0
     solve_model!(m,f,sim="Base")
-    P_man[:] = f.P_j[:]
+    P_RAman[:] = f.P_j[:]
+    evaluate_model!(m,f,"All")
+    S_RAman[:] = f.S_j[:]
+
     f.ownMat = f.ownMat_merge
     println("###### Solve Merger Scenario ######")
     solve_model!(m,f,sim="Base")
-    P_man_m[:] = f.P_j[:]
+    P_RAman_m[:] = f.P_j[:]
+    evaluate_model!(m,f,"All")
+    S_RAman_m[:] = f.S_j[:]
 
 
 
@@ -372,7 +401,15 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
                         Price_base_m=P_Base_m,
                         Price_RA_m =P_RA_m,
                         Price_man_m=P_man_m,
-                        Price_RAman_m=P_RAman_m)
+                        Price_RAman_m=P_RAman_m,
+                        Lives_base=S_Base,
+                        Lives_RA =S_RA,
+                        Lives_man=S_man,
+                        Lives_RAman=S_RAman,
+                        Lives_base_m=S_Base_m,
+                        Lives_RA_m =S_RA_m,
+                        Lives_man_m=S_man_m,
+                        Lives_RAman_m=S_RAman_m)
 
     CSV.write(file,output)
 
