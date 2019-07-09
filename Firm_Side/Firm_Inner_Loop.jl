@@ -1,22 +1,30 @@
 function fit_firm_moments(p0::Vector{Float64},p_est::parDict{Float64},
-                d::InsuranceLogit,c::MC_Data;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2000)
+                d::InsuranceLogit,c::MC_Data;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2000,itrFirms=false)
 
     ## Initialize Parameter Vector
     N = length(p0)
     p_vec = zeros(c.par_length)
     p_vec[1:N] = p0[:]
-    p_vec[(N+1):length(p_vec)] = c.fPars
+
 
     err = 1
     cnt = 0
-    while err>1e-10
+    if itrFirms
+        println(p_vec[(N+1):(N+5)])
+        p_vec[(N+1):length(p_vec)] = c.fPars
+        while err>1e-10
+            ΔFpar = firmParameters(c,d,p_vec,p_est)
+            p_vec[(N+1):length(p_vec)] = p_vec[(N+1):length(p_vec)] + ΔFpar
+            err = sum((ΔFpar).^2)
+            cnt+=1
+        end
+        c.fPars[:] = p_vec[(N+1):length(p_vec)]
+    else
         ΔFpar = firmParameters(c,d,p_vec,p_est)
         p_vec[(N+1):length(p_vec)] = p_vec[(N+1):length(p_vec)] + ΔFpar
-        err = sum((ΔFpar).^2)
-        cnt+=1
     end
+
     println("Fit Firm Moments in $cnt iterations")
-    c.fPars[:] = p_vec[(N+1):length(p_vec)]
     return p_vec
 end
 
@@ -49,15 +57,15 @@ end
 
 
 function GMM_outer_loop(p::Vector{T},p_est::parDict{Float64},
-                d::InsuranceLogit,c::MC_Data,W::Matrix{Float64};squared=false) where T
-    p_full = fit_firm_moments(p,p_est,d,c)
+                d::InsuranceLogit,c::MC_Data,W::Matrix{Float64};squared=false,itrFirms=false) where T
+    p_full = fit_firm_moments(p,p_est,d,c,itrFirms=itrFirms)
     obj = GMM_objective(p_full,p_est,d,c,W,squared=squared)
     return obj
 end
 
 
 function estimate_NLOpt(p0::Vector{Float64},p_est::parDict{Float64},
-                d::InsuranceLogit,c::MC_Data,W::Matrix{Float64};method=:LN_NELDERMEAD,bounded=false,squared=false)
+                d::InsuranceLogit,c::MC_Data,W::Matrix{Float64};method=:LN_NELDERMEAD,bounded=false,squared=false,itrFirms=false)
     # Set up the optimization
     # opt = Opt(:LD_MMA, length(p0))
     # opt = Opt(:LD_TNEWTON_PRECOND_RESTART, length(p0))
@@ -78,7 +86,7 @@ function estimate_NLOpt(p0::Vector{Float64},p_est::parDict{Float64},
         upper_bounds!(opt, ub)
     end
 
-    gmm(x) = GMM_outer_loop(x,p_est,d,c,W,squared=squared)
+    gmm(x) = GMM_outer_loop(x,p_est,d,c,W,squared=squared,itrFirms=itrFirms)
     grad = Vector{Float64}(undef,length(p0))
     # println(d.draws[1:30,:])
     disp_length = min(20,length(p0))

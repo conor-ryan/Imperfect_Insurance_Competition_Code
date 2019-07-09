@@ -80,8 +80,10 @@ W = Matrix(1.0I,costdf.mom_length,costdf.mom_length)
 # incase = est_stg1
 
 p0 = vcat(rand(1)*.2,rand(1).*4,rand(1)*.2)
-est_stg1 = estimate_NLOpt(p0,par_est,m,costdf,W)
+est_stg1 = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false)
 incase = est_stg1
+
+est = estimate_NLOpt(est_stg1[3][1:3],par_est,m,costdf,W,itrFirms=false)
 # #
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
 @save file est_stg1
@@ -205,6 +207,8 @@ p = fit_firm_moments(est_stg1[3],par_est,m,costdf)
 par = parMC(p,par_est,m,costdf)
 individual_costs(m,par)
 moments = costMoments(costdf,m,par)
+
+est_stg1 = estimate_NLOpt(p[1:3],par_est,m,costdf,W)
 
 GMM_objective(p,par_est,m,costdf,W)
 
