@@ -1,5 +1,5 @@
 function fit_firm_moments(p0::Vector{Float64},p_est::parDict{Float64},
-                d::InsuranceLogit,c::MC_Data;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2000,itrFirms=false)
+                d::InsuranceLogit,c::MC_Data;itrFirms=false)
 
     ## Initialize Parameter Vector
     N = length(p0)
@@ -65,7 +65,7 @@ end
 
 
 function estimate_NLOpt(p0::Vector{Float64},p_est::parDict{Float64},
-                d::InsuranceLogit,c::MC_Data,W::Matrix{Float64};method=:LN_NELDERMEAD,bounded=false,squared=false,itrFirms=false)
+                d::InsuranceLogit,c::MC_Data,W::Matrix{Float64};method=:LN_NELDERMEAD,bounded=false,squared=false,itrFirms=false,tol=1e-8)
     # Set up the optimization
     # opt = Opt(:LD_MMA, length(p0))
     # opt = Opt(:LD_TNEWTON_PRECOND_RESTART, length(p0))
@@ -73,8 +73,8 @@ function estimate_NLOpt(p0::Vector{Float64},p_est::parDict{Float64},
 
     #maxeval!(opt_stage1,20000)
     maxtime!(opt, 580000)
-    ftol_rel!(opt,1e-8)
-    xtol_rel!(opt,1e-8)
+    ftol_rel!(opt,tol)
+    xtol_rel!(opt,tol)
 
     lb = repeat([-50],inner=length(p0))
     # lb[2:3] .= 0.0
