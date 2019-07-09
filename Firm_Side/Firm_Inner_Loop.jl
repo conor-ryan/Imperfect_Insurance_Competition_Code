@@ -10,8 +10,8 @@ function fit_firm_moments(p0::Vector{Float64},p_est::parDict{Float64},
     err = 1
     cnt = 0
     if itrFirms
-        println(p_vec[(N+1):(N+5)])
         p_vec[(N+1):length(p_vec)] = c.fPars
+        println(p_vec[(N+1):(N+5)])
         while err>1e-10
             ΔFpar = firmParameters(c,d,p_vec,p_est)
             p_vec[(N+1):length(p_vec)] = p_vec[(N+1):length(p_vec)] + ΔFpar
