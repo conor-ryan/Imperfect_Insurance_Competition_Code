@@ -22,6 +22,7 @@ prod_data = merge(prod_data,eqData,by="Product")
 # firms = prod_data[,list(R_avg=sum(share_base*size*R_avg)/sum(share_base*size),
 #                         Revenue=sum(share_base*size*premBase*ageRate)/sum(share_base*size)),
 #                   by=c("ST","Firm")]
+baseData = read.csv("Intermediate_Output/Simulated_BaseData/simchoiceData_discrete.csv")
 
 
 
@@ -40,11 +41,29 @@ unins_test = prod_data[,list(unins_base=1-sum(share_base)),by=c("Market","size",
 
 prod_data[,plot(unins_base,unins_rate)]
 
+
+
+
 #### Merge Firm Costs ####
 load("Intermediate_Output/Average_Claims/AvgCostMoments.rData")
-firmClaims = firmClaims[,c("ST","Firm","AvgCost","prjFirmCost")]
-names(firmClaims) = c("ST","Firm","FirmAvgCost","prjFirmCost")
+firmClaims = firmClaims[,c("ST","Firm","AvgCost","prjFirmCost","expFirmCost")]
+names(firmClaims) = c("ST","Firm","FirmAvgCost","prjFirmCost","expFirmCost")
+
+fMom = read.csv("Intermediate_Output/MC_Moments/firmMoments.csv")
+fMom = unique(fMom[,c("logAvgCost","M_num","Product")])
+
 prod_data = merge(prod_data,firmClaims,by=c("ST","Firm"))
+prod_data = merge(prod_data,fMom,by="Product")
+
+firm_test = prod_data[,list(avgCost=sum(avgCost*lives)/sum(lives),
+                            pooledCost=sum(pooledCost*lives)/sum(lives),
+                            avgRev=sum(P_obs*ageRate*lives)/sum(lives),
+                            lives=sum(lives)),
+                      by=c("ST","Firm","FirmAvgCost","prjFirmCost","expFirmCost","logAvgCost","M_num")]
+firm_test[,share:=lives/sum(lives),by="ST"]
+firm_test[,target:=exp(logAvgCost)]
+
+
 
 
 metalClaims = as.data.table(read.csv("Intermediate_Output/Average_Claims/avgFirmCosts.csv"))

@@ -30,11 +30,17 @@ for (year in 2015:2017){
   temp_file = temp_file[latest_ind==TRUE,]
   
   ## Calculate Insurer pre-transfer costs
-  temp_file[EXP_MM>0,expAvgCost:=(EXP_TAC-EXP_TAC_NOT+EXP_REIN+EXP_RSK_ADJ)/EXP_MM]
-  temp_file[PRJ_MM>0,prjAvgCost:=(PRJ_TAC-PRJ_TAC_NOT+PRJ_REIN+PRJ_RSK_ADJ)/PRJ_MM]
+  # temp_file[EXP_MM>0,expAvgCost:=(EXP_TAC-EXP_TAC_NOT+EXP_REIN+EXP_RSK_ADJ)/EXP_MM]
+  # temp_file[PRJ_MM>0,prjAvgCost:=(PRJ_TAC-PRJ_TAC_NOT+PRJ_REIN+PRJ_RSK_ADJ)/PRJ_MM]
+  # temp_file[EXP_MM==0,expAvgCost:=0]
+  # temp_file[PRJ_MM==0,prjAvgCost:=0]
+  
+  # Include Reinsurance Payments
+  temp_file[EXP_MM>0,expAvgCost:=(EXP_TAC-EXP_TAC_NOT+EXP_RSK_ADJ)/EXP_MM]
+  temp_file[PRJ_MM>0,prjAvgCost:=(PRJ_TAC-PRJ_TAC_NOT+PRJ_RSK_ADJ)/PRJ_MM]
   temp_file[EXP_MM==0,expAvgCost:=0]
   temp_file[PRJ_MM==0,prjAvgCost:=0]
-  
+
   ## Mean of remaining duplicates
   
   # filings = filings[,list(
@@ -53,7 +59,8 @@ for (year in 2015:2017){
   #   by=c("STATE","MARKET","COMPANY","ISSUER_ID","PLAN_ID","METAL")]
   
   temp_file[,METAL:=toupper(METAL)]
-  temp_file = temp_file[,c("STATE","MARKET","COMPANY","ISSUER_ID","PLAN_ID","METAL","expAvgCost","prjAvgCost",
+  temp_file = temp_file[,c("STATE","MARKET","COMPANY","ISSUER_ID","PLAN_ID","METAL",
+                           "expAvgCost","prjAvgCost",
                            "EXP_PLN_ADJ_INDX","EXP_RSK_ADJ","EXP_INC_CLM_PMPM","EXP_ALWD_CLM_PMPM","EXP_MM",
                            "PRJ_PLN_ADJ_INDX","PRJ_RSK_ADJ","PRJ_INC_CLM_PMPM","PRJ_ALWD_CLM_PMPM","PRJ_MM")]
   temp_file[,Year:=year]

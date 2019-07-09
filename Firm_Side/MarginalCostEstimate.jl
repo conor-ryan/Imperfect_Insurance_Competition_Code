@@ -83,7 +83,7 @@ p0 = vcat(rand(1)*.2,rand(1).*4,rand(1)*.2)
 est_stg1 = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false)
 incase = est_stg1
 
-est = estimate_NLOpt(est_stg1[3][1:3],par_est,m,costdf,W,itrFirms=false)
+est_stg1 = estimate_NLOpt(est_stg1[3][1:3],par_est,m,costdf,W,itrFirms=true)
 # #
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
 @save file est_stg1
