@@ -5,9 +5,18 @@ function fit_firm_moments(p0::Vector{Float64},p_est::parDict{Float64},
     N = length(p0)
     p_vec = zeros(c.par_length)
     p_vec[1:N] = p0[:]
+    p_vec[(N+1):length(p_vec)] = c.fPars
 
-    ΔFpar = firmParameters(c,d,p_vec,p_est)
-    p_vec[(N+1):length(p_vec)] = p_vec[(N+1):length(p_vec)] + ΔFpar
+    err = 1
+    cnt = 0
+    while err>1e-10
+        ΔFpar = firmParameters(c,d,p_vec,p_est)
+        p_vec[(N+1):length(p_vec)] = p_vec[(N+1):length(p_vec)] + ΔFpar
+        err = sum((ΔFpar).^2)
+        cnt+=1
+    end
+    println("Fit Firm Moments in $cnt iterations")
+    c.fPars[:] = p_vec[(N+1):length(p_vec)]
     return p_vec
 end
 
@@ -20,7 +29,7 @@ function firmParameters(c::MC_Data,d::InsuranceLogit,p::Array{T},p_est::parDict{
     wgts = weight(d.data)[:]
 
     wgts_share = wgts.*s_hat
-    c_hat = par.C
+    c_hat = par.C_cap
 
     fpar = Vector{T}(undef,length(c.firmMoments))
 
@@ -37,112 +46,6 @@ function firmParameters(c::MC_Data,d::InsuranceLogit,p::Array{T},p_est::parDict{
 
     return fpar
 end
-
-
-
-function firmParameters(c::MC_Data,d::InsuranceLogit,p::Array{T},p_est::parDict{Float64},M_num::Int) where T
-    par = parMC(p,p_est,d,c) # Fix p0
-    individual_costs(d,par)
-
-    s_hat = par.pars.s_hat
-    wgts = weight(d.data)[:]
-
-    wgts_share = wgts.*s_hat
-    c_hat = par.C
-
-    fpar = zeros(length(c.firmMoments))
-
-    ## Firm Moments
-    m_idx = c._firmMomentDict[M_num]
-    c_avg = sliceMean_wgt(c_hat,wgts_share,m_idx)
-    fpar[M_num] = -(log(c_avg) - c.firmMoments[M_num])
-
-    return fpar
-end
-
-
-
-
-#
-# function fit_firm_moments(p0::Vector{Float64},p_est::parDict{Float64},
-#                 d::InsuranceLogit,c::MC_Data;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2000)
-#
-#     ## Initialize Parameter Vector
-#     N = length(p0)
-#     p_vec = Vector{Float64}(undef,c.par_length)
-#     p_vec[1:N] = p0[:]
-#     p_vec[(N+1):length(p_vec)] = rand(length(costdf._feIndex)).+2
-#
-#     cnt = 0
-#
-#     ## Set W
-#     W = zeros(costdf.mom_length,costdf.mom_length)
-#     for k in 1:length(c.firmMoments)
-#         W[k,k] = 1.0
-#     end
-#
-#     # Initialize Gradient
-#     grad = Vector{Float64}(undef,length(p_vec))
-#     hess_new = Matrix{Float64}(undef,length(p_vec),length(p_vec))
-#     update = zeros(length(p_vec))
-#     f_final_val = 0.0
-#     max_trial_cnt = 0
-#     trial_max = 0
-#     p_last = copy(p_vec)
-#     grad_last = copy(grad)
-#     disp_length = min(length(p_vec),20)
-#     f_min = -1e3
-#     p_min  = similar(p_vec)
-#     no_progress=0
-#     no_progress_cnt = 0
-#     flag = "empty"
-#     mistake_thresh = 1.00
-#     ga_itr = 10
-#
-#     ## Tolerance Counts
-#     f_tol_cnt = 0
-#     x_tol_cnt = 0
-#     f_min = 1
-#     # Maximize by Newtons Method
-#     while (cnt<max_itr)
-#         cnt+=1
-#         trial_cnt=0
-#
-#         ## Check for Convergence
-#         if cnt>1
-#             check = GMM_objective(p_vec,p_est,d,c,W)
-#             if check<1e-14
-#                 f_min = copy(check)
-#                 p_min = copy(p_vec)
-#                 println("Inner Loop Converged on Function Value")
-#                 break
-#             end
-#         end
-#
-#         # Compute Gradient, holding δ fixed
-#         fval = GMM_objective!(hess_new,grad,p_vec,p_est,d,c,W)
-#         println("Inner Loop: $cnt")
-#
-#         if (cnt==1) | (fval<f_min)
-#             f_min = copy(fval)
-#             p_min[:] = p_vec[:]
-#         end
-#
-#         # update = -inv(hess_new)*grad
-#         update[5:length(update)]= -inv(hess_new[5:length(update),5:length(update)])*grad[5:length(update)]
-#
-#
-#
-#         p_test = p_vec .+ update
-#
-#         p_last = copy(p_vec)
-#         p_vec = copy(p_test)
-#
-#         p_vec_disp = round.(p_vec[1:10],digits=4)
-#     end
-#     println("Lowest Function Value of Inner Loop: $f_min")
-#     return p_min
-# end
 
 
 function GMM_outer_loop(p::Vector{T},p_est::parDict{Float64},

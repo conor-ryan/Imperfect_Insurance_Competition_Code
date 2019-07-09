@@ -113,6 +113,7 @@ function cost_obs_moments!(mom_obs::Vector{Float64},productIDs::Vector{Int64},
     age_ind = Int.(max(floor((age-2.0)/.5),0)) + 1
 
     costs = p.C[idxitr]
+    costs_cap = p.C_cap[idxitr]
     costs_risk = p.C_HCC[idxitr]
     costs_nonrisk = p.C_nonrisk[idxitr]
 
@@ -139,7 +140,7 @@ function cost_obs_moments!(mom_obs::Vector{Float64},productIDs::Vector{Int64},
         #S_hat
         mom_obs[j] = s_hat[i]*wgts[i]
         #C_hat
-        mom_obs[num_prods + j] = costs[i]*s_hat[i]*wgts[i]
+        mom_obs[num_prods + j] = costs_cap[i]*s_hat[i]*wgts[i]
     end
 
     ## Age Moments

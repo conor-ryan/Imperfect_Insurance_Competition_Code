@@ -191,18 +191,17 @@ CSV.write(file1,out1)
 
 
 #### TEST OUTCOMES ####
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
-@load file p_stg2
-p=  copy(p_stg2)
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
-# @load file est_stg1
-# p_stg1, fval = est_stg1
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
+# @load file p_stg2
+# p=  copy(p_stg2)
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
+@load file est_stg1
+p = fit_firm_moments(est_stg1[3],par_est,m,costdf)
 # S,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
 # W = inv(S)
 #
 # p=p_full
 # p = p_full[1:4]
-# p = fit_firm_moments(p,par_est,m,costdf)
 par = parMC(p,par_est,m,costdf)
 individual_costs(m,par)
 moments = costMoments(costdf,m,par)

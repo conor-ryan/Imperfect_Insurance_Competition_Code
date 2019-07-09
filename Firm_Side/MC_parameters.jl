@@ -11,6 +11,7 @@ mutable struct parMC{T}
     C_nonrisk::Vector{T}
     ## Total Average Cost, with risks
     C::Vector{T}
+    C_cap::Vector{T}
     ## HCC Average Cost
     C_HCC::Vector{T}
     ## Cost Derivative w.r.t. the risk parameter
@@ -29,7 +30,7 @@ mutable struct parMC{T}
     # hess::Array{T,3}
 end
 
-struct MC_Data
+mutable struct MC_Data
     # Matrix of the data (transposed, pre-sorted)
     data::Matrix{Float64}
 
@@ -71,6 +72,9 @@ struct MC_Data
     agenoMoments::Vector{Float64}
 
     riskMoment::Float64
+
+    ## Parameter Hold
+    fPars::Vector{Float64}
 end
 
 function MC_Data(data_choice::DataFrame,
@@ -203,6 +207,8 @@ function MC_Data(data_choice::DataFrame,
     mom_length = length(firmMoments)  + (length(metalMoments)-1) + (length(ageMoments)-1) + length(riskMoment)
     par_length = length(_baseIndex) + length(_riskIndex) + length(_feIndex)
 
+    fePars = zeros(length(firmMoments))
+
 
 
     return MC_Data(data,F,anyHCC,_baseIndex,_riskIndex,_feIndex,
@@ -210,7 +216,7 @@ function MC_Data(data_choice::DataFrame,
                     _firmMomentDict,_firmMomentBit,_firmMomentProdDict,firmMoments,
                     _metalMomentDict,_metalMomentBit,_metalMomentProdDict,metalMoments,
                     _ageMomentDict,_ageMomentBit,ageMoments,
-                    _agenoMomentDict,_agenoMomentBit,agenoMoments,riskMoment)
+                    _agenoMomentDict,_agenoMomentBit,agenoMoments,riskMoment,fePars)
 end
 
 
@@ -228,6 +234,7 @@ function parMC(p_MC::Vector{T},par_est::parDict{Float64},d::InsuranceLogit,c::MC
 
     ## Total Average Cost, with risks
     C = Vector{T}(undef,length(C_nonrisk))
+    C_cap = Vector{T}(undef,length(C_nonrisk))
     ## HCC Average Cost
     C_HCC = Vector{T}(undef,length(C_nonrisk))
 
@@ -246,7 +253,7 @@ function parMC(p_MC::Vector{T},par_est::parDict{Float64},d::InsuranceLogit,c::MC
     # grad = Matrix{T}(undef,c.mom_length+2,c.par_length)
     # hess = Array{T,3}(undef,c.mom_length+2,c.par_length,c.par_length)
 
-    return parMC(par_est,p_MC,risks,C_nonrisk,C,C_HCC,dC,dC_HCC,d2C,d2C_HCC,s_nr,s_r)
+    return parMC(par_est,p_MC,risks,C_nonrisk,C,C_cap,C_HCC,dC,dC_HCC,d2C,d2C_HCC,s_nr,s_r)
 end
 
 
@@ -267,11 +274,13 @@ function individual_costs(d::InsuranceLogit,p::parMC{T}) where T
         @inbounds r_scores = d.draws[:,r_ind]
         @inbounds any_r = any_long[idxitr[1]]
         c_nr = cost_nonRisk[idxitr]
+        c_nr_cap = capped_cost.(c_nr)
         # s_r,c,c_HCC,dc,dc_HCC,d2c,d2c_HCC = calc_cost(u,δ,r_cost,r_scores,c_nr,anyHCC_scores)
-        s_r,c_r = calc_cost(u,δ,r_cost,r_scores,c_nr)
+        s_r,c_r,c_r_cap = calc_cost(u,δ,r_cost,r_scores,c_nr)
         s_nr = calc_shares(u_nr,δ)
         # p.pars.s_hat[idxitr] = s
         p.C[idxitr] = (any_r.*s_r.*c_r + (1-any_r).*s_nr.*c_nr)./(any_r.*s_r + (1-any_r).*s_nr)
+        p.C_cap[idxitr] = (any_r.*s_r.*c_r_cap + (1-any_r).*s_nr.*c_nr_cap)./(any_r.*s_r + (1-any_r).*s_nr)
         p.C_HCC[idxitr] = c_r
         # p.dCdr[idxitr] = dc
         # p.dCdr_HCC[idxitr] = dc_HCC
@@ -290,6 +299,7 @@ function calc_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},r_sc::
     s_hat = Matrix{Float64}(undef,K,N)
     # s_hat_risk = Matrix{Float64}(undef,K,N)
     c_hat = Matrix{T}(undef,K,N)
+    c_hat_capped = Matrix{T}(undef,K,N)
     # c_hat_risk = Matrix{T}(undef,K,N)
     # dc_hat = Matrix{T}(undef,K,N)
     # dc_hat_risk = Matrix{T}(undef,K,N)
@@ -308,11 +318,16 @@ function calc_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},r_sc::
             @inbounds @fastmath s = util[i,n]/expsum
             @inbounds s_hat[i,n] = s
 
-            @inbounds @fastmath cost = s*(r[n,i]*c[i])
+            @inbounds @fastmath cost = r[n,i]*c[i]
+            cost_capped = capped_cost(cost)
+
+            @inbounds @fastmath c_hat[i,n] = s*cost
+            @inbounds @fastmath c_hat_capped[i,n] = s*cost_capped
+
             # @inbounds @fastmath dcost = r_sc[n,i]*cost
             # @inbounds @fastmath d2cost = r_sc[n,i]^2*cost
 
-            @inbounds c_hat[i,n] = cost
+
             # @inbounds @fastmath c_hat_risk[i,n] = cost*(anyHCC[n,i])
 
             # @inbounds dc_hat[i,n] = dcost
@@ -327,6 +342,7 @@ function calc_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},r_sc::
     s_sum  = sum(s_hat,dims=2)
     # s_risk_sum  = sum(s_hat_risk,dims=2)
     c_mean = sum(c_hat,dims=2)./s_sum
+    c_mean_capped = sum(c_hat_capped,dims=2)./s_sum
     # c_mean_risk = sum(c_hat_risk,dims=2)./s_risk_sum
 
     # dc_mean = sum(dc_hat,dims=2)./s_sum
@@ -338,8 +354,34 @@ function calc_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},r_sc::
     s_mean = s_sum./N
     # s_mean_risk = s_risk_sum./N_r
 
-    return s_mean, c_mean #, c_mean_risk, dc_mean, dc_mean_risk, d2c_mean, d2c_mean_risk
+    return s_mean, c_mean, c_mean_capped #, c_mean_risk, dc_mean, dc_mean_risk, d2c_mean, d2c_mean_risk
 end
+
+function capped_cost(c::Float64;thresh::Float64=3750.0,cap::Float64=20833.33,rate::Float64=0.55)
+    c_base = min(c,thresh)
+    c_rein = min(max(c-thresh,0),cap-thresh)
+    c_exc  = max(c-cap,0)
+    c = c_base + rate*c_rein + c_exc
+    return c
+end
+
+function capped_cost(c::Vector{Float64};thresh::Float64=3750.0,cap::Float64=20833.33,rate::Float64=0.55)
+    c_cap = similar(c)
+    for i in 1:length(c)
+        c_cap[i] = capped_cost(c[i],thresh=thresh,cap=cap,rate=rate)
+    end
+    return c_cap
+end
+
+function capped_cost(c::Matrix{Float64};thresh::Float64=3750.0,cap::Float64=20833.33,rate::Float64=0.55)
+    c_cap = similar(c)
+    (J,K) = size(c)
+    for j in 1:J, k in 1:K
+        c_cap[j,k] = capped_cost(c[j,k],thresh=thresh,cap=cap,rate=rate)
+    end
+    return c_cap
+end
+
 
 
 
@@ -355,6 +397,7 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     none_share = wgts.*s_hat_nonrisk.*(1 .- c.anyHCC)
 
     c_hat = p.C
+    c_hat_cap = p.C_cap
     c_hat_nonHCC = p.C_nonrisk
     c_hat_HCC = p.C_HCC
 
@@ -366,7 +409,7 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
 
     ## Firm Moments
     for (m,m_idx) in c._firmMomentDict
-        c_avg = sliceMean_wgt(c_hat,wgts_share,m_idx)
+        c_avg = sliceMean_wgt(c_hat_cap,wgts_share,m_idx)
         fmom[m] = log(c_avg) #- c.firmMoments[m]
         # t = sum(test[m_idx])
         # if t>0.0
@@ -383,7 +426,7 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
         if m==1
             continue
         else
-            c_avg = sliceMean_wgt(c_hat,wgts_share,m_idx)
+            c_avg = sliceMean_wgt(c_hat_cap,wgts_share,m_idx)
             mmom[m-1] = c_avg/refval[1] #- c.metalMoments[m]
         end
     end

@@ -14,24 +14,10 @@ predFile = paste("Simulation_Risk_Output/prodData.rData",sep="")
 load(predFile)
 
 
+eqFile = paste("Estimation_Output/checkMargins_",run,".csv",sep="")
+eqData = as.data.table(read.csv(eqFile))
 
-focFiles = list.files("Estimation_Output")[grep(paste("focMargin.*",run,sep=""),list.files("Estimation_Output"))]
-
-setkey(prod_data,Product)
-for (file in focFiles){
-  temp = read.csv(paste("Estimation_Output/",file,sep=""))
-  temp = temp[order(temp$Products),]
-  prod_data[Product%in%temp$Products,prem_FOC_base:= temp$Price_Std]
-  prod_data[Product%in%temp$Products,prem_FOC_RA:= temp$Price_RA]
-  prod_data[Product%in%temp$Products,avgCost:= temp$AvgCost]
-  prod_data[Product%in%temp$Products,share_base:= temp$Share]
-  prod_data[Product%in%temp$Products,ageRate:= temp$AgeRate]
-  prod_data[Product%in%temp$Products,Markup:= temp$Markup]
-  prod_data[Product%in%temp$Products,MC_Std:= temp$MC_Std]
-  prod_data[Product%in%temp$Products,MC_RA:= temp$mc_RA]
-  prod_data[Product%in%temp$Products,R_avg:= temp$R_avg]
-}
-
+prod_data = merge(prod_data,eqData,by="Product")
 
 # firms = prod_data[,list(R_avg=sum(share_base*size*R_avg)/sum(share_base*size),
 #                         Revenue=sum(share_base*size*premBase*ageRate)/sum(share_base*size)),
@@ -42,7 +28,7 @@ for (file in focFiles){
 #### Market Size ####
 load("Intermediate_Output/Simulated_BaseData/simMarketSize.rData")
 prod_data = merge(prod_data,marketSize,by="Market")
-prod_data[,lives:=share_base*size]
+prod_data[,share_base:=lives/size]
 
 ## Test against moments
 share_moment = read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv")
@@ -61,7 +47,7 @@ names(firmClaims) = c("ST","Firm","FirmAvgCost","prjFirmCost")
 prod_data = merge(prod_data,firmClaims,by=c("ST","Firm"))
 
 
-metalClaims = as.data.table(read.csv("Intermediate_Output/Average_Claims/firmClaims.csv"))
+metalClaims = as.data.table(read.csv("Intermediate_Output/Average_Claims/avgFirmCosts.csv"))
 metalClaims[,expFirmCost:=sum(EXP_MM*expAvgCost)/sum(EXP_MM),by=c("STATE","Firm")]
 
 

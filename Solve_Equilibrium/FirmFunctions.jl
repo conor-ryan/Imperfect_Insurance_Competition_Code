@@ -82,6 +82,30 @@ function prof_margin(firm::firmData)
 end
 
 
+function checkMargin(m::InsuranceLogit,f::firmData,file::String)
+    evaluate_model!(m,f,"All",foc_check=true)
+    Mkup,MC_std,MC_RA = prof_margin(firm)
+    avgCost = f.C_j[f.prods]
+    pooledCost = f.PC_j[f.prods]
+    lives = f.S_j[f.prods]
+    ageRate = f.SA_j[f.prods]./lives
+    P_obs = f.P_j[f.prods]
+
+    output =  DataFrame(Product=f.prods,
+                        P_obs = P_obs,
+                        Mkup = Mkup,
+                        MC_std = MC_std,
+                        MC_RA = MC_RA,
+                        avgCost = avgCost,
+                        pooledCost = pooledCost,
+                        lives=lives,
+                        ageRate=ageRate)
+
+    CSV.write(file,output)
+
+end
+
+
 function evaluate_FOC(firm::firmData,ST::String)
 
     P_std = zeros(length(firm.P_j))
@@ -393,7 +417,7 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
 
 
 
-    output =  DataFrame(Products=sort(model.prods),
+    output =  DataFrame(Product=sort(model.prods),
                         Price_data=P_Obs,
                         Price_base=P_Base,
                         Price_RA =P_RA,

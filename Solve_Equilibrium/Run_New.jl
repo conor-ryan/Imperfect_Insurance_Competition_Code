@@ -74,9 +74,29 @@ mc_est = copy(p_stg2)
 par_cost = parMC(mc_est,par_dem,model,costdf)
 
 
+eq_mkt[:Firm_ST] = eq_mkt[:Firm].*"_".*eq_mkt[:ST]
+df[:Firm_ST] = df[:Firm].*"_".*df[:ST]
+firms = unique(eq_mkt[:Firm_ST])
+_firmProdDict = Dict{String,Array{Int64,1}}()
+_firmPerDict = Dict{String,Array{Int64,1}}()
+for f in firms
+    _firmProdDict[f] = eq_mkt[:Product][eq_mkt[:Firm_ST].==f]
+    _firmPerDict[f] = findall(df[:Firm_ST].==f)
+end
+
 
 #### Solve Equilibrium ####
 firm = firmData(model,df,eq_mkt,par_dem,par_cost)
+evaluate_model!(model,firm,"All",foc_check=true)
+f = firm
+m = model
+
+
+
+moments,targ = costMoments(costdf,model,firm.par_cost)
+
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/checkMargins_$rundate.csv"
+checkMargin(model,firm,file)
 
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_$rundate.csv"
 solveMain(model,firm,file)
@@ -85,11 +105,11 @@ solveMain(model,firm,file)
 # m = model
 # f = firm
 #
-# solve_model!(m,f,sim="Base")
+solve_model!(m,f,sim="RA")
 
 
 
-# evaluate_model!(m,f,"All")
+evaluate_model!(m,f,"All")
 #
 # P,P_RA = evaluate_FOC(f)
 
