@@ -88,49 +88,7 @@ est_stg1 = estimate_NLOpt(est_stg1[3][1:3],par_est,m,costdf,W,itrFirms=true)
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
 @save file est_stg1
 
-# p0 = [.1,4,.1,.1]
-# p_firm = fit_firm_moments(p0,par_est,m,costdf)
-#
-#
-# p0 = vcat([0,1,1,0],rand(length(costdf._feIndex)).+2)
-# p0 = [0.197683, 3.19544, -0.389545, 0.142835]
-# est = estimate_NLOpt(p0,par_est,m,costdf,W)
-# flag, fval, pinit = est
-# p_full = fit_firm_moments(pinit,par_est,m,costdf)
-# est_init = estimate_GMM(p_full,par_est,m,costdf,W)
-#
-# est = twopart_NR_GMM(p0,par_est,m,costdf,W)
-# p0 = vcat(rand(1)*.3,rand(2).*4,rand(1)*.3)
-#
-#
-#
-# par = parMC(p2,par_est,m,costdf)
-# individual_costs(m,par)
-# m2 = costMoments(costdf,m,par)
-#
-#
-# p0 = vcat(rand(1)*.3,rand(2).*4,rand(1)*.3,rand(length(costdf._feIndex)).*3 .+1)
-# est_init = estimate_GMM(p0,par_est,m,costdf,W)
-#
-#
-# est = twopart_GA_GMM(p0,par_est,m,costdf,W)
-#
-# GMM_outer_loop(p0,par_est,m,costdf,W)
-# est = estimate_NLOpt(p0,par_est,m,costdf,W)
-#
-# p_test,f_test = newton_raphson_GMM(p0,par_est,m,costdf,W)
-#
-# est_init = estimate_GMM(p_firm,par_est,m,costdf,W)
-# p_init, fval = est_init
-# est_stg1 = estimate_GMM(p_init,par_est,m,costdf,W;squared=true)
-# incase = est_stg1
-# #
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
-# @save file est_stg1
-#
-#
-#
-#
+
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
 @load file est_stg1
 # p_stg1, fval = est_stg1
@@ -157,7 +115,8 @@ W = inv(S)
 
 p0 = vcat(rand(1)*.2,rand(1).*4,rand(1)*.2)
 # # p0 = [0.0152152, 2.42283, -0.21084, 0.154506]
-est_stg2 = estimate_NLOpt(p0,par_est,m,costdf,W)
+est_stg2 = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false)
+est_stg2 = estimate_NLOpt(est_stg2[3][1:3],par_est,m,costdf,W,itrFirms=true)
 # x1,x2,p_init = est_stg2
 # p_full = fit_firm_moments(p_init,par_est,m,costdf)
 
@@ -168,7 +127,7 @@ est_stg2 = estimate_NLOpt(p0,par_est,m,costdf,W)
 # GMM_objective(p_fit,par_est,m,costdf,W,squared=true)
 #
 
-p_stg2 = fit_firm_moments(est_stg2[3],par_est,m,costdf)
+p_stg2 = fit_firm_moments(est_stg2[3],par_est,m,costdf,itrFirms=true)
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
 @save file p_stg2
 
