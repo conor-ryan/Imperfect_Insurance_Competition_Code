@@ -157,7 +157,7 @@ CSV.write(file1,out1)
 # p=  copy(p_stg2)
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
 @load file est_stg1
-p = fit_firm_moments(est_stg1[3],par_est,m,costdf)
+p = fit_firm_moments(est_stg1[3],par_est,m,costdf,itrFirms=true)
 # S,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
 # W = inv(S)
 #
