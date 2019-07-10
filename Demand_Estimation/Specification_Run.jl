@@ -156,29 +156,25 @@ function run_specification_GMM(filename::String,
     p0 = zeros(m_GMM.parLength[:All])
     p0[ind1] = p_ll[ind1]
     p0[ind2] = p_ll[ind2.-m_GMM.parLength[:σ]]
-    if spec_fixedEffects== [:Firm_Market_Cat]
-        p0[σ_ind] = [-0.125391,0.375388,0.0252852]
-    end
+    # if spec_fixedEffects== [:Firm_Market_Cat]
+    #     p0[σ_ind] = [-0.125391,0.375388,0.0252852]
+    # end
     println("#### Estimate GMM First Stage ####")
 
     # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/checkin_265.jld2"
     # @load file p_vec
     # p0 = copy(p_vec)
     W = Matrix(1.0I,m_GMM.parLength[:All]+length(m_GMM.data.tMoments),m_GMM.parLength[:All]+length(m_GMM.data.tMoments))
-    if spec_fixedEffects!= [:Firm_Market_Cat]
-        ## Estimate
-        # p_stg1, obj_1 = estimate_GMM(m_GMM,p0,W)
-        # p_stg1, obj_1 = newton_raphson_GMM(m_GMM,p0,W,grad_tol = 1e-8,strict=true,checkin=true)
-        p_stg1, obj_1 = two_stage_est(m_GMM,p0,W)
+    p_stg1, obj_1 = two_stage_est(m_GMM,p0,W)
 
-        println("Save First Stage Result")
-        file = "$filename-$rundate-stg1.jld2"
-        @save file p_stg1 obj_1
-    else
-        println("Load First Stage Result")
-        file = "$filename-$rundate-stg1.jld2"
-        @load file p_stg1 obj_1
-    end
+    println("Save First Stage Result")
+    file = "$filename-$rundate-stg1.jld2"
+    @save file p_stg1 obj_1
+    # else
+    #     println("Load First Stage Result")
+    #     file = "$filename-$rundate-stg1.jld2"
+    #     @load file p_stg1 obj_1
+    # end
 
     println("#### Estimate GMM Second Stage ####")
     mom_pars = vcat(1:length(m_GMM.data.tMoments),(length(m_GMM.data.tMoments)+1).+σ_ind)
@@ -191,9 +187,9 @@ function run_specification_GMM(filename::String,
     println(W[mom_pars,mom_pars])
 
     p0[σ_ind]=rand(length(σ_ind)).*0.5
-    if spec_fixedEffects== [:Firm_Market_Cat]
-        p0[σ_ind] = [1.83405,0.786275,0.0648267]
-    end
+    # if spec_fixedEffects== [:Firm_Market_Cat]
+    #     p0[σ_ind] = [1.83405,0.786275,0.0648267]
+    # end
     ## Estimate
     p_stg2, obj_2 = two_stage_est(m_GMM,p0,W)
 
