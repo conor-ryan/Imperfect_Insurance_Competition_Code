@@ -351,19 +351,19 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false,constI
             #     continue
             # end
 
-            if bigFirm & (fac=="MODA_HEALTH_PLAN_INC")
+            if bigFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA")
                 println("skip")
                 continue
             end
-            if bigFirm & (fac=="MODA_HEALTH_PLAN_INC_AK_1")
+            if bigFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA_AK_1")
                 println("skip")
                 continue
             end
-            if bigFirm & (fac=="MODA_HEALTH_PLAN_INC_AK_1_Low")
+            if bigFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA_AK_1_Low")
                 println("skip")
                 continue
             end
-            if bigFirm & (fac=="MODA_HEALTH_PLAN_INC_AK_1_Low_1")
+            if bigFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA_AK_1_Low_1")
                 println("skip")
                 continue
             end
