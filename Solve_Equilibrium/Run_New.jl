@@ -67,8 +67,16 @@ individual_shares(model,par_dem)
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
 @load file p_stg2
 # p_stg2 = est_stg1[3]
-# p_stg2 = fit_firm_moments(p_stg2,par_dem,m,costdf)
+p_stg2[3]/=2
+p_stg2 = fit_firm_moments(p_stg2[1:3],par_dem,m,costdf,itrFirms=true)
 mc_est = copy(p_stg2)
+
+
+# par = parMC(mc_est,par_dem,model,costdf)
+# individual_costs(model,par)
+# moments = costMoments(costdf,model,par)
+# W = Matrix(1.0I,costdf.mom_length,costdf.mom_length)
+# GMM_objective(mc_est,par_dem,model,costdf,W)
 
 #### Compute Marginal Costs
 par_cost = parMC(mc_est,par_dem,model,costdf)
@@ -93,7 +101,7 @@ m = model
 
 
 
-moments,targ = costMoments(costdf,model,firm.par_cost)
+moments = costMoments(costdf,model,firm.par_cost)
 
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/checkMargins_$rundate.csv"
 checkMargin(model,firm,file)

@@ -113,8 +113,9 @@ function individual_update(d::InsuranceLogit,firm::firmData)
         @inbounds r_scores = d.draws[:,r_ind]
         @inbounds any_r = any_long[idxitr[1]]
         c_nr = cost_nonRisk[idxitr]
-        # s_r,c,c_HCC,dc,dc_HCC,d2c,d2c_HCC = calc_cost(u,δ,r_cost,r_scores,c_nr,anyHCC_scores)
-        s_r,c_r = calc_cost(u,δ,r_cost,r_scores,c_nr)
+        c_nr = capped_cost(c_nr)
+        # s_r,c,c_HCC,dc,dc_HCC,d2c,d2c_HCC = update_cost(u,δ,r_cost,r_scores,c_nr,anyHCC_scores)
+        s_r,c_r = update_cost(u,δ,r_cost,r_scores,c_nr)
         s_nr = calc_shares(u_nr,δ)
 
         s_hat = (any_r.*s_r + (1-any_r).*s_nr)
@@ -125,7 +126,7 @@ function individual_update(d::InsuranceLogit,firm::firmData)
 end
 
 
-function calc_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},r_sc::Matrix{Float64},c::Vector{T};returnMat::Bool=false) where T
+function update_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},r_sc::Matrix{Float64},c::Vector{T};returnMat::Bool=false) where T
     (N,K) = size(μ_ij)
     util = Matrix{Float64}(undef,K,N)
     s_hat = Matrix{Float64}(undef,K,N)
@@ -151,6 +152,7 @@ function calc_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},r_sc::
             @inbounds s_hat[i,n] = s
 
             @inbounds @fastmath cost = (r[n,i]*c[i])
+            cost = capped_cost(cost)
             @inbounds c_hat[i,n] = s*cost
             @inbounds c_hat_pool[i,n] = si*cost
             if returnMat
@@ -321,8 +323,9 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,ST::String;foc_chec
         @inbounds any_r = any_long[idxitr[1]]
         wgt = wgt_long[idxitr]
         c_nr = cost_nonRisk[idxitr]
+        c_nr = capped_cost(c_nr)
 
-        s_r,c_r,c_r_pl,s_mat,c_mat = calc_cost(u,δ,r_cost,r_scores,c_nr,returnMat=true)
+        s_r,c_r,c_r_pl,s_mat,c_mat = update_cost(u,δ,r_cost,r_scores,c_nr,returnMat=true)
         s_nr = calc_shares(u_nr,δ)
         s_r_ins = sum(s_r)
         s_nr_ins = sum(s_nr)

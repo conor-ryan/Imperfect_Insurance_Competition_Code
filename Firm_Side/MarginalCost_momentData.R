@@ -19,12 +19,13 @@ prod_adj = prod_data[,list(lives=sum(lives),
 # firm_adj = prod_data[,list(lives=sum(lives),
 #                             AV=sum(lives*AV)/sum(lives)),by=c("STATE","Firm")]
 
-metalClaims = as.data.table(read.csv("Intermediate_Output/Average_Claims/firmClaims.csv"))
-metalClaims[PRJ_INC_CLM_PMPM<=0,PRJ_INC_CLM_PMPM:=NA]
-metalClaims[EXP_INC_CLM_PMPM<=0,EXP_INC_CLM_PMPM:=NA]
-
-firm_adj1 = metalClaims[EXP_MM>0,list(expFirmCost=sum(EXP_MM*expAvgCost)/sum(EXP_MM),EXP_MM=sum(EXP_MM)),by=c("STATE","Firm","Year")]
-firm_adj2 = metalClaims[PRJ_MM>0,list(prjFirmCost=sum(PRJ_MM*prjAvgCost)/sum(PRJ_MM),PRJ_MM=sum(PRJ_MM)),by=c("STATE","Firm","Year")]
+firmFilings = as.data.table(read.csv("Intermediate_Output/Average_Claims/firmFilings.csv"))
+firmFilings=firmFilings[Year==2015,]
+# metalClaims[PRJ_INC_CLM_PMPM<=0,PRJ_INC_CLM_PMPM:=NA]
+# metalClaims[EXP_INC_CLM_PMPM<=0,EXP_INC_CLM_PMPM:=NA]
+# 
+# firm_adj1 = metalClaims[EXP_MM>0,list(expFirmCost=sum(EXP_MM*expAvgCost)/sum(EXP_MM),EXP_MM=sum(EXP_MM)),by=c("STATE","Firm","Year")]
+# firm_adj2 = metalClaims[PRJ_MM>0,list(prjFirmCost=sum(PRJ_MM*prjAvgCost)/sum(PRJ_MM),PRJ_MM=sum(PRJ_MM)),by=c("STATE","Firm","Year")]
 
 #### Read in Total Claims Data ####
 MLR_Data = read.csv("Data/2015_MLR/Part1_2_Summary_Data_Premium_Claims.csv")
@@ -54,17 +55,19 @@ claims$AvgCost = with(claims,Claims/MLR_lives)
 firmData = unique(choiceData[,c("ST","Firm")])
 
 firmClaims = merge(firmData,claims,by.x=c("ST","Firm"),by.y=c("STATE","Firm"),all.x=TRUE)
-firmClaims = merge(firmClaims,firm_adj1[Year==2016,],by.x=c("ST","Firm"),by.y=c("STATE","Firm"),all.x=TRUE)
-firmClaims = merge(firmClaims,firm_adj2[Year==2016,],by.x=c("ST","Firm"),by.y=c("STATE","Firm"),all.x=TRUE)
+firmClaims = merge(firmClaims,firmFilings,by.x=c("ST","Firm"),by.y=c("STATE","Firm"),all.x=TRUE)
+
+# test = firmClaims[,list(c1=sum(MLR_lives*AvgCost)/sum(MLR_lives),c2=sum(EXP_MM_WK1*expAvgCost)/sum(EXP_MM_WK1),c3=sum(PRJ_MM_WK1*prjAvgCost)/sum(PRJ_MM_WK1)),by="Year"]
+
 
 
 # Expecatation Adjustment
 # firmClaims[!is.na(expFirmCost)&Year==2017,sum(EXP_MM*expFirmCost)/sum(EXP_MM)/(sum(MLR_lives*AvgCost)/sum(MLR_lives)),by="ST"]
-prj_adj=firmClaims[!is.na(prjFirmCost),sum(PRJ_MM*prjFirmCost)/sum(PRJ_MM)/(sum(MLR_lives*AvgCost)/sum(MLR_lives))]
-firmClaims[is.na(prjFirmCost),prjFirmCost:=AvgCost*prj_adj]
+prj_adj=firmClaims[!is.na(prjAvgCost),sum(PRJ_MM_WK1*prjAvgCost)/sum(PRJ_MM_WK1)/(sum(MLR_lives*AvgCost)/sum(MLR_lives))]
+firmClaims[is.na(prjAvgCost),prjAvgCost:=AvgCost*prj_adj]
 
 
-firmClaims[,logAvgCost:=log(prjFirmCost)]
+firmClaims[,logAvgCost:=log(prjAvgCost)]
 firmClaims[,Firm_ST:=paste(Firm,ST,sep="_")]
 setkey(firmClaims,Firm_ST)
 firmClaims[,Firm_ST:=NULL]
@@ -75,7 +78,7 @@ firmClaims$M_num = 1:nrow(firmClaims)
 
 
 ### Bronze Cost Ratio
-load("Intermediate_Output/Average_Claims/fullMarketMetalAvg.rData")
+load("Intermediate_Output/Average_Claims/allMetalFilings.rData")
 metalAvg[METAL=="BRONZE",bronzeCost:=expAvgCost]
 metalAvg[,bronzeCost:=max(bronzeCost,na.rm=TRUE),by=c("STATE","MARKET","COMPANY","Year")]
 metalAvg[bronzeCost<=0,bronzeCost:=NA]

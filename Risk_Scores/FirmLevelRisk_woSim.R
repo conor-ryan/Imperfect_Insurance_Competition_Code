@@ -140,6 +140,9 @@ firm_RA[,names(firm_RA)[!names(firm_RA)%in%c("Firm","ST","payments_adj",
                                              "ST_MLR_months","memberMonths","MM_compliant","T_norm","T_norm_adj","R_adj","R_adj_natl",
                                              "RA_prem","AvgPLRS","AvgARF")]:=NULL]
 
+firm_RA[,HighRisk:=0]
+firm_RA[T_norm_adj>0.08,HighRisk:=1] # 75th percentile of most risky
+
 
 #### Save Files ####
 firmRiskFile = "Simulation_Risk_Output/FirmRiskScores_woSim.rData"

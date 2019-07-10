@@ -718,7 +718,15 @@ choices$MedOOPDiff = choices$MedOOPDiff/1000
 choices[,ExcOOP:= (MedOOP - MedDeduct)]
 choices[,ExcOOPDiff:= (MedOOPDiff - MedDeductDiff)]
 
-choices[,Big:=as.numeric(grepl("UNITED|BLUE|CIGNA|ASSURANT",Firm))]
+
+### Circular reference with FirmLevelRisk_woSim.R!!
+load("Simulation_Risk_Output/FirmRiskScores_woSim.rData")
+firm_RA = firm_RA[Firm!="OTHER",c("ST","Firm","HighRisk")]
+choices = merge(choices,firm_RA,by.y=c("ST","Firm"),by.x=c("STATE","Firm"))
+
+choices[,Big:=HighRisk]
+
+# choices[,Big:=as.numeric(grepl("UNITED|BLUE|CIGNA|ASSURANT",Firm))]
 
 choices$Product = as.factor(choices$Product)
 shares$Product_Name = factor(shares$Product,levels=levels(choices$Product))

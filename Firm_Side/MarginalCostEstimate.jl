@@ -151,12 +151,12 @@ CSV.write(file1,out1)
 
 
 #### TEST OUTCOMES ####
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
-# @load file p_stg2
-# p=  copy(p_stg2)
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
-@load file est_stg1
-p = fit_firm_moments(est_stg1[3],par_est,m,costdf,itrFirms=true)
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
+@load file p_stg2
+p=  copy(p_stg2)
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
+# @load file est_stg1
+# p = fit_firm_moments(est_stg1[3],par_est,m,costdf,itrFirms=true)
 # S,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
 # W = inv(S)
 #
@@ -165,8 +165,6 @@ p = fit_firm_moments(est_stg1[3],par_est,m,costdf,itrFirms=true)
 par = parMC(p,par_est,m,costdf)
 individual_costs(m,par)
 moments = costMoments(costdf,m,par)
-
-est_stg1 = estimate_NLOpt(p[1:3],par_est,m,costdf,W)
 
 GMM_objective(p,par_est,m,costdf,W)
 
