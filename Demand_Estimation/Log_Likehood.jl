@@ -187,7 +187,7 @@ end
 function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
                             d::InsuranceLogit,p::Array{T};feFlag=-1) where T
     params = parDict(d,p)
-    ll = log_likelihood!(hess,grad,d,params,feFlag=feFlag,no2Der=true)
+    ll = log_likelihood!(hess,grad,d,params,feFlag=feFlag)
     # convert_δ!(d)
     return ll
 end
