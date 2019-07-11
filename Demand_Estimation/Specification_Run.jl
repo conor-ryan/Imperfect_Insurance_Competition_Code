@@ -129,16 +129,13 @@ function run_specification_GMM(filename::String,
     p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
     println("#### Estimate LL Starting Point ####")
 
-    ## Estimate
-    # p_ll, fval = newton_raphson_ll(m_ll,p0)
+    # Estimate
+    p_ll, fval = newton_raphson_ll(m_ll,p0)
 
-    # println("Save LL Result")
-    # file = "$filename-$rundate-ll.jld2"
-    # @save file p_ll
-
-    println("Load LL Result")
-    file = "$filename-2019-07-10-ll.jld2"
+    println("Save LL Result")
+    file = "$filename-$rundate-ll.jld2"
     @save file p_ll
+
 
 
     ## Build GMM Model
