@@ -188,9 +188,9 @@ function run_specification_GMM(filename::String,
     println(W[mom_pars,mom_pars])
 
     p0[σ_ind]=rand(length(σ_ind)).*0.5
-    # if spec_fixedEffects== [:Firm_Market_Cat]
-    #     p0[σ_ind] = [1.83405,0.786275,0.0648267]
-    # end
+    if spec_fixedEffects== [:Firm_Market_Cat]
+        p0[σ_ind] = [1.94114, 0.769856, 0.0100126]
+    end
     ## Estimate
     p_stg2, obj_2 = two_stage_est(m_GMM,p0,W)
 

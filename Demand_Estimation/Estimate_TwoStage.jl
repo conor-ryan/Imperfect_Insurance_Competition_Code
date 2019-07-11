@@ -340,6 +340,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             f_min = copy(fval)
             p_min[:] = p_vec[:]
 
+            println("Update p_min to $(p_min[1:16])")
             no_progress=0
         else
             no_progress+=1
@@ -392,7 +393,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         if step_size>10
         update = update./step_size
         ind = findall(abs.(update).==1)
-        val_disp = p_vec[ind]
+        val_disp = p_vec[FE_ind][ind]
             println("Max Parameter Adjustment: $ind, $val_disp")
         step_size = 1
         end
