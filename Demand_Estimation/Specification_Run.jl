@@ -166,15 +166,15 @@ function run_specification_GMM(filename::String,
     # @load file p_vec
     # p0 = copy(p_vec)
     W = Matrix(1.0I,m_GMM.parLength[:All]+length(m_GMM.data.tMoments),m_GMM.parLength[:All]+length(m_GMM.data.tMoments))
-    p_stg1, obj_1 = two_stage_est(m_GMM,p0,W)
+    # p_stg1, obj_1 = two_stage_est(m_GMM,p0,W)
 
-    println("Save First Stage Result")
-    file = "$filename-$rundate-stg1.jld2"
-    @save file p_stg1 obj_1
+    # println("Save First Stage Result")
+    # file = "$filename-$rundate-stg1.jld2"
+    # @save file p_stg1 obj_1
     # else
-    #     println("Load First Stage Result")
-    #     file = "$filename-$rundate-stg1.jld2"
-    #     @load file p_stg1 obj_1
+    println("Load First Stage Result")
+    file = "$filename-$rundate-stg1.jld2"
+    @load file p_stg1 obj_1
     # end
 
     println("#### Estimate GMM Second Stage ####")
