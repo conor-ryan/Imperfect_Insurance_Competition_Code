@@ -309,8 +309,6 @@ acs[,ExcOOPDiff:= (MedOOPDiff - MedDeductDiff)]
 acs[,Age := 0]
 acs[AGE>=39,Age:= 1]
 
-acs[,Big:=as.numeric(grepl("UNITED|BLUE|CIGNA|ASSURANT",Firm))]
-
 
 
 # Product Variables
@@ -337,6 +335,14 @@ setkey(prod_map,Product_Name)
 acs = merge(acs,prod_map[,c("Product_Name","Product")],by="Product_Name",all.x=TRUE)
 # Drop 0 share products
 acs = acs[!is.na(acs$Product),]
+
+#### Merge in High Risk ####
+load("Simulation_Risk_Output/FirmRiskScores_woSim.rData")
+firm_RA = firm_RA[Firm!="OTHER",c("ST","Firm","HighRisk")]
+acs = merge(acs,firm_RA,by.y=c("ST","Firm"),by.x=c("ST","Firm"))
+
+acs[,Big:=HighRisk]
+# acs[,Big:=as.numeric(grepl("UNITED|BLUE|CIGNA|ASSURANT",Firm))]
 
 
 #### Fixed Effects ####

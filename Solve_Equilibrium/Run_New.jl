@@ -27,7 +27,7 @@ include("FirmFunctions.jl")
 include("EQ_load.jl")
 
 
-rundate = "2019-06-25"
+rundate = "2019-07-11"
 mark_the_output_date = Dates.today()
 println("Running spec $rundate on $mark_the_output_date")
 
@@ -54,7 +54,7 @@ costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk;
 
 
 ## Load Demand Estimation
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-$rundate-stg2.jld2"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-$rundate-stg1.jld2"
 @load file p_stg2
 p_est = copy(p_stg2)
 
@@ -82,15 +82,15 @@ mc_est = copy(p_stg2)
 par_cost = parMC(mc_est,par_dem,model,costdf)
 
 
-eq_mkt[:Firm_ST] = eq_mkt[:Firm].*"_".*eq_mkt[:ST]
-df[:Firm_ST] = df[:Firm].*"_".*df[:ST]
-firms = unique(eq_mkt[:Firm_ST])
-_firmProdDict = Dict{String,Array{Int64,1}}()
-_firmPerDict = Dict{String,Array{Int64,1}}()
-for f in firms
-    _firmProdDict[f] = eq_mkt[:Product][eq_mkt[:Firm_ST].==f]
-    _firmPerDict[f] = findall(df[:Firm_ST].==f)
-end
+# eq_mkt[:Firm_ST] = eq_mkt[:Firm].*"_".*eq_mkt[:ST]
+# df[:Firm_ST] = df[:Firm].*"_".*df[:ST]
+# firms = unique(eq_mkt[:Firm_ST])
+# _firmProdDict = Dict{String,Array{Int64,1}}()
+# _firmPerDict = Dict{String,Array{Int64,1}}()
+# for f in firms
+#     _firmProdDict[f] = eq_mkt[:Product][eq_mkt[:Firm_ST].==f]
+#     _firmPerDict[f] = findall(df[:Firm_ST].==f)
+# end
 
 
 #### Solve Equilibrium ####

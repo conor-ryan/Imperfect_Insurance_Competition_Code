@@ -12,6 +12,7 @@ mutable struct parMC{T}
     ## Total Average Cost, with risks
     C::Vector{T}
     C_cap::Vector{T}
+    C_pool::Vector{T}
     ## HCC Average Cost
     C_HCC::Vector{T}
     ## Cost Derivative w.r.t. the risk parameter
@@ -235,6 +236,7 @@ function parMC(p_MC::Vector{T},par_est::parDict{Float64},d::InsuranceLogit,c::MC
     ## Total Average Cost, with risks
     C = Vector{T}(undef,length(C_nonrisk))
     C_cap = Vector{T}(undef,length(C_nonrisk))
+    C_pool = Vector{T}(undef,length(C_nonrisk))
     ## HCC Average Cost
     C_HCC = Vector{T}(undef,length(C_nonrisk))
 
@@ -253,7 +255,7 @@ function parMC(p_MC::Vector{T},par_est::parDict{Float64},d::InsuranceLogit,c::MC
     # grad = Matrix{T}(undef,c.mom_length+2,c.par_length)
     # hess = Array{T,3}(undef,c.mom_length+2,c.par_length,c.par_length)
 
-    return parMC(par_est,p_MC,risks,C_nonrisk,C,C_cap,C_HCC,dC,dC_HCC,d2C,d2C_HCC,s_nr,s_r)
+    return parMC(par_est,p_MC,risks,C_nonrisk,C,C_cap,C_pool,C_HCC,dC,dC_HCC,d2C,d2C_HCC,s_nr,s_r)
 end
 
 
@@ -276,12 +278,18 @@ function individual_costs(d::InsuranceLogit,p::parMC{T}) where T
         c_nr = cost_nonRisk[idxitr]
         c_nr_cap = capped_cost.(c_nr)
         # s_r,c,c_HCC,dc,dc_HCC,d2c,d2c_HCC = calc_cost(u,δ,r_cost,r_scores,c_nr,anyHCC_scores)
-        s_r,c_r,c_r_cap = calc_cost(u,δ,r_cost,r_scores,c_nr)
+        s_r,c_r,c_r_cap,c_r_pl = calc_cost(u,δ,r_cost,r_scores,c_nr)
         s_nr = calc_shares(u_nr,δ)
         # p.pars.s_hat[idxitr] = s
         p.C[idxitr] = (any_r.*s_r.*c_r + (1-any_r).*s_nr.*c_nr)./(any_r.*s_r + (1-any_r).*s_nr)
         p.C_cap[idxitr] = (any_r.*s_r.*c_r_cap + (1-any_r).*s_nr.*c_nr_cap)./(any_r.*s_r + (1-any_r).*s_nr)
         p.C_HCC[idxitr] = c_r
+
+        s_r_ins = sum(s_r)
+        s_nr_ins = sum(s_nr)
+        s_ins_hat = (any_r.*s_r_ins + (1-any_r).*s_nr_ins)
+        p.C_pool[idxitr] = (any_r.*s_r_ins.*c_r_pl + (1-any_r).*s_nr_ins.*c_nr)./s_ins_hat
+
         # p.dCdr[idxitr] = dc
         # p.dCdr_HCC[idxitr] = dc_HCC
         # p.d2Cdr[idxitr] = d2c
@@ -297,9 +305,11 @@ function calc_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},r_sc::
     (N,K) = size(μ_ij)
     util = Matrix{Float64}(undef,K,N)
     s_hat = Matrix{Float64}(undef,K,N)
+    s_ins = Vector{Float64}(undef,N)
     # s_hat_risk = Matrix{Float64}(undef,K,N)
     c_hat = Matrix{T}(undef,K,N)
     c_hat_capped = Matrix{T}(undef,K,N)
+    c_hat_pool = Matrix{T}(undef,K,N)
     # c_hat_risk = Matrix{T}(undef,K,N)
     # dc_hat = Matrix{T}(undef,K,N)
     # dc_hat_risk = Matrix{T}(undef,K,N)
@@ -314,6 +324,8 @@ function calc_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},r_sc::
             @inbounds util[i,n] = a
             expsum += a
         end
+        si = (expsum-1)/expsum
+        s_ins[n] = si
         for i in 1:K
             @inbounds @fastmath s = util[i,n]/expsum
             @inbounds s_hat[i,n] = s
@@ -323,6 +335,7 @@ function calc_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},r_sc::
 
             @inbounds @fastmath c_hat[i,n] = s*cost
             @inbounds @fastmath c_hat_capped[i,n] = s*cost_capped
+            @inbounds c_hat_pool[i,n] = si*cost_capped
 
             # @inbounds @fastmath dcost = r_sc[n,i]*cost
             # @inbounds @fastmath d2cost = r_sc[n,i]^2*cost
@@ -343,6 +356,7 @@ function calc_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},r_sc::
     # s_risk_sum  = sum(s_hat_risk,dims=2)
     c_mean = sum(c_hat,dims=2)./s_sum
     c_mean_capped = sum(c_hat_capped,dims=2)./s_sum
+    c_mean_pool = sum(c_hat_pool,dims=2)./sum(s_ins)
     # c_mean_risk = sum(c_hat_risk,dims=2)./s_risk_sum
 
     # dc_mean = sum(dc_hat,dims=2)./s_sum
@@ -354,7 +368,7 @@ function calc_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},r_sc::
     s_mean = s_sum./N
     # s_mean_risk = s_risk_sum./N_r
 
-    return s_mean, c_mean, c_mean_capped #, c_mean_risk, dc_mean, dc_mean_risk, d2c_mean, d2c_mean_risk
+    return s_mean, c_mean, c_mean_capped, c_mean_pool #, c_mean_risk, dc_mean, dc_mean_risk, d2c_mean, d2c_mean_risk
 end
 
 function capped_cost(c::Float64;thresh::Float64=3750.0,cap::Float64=20833.33,rate::Float64=0.55)

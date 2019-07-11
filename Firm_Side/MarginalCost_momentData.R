@@ -125,6 +125,16 @@ for (a in unique(choiceData$Age_Bin)){
 riskMoments = as.data.table(read.csv("Intermediate_Output/MEPS_Moments/riskMoments.csv"))
 setkey(riskMoments,HCC_positive)
 
+#### Risk Transfer Moments ####
+firmRiskFile = "Simulation_Risk_Output/FirmRiskScores_woSim.rData"
+load(firmRiskFile)
+RAmom = firm_RA[,list(memberMonths=sum(memberMonths),payments=sum(payments_adj)),by="HighRisk"]
+RAmom[,avgTransfer:=payments/memberMonths]
+
+RAmom = merge(firm_RA[,c("Firm","ST","HighRisk")],RAmom[,c("HighRisk","avgTransfer")],by="HighRisk")
+RAmom = RAmom[HighRisk==1,]
+RAmom[,avgTransfer:=avgTransfer/10]
+RAmom[,M_num:=1]
 
 
 #### All Moments ####
@@ -138,6 +148,9 @@ setkey(choiceData,Person,Product)
 choiceData[,index:=1:nrow(choiceData)]
 firmMoments = merge(firmClaims,choiceData,by=c("ST","Firm"))
 firmMoments = firmMoments[,c("logAvgCost","M_num","Product","index")]
+
+raMoments = merge(choiceData,RAmom,by=c("ST","Firm"))
+raMoments = raMoments[,c("avgTransfer","M_num","Product","index")]
 
 
 metalMoments = merge(metalMoments,choiceData[,c("Product","index")],by="Product")
@@ -155,12 +168,14 @@ setkey(firmMoments,index)
 setkey(metalMoments,index)
 setkey(ageMoments,index)
 setkey(ageMoments_noHCC,index)
+setkey(raMoments,index)
 
 write.csv(ageMoments,file="Intermediate_Output/MC_Moments/ageMoments.csv",row.names=FALSE)
 write.csv(ageMoments_noHCC,file="Intermediate_Output/MC_Moments/ageMoments_noHCC.csv",row.names=FALSE)
 write.csv(firmMoments,file="Intermediate_Output/MC_Moments/firmMoments.csv",row.names=FALSE)
 write.csv(metalMoments,file="Intermediate_Output/MC_Moments/metalMoments.csv",row.names=FALSE)
 write.csv(riskMoments,file="Intermediate_Output/MC_Moments/riskMoments.csv",row.names=FALSE)
+write.csv(raMoments,file="Intermediate_Output/MC_Moments/raMoments.csv",row.names=FALSE)
 # write.csv(choiceData,"Simulation_Risk_Output/simchoiceData_discrete.csv",row.names=FALSE)
 
 # remove_Vars = ls()[!grepl("(full_predict|metalDict)",ls())]
