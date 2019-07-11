@@ -329,6 +329,8 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             real_hessian=0
         end
 
+        println("Test 1: $fval")
+        println("Test 2: $(fval-f_min)")
         if (cnt==1) | (fval>f_min)
             if abs(fval-f_min)<f_tol
                 f_tol_cnt += 1
