@@ -130,9 +130,13 @@ function run_specification_GMM(filename::String,
     println("#### Estimate LL Starting Point ####")
 
     ## Estimate
-    p_ll, fval = newton_raphson_ll(m_ll,p0)
+    # p_ll, fval = newton_raphson_ll(m_ll,p0)
 
-    println("Save LL Result")
+    # println("Save LL Result")
+    # file = "$filename-$rundate-ll.jld2"
+    # @save file p_ll
+
+    println("Load LL Result")
     file = "$filename-$rundate-ll.jld2"
     @save file p_ll
 
@@ -156,9 +160,9 @@ function run_specification_GMM(filename::String,
     p0 = zeros(m_GMM.parLength[:All])
     p0[ind1] = p_ll[ind1]
     p0[ind2] = p_ll[ind2.-m_GMM.parLength[:σ]]
-    # if spec_fixedEffects== [:Firm_Market_Cat]
-    #     p0[σ_ind] = [-0.125391,0.375388,0.0252852]
-    # end
+    if spec_fixedEffects== [:Firm_Market_Cat]
+        p0[σ_ind] = [-0.112438, 0.371566, 0.0271]
+    end
     println("#### Estimate GMM First Stage ####")
 
     # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/checkin_265.jld2"

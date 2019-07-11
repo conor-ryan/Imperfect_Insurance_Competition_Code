@@ -59,11 +59,11 @@ metal_moments[,R_adj_est:=(T_norm_data+1)*1.448]
 metal_moments[,momentID:=1:nrow(metal_moments)]
 
 #### Firm Moments ####
-firm_moments = firm_RA[,c("ST","Firm","T_norm_adj","R_adj_natl","memberMonths","payments_adj")]
+firm_moments = firm_RA[,c("ST","Firm","T_norm_adj","R_adj_natl","memberMonths","payments_adj","HighRisk")]
 
 
-firm_moments[,R_avg:=sum(R_adj_natl*memberMonths)/sum(memberMonths),by="Big"]
-firm_moments = firm_moments[Big==1,]
+firm_moments[,R_avg:=sum(R_adj_natl*memberMonths)/sum(memberMonths),by="HighRisk"]
+firm_moments = firm_moments[HighRisk==1,]
 firm_moments[,momentID:=nrow(metal_moments)+2]
 
 #### Total Enrolled Moment ####

@@ -302,6 +302,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     f_tol_cnt = 0
     x_tol_cnt = 0
     skip_x_tol=0
+    ga_conv_cnt=0
 
 
     # Maximize by Newtons Method
@@ -346,11 +347,12 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         skip_x_tol = 0
 
         grad_size = maximum(abs.(grad_new))
-        if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1)
+        if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1) | (ga_conv_cnt>2)
             println("Got to Break Point...?")
             println(grad_size)
             println(f_tol_cnt)
             println(x_tol_cnt)
+            println(ga_conv_cnt)
             flag = "converged"
             break
         end
@@ -428,6 +430,10 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 println("Trial (NR): Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
                 trial_cnt+=1
+            elseif real_hessian==1
+                println("Run Round of Gradient Ascent")
+                p_test, f_test,ga_conv = GA_fixedEffects(d,p_vec,W,par_ind,max_itr=10,strict=true)
+                ga_conv_cnt+=ga_conv
             else
                 println("No Advancement")
                 p_test = copy(p_vec)
@@ -458,6 +464,193 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     end
     # println("Lowest Function Value is $f_min at $p_min")
     return p_min,f_min, cnt
+end
+
+function GA_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
+    max_itr=30,strict=true)
+
+    # Initialize Gradient
+    grad_new = Vector{Float64}(undef,d.parLength[:All])
+    hess_new = Matrix{Float64}(undef,d.parLength[:All],d.parLength[:All])
+    Eye = Matrix{Float64}(1.0I,length(p0),length(p0))
+
+    FE_ind = vcat(1:(d.parLength[:All]-d.parLength[:FE]-d.parLength[:σ]),(d.parLength[:All]-d.parLength[:FE]+1):d.parLength[:All])
+    p_len = length(FE_ind)
+    Eye = Matrix{Float64}(1.0I,p_len,p_len)
+    f_final_val = 0.0
+    max_trial_cnt = 0
+    NaN_steps = 0
+    trial_end = 5
+    hess_steps = 0
+    p_vec = copy(p0)
+    p_last = copy(p_vec)
+    grad_last = copy(grad_new)
+    H_last = copy(hess_new)
+    disp_length = min(length(p0),20)
+    f_min = -1e3
+    p_min  = copy(p0)
+    no_progress=0
+    flag = "empty"
+    if strict
+        mistake_thresh = 1.00
+    else
+        mistake_thresh = 1.25
+    end
+
+    ## Initialize Par Dict
+    par = parDict(d,p_vec)
+    individual_values!(d,par)
+    individual_shares(d,par)
+
+    ## Initialize Step
+    step = 1
+    real_hessian=0
+    grad_size = 1
+
+    ## Tolerance Counts
+    cnt=0
+    f_tol_cnt = 0
+    x_tol_cnt = 0
+    skip_x_tol=0
+    conv_flag = 0
+
+
+    # Maximize by Newtons Method
+    while (grad_size>grad_tol) & (cnt<max_itr) & (max_trial_cnt<20)
+        cnt+=1
+        trial_cnt=0
+
+        # p_vec = par.FE[:]
+        update_par(d,par,p_vec)
+        # Compute Gradient, holding δ fixed
+        println("Compute Hessian")
+        fval = log_likelihood!(grad_new,d,par,feFlag=1)
+
+        if cnt==1
+            step = 1/grad_size
+        elseif (real_gradient==1)
+            g = (p_vec - p_last)[FE_ind]
+            y = (grad_new - grad_last)[FE_ind]
+            step = abs.(dot(g,g)/dot(g,y))
+        end
+
+
+        if (cnt==1) | (fval>f_min)
+            if abs(fval-f_min)<f_tol
+                f_tol_cnt += 1
+            end
+            if (maximum(abs.(p_vec - p_min))<x_tol) & (skip_x_tol==0)
+                x_tol_cnt += 1
+            end
+
+            f_min = copy(fval)
+            p_min[:] = p_vec[:]
+
+            no_progress=0
+        else
+            no_progress+=1
+        end
+        skip_x_tol = 0
+
+        grad_size = maximum(abs.(grad_new))
+        if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1)
+            conv_flag = 1
+            println("Got to Break Point...?")
+            println(grad_size)
+            println(f_tol_cnt)
+            println(x_tol_cnt)
+            flag = "converged"
+            break
+        end
+        if strict==false
+            if grad_size>.1
+                mistake_thresh = 1.25
+            else
+                mistake_thresh = 1.05
+            end
+        end
+
+        update = step*grad_new[FE_ind]
+        if any(isnan.(update))
+            println("Step contains NaN")
+            println("Algorithm Failed")
+            return p_min,f_min, cnt
+
+            # #Check Hessian
+            # eig = sort(abs.(eigvals(hess_new)))
+            # sm_e = eig[1]
+            # println("Smallest Eigenvalue: $sm_e ")
+            # NaN_steps +=1
+            # grad_size = sqrt(dot(grad_new,grad_new))
+            # update = -(1/grad_size).*grad_new
+        else
+            NaN_steps = 0
+        end
+
+
+        if no_progress>5
+            no_progress = 0
+            println("Return: Limit on No Progress")
+            update = -(1/grad_size).*grad_new[FE_ind]
+        end
+
+        step_size = maximum(abs.(update))
+        if step_size>10
+        update = update./step_size
+        ind = findall(abs.(update).==1)
+        val_disp = p_vec[ind]
+            println("Max Parameter Adjustment: $ind, $val_disp")
+        step_size = 1
+        end
+
+        p_test = copy(p_vec)
+        p_test[FE_ind] = p_vec[FE_ind] .+ update
+        update_par(d,par,p_test)
+        f_test = log_likelihood(d,par,feFlag=1)
+
+        trial_max = 0
+        while ((f_test<fval*mistake_thresh) | isnan(f_test)) & (trial_max==0)
+            if trial_cnt==0
+                p_test_disp = p_test[1:20]
+                println("Trial (Init): Got $f_test at parameters $p_test_disp")
+                println("Previous Iteration at $fval")
+            end
+            if trial_cnt<=2
+                update/= 20
+            else
+                update/= 200
+            end
+            step_size = maximum(abs.(update))
+            p_test = copy(p_vec)
+            p_test[FE_ind] = p_vec[FE_ind] .+ update
+            update_par(d,par,p_test)
+            f_test = log_likelihood(d,par,feFlag=1)
+            p_test_disp = p_test[1:20]
+            println("Trial (NR): Got $f_test at parameters $p_test_disp")
+            println("Previous Iteration at $fval")
+            trial_cnt+=1
+        end
+        # if NaN_steps>5
+        #     println("Hessian might be singular")
+        #     println("RUN ROUND OF GRADIENT ASCENT")
+        #     p_test, f_test = gradient_ascent_ll(d,p_test,max_itr=20,strict=true)
+        # end
+
+        p_last = copy(p_vec)
+        p_vec = copy(p_test)
+        grad_last = copy(grad_new)
+        p_vec_disp = p_vec[1:10]
+        f_final_val = fval
+        println("Update Parameters to $p_vec_disp")
+
+
+        println("Gradient Size: $grad_size")
+        println("Step Size: $step_size")
+        println("Function Value is $f_test at iteration $cnt")
+        println("Steps since last improvement: $no_progress")
+    end
+    # println("Lowest Function Value is $f_min at $p_min")
+    return p_min,f_min, conv_flag
 end
 
 
