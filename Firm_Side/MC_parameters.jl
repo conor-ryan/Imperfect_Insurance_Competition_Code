@@ -89,7 +89,8 @@ function MC_Data(data_choice::DataFrame,
                 mom_metal::DataFrame,
                 mom_age::DataFrame,
                 mom_ageno::DataFrame,
-                mom_risk::DataFrame;
+                mom_risk::DataFrame,
+                mom_ra::DataFrame;
         baseSpec=[:Age,:AV],
         fixedEffects=Vector{Symbol}(undef,0),
         constMoments = true)
@@ -209,6 +210,20 @@ function MC_Data(data_choice::DataFrame,
     riskMoment = mom_risk[:costIndex][2]
 
 
+    _raMomentDict = Dict{Int,Array{Int64,1}}()
+    _raMomentBit = Dict{Int,BitArray{1}}()
+    moments = sort(unique(mom_ra[:M_num]))
+    raMoments = Vector{Float64}(undef,length(moments))
+    if constMoments
+        for m in moments
+            m_index = sort(unique(mom_ra[:Product][findall(mom_ra[:M_num].==m)]))
+            _raMomentDict[m] = m_index
+            # _agenoMomentBit[m] = inlist(all_idx,m_index)
+            raMoments[m] = mom_ra[:avgTransfer][findall(mom_ra[:M_num].==m)][1]
+        end
+    end
+
+
     ### Lengths
     # mom_length = length(firmMoments)  + (length(metalMoments)-1) + (length(ageMoments)-1) + (length(agenoMoments)-1) + length(riskMoment)
     mom_length = length(firmMoments)  + (length(metalMoments)-1) + (length(ageMoments)-1) + length(riskMoment)
@@ -223,7 +238,8 @@ function MC_Data(data_choice::DataFrame,
                     _firmMomentDict,_firmMomentBit,_firmMomentProdDict,firmMoments,
                     _metalMomentDict,_metalMomentBit,_metalMomentProdDict,metalMoments,
                     _ageMomentDict,_ageMomentBit,ageMoments,
-                    _agenoMomentDict,_agenoMomentBit,agenoMoments,riskMoment,fePars)
+                    _agenoMomentDict,_agenoMomentBit,agenoMoments,riskMoment,
+                    _raMomentDict,_raMomentBit,raMoments,fePars)
 end
 
 
@@ -488,9 +504,13 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     non_avg = sliceMean_wgt(c_hat_nonHCC,none_share,all_idx)
     rmom = HCC_avg/non_avg #- c.riskMoment
 
-    est_moments = vcat(fmom,mmom,nmom,rmom)
+    ## Transfer Moment
+
+    tmom = transferMoment(c,d,p)
+
+    est_moments = vcat(fmom,mmom,nmom,rmom,tmom)
     targ_moments = vcat(c.firmMoments,c.metalMoments[2:length(c.metalMoments)],
-                    c.agenoMoments[2:length(c.agenoMoments)],c.riskMoment)
+                    c.agenoMoments[2:length(c.agenoMoments)],c.riskMoment,c.raMoments)
     return est_moments .- targ_moments
     # return est_moments,targ_moments
 end
@@ -503,17 +523,22 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::Array{T},p_est::parDict{Flo
     return mom
 end
 
-function pooledCosts(d::InsuranceLogit,p::parMC{T})
-    for j in d.prods
-        j_index_all = d.data._productDict[j]
-        S_unwt[j] = sliceSum_wgt(p.s_hat,wgts,j_index_all)
-        #@inbounds @fastmath s_hat_j[j]= (S_unwt[j]/d.lives[j])*d.data.st_share[j]
-        @inbounds s_hat_j[j]= S_unwt[j]
-        r_hat_unwt_j[j] = sliceMean_wgt(p.r_hat,wgts_share,j_index_all)
-        r_hat_j[j] = sliceMean_wgt(p.r_hat,wgts_share,j_index_all)*d.Γ_j[j]
-        a_hat_j[j] = sliceMean_wgt(ageRate_long,wgts_share,j_index_all)*d.AV_j[j]*d.Γ_j[j]
+function transferMoment(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
+    wgts = weight(d.data)[:]
+    wgts_share = p.s_hat_ins.*wgts
+    T_total = 0
+    S_total = 0
+    for j in c._raMomentDict[1]
+        idx = d.data._productDict[j]
+        PC = sliceMean_wgt(p.C_pool,wgts_share,idx)
+        AC = sliceMean_wgt(p.C_cap,wgts_share,idx)
+        S_j = sliceSum_wgt(p.pars.s_hat,wgts,idx)
+        T_total+= S_j*(PC-AC)
+        S_total+= S_j
     end
-
+    avgTransfer = (T_total/S_total)/10
+    return avgTransfer
+end
 
 # function costMoments_test(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
 #     s_hat = p.pars.s_hat

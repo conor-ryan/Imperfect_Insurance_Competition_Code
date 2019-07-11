@@ -40,7 +40,7 @@ chdf = ChoiceData(df,df_mkt,df_risk;
 m = InsuranceLogit(chdf,500)
 
 # Cost Data
-costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk;
+costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk,mom_ra;
                 baseSpec=[:AGE,:AV_std],
                 fixedEffects=[:Firm_ST])
 
@@ -53,7 +53,7 @@ rundate = "2019-07-11"
 # p_est = Float64.(resDF[:pars])
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
 # @load file p_stg2
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-$rundate-stg2.jld2"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-$rundate-stg1.jld2"
 @load file p_stg1
 p_est = copy(p_stg1)
 
@@ -164,7 +164,7 @@ p=  copy(p_stg2)
 # p = p_full[1:4]
 par = parMC(p,par_est,m,costdf)
 individual_costs(m,par)
-moments = costMoments(costdf,m,par)
+moments, targets = costMoments(costdf,m,par)
 
 GMM_objective(p,par_est,m,costdf,W)
 

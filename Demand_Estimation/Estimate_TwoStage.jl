@@ -526,12 +526,12 @@ function GA_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         # p_vec = par.FE[:]
         update_par(d,par,p_vec)
         # Compute Gradient, holding δ fixed
-        println("Compute Hessian")
+        println("Compute Gradient")
         fval = log_likelihood!(grad_new,d,par,feFlag=1)
 
         if cnt==1
-            step = 1/grad_size
-        elseif (real_gradient==1)
+            step = 1.0
+        else
             g = (p_vec - p_last)[FE_ind]
             y = (grad_new - grad_last)[FE_ind]
             step = abs.(dot(g,g)/dot(g,y))
