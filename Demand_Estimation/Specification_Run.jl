@@ -137,7 +137,7 @@ function run_specification_GMM(filename::String,
     # @save file p_ll
 
     println("Load LL Result")
-    file = "$filename-$rundate-ll.jld2"
+    file = "$filename-2019-07-10-ll.jld2"
     @save file p_ll
 
 

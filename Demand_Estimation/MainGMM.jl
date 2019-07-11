@@ -43,8 +43,7 @@ spec_demoRaw = [:AgeFE_31_39,
 spec_prodchars=[:Price,:constant,:AV,:Big]
 spec_prodchars_0=[:constant,:AV,:Big]
 
-# rundate = Dates.today()
-rundate = "2019-07-10"
+rundate = Dates.today()
 println("Running on $rundate")
 #### Run Specification 1 ####
 # println("#### Run Specification 1  - Firm Fixed Effects ####")
