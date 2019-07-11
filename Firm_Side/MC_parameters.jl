@@ -25,6 +25,8 @@ mutable struct parMC{T}
     s_hat_nonrisk::Vector{T}
     ## Choices conditional on >0 HCC
     s_hat_risk::Vector{T}
+    ## Total Insured Probability
+    s_hat_ins::Vector{T}
 
     ## Moment Derivatives
     # grad::Matrix{T}
@@ -73,6 +75,10 @@ mutable struct MC_Data
     agenoMoments::Vector{Float64}
 
     riskMoment::Float64
+
+    _raMomentDict::Dict{Int,Array{Int,1}}
+    _raMomentBit::Dict{Int,BitArray{1}}
+    raMoments::Vector{Float64}
 
     ## Parameter Hold
     fPars::Vector{Float64}
@@ -250,12 +256,14 @@ function parMC(p_MC::Vector{T},par_est::parDict{Float64},d::InsuranceLogit,c::MC
     s_nr = Vector{T}(undef,length(C_nonrisk))
     ## HCC Average Cost
     s_r  = Vector{T}(undef,length(C_nonrisk))
+    ## Insured Probability
+    s_ins  = Vector{T}(undef,length(C_nonrisk))
 
     ### Moment Characteristics
     # grad = Matrix{T}(undef,c.mom_length+2,c.par_length)
     # hess = Array{T,3}(undef,c.mom_length+2,c.par_length,c.par_length)
 
-    return parMC(par_est,p_MC,risks,C_nonrisk,C,C_cap,C_pool,C_HCC,dC,dC_HCC,d2C,d2C_HCC,s_nr,s_r)
+    return parMC(par_est,p_MC,risks,C_nonrisk,C,C_cap,C_pool,C_HCC,dC,dC_HCC,d2C,d2C_HCC,s_nr,s_r,s_ins)
 end
 
 
@@ -289,6 +297,7 @@ function individual_costs(d::InsuranceLogit,p::parMC{T}) where T
         s_nr_ins = sum(s_nr)
         s_ins_hat = (any_r.*s_r_ins + (1-any_r).*s_nr_ins)
         p.C_pool[idxitr] = (any_r.*s_r_ins.*c_r_pl + (1-any_r).*s_nr_ins.*c_nr)./s_ins_hat
+        p.s_hat_ins[idxitr].= s_ins_hat
 
         # p.dCdr[idxitr] = dc
         # p.dCdr_HCC[idxitr] = dc_HCC
@@ -494,7 +503,16 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::Array{T},p_est::parDict{Flo
     return mom
 end
 
-
+function pooledCosts(d::InsuranceLogit,p::parMC{T})
+    for j in d.prods
+        j_index_all = d.data._productDict[j]
+        S_unwt[j] = sliceSum_wgt(p.s_hat,wgts,j_index_all)
+        #@inbounds @fastmath s_hat_j[j]= (S_unwt[j]/d.lives[j])*d.data.st_share[j]
+        @inbounds s_hat_j[j]= S_unwt[j]
+        r_hat_unwt_j[j] = sliceMean_wgt(p.r_hat,wgts_share,j_index_all)
+        r_hat_j[j] = sliceMean_wgt(p.r_hat,wgts_share,j_index_all)*d.Γ_j[j]
+        a_hat_j[j] = sliceMean_wgt(ageRate_long,wgts_share,j_index_all)*d.AV_j[j]*d.Γ_j[j]
+    end
 
 
 # function costMoments_test(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T

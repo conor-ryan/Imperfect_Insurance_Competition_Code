@@ -331,7 +331,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
 
         println("Test 1: $fval")
         println("Test 2: $(fval-f_min)")
-        if (cnt==1) | (fval>f_min)
+        if (cnt==1) | ((fval-f_min)>(-1e-14))
             if abs(fval-f_min)<f_tol
                 f_tol_cnt += 1
             end
@@ -435,7 +435,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 trial_cnt+=1
             elseif real_hessian==1
                 println("Run Round of Gradient Ascent")
-                p_test, f_test,ga_conv = GA_fixedEffects(d,p_vec,W,par_ind,max_itr=10,strict=true)
+                p_test, f_test,ga_conv = GA_fixedEffects(d,p_vec,max_itr=10,strict=true)
                 ga_conv_cnt+=ga_conv
             else
                 println("No Advancement")
