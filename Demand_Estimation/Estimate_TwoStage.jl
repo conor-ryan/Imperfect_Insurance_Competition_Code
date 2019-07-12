@@ -538,13 +538,14 @@ function GA_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         end
 
 
-        if (cnt==1) | (fval>f_min)
+        if (cnt==1) | ((fval-f_min)>(-1e-14))
             if abs(fval-f_min)<f_tol
                 f_tol_cnt += 1
             end
             if (maximum(abs.(p_vec - p_min))<x_tol) & (skip_x_tol==0)
                 x_tol_cnt += 1
             end
+            println("Update p_min")
 
             f_min = copy(fval)
             p_min[:] = p_vec[:]
