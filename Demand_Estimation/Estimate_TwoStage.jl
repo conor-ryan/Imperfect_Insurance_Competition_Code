@@ -437,7 +437,8 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 println("Run Round of Gradient Ascent")
                 p_test, f_test,ga_conv = GA_fixedEffects(d,p_vec,max_itr=10,strict=true)
                 ga_conv_cnt+=ga_conv
-                println(f_test)
+                println("Trial (GA): Got $f_test at parameters $(p_test[1:15])")
+                println("Previous Iteration at $fval")
             else
                 println("No Advancement")
                 p_test = copy(p_vec)
@@ -558,7 +559,7 @@ function GA_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         skip_x_tol = 0
 
         grad_size = maximum(abs.(grad_new))
-        if (grad_size<grad_tol) 
+        if (grad_size<grad_tol)
             conv_flag = 1
             println("Got to Break Point...?")
             println(grad_size)
