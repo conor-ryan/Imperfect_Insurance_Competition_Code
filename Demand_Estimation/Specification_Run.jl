@@ -136,7 +136,7 @@ function run_specification_GMM(filename::String,
     # file = "$filename-$rundate-ll.jld2"
     # @save file p_ll
 
-    file = "$filename-$rundate-ll.jld2"
+    file = "$filename-2019-07-11-ll.jld2"
     @load file p_ll
 
 
@@ -176,7 +176,7 @@ function run_specification_GMM(filename::String,
     # @save file p_stg1 obj_1
     # else
     println("Load First Stage Result")
-    file = "$filename-$rundate-stg1.jld2"
+    file = "$filename-2019-07-11-stg1.jld2"
     @load file p_stg1 obj_1
     # end
 

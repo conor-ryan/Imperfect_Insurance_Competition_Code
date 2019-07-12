@@ -350,7 +350,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         skip_x_tol = 0
 
         grad_size = maximum(abs.(grad_new))
-        if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1) | (ga_conv_cnt>2)
+        if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1) | (ga_conv_cnt>2) 
             println("Got to Break Point!")
             println(grad_size)
             println(f_tol_cnt)
@@ -439,6 +439,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 ga_conv_cnt+=ga_conv
                 println("Trial (GA): Got $f_test at parameters $(p_test[1:15])")
                 println("Previous Iteration at $fval")
+                break
             else
                 println("No Advancement")
                 p_test = copy(p_vec)

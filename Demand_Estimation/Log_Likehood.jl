@@ -4,7 +4,7 @@ using ForwardDiff
 # Calculate Log Likelihood
 function log_likelihood(d::InsuranceLogit,p::parDict{T};cont_flag=false,feFlag=-1) where T
     ll = 0.0
-    Pop = 0.0
+    Pop =sum(weight(d.data).*choice(d.data))
     #α = p.α[1]
     # Calculate μ_ij, which depends only on parameters
     if feFlag==1
@@ -25,24 +25,15 @@ function log_likelihood(d::InsuranceLogit,p::parDict{T};cont_flag=false,feFlag=-
 
         # Get Market Shares
         s_hat = p.s_hat[idxitr]
-        # Fix possible computational error
-        for k in eachindex(s_hat)
-            if abs(s_hat[k])<=1e-300
-                s_hat[k]=1e-15
-                #println("Hit Share Constraint for person $ind, product $k")
-            end
-        end
-        s_insured = sum(s_hat)
-        if s_insured>=(1-1e-300)
-            s_insured= 1 - 1e-15
-            #println("Hit insured constraint for person $ind")
-        end
 
-        for i in eachindex(idxitr)
-            ll+=wgt[i]*S_ij[i]*(log(s_hat[i]) -urate[i]*(log(s_insured)-log(1-s_insured)))
+        s_insured = sumShares!(s_hat,ind)
+
+        ll+= ll_obs(wgt,S_ij,urate,s_hat,s_insured)
+        # for i in eachindex(idxitr)
+            # ll+=wgt[i]*S_ij[i]*(log(s_hat[i]) -urate[i]*(log(s_insured)-log(1-s_insured)))
             #ll+=wgt[i]*S_ij[i]*(log(s_hat[i]))
-            Pop+=wgt[i]*S_ij[i]
-        end
+            # Pop+=wgt[i]*S_ij[i]
+        # end
         # if isnan(ll)
         #     println(ind)
         #     break
