@@ -107,7 +107,7 @@ function ll_Terms(wgt::Array{Float64,N},S_ij::Array{Float64,N},urate::Array{Floa
     return gll_t1, gll_t2, gll_t3, gll_t4,gll_t5,gll_t6, ll_obs
 end
 
-function ll_obs(wgt::Array{Float64,N},S_ij::Array{Float64,N},urate::Array{Float64,N},
+function ll_calc(wgt::Array{Float64,N},S_ij::Array{Float64,N},urate::Array{Float64,N},
                     s_hat::Vector{T},s_insured::T) where {N,T}
     K = length(S_ij)
     ll_obs = 0.0

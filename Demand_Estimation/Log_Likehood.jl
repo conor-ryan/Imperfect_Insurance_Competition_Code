@@ -17,6 +17,9 @@ function log_likelihood(d::InsuranceLogit,p::parDict{T};cont_flag=false,feFlag=-
     for app in eachperson(d.data)
     #app = next(eachperson(d.data),100)[1]
         ind, S_ij, wgt, urate, idxitr = unPackChars_ll(app,d)
+        wgt = convert(Array{Float64,2},wgt)
+        S_ij = convert(Array{Float64,2},S_ij)
+        urate = convert(Array{Float64,2},urate)
         # ind = person(app)[1]
         # S_ij = transpose(choice(app))
         # wgt = transpose(weight(app))
@@ -29,7 +32,7 @@ function log_likelihood(d::InsuranceLogit,p::parDict{T};cont_flag=false,feFlag=-
 
         s_insured = sumShares!(s_hat,ind)
 
-        ll+= ll_obs(wgt,S_ij,urate,s_hat,s_insured)
+        ll+= ll_calc(wgt,S_ij,urate,s_hat,s_insured)
         # for i in eachindex(idxitr)
             # ll+=wgt[i]*S_ij[i]*(log(s_hat[i]) -urate[i]*(log(s_insured)-log(1-s_insured)))
             #ll+=wgt[i]*S_ij[i]*(log(s_hat[i]))
