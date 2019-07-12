@@ -757,7 +757,7 @@ function ga_twostage(d,p0,W,par_ind::Union{Vector{Int64},UnitRange{Int64}};grad_
 
 
         p_test = copy(p_vec)
-        p_test[par_ind] = p_vec[par_ind] .+ step.*grad_new[par_ind]
+        p_test[par_ind] = p_vec[par_ind] .- step.*grad_new[par_ind]
 
         f_test = GMM_objective(d,p_test,W,feFlag=0)
 
