@@ -65,13 +65,13 @@ end
 
 
 function estimate_NLOpt(p0::Vector{Float64},p_est::parDict{Float64},
-                d::InsuranceLogit,c::MC_Data,W::Matrix{Float64};method=:LN_NELDERMEAD,bounded=false,squared=false,itrFirms=false,tol=1e-8)
+                d::InsuranceLogit,c::MC_Data,W::Matrix{Float64};method=:LN_NELDERMEAD,bounded=false,squared=false,itrFirms=false,tol=1e-8,max_itr=2000)
     # Set up the optimization
     # opt = Opt(:LD_MMA, length(p0))
     # opt = Opt(:LD_TNEWTON_PRECOND_RESTART, length(p0))
     opt = Opt(method, length(p0))
 
-    #maxeval!(opt_stage1,20000)
+    maxeval!(opt_stage1,max_itr)
     maxtime!(opt, 580000)
     ftol_rel!(opt,tol)
     xtol_rel!(opt,tol)

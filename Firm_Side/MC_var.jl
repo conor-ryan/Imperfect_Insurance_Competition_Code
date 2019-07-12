@@ -23,7 +23,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
 
 
 
-    cost_moments = Vector{Float64}(undef,num_prods*2+length(c.ageMoments)*2+length(c.agenoMoments)*2+4)
+    cost_moments = Vector{Float64}(undef,num_prods*4+length(c.ageMoments)*2+length(c.agenoMoments)*2+4)
     cost_moments[:] .= 0.0
     mom_length = length(cost_moments)
     g_n = Vector{Float64}(undef,mom_length)
@@ -70,7 +70,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
         g_n[:] = (g_n[:]./w_i - mean_moments[:])
         # g_n[:] = (g_n[:] - w_i.*mean_moments[:])
 
-        idx_nonEmpty = vcat(idx_prod,num_prods .+idx_prod,(num_prods*2+1):mom_length)
+        idx_nonEmpty = vcat(idx_prod,num_prods .+idx_prod,num_prods*2 .+idx_prod,num_prods*3 .+idx_prod,(num_prods*4+1):mom_length)
         # add_Σ(Σ,g_n,idx_nonEmpty)
         add_Σ(Σ,g_n,idx_nonEmpty,w_cov,Σ_hold)
     end
@@ -114,6 +114,7 @@ function cost_obs_moments!(mom_obs::Vector{Float64},productIDs::Vector{Int64},
 
     costs = p.C[idxitr]
     costs_cap = p.C_cap[idxitr]
+    costs_pool = p.C_pool[idxitr]
     costs_risk = p.C_HCC[idxitr]
     costs_nonrisk = p.C_nonrisk[idxitr]
 
@@ -132,15 +133,20 @@ function cost_obs_moments!(mom_obs::Vector{Float64},productIDs::Vector{Int64},
 
     anyHCC = c.anyHCC[idxitr]
 
-    M1 = num_prods*2
-    M2 = num_prods*2+length(c.ageMoments)*2
-    M3 = num_prods*2+length(c.ageMoments)*2+length(c.agenoMoments)*2
+    M1 = num_prods*4
+    M2 = M1 + length(c.ageMoments)*2
+    M3 = M2 + length(c.agenoMoments)*2
 
     for (i,k,j) in zip(ind_itr,idxitr,per_prods)
         #S_hat
         mom_obs[j] = s_hat[i]*wgts[i]
         #C_hat
         mom_obs[num_prods + j] = costs_cap[i]*s_hat[i]*wgts[i]
+        #S_Ins
+        mom_obs[num_prods*2 + j] = ins_share*wgts[i]
+        #C_pool
+        mom_obs[num_prods*3 + j] = costs_pool[i]*ins_share*wgts[i]
+
     end
 
     ## Age Moments
@@ -212,9 +218,9 @@ function moments_Avar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{T}) wher
     amom = Vector{T}(undef,length(c.ageMoments)-1)
     nmom = Vector{T}(undef,length(c.agenoMoments)-1)
 
-    M1 = num_prods*2
-    M2 = num_prods*2+length(c.ageMoments)*2
-    M3 = num_prods*2+length(c.ageMoments)*2+length(c.agenoMoments)*2
+    M1 = num_prods*4
+    M2 = M1 + length(c.ageMoments)*2
+    M3 = M2 +length(c.agenoMoments)*2
 
     ## Product and Firm Moments
     for (m,m_idx) in c._firmMomentProdDict
@@ -239,34 +245,49 @@ function moments_Avar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{T}) wher
 
     ## Total Firm Moments
     for (m,m_idx) in c._firmMomentProdDict
-        fmom[m] = log(f_moments_p2[m]/f_moments_p1[m]) - c.firmMoments[m]
+        fmom[m] = log(f_moments_p2[m]/f_moments_p1[m]) #- c.firmMoments[m]
         # pmom[m] = f_moments_p2[m]/f_moments_p1[m]
     end
     ## Total Metal Moments
     refval = m_moments_p2[1]/m_moments_p1[1]
     for m in 2:length(m_moments_p1)
         c_avg = m_moments_p2[m]/m_moments_p1[m]
-        mmom[m-1] = c_avg/refval - c.metalMoments[m]
+        mmom[m-1] = c_avg/refval #- c.metalMoments[m]
     end
     ## Total Age Moments
     refval = a_moments_p2[1]/a_moments_p1[1]
     for m in 2:length(a_moments_p1)
         c_avg = a_moments_p2[m]/a_moments_p1[m]
-        amom[m-1] = c_avg /refval - c.ageMoments[m]
+        amom[m-1] = c_avg /refval #- c.ageMoments[m]
     end
     ## Total Age without HCC Moments
     refval = n_moments_p2[1]/n_moments_p1[1]
     for m in 2:length(n_moments_p1)
         c_avg = n_moments_p2[m]/n_moments_p1[m]
         # println("$m: $c_avg")
-        nmom[m-1] = c_avg /refval - c.agenoMoments[m]
+        nmom[m-1] = c_avg #/refval #- c.agenoMoments[m]
     end
     ## Total Risk Moments
     non_avg = r_moments_p2[1]/r_moments_p1[1]
     HCC_avg = r_moments_p2[2]/r_moments_p1[2]
-    rmom = HCC_avg/non_avg  - c.riskMoment
+    rmom = HCC_avg/non_avg  #- c.riskMoment
+
+    ## Total Risk Transfer Moments
+    T_total = 0
+    S_total = 0
+    for j in c._raMomentDict[1]
+        PC = cost_moments[num_prods*3 + j]/cost_moments[num_prods*2 + j]
+        AC = cost_moments[num_prods + j]/cost_moments[j]
+        S_j = cost_moments[j]
+        T_total+= S_j*(PC-AC)
+        S_total+= S_j
+    end
+    avgTransfer = (T_total/S_total)/10
+    tmom = avgTransfer #- c.raMoments[1]
+
+
     # return vcat(fmom,mmom,amom,nmom,rmom)
-    return vcat(fmom,mmom,nmom,rmom)
+    return vcat(fmom,mmom,nmom,rmom,tmom)
 end
 
 function Δavar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{Float64})

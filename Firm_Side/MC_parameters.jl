@@ -460,7 +460,7 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     end
 
     ## Metal Moments
-    refval = sliceMean_wgt(c_hat,wgts_share,c._metalMomentDict[1])
+    refval = sliceMean_wgt(c_hat_cap,wgts_share,c._metalMomentDict[1])
     for (m,m_idx) in c._metalMomentDict
         if m==1
             continue
@@ -493,7 +493,7 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
         else
             c_avg = sliceMean_wgt(c_hat_nonHCC,none_share,m_idx)
             # println("$m: $c_avg")
-            nmom[m-1] = c_avg/refval[1] #- c.agenoMoments[m]
+            nmom[m-1] = c_avg#/refval[1] #- c.agenoMoments[m]
         end
     end
 
@@ -511,8 +511,8 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     est_moments = vcat(fmom,mmom,nmom,rmom,tmom)
     targ_moments = vcat(c.firmMoments,c.metalMoments[2:length(c.metalMoments)],
                     c.agenoMoments[2:length(c.agenoMoments)],c.riskMoment,c.raMoments)
-    return est_moments .- targ_moments
-    # return est_moments,targ_moments
+    # return est_moments .- targ_moments
+    return est_moments,targ_moments
 end
 
 

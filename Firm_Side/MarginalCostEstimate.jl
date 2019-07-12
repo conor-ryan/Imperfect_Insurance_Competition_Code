@@ -54,8 +54,8 @@ rundate = "2019-07-12"
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
 # @load file p_stg2
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-$rundate-stg2.jld2"
-@load file p_stg1
-p_est = copy(p_stg1)
+@load file p_stg2
+p_est = copy(p_stg2)
 
 #### Compute Demand Estimation
 par_est = parDict(m,p_est,no2Der=true)
@@ -80,8 +80,8 @@ W = Matrix(1.0I,costdf.mom_length,costdf.mom_length)
 # incase = est_stg1
 
 p0 = vcat(rand(1)*.2,rand(3).*4,rand(1)*.2)
-est_init = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4)
-est_stg1 = estimate_NLOpt(est_int[3],par_est,m,costdf,W,itrFirms=true)
+est_init = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4,max_itr=200)
+est_stg1 = estimate_NLOpt(est_init[3],par_est,m,costdf,W,itrFirms=true)
 # #
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
 @save file est_stg1
@@ -190,7 +190,7 @@ W = Matrix(1.0I,costdf.mom_length,costdf.mom_length)
 # for i in M2:M3
 #         W[i,i]=1.0
 # end
-p0 = est_stg2[3]
+p0 = est_init[3]
 
 p = fit_firm_moments(p0,par_est,m,costdf)
 par = parMC(p,par_est,m,costdf)

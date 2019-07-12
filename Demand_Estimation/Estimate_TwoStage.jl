@@ -329,8 +329,6 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             real_hessian=0
         end
 
-        println("Test 1: $fval")
-        println("Test 2: $(fval-f_min)")
         if (cnt==1) | ((fval-f_min)>(-1e-14))
             if abs(fval-f_min)<f_tol
                 f_tol_cnt += 1
@@ -342,7 +340,6 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             f_min = copy(fval)
             p_min[:] = p_vec[:]
 
-            println("Update p_min to $(p_min[1:16])")
             no_progress=0
         else
             no_progress+=1
@@ -552,12 +549,9 @@ function GA_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             if (maximum(abs.(p_vec - p_min))<x_tol) & (skip_x_tol==0)
                 x_tol_cnt += 1
             end
-            println("Update p_min")
 
             f_min = copy(fval)
             p_min[:] = p_vec[:]
-            println("Minimum is $f_min")
-
             no_progress=0
         else
             no_progress+=1
@@ -638,7 +632,7 @@ function GA_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             update_par(d,par,p_test)
             f_test = log_likelihood(d,par,feFlag=1)
             p_test_disp = p_test[1:20]
-            println("Trial (NR): Got $f_test at parameters $p_test_disp")
+            println("Trial: Got $f_test at parameters $p_test_disp")
             println("Previous Iteration at $fval")
             trial_cnt+=1
         end
