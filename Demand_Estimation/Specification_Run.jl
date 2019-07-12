@@ -109,7 +109,7 @@ function run_specification_GMM(filename::String,
                             nested = false)
 
     cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/")
-    # Build Log_Likehood Model
+    ## Build Log_Likehood Model
     println("Build LL Model")
     c_ll = ChoiceData(df,df_mkt,df_risk;
         demoRaw=spec_demoRaw,
@@ -129,7 +129,7 @@ function run_specification_GMM(filename::String,
     p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
     println("#### Estimate LL Starting Point ####")
 
-    Estimate
+    ## Estimate
     p_ll, fval = newton_raphson_ll(m_ll,p0)
 
     println("Save LL Result")

@@ -48,12 +48,12 @@ costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk,mom_ra;
 println("Data Loaded")
 
 #### Load Demand Estimation ####
-rundate = "2019-07-11"
+rundate = "2019-07-12"
 # resDF = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_$rundate.csv")
 # p_est = Float64.(resDF[:pars])
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
 # @load file p_stg2
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-$rundate-stg1.jld2"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-$rundate-stg2.jld2"
 @load file p_stg1
 p_est = copy(p_stg1)
 
@@ -80,9 +80,8 @@ W = Matrix(1.0I,costdf.mom_length,costdf.mom_length)
 # incase = est_stg1
 
 p0 = vcat(rand(1)*.2,rand(3).*4,rand(1)*.2)
-est_stg1 = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4)
-p0 =[0.365004, 0.724107, 0.82273, 0.326729, 0.109458]
-est_stg1 = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=true)
+est_init = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4)
+est_stg1 = estimate_NLOpt(est_int[3],par_est,m,costdf,W,itrFirms=true)
 # #
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
 @save file est_stg1
