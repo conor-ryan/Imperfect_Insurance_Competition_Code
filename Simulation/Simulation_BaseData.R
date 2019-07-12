@@ -388,6 +388,19 @@ acs[METAL=="SILVER 94",AV_std:=.7]
 acs[METAL=="GOLD",AV_std:=.8]
 acs[METAL=="PLATINUM",AV_std:=.9]
 
+acs[,Bronze:=0]
+acs[,Catas:=0]
+acs[,Silver:=0]
+acs[,Gold:=0]
+acs[,Platinum:=0]
+
+acs[METAL=="BRONZE",Bronze:=1]
+acs[METAL=="CATASTROPHIC",Catas:=1]
+acs[METAL%in%c("SILVER","SILVER 73","SILVER 87","SILVER 94"),Silver:=1]
+acs[METAL=="GOLD",Gold:=1]
+acs[METAL=="PLATINUM",Platinum:=1]
+
+
 ## Cost Sharing Reduction
 acs[,AV_diff:=AV-AV_std]
 
@@ -459,6 +472,7 @@ choiceData = acs[,c("Person","Firm","ST","Firm_ST","Firm_Market","Firm_Market_Ca
                     "Family","Age","LowIncome","AGE","AvgAge",
                     "METAL","premBase","count_hix_prod",
                     "Metal_std","Product_std","premBase_std",
+                    "Bronze","Catas","Silver","Gold","Platinum",
                     "ageRate","ageRate_avg","HCC_age","SilvHCC_Age","MEMBERS",
                     "mean_HCC_Platinum","mean_HCC_Gold","mean_HCC_Silver","mean_HCC_Bronze","mean_HCC_Catastrophic",
                     "Rtype","Any_HCC",

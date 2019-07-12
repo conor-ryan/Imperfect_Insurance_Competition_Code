@@ -41,7 +41,7 @@ m = InsuranceLogit(chdf,500)
 
 # Cost Data
 costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk,mom_ra;
-                baseSpec=[:AGE,:AV_std],
+                baseSpec=[:AGE,:Silver,:Gold,:Platinum],
                 fixedEffects=[:Firm_ST])
 
 
@@ -156,7 +156,7 @@ file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermed
 p=  copy(p_stg2)
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
 # @load file est_stg1
-# p = fit_firm_moments(est_stg1[3],par_est,m,costdf,itrFirms=true)
+p = fit_firm_moments(est_stg1[3],par_est,m,costdf,itrFirms=true)
 # S,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
 # W = inv(S)
 #
@@ -164,7 +164,7 @@ p=  copy(p_stg2)
 # p = p_full[1:4]
 par = parMC(p,par_est,m,costdf)
 individual_costs(m,par)
-moments, targets = costMoments(costdf,m,par)
+moments= costMoments(costdf,m,par)
 
 GMM_objective(p,par_est,m,costdf,W)
 
