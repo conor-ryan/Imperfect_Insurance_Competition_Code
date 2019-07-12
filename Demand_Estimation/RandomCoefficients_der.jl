@@ -17,6 +17,16 @@ function unPackChars(app::ChoiceData,d::InsuranceLogit)
     return ind, r_ind, r_ind_metal, S_ij, wgt, urate, idxitr, X_t, X_0_t, Z, F_t,risk_age
 end
 
+function unPackChars_ll(app::ChoiceData,d::InsuranceLogit)
+    ind = person(app)[1]
+    S_ij = transpose(choice(app))
+    wgt = transpose(weight(app))
+    urate = transpose(unins(app))
+    idxitr = d.data._personDict[ind]
+
+    return ind, S_ij, wgt, urate, idxitr
+end
+
 function unPackParChars(p::parDict{T},idxitr::UnitRange{Int}) where T
     μ_ij = p.μ_ij[:,idxitr]
     μ_ij_nr = Matrix{T}(undef,1,size(μ_ij,2))

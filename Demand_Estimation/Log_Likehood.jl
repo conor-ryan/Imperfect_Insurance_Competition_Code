@@ -16,11 +16,12 @@ function log_likelihood(d::InsuranceLogit,p::parDict{T};cont_flag=false,feFlag=-
     end
     for app in eachperson(d.data)
     #app = next(eachperson(d.data),100)[1]
-        ind = person(app)[1]
-        S_ij = transpose(choice(app))
-        wgt = transpose(weight(app))
-        urate = transpose(unins(app))
-        idxitr = d.data._personDict[ind]
+        ind, S_ij, wgt, urate, idxitr = unPackChars_ll(app,d)
+        # ind = person(app)[1]
+        # S_ij = transpose(choice(app))
+        # wgt = transpose(weight(app))
+        # urate = transpose(unins(app))
+        # idxitr = d.data._personDict[ind]
 
 
         # Get Market Shares
