@@ -306,7 +306,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
 
 
     # Maximize by Newtons Method
-    while (grad_size>grad_tol) & (cnt<max_itr) & (max_trial_cnt<20)
+    while  (cnt<max_itr) & (max_trial_cnt<20)
         cnt+=1
         trial_cnt=0
 
@@ -351,7 +351,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
 
         grad_size = maximum(abs.(grad_new))
         if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1) | (ga_conv_cnt>2)
-            println("Got to Break Point...?")
+            println("Got to Break Point!")
             println(grad_size)
             println(f_tol_cnt)
             println(x_tol_cnt)
@@ -521,7 +521,7 @@ function GA_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
 
 
     # Maximize by Newtons Method
-    while (grad_size>grad_tol) & (cnt<max_itr) & (max_trial_cnt<20)
+    while (cnt<max_itr) & (max_trial_cnt<20)
         cnt+=1
         trial_cnt=0
 
@@ -561,7 +561,7 @@ function GA_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         grad_size = maximum(abs.(grad_new))
         if (grad_size<grad_tol)
             conv_flag = 1
-            println("Got to Break Point...?")
+            println("Got to Break Point!")
             println(grad_size)
             println(f_tol_cnt)
             println(x_tol_cnt)
