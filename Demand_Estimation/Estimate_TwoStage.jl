@@ -350,7 +350,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         skip_x_tol = 0
 
         grad_size = maximum(abs.(grad_new))
-        if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1) | (ga_conv_cnt>2) 
+        if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1) | (ga_conv_cnt>2)
             println("Got to Break Point!")
             println(grad_size)
             println(f_tol_cnt)
@@ -757,7 +757,7 @@ function ga_twostage(d,p0,W,par_ind::Union{Vector{Int64},UnitRange{Int64}};grad_
 
 
         p_test = copy(p_vec)
-        p_test[par_ind] = p_vec[par_ind] .- step.*grad_new[par_ind]
+        p_test[par_ind] = p_vec[par_ind] .+ step.*grad_new[par_ind]
 
         f_test = GMM_objective(d,p_test,W,feFlag=0)
 
