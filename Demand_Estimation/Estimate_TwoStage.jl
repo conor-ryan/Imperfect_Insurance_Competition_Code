@@ -434,11 +434,15 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 println("Previous Iteration at $fval")
                 trial_cnt+=1
             elseif real_hessian==1
-                println("Run Round of Gradient Ascent")
-                p_test, f_test,ga_conv = GA_fixedEffects(d,p_vec,max_itr=10,strict=true)
-                ga_conv_cnt+=ga_conv
-                println("Trial (GA): Got $f_test at parameters $(p_test[1:15])")
-                println("Previous Iteration at $fval")
+                # println("Run Round of Gradient Ascent")
+                # p_test, f_test,ga_conv = GA_fixedEffects(d,p_vec,max_itr=10,strict=true)
+                # ga_conv_cnt+=ga_conv
+                # println("Trial (GA): Got $f_test at parameters $(p_test[1:15])")
+                # println("Previous Iteration at $fval")
+                # break
+                println("Algorithm Stuck, Random Deviation")
+                p_test = copy(p_vec)
+                p_test[FE_ind] = p_vec[FE_ind] .+ rand(length(FE_ind)).*0.5
                 break
             else
                 println("No Advancement")
