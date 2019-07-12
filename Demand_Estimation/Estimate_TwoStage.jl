@@ -551,6 +551,7 @@ function GA_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
 
             f_min = copy(fval)
             p_min[:] = p_vec[:]
+            println("Minimum is $f_min")
 
             no_progress=0
         else
@@ -656,6 +657,7 @@ function GA_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         println("Steps since last improvement: $no_progress")
     end
     # println("Lowest Function Value is $f_min at $p_min")
+    println("Minimum is $f_min")
     return p_min,f_min, conv_flag
 end
 
