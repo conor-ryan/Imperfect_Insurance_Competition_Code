@@ -27,7 +27,7 @@ include("FirmFunctions.jl")
 include("EQ_load.jl")
 
 
-rundate = "2019-07-11"
+rundate = "2019-07-12"
 mark_the_output_date = Dates.today()
 println("Running spec $rundate on $mark_the_output_date")
 
@@ -46,7 +46,7 @@ chdf = ChoiceData(df,df_mkt,df_risk;
 
 model = InsuranceLogit(chdf,500)
 
-costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk;
+costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk,mom_ra;
                 baseSpec=[:AGE,:AV_std],
                 fixedEffects=[:Firm_ST],
                 constMoments=true)
@@ -54,7 +54,7 @@ costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk;
 
 
 ## Load Demand Estimation
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-$rundate-stg1.jld2"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-$rundate-stg2.jld2"
 @load file p_stg2
 p_est = copy(p_stg2)
 
@@ -67,9 +67,9 @@ individual_shares(model,par_dem)
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
 @load file p_stg2
 # p_stg2 = est_stg1[3]
-p_stg2[3]/=2
-p_stg2 = fit_firm_moments(p_stg2[1:3],par_dem,m,costdf,itrFirms=true)
-mc_est = copy(p_stg2)
+# p_stg2[3]/=2
+p_stg3 = fit_firm_moments(p_stg2[1:3],par_dem,model,costdf,itrFirms=true)
+mc_est = copy(p_stg3)
 
 
 # par = parMC(mc_est,par_dem,model,costdf)
@@ -96,8 +96,8 @@ par_cost = parMC(mc_est,par_dem,model,costdf)
 #### Solve Equilibrium ####
 firm = firmData(model,df,eq_mkt,par_dem,par_cost)
 evaluate_model!(model,firm,"All",foc_check=true)
-f = firm
-m = model
+# f = firm
+# m = model
 
 
 
@@ -113,11 +113,11 @@ solveMain(model,firm,file)
 # m = model
 # f = firm
 #
-solve_model!(m,f,sim="RA")
+# solve_model!(m,f,sim="RA")
 
 
 
-evaluate_model!(m,f,"All")
+# evaluate_model!(m,f,"All")
 #
 # P,P_RA = evaluate_FOC(f)
 

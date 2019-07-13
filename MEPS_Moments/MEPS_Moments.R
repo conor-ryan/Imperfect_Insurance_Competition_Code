@@ -153,6 +153,7 @@ meps = meps[meps$REGION15!=1,]
 meps = as.data.table(meps)
 
 meps$HoH_Age = ave(meps$AGE15X,meps$HIEUIDX,FUN=max)
+meps$HoH_AvgAge = ave(meps$AGE15X,meps$HIEUIDX,FUN=mean)
 meps$Age_Cat = 0
 meps$Age_Cat[meps$HoH_Age>45] = 1
 
@@ -170,15 +171,15 @@ write.csv(riskMoments,file="Intermediate_Output/MEPS_Moments/riskMoments.csv",ro
 
 #### Age - Cost Moments
 
-meps[,Age_Bin:= floor(AGELAST/5)*5]
-meps[AGELAST>=18&Age_Bin==15,Age_Bin:=20]
-ageMoments = meps[Age_Bin>=20&Age_Bin<65,list(avgCost=sum(PERWT15F*TOTPRV15)/sum(PERWT15F),
+meps[,Age_Bin:= floor(HoH_AvgAge/5)*5]
+meps[HoH_AvgAge<20,Age_Bin:=20]
+ageMoments = meps[HoH_Age>=18&Age_Bin<65,list(avgCost=sum(PERWT15F*TOTPRV15)/sum(PERWT15F),
                                                sample_size=sum(sample_count)),
                    by=c("Age_Bin")]
 ageMoments[,costIndex:=avgCost/min(avgCost)]
 setkey(ageMoments,Age_Bin)
 
-ageMoments_noHCC = meps[HCC_positive==0&Age_Bin>=20&Age_Bin<65,list(avgCost=sum(PERWT15F*TOTPRV15)/sum(PERWT15F)),by=c("Age_Bin")]
+ageMoments_noHCC = meps[HCC_positive==0&HoH_Age>=18&Age_Bin<65,list(avgCost=sum(PERWT15F*TOTPRV15)/sum(PERWT15F)),by=c("Age_Bin")]
 ageMoments_noHCC[,costIndex:=avgCost/min(avgCost)]
 setkey(ageMoments_noHCC,Age_Bin)
 

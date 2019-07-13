@@ -493,7 +493,7 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
         else
             c_avg = sliceMean_wgt(c_hat_nonHCC,none_share,m_idx)
             # println("$m: $c_avg")
-            nmom[m-1] = c_avg#/refval[1] #- c.agenoMoments[m]
+            nmom[m-1] = c_avg/refval[1] #- c.agenoMoments[m]
         end
     end
 
@@ -511,8 +511,8 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     est_moments = vcat(fmom,mmom,nmom,rmom,tmom)
     targ_moments = vcat(c.firmMoments,c.metalMoments[2:length(c.metalMoments)],
                     c.agenoMoments[2:length(c.agenoMoments)],c.riskMoment,c.raMoments)
-    # return est_moments .- targ_moments
-    return est_moments,targ_moments
+    return est_moments .- targ_moments
+    # return est_moments,targ_moments
 end
 
 
@@ -525,12 +525,13 @@ end
 
 function transferMoment(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     wgts = weight(d.data)[:]
-    wgts_share = p.s_hat_ins.*wgts
+    wgts_ins = p.s_hat_ins.*wgts
+    wgts_share = p.pars.s_hat.*wgts
     T_total = 0
     S_total = 0
     for j in c._raMomentDict[1]
         idx = d.data._productDict[j]
-        PC = sliceMean_wgt(p.C_pool,wgts_share,idx)
+        PC = sliceMean_wgt(p.C_pool,wgts_ins,idx)
         AC = sliceMean_wgt(p.C_cap,wgts_share,idx)
         S_j = sliceSum_wgt(p.pars.s_hat,wgts,idx)
         T_total+= S_j*(PC-AC)

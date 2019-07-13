@@ -111,7 +111,7 @@ ageMoments_noHCC = as.data.table(read.csv("Intermediate_Output/MEPS_Moments/ageM
 setkey(ageMoments_noHCC,Age_Bin)
 
 choiceData[,Age_Bin:=floor(AvgAge*10/5)*5]
-choiceData[AvgAge>=1.8 & Age_Bin==15,Age_Bin:=20]
+choiceData[AvgAge<2.0,Age_Bin:=20]
 choiceData[,Age_1:=AGE/10]
 choiceData[,Age_2:=Age_1^2]
 

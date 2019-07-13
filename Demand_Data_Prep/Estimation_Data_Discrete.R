@@ -657,17 +657,20 @@ setkey(t1,METAL,LowIncome)
 insured = unique(choices[,c("Person","STATE","unins_rate","N")])
 insured = insured[,list(unins_rate=sum(unins_rate*N)/sum(N)),by="STATE"]
 
-shares = choices[,list(enroll=sum(S_ij*N),pop_offered=sum(N)),by=c("Product","Firm","Market","STATE","METAL",
+shares = choices[,list(enroll=sum(S_ij*N),
+                       enroll_adj=sum(S_ij*N*(1-unins_rate)),
+                       pop_offered=sum(N)),by=c("Product","Firm","Market","STATE","METAL",
                                                                    "Gamma_j","AV",
                                                                    "Firm_Market_Cat","MedDeduct","MedOOP","High","premBase")]
 shares = merge(shares,insured,by="STATE")
 shares[,lives:=sum(enroll),by="Market"]
-shares[,s_inside:= enroll/pop_offered]
+shares[,s_inside:= enroll/lives]
+shares[,Share:=enroll_adj/lives]
 shares$Share = shares$s_inside*(1-shares$unins_rate)
 
 
 
-firmShares = choices[,list(enroll=sum(S_ij*N*MEMBERS)),by=c("Firm","Market")]
+firmShares = choices[,list(enroll=sum(S_ij*N)),by=c("Firm","Market")]
 firmShares[,lives:=sum(enroll),by="Market"]
 firmShares[,share:= enroll/lives]
 

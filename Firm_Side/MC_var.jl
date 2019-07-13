@@ -245,32 +245,32 @@ function moments_Avar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{T}) wher
 
     ## Total Firm Moments
     for (m,m_idx) in c._firmMomentProdDict
-        fmom[m] = log(f_moments_p2[m]/f_moments_p1[m]) #- c.firmMoments[m]
+        fmom[m] = log(f_moments_p2[m]/f_moments_p1[m]) - c.firmMoments[m]
         # pmom[m] = f_moments_p2[m]/f_moments_p1[m]
     end
     ## Total Metal Moments
     refval = m_moments_p2[1]/m_moments_p1[1]
     for m in 2:length(m_moments_p1)
         c_avg = m_moments_p2[m]/m_moments_p1[m]
-        mmom[m-1] = c_avg/refval #- c.metalMoments[m]
+        mmom[m-1] = c_avg/refval - c.metalMoments[m]
     end
     ## Total Age Moments
     refval = a_moments_p2[1]/a_moments_p1[1]
     for m in 2:length(a_moments_p1)
         c_avg = a_moments_p2[m]/a_moments_p1[m]
-        amom[m-1] = c_avg /refval #- c.ageMoments[m]
+        amom[m-1] = c_avg /refval - c.ageMoments[m]
     end
     ## Total Age without HCC Moments
     refval = n_moments_p2[1]/n_moments_p1[1]
     for m in 2:length(n_moments_p1)
         c_avg = n_moments_p2[m]/n_moments_p1[m]
         # println("$m: $c_avg")
-        nmom[m-1] = c_avg #/refval #- c.agenoMoments[m]
+        nmom[m-1] = c_avg/refval - c.agenoMoments[m]
     end
     ## Total Risk Moments
     non_avg = r_moments_p2[1]/r_moments_p1[1]
     HCC_avg = r_moments_p2[2]/r_moments_p1[2]
-    rmom = HCC_avg/non_avg  #- c.riskMoment
+    rmom = HCC_avg/non_avg - c.riskMoment
 
     ## Total Risk Transfer Moments
     T_total = 0
@@ -283,7 +283,7 @@ function moments_Avar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{T}) wher
         S_total+= S_j
     end
     avgTransfer = (T_total/S_total)/10
-    tmom = avgTransfer #- c.raMoments[1]
+    tmom = avgTransfer - c.raMoments[1]
 
 
     # return vcat(fmom,mmom,amom,nmom,rmom)

@@ -71,7 +71,7 @@ function estimate_NLOpt(p0::Vector{Float64},p_est::parDict{Float64},
     # opt = Opt(:LD_TNEWTON_PRECOND_RESTART, length(p0))
     opt = Opt(method, length(p0))
 
-    maxeval!(opt_stage1,max_itr)
+    maxeval!(opt,max_itr)
     maxtime!(opt, 580000)
     ftol_rel!(opt,tol)
     xtol_rel!(opt,tol)

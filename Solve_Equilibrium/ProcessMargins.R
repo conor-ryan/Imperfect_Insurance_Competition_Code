@@ -7,7 +7,7 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 
 ## Estimation Run 
-run = "2019-06-25"
+run = "2019-07-12"
 
 #Load Product Data
 predFile = paste("Simulation_Risk_Output/prodData.rData",sep="")
@@ -32,8 +32,14 @@ prod_data = merge(prod_data,marketSize,by="Market")
 prod_data[,share_base:=lives/size]
 
 ## Test against moments
-share_moment = read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv")
-prod_data = merge(prod_data,share_moment[,c("Product","unins_rate","Share")],by=c("Product"),all=TRUE)
+share_moment = as.data.table(read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv"))
+share_moment[,Metal_std:=gsub(" .*","",METAL)]
+share_moment[,Product_std:=min(Product),by=c("Firm","Metal_std","Market")]
+share_moment = share_moment[,list(Share=sum(Share)),by=c("Product_std","Firm","Market","unins_rate")]
+
+
+
+prod_data = merge(prod_data,share_moment[,c("Product_std","unins_rate","Share")],by.x=c("Product"),by.y="Product_std",all=TRUE)
 
 prod_data[,plot(share_base,Share)]
 prod_data[,unins_base:=1-sum(share_base),by="Market"]
@@ -46,7 +52,7 @@ prod_data[,plot(unins_base,unins_rate)]
 
 #### Merge Firm Costs ####
 load("Intermediate_Output/Average_Claims/AvgCostMoments.rData")
-firmClaims = firmClaims[,c("ST","Firm","AvgCost","prjFirmCost","expFirmCost")]
+firmClaims = firmClaims[,c("ST","Firm","AvgCost","prjAvgCost","expAvgCost")]
 names(firmClaims) = c("ST","Firm","FirmAvgCost","prjFirmCost","expFirmCost")
 
 fMom = read.csv("Intermediate_Output/MC_Moments/firmMoments.csv")
@@ -54,6 +60,7 @@ fMom = unique(fMom[,c("logAvgCost","M_num","Product")])
 
 prod_data = merge(prod_data,firmClaims,by=c("ST","Firm"))
 prod_data = merge(prod_data,fMom,by="Product")
+prod_data[,MR:=premBase-Mkup]
 
 firm_test = prod_data[,list(avgCost=sum(avgCost*lives)/sum(lives),
                             pooledCost=sum(pooledCost*lives)/sum(lives),
@@ -62,6 +69,8 @@ firm_test = prod_data[,list(avgCost=sum(avgCost*lives)/sum(lives),
                       by=c("ST","Firm","FirmAvgCost","prjFirmCost","expFirmCost","logAvgCost","M_num")]
 firm_test[,share:=lives/sum(lives),by="ST"]
 firm_test[,target:=exp(logAvgCost)]
+
+
 
 
 
@@ -110,15 +119,15 @@ prod_test[,sum(lives*avgCost)/sum(lives),by="Metal_std"]
 
 #### Plot Margin Check ####
 png("Writing/Images/marginCheckBase.png",width=2000,height=1500,res=275)
-plot = ggplot(prod_data[Firm!="OTHER",]) + aes(y=12/1000*prem_FOC_base,x=12/1000*premBase) +
+plot = ggplot(prod_data) + aes(y=MR,x=MC_std) +
   geom_point() + 
   geom_abline(intercept=0,slope=1) + 
   geom_smooth(color="red",method="lm",se=FALSE) + 
   # scale_x_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
   # scale_y_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
   # coord_cartesian(ylim=c(0,6)) +
-  xlab("Observed Base Premium (000s)") + 
-  ylab("Optimal Base Premium (000s)") + 
+  ylab("Marginal Revenue") + 
+  xlab("Marginal Cost") + 
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
     strip.background = element_blank(),
     #panel.grid.major = element_line(color=grey(.8)),
@@ -134,15 +143,15 @@ print(plot)
 dev.off()
 
 png("Writing/Images/marginCheckRA.png",width=2000,height=1500,res=275)
-ggplot(prod_data[Firm!="OTHER",]) + aes(x=12/1000*premBase,y=12/1000*prem_FOC_RA) +
+ggplot(prod_data) + aes(x=MR,y=MC_RA) +
   geom_point() + 
   geom_abline(intercept=0,slope=1) + 
   geom_smooth(color="red",method="lm",se=FALSE) + 
   # scale_x_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
   # scale_y_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
   # coord_cartesian(ylim=c(0,8)) +
-  xlab("Observed Base Premium (000s)") + 
-  ylab("Optimal Base Premium (000s)") + 
+  xlab("Marginal Cost") + 
+  ylab("Marginal Revenue") + 
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
     strip.background = element_blank(),
     #panel.grid.major = element_line(color=grey(.8)),

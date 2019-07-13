@@ -41,7 +41,7 @@ m = InsuranceLogit(chdf,500)
 
 # Cost Data
 costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk,mom_ra;
-                baseSpec=[:AGE,:Silver,:Gold,:Platinum],
+                baseSpec=[:AvgAge,:AV_std],
                 fixedEffects=[:Firm_ST])
 
 
@@ -79,7 +79,7 @@ W = Matrix(1.0I,costdf.mom_length,costdf.mom_length)
 # est_stg1 = estimate_GMM(p0,par_est,m,costdf,W,fit=true)
 # incase = est_stg1
 
-p0 = vcat(rand(1)*.2,rand(3).*4,rand(1)*.2)
+p0 = vcat(rand(1)*.2,rand(1).*4,rand(1)*.2)
 est_init = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4,max_itr=200)
 est_stg1 = estimate_NLOpt(est_init[3],par_est,m,costdf,W,itrFirms=true)
 # #
@@ -114,7 +114,7 @@ W = inv(S)
 p0 = vcat(rand(1)*.2,rand(1).*4,rand(1)*.2)
 # # p0 = [0.0152152, 2.42283, -0.21084, 0.154506]
 est_stg2 = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4)
-est_stg2 = estimate_NLOpt(est_stg2[3][1:3],par_est,m,costdf,W,itrFirms=true)
+est_stg2 = estimate_NLOpt(est_stg2[3],par_est,m,costdf,W,itrFirms=true)
 # x1,x2,p_init = est_stg2
 # p_full = fit_firm_moments(p_init,par_est,m,costdf)
 
@@ -195,7 +195,7 @@ p0 = est_init[3]
 p = fit_firm_moments(p0,par_est,m,costdf)
 par = parMC(p,par_est,m,costdf)
 individual_costs(m,par)
-moments,targets = costMoments(costdf,m,par)
+moments = costMoments(costdf,m,par)
 
 S,Σ,Δ,mom_long = aVar(costdf,m,p,par_est)
 moments_test = moments_Avar(costdf,m,mom_long)

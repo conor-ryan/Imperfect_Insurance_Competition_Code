@@ -25,8 +25,8 @@ prod_data = simData[,list(count_hix_prod= max(count_hix_prod)),
 names(prod_data) = c("Product","Metal_std","ST","Market","Firm",
                      "premBase","AV_std","benchBase","count_hix_prod","Big")
 
-prod_data = merge(prod_data,firm_RA[,c("ST","Firm","RA_share")],by=c("ST","Firm"),all=TRUE)
-names(prod_data) = c("ST","Firm","Product","Metal_std","Market","premBase","AV_std","benchBase","count_hix_prod","Big","RA_share")
+prod_data = merge(prod_data,firm_RA[,c("ST","Firm","RA_share","HighRisk")],by=c("ST","Firm"),all=TRUE)
+names(prod_data) = c("ST","Firm","Product","Metal_std","Market","premBase","AV_std","benchBase","count_hix_prod","Big","RA_share","HighRisk")
 
 
 
