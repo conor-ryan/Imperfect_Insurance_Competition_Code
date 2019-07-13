@@ -227,7 +227,8 @@ end
 
 function solve_model!(m::InsuranceLogit,f::firmData;sim="Base")
     P_res = zeros(length(f.P_j))
-    for s in keys(f._prodSTDict)
+    states = sort(String.(keys(f._prodSTDict)))
+    for s in states
         println("Solving for $s")
         solve_model_st!(m,f,s,sim=sim)
         P_res[f._prodSTDict[s]] = f.P_j[f._prodSTDict[s]]
