@@ -42,7 +42,7 @@ chdf = ChoiceData(df,df_mkt,df_risk;
     prodchars_0=[:constant,:AV,:Big],
     fixedEffects=[:Firm_Market_Cat],
     wgt=[:PERWT],
-    constMoments=false)
+    constMoments=true)
 
 model = InsuranceLogit(chdf,500)
 

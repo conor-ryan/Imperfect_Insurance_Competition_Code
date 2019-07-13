@@ -62,9 +62,16 @@ for (v in c("base","RA","man","RAman")){
 
 #### Premium Results ####
 
-prem = prod_pred[,list(Price_base = sum(Price_base*Lives_base)/sum(Lives_base),
+prem = prod_pred[Lives_base>1,list(Price_base = sum(Price_base*Lives_base)/sum(Lives_base),
                        Price_RA = sum(Price_RA*Lives_base)/sum(Lives_base),
                        Price_man = sum(Price_man*Lives_base)/sum(Lives_base),
                        Price_RAman = sum(Price_RAman*Lives_base)/sum(Lives_base)),
                  by=c("Metal_std","HHI_flag")]
-setkey(prem,HHI_flag,Price_base)
+setkey(prem,HHI_flag,Price_RA)
+
+prem = prod_pred[Lives_base>1,list(Price_base = sum(Price_base*Lives_base)/sum(Lives_base),
+                                   Price_RA = sum(Price_RA*Lives_base)/sum(Lives_base),
+                                   Price_man = sum(Price_man*Lives_base)/sum(Lives_base),
+                                   Price_RAman = sum(Price_RAman*Lives_base)/sum(Lives_base)),
+                 by=c("Metal_std","Market")]
+# setkey(prem,HHI_flag,Price_RA)

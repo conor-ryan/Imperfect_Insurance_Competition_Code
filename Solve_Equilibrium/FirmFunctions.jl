@@ -102,9 +102,21 @@ function checkMargin(m::InsuranceLogit,f::firmData,file::String)
                         ageRate=ageRate)
 
     CSV.write(file,output)
-
+    return nothing
 end
 
+function calc_avgR(m::InsuranceLogit,f::firmData)
+    R_j = zeros(length(m.prods))
+    wgts = weight(m.data)[:]
+    s_hat = f.par_dem.s_hat
+    wgt_share = wgts.*s_hat
+    r_hat = f.par_dem.r_hat
+    for (j,idx_j) in f._productDict
+        avgR = sliceMean_wgt(r_hat,wgt_share,idx_j)
+        R_j[j] = avgR
+    end
+    return R_j
+end
 
 function evaluate_FOC(firm::firmData,ST::String)
 

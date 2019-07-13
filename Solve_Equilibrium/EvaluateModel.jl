@@ -1,3 +1,34 @@
+#### OVERWRITE DEMAND FUNCTION FOR SILVER HHC R ESTIMATES
+function individual_shares(d::InsuranceLogit,p::parDict{T}) where T
+    # Store Parameters
+    δ_long = p.δ
+    μ_ij_large = p.μ_ij
+    μ_ij_nr_large = p.μ_ij_nonRisk
+    risk_long = rInd(d.data) ## Change Relative to Demand Function
+    ageHCC_long = ageHCC(d.data)
+    any_long = anyHCC(d.data)
+    for i in d.data._personIDs
+        idxitr = d.data._personDict[i]
+        anyR = any_long[idxitr][1]
+        δ = δ_long[idxitr]
+        u = μ_ij_large[:,idxitr]
+        u_nr= μ_ij_nr_large[idxitr]
+        r_ind = Int.(risk_long[idxitr])
+        r_scores = d.draws[:,r_ind]
+        r_age_scores = ageHCC_long[idxitr]
+        s,r = calc_shares(u,δ,r_scores,r_age_scores)
+        s_nr = calc_shares(u_nr,δ)
+        s_mean = anyR .* s + (1-anyR) .* s_nr
+        p.s_hat[idxitr] = s_mean
+        p.r_hat[idxitr] =( (anyR.*s.*r) + ((1-anyR).*s_nr.*r_age_scores) )./s_mean
+    end
+
+    #### Print Insurance Rate ###
+    # ins_rate = sum(p.s_hat.*weight(d.data)[:])/sum(weight(d.data).*choice(d.data))
+    # println("Aggregate Insurance Rate: $ins_rate")
+
+    return Nothing
+end
 
 function compute_nonprice!(d::InsuranceLogit,firm::firmData)
     # Calculate μ_ij, which depends only on parameters
