@@ -164,7 +164,7 @@ function run_specification_GMM(filename::String,
     #     p0[σ_ind] = [-0.112438, 0.371566, 0.0271]
     # end
     println("#### Estimate GMM First Stage ####")
-
+    p0[σ_ind]=rand(length(σ_ind)).*0.5
     # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/checkin_265.jld2"
     # @load file p_vec
     # p0 = copy(p_vec)

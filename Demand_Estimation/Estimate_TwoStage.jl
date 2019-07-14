@@ -440,6 +440,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 println("Algorithm Stuck, Random Deviation")
                 p_test = copy(p_vec)
                 p_test[FE_ind] = p_vec[FE_ind] .+ rand(length(FE_ind)).*0.5
+                hess_steps=0
                 break
             else
                 println("No Advancement")
