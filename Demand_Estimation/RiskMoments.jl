@@ -344,7 +344,7 @@ end
 
 
 function calc_risk_moments(d::InsuranceLogit,p::Array{T}) where T
-    params = parDict(d,p)
+    params = parDict(d,p,no2Der=true)
     individual_values!(d,params)
     individual_shares(d,params)
     res = calc_risk_moments(d,params)

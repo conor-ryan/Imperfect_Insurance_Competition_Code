@@ -30,6 +30,16 @@ println("Code Loaded")
 
 # Load the Data
 include("load.jl")
+
+
+test = unique(df[[:Person,:N,:Rtype]])
+total = sum(test[:N])
+for i in 1:4
+    perc = round(sum(test[:N][test[:Rtype].==i])/total,digits=3)
+    println("Risk type $i: $perc")
+end
+
+
 #Structure the data
 c = ChoiceData(df,df_mkt,df_risk;
     demoRaw=[:AgeFE_31_39,
@@ -38,10 +48,10 @@ c = ChoiceData(df,df_mkt,df_risk;
             :Family,
             :LowIncome],
     # demoRaw=Vector{Symbol}(undef,0),
-    prodchars=[:Price,:constant,:AV,:Big],
-    prodchars_0=[:constant,:AV,:Big],
+    prodchars=[:Price,:constant,:AV,:HighRisk,:Small],
+    prodchars_0=[:constant,:AV,:HighRisk,:Small],
     # prodchars_0=Vector{Symbol}(undef,0),
-    fixedEffects=[:Firm_Market_Cat])
+    fixedEffects=[:Firm])
 
 #2018 - 12 - 24 : Firm Specification
 #2019 - 03 - 7 : Firm Specification
@@ -54,21 +64,21 @@ m = InsuranceLogit(c,500)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
-# γstart = rand(m.parLength[:γ])/10 .-.05
-# β0start = rand(m.parLength[:β])/10 .-.05
-# βstart = rand(m.parLength[:γ])/10 .- .05
-# σstart = rand(m.parLength[:σ])/10 .- .05
-# # σstart = zeros(m.parLength[:σ])
-# FEstart = rand(m.parLength[:FE])/100 #.-.005
-# #
-# p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
-# par0 = parDict(m,p0)
+γstart = rand(m.parLength[:γ])/10 .-.05
+β0start = rand(m.parLength[:β])/10 .-.05
+βstart = rand(m.parLength[:γ])/10 .- .05
+σstart = rand(m.parLength[:σ])/10 .- .05
+# σstart = zeros(m.parLength[:σ])
+FEstart = rand(m.parLength[:FE])/100 #.-.005
+#
+p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
+par0 = parDict(m,p0)
 
-# ll = log_likelihood(m,par0)
-rundate = "2019-07-12"
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-$rundate-stg2.jld2"
-@load file p_stg2
-p0 = copy(p_stg2)
+# # ll = log_likelihood(m,par0)
+# rundate = "2019-07-12"
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-$rundate-stg2.jld2"
+# @load file p_stg2
+# p0 = copy(p_stg2)
 r = calc_risk_moments(m,p0)
 println("Risk Moments are $r")
 

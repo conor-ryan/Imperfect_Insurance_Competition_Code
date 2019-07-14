@@ -4,7 +4,7 @@ function individual_shares(d::InsuranceLogit,p::parDict{T}) where T
     δ_long = p.δ
     μ_ij_large = p.μ_ij
     μ_ij_nr_large = p.μ_ij_nonRisk
-    risk_long = rInd(d.data) ## Change Relative to Demand Function
+    risk_long = rIndS(d.data) ## Change Relative to Demand Function
     ageHCC_long = ageHCC(d.data)
     any_long = anyHCC(d.data)
     for i in d.data._personIDs

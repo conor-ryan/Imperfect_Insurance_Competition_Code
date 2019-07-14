@@ -61,16 +61,16 @@ fMom = unique(fMom[,c("logAvgCost","M_num","Product")])
 prod_data = merge(prod_data,firmClaims,by=c("ST","Firm"))
 prod_data = merge(prod_data,fMom,by="Product")
 prod_data[,MR:=premBase-Mkup]
-set_key(prod_data,Market,Firm,AV_std)
+setkey(prod_data,Market,Firm,AV_std)
 
 
 firm_test = prod_data[,list(avgCost=sum(avgCost*lives)/sum(lives),
                             pooledCost=sum(pooledCost*lives)/sum(lives),
                             avgRev=sum(P_obs*ageRate*lives)/sum(lives),
+                            avgR = sum(avgR*lives)/sum(lives),
                             lives=sum(lives)),
-                      by=c("ST","Firm","FirmAvgCost","prjFirmCost","expFirmCost","logAvgCost","M_num")]
-firm_test[,share:=lives/sum(lives),by="ST"]
-firm_test[,target:=exp(logAvgCost)]
+                      by=c("Market","Firm","FirmAvgCost","prjFirmCost","HighRisk")]
+firm_test[,share:=lives/sum(lives),by="Market"]
 
 
 #### Plot Margin Check ####

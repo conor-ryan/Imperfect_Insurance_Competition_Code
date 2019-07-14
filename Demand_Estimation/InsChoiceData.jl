@@ -91,9 +91,12 @@ function ChoiceData(data_choice::DataFrame,
     rm = convert(Matrix{Float64},data_choice[riskChars])
 
     println("Create Fixed Effects")
-    bigFirm = :Big in prodchars
+    bigFirm = :HighRisk in prodchars
+    smallFirm = :Small in prodchars
     constInProds = :constant in prodchars
-    F, feNames = build_FE(data_choice,fixedEffects,bigFirm = bigFirm,constInProds=constInProds)
+    F, feNames = build_FE(data_choice,fixedEffects,
+                    bigFirm = bigFirm,smallFirm = smallFirm,
+                    constInProds=constInProds)
     F = permutedims(F,(2,1))
 
 
@@ -292,7 +295,7 @@ function build_ProdDict(j::Array{T,N}) where {T,N}
     return _productDict
 end
 
-function build_FE(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false,constInProds=false) where T
+function build_FE(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false,smallFirm=false,constInProds=false) where T
     # Create Fixed Effects
     n, k = size(data_choice)
     L = 0
@@ -321,7 +324,10 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false,constI
             #     num_effects = length(factor_list) - 4
             # end
         end
-        if bigFirm & occursin("Firm",string(fe))
+        if bigFirm & occursin("Firm",string(fe))  & (fe!=:Firm)
+            num_effects-= 1
+        end
+        if smallFirm & occursin("Firm",string(fe)) & (fe!=:Firm)
             num_effects-= 1
         end
         L+=num_effects
@@ -351,22 +357,40 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false,constI
             #     continue
             # end
 
-            if bigFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA")
-                println("skip")
-                continue
-            end
+            # if bigFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA")
+            #     println("HighRisk skip")
+            #     continue
+            # end
             if bigFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA_AK_1")
-                println("skip")
+                println("HighRisk skip")
                 continue
             end
             if bigFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA_AK_1_Low")
-                println("skip")
+                println("HighRisk skip")
                 continue
             end
             if bigFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA_AK_1_Low_1")
-                println("skip")
+                println("HighRisk skip")
                 continue
             end
+
+            if smallFirm & (fac=="AETNA_IL")
+                println("Small skip")
+                continue
+            end
+            if smallFirm & (fac=="AETNA_IL_1")
+                println("Small skip")
+                continue
+            end
+            if smallFirm & (fac=="AETNA_IL_1_Low")
+                println("Small skip")
+                continue
+            end
+            if smallFirm & (fac=="AETNA_IL_1_Low_1")
+                println("Small skip")
+                continue
+            end
+
             # println(fac)
             F[fac_variables.==fac,ind] .= 1
             ind+= 1

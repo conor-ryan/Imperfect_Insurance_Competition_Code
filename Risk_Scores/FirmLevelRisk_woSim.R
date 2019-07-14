@@ -142,6 +142,9 @@ firm_RA[,names(firm_RA)[!names(firm_RA)%in%c("Firm","ST","payments_adj",
 
 firm_RA[,HighRisk:=0]
 firm_RA[T_norm_adj>0.08,HighRisk:=1] # 75th percentile of most risky
+firm_RA[,share:=memberMonths/(sum(memberMonths)),by="ST"]
+firm_RA[,Small:=as.numeric(share<0.05)]
+
 
 
 #### Save Files ####

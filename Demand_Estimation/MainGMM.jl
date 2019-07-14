@@ -40,8 +40,8 @@ spec_demoRaw = [:AgeFE_31_39,
         :AgeFE_52_64,
         :Family,
         :LowIncome]
-spec_prodchars=[:Price,:constant,:AV,:Big]
-spec_prodchars_0=[:constant,:AV,:Big]
+spec_prodchars=[:Price,:constant,:AV,:HighRisk,:Small]
+spec_prodchars_0=[:constant,:AV,:HighRisk,:Small]
 
 rundate = Dates.today()
 println("Running on $rundate")

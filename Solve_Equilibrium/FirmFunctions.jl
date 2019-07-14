@@ -90,6 +90,7 @@ function checkMargin(m::InsuranceLogit,f::firmData,file::String)
     lives = f.S_j[f.prods]
     ageRate = f.SA_j[f.prods]./lives
     P_obs = f.P_j[f.prods]
+    avgR = calc_avgR(m,f)
 
     output =  DataFrame(Product=f.prods,
                         P_obs = P_obs,
@@ -99,6 +100,7 @@ function checkMargin(m::InsuranceLogit,f::firmData,file::String)
                         avgCost = avgCost,
                         pooledCost = pooledCost,
                         lives=lives,
+                        avgR = avgR,
                         ageRate=ageRate)
 
     CSV.write(file,output)
@@ -115,7 +117,7 @@ function calc_avgR(m::InsuranceLogit,f::firmData)
         avgR = sliceMean_wgt(r_hat,wgt_share,idx_j)
         R_j[j] = avgR
     end
-    return R_j
+    return R_j[f.prods]
 end
 
 function evaluate_FOC(firm::firmData,ST::String)

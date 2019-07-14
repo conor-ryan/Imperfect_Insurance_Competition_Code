@@ -15,6 +15,7 @@ include("$load_path/Demand_Estimation/Halton.jl")
 include("$load_path/Demand_Estimation/RandomCoefficients.jl")
 include("$load_path/Demand_Estimation/utility.jl")
 include("$load_path/Demand_Estimation/Contraction.jl")
+include("$load_path/Demand_Estimation/riskMoments.jl")
 include("$load_path/Firm_Side/MC_parameters.jl")
 include("$load_path/Firm_Side/Firm_Inner_Loop.jl")
 
@@ -26,6 +27,13 @@ include("FirmFunctions.jl")
 #Load Data
 include("EQ_load.jl")
 
+#
+# test = unique(df[[:Person,:PERWT,:Rtype]])
+# total = sum(test[:PERWT])
+# for i in 1:4
+#     perc = round(sum(test[:PERWT][test[:Rtype].==i])/total,digits=3)
+#     println("Risk type $i: $perc")
+# end
 
 rundate = "2019-07-12"
 mark_the_output_date = Dates.today()
@@ -58,10 +66,17 @@ file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermed
 @load file p_stg2
 p_est = copy(p_stg2)
 
+r = calc_risk_moments(model,p_est)
+println("Risk Moments are $r")
+
 #### Compute Demand Estimation
 par_dem = parDict(model,p_est,no2Der=true)
 individual_values!(model,par_dem)
 individual_shares(model,par_dem)
+
+
+r = calc_risk_moments(model,par_dem)
+println("Risk Moments are $r")
 
 ### Load Marginal Cost Estimation
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
@@ -96,6 +111,10 @@ par_cost = parMC(mc_est,par_dem,model,costdf)
 #### Solve Equilibrium ####
 firm = firmData(model,df,eq_mkt,par_dem,par_cost)
 evaluate_model!(model,firm,"All",foc_check=true)
+
+
+r = calc_risk_moments(model,firm.par_dem)
+println("Risk Moments are $r")
 # f = firm
 # m = model
 
