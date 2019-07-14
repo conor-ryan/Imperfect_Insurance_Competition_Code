@@ -39,8 +39,8 @@ c = ChoiceData(df,df_mkt,df_risk;
             :LowIncome],
     # demoRaw=Vector{Symbol}(undef,0),
     prodchars=[:Price,:constant,:AV,:Big],
-    # prodchars_0=[:AV,:Big],
-    prodchars_0=Vector{Symbol}(undef,0),
+    prodchars_0=[:constant,:AV,:Big],
+    # prodchars_0=Vector{Symbol}(undef,0),
     fixedEffects=[:Firm_Market_Cat])
 
 #2018 - 12 - 24 : Firm Specification
@@ -50,25 +50,33 @@ c = ChoiceData(df,df_mkt,df_risk;
 
 
 # Fit into model
-m = InsuranceLogit(c,1)
+m = InsuranceLogit(c,500)
 println("Data Loaded")
 
 #γ0start = rand(1)-.5
-γstart = rand(m.parLength[:γ])/10 .-.05
-β0start = rand(m.parLength[:β])/10 .-.05
-βstart = rand(m.parLength[:γ])/10 .- .05
-σstart = rand(m.parLength[:σ])/10 .- .05
-# σstart = zeros(m.parLength[:σ])
-FEstart = rand(m.parLength[:FE])/100 #.-.005
-#
-p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
+# γstart = rand(m.parLength[:γ])/10 .-.05
+# β0start = rand(m.parLength[:β])/10 .-.05
+# βstart = rand(m.parLength[:γ])/10 .- .05
+# σstart = rand(m.parLength[:σ])/10 .- .05
+# # σstart = zeros(m.parLength[:σ])
+# FEstart = rand(m.parLength[:FE])/100 #.-.005
+# #
+# p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 # par0 = parDict(m,p0)
 
 # ll = log_likelihood(m,par0)
 
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_Firm-2019-06-03-ll.jld2"
-# @load file p_ll
-# p0=copy(p_ll)
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-$rundate-stg2.jld2"
+@load file p_stg2
+p0 = copy(p_stg2)
+r = calc_risk_moments(m,p0)
+println("Risk Moments are $r")
+
+grad = Vector{Float64}(undef,length(p0))
+W = Matrix(1.0I,length(p0)+length(m_GMM.data.tMoments),length(p0)+length(m_GMM.data.tMoments))
+GMM_objective!(grad,m,p0,W)
+
+
 # # #
 # # #
 # W = Matrix{Float64}(I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
