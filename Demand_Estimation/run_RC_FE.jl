@@ -73,7 +73,7 @@ r = calc_risk_moments(m,p0)
 println("Risk Moments are $r")
 
 grad = Vector{Float64}(undef,length(p0))
-W = Matrix(1.0I,length(p0)+length(m_GMM.data.tMoments),length(p0)+length(m_GMM.data.tMoments))
+W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
 GMM_objective!(grad,m,p0,W)
 
 
