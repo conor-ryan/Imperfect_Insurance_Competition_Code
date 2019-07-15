@@ -111,9 +111,9 @@ par_cost = parMC(mc_est,par_dem,model,costdf)
 firm = firmData(model,df,eq_mkt,par_dem,par_cost)
 evaluate_model!(model,firm,"All",foc_check=true)
 
-
-r = calc_risk_moments(model,firm.par_dem)
-println("Risk Moments are $r")
+# 
+# r = calc_risk_moments(model,firm.par_dem)
+# println("Risk Moments are $r")
 # f = firm
 # m = model
 
