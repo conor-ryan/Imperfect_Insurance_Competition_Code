@@ -354,6 +354,8 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             println(x_tol_cnt)
             println(ga_conv_cnt)
             flag = "converged"
+            f_min = copy(fval)
+            p_min[:] = p_vec[:]
             break
         end
         if strict==false
