@@ -35,7 +35,7 @@ include("EQ_load.jl")
 #     println("Risk type $i: $perc")
 # end
 
-rundate = "2019-07-12"
+rundate = "2019-07-14"
 mark_the_output_date = Dates.today()
 println("Running spec $rundate on $mark_the_output_date")
 
@@ -46,8 +46,8 @@ chdf = ChoiceData(df,df_mkt,df_risk;
             :AgeFE_52_64,
             :Family,
             :LowIncome],
-    prodchars=[:Price,:constant,:AV,:Big],
-    prodchars_0=[:constant,:AV,:Big],
+    prodchars=[:Price,:constant,:AV,:HighRisk,:Small],
+    prodchars_0=[:constant,:AV,:HighRisk,:Small],
     fixedEffects=[:Firm_Market_Cat],
     wgt=[:PERWT],
     constMoments=true)
