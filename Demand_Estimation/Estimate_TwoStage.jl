@@ -382,11 +382,11 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         end
 
 
-        if no_progress>5
-            no_progress = 0
-            println("Return: Limit on No Progress")
-            update = -(1/grad_size).*grad_new[FE_ind]
-        end
+        # if no_progress>5
+        #     no_progress = 0
+        #     println("Return: Limit on No Progress")
+            # update = -(1/grad_size).*grad_new[FE_ind]
+        # end
 
         step_size = maximum(abs.(update))
         if step_size>10
