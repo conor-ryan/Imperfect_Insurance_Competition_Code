@@ -128,7 +128,10 @@ setkey(riskMoments,HCC_positive)
 #### Risk Transfer Moments ####
 firmRiskFile = "Simulation_Risk_Output/FirmRiskScores_woSim.rData"
 load(firmRiskFile)
-RAmom = firm_RA[,list(memberMonths=sum(memberMonths),payments=sum(payments_adj)),by="HighRisk"]
+firms = unique(prod_data[,c("Firm","STATE","Small")])
+firm_RA = merge(firm_RA,firms,by.x=c("Firm","ST"),by.y=c("Firm","STATE"))
+
+RAmom = firm_RA[,list(memberMonths=sum(memberMonths),payments=sum(payments_adj)),by=c("HighRisk")]
 RAmom[,avgTransfer:=payments/memberMonths]
 
 RAmom = merge(firm_RA[,c("Firm","ST","HighRisk")],RAmom[,c("HighRisk","avgTransfer")],by="HighRisk")

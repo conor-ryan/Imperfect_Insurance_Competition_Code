@@ -332,7 +332,7 @@ prod_map = as.data.table(prod_map)
 
 setkey(acs,Product_Name)
 setkey(prod_map,Product_Name)
-acs = merge(acs,prod_map[,c("Product_Name","Product")],by="Product_Name",all.x=TRUE)
+acs = merge(acs,prod_map[,c("Product_Name","Product","Small")],by="Product_Name",all.x=TRUE)
 # Drop 0 share products
 acs = acs[!is.na(acs$Product),]
 
@@ -341,7 +341,7 @@ load("Simulation_Risk_Output/FirmRiskScores_woSim.rData")
 firm_RA = firm_RA[Firm!="OTHER",c("ST","Firm","HighRisk")]
 acs = merge(acs,firm_RA,by.y=c("ST","Firm"),by.x=c("ST","Firm"))
 
-acs[,Big:=HighRisk]
+# acs[,Big:=HighRisk]
 # acs[,Big:=as.numeric(grepl("UNITED|BLUE|CIGNA|ASSURANT",Firm))]
 
 
@@ -467,7 +467,7 @@ acs[,c("Age_Cat","Inc_Cat"):=NULL]
 
 #### Output Analogous Data ####
 choiceData = acs[,c("Person","Firm","ST","Firm_ST","Firm_Market","Firm_Market_Cat","Market","Product","PERWT","Price",
-                    "MedDeduct","ExcOOP","High","AV","AV_std","AV_diff","Big","Gamma_j",
+                    "MedDeduct","ExcOOP","High","AV","AV_std","AV_diff","HighRisk","Small","Gamma_j",
                     "Mandate","subsidy","benchBase","IncomeCont","mkt_density",
                     "Family","Age","LowIncome","AGE","AvgAge",
                     "METAL","premBase","count_hix_prod",
