@@ -91,11 +91,12 @@ function ChoiceData(data_choice::DataFrame,
     rm = convert(Matrix{Float64},data_choice[riskChars])
 
     println("Create Fixed Effects")
-    bigFirm = :HighRisk in prodchars
+    riskFirm = :HighRisk in prodchars
     smallFirm = :Small in prodchars
+    risksmall = :High_small in prodchars
     constInProds = :constant in prodchars
     F, feNames = build_FE(data_choice,fixedEffects,
-                    bigFirm = bigFirm,smallFirm = smallFirm,
+                    riskFirm = riskFirm,smallFirm = smallFirm,risksmall = risksmall,
                     constInProds=constInProds)
     F = permutedims(F,(2,1))
 
@@ -295,7 +296,8 @@ function build_ProdDict(j::Array{T,N}) where {T,N}
     return _productDict
 end
 
-function build_FE(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false,smallFirm=false,constInProds=false) where T
+function build_FE(data_choice::DataFrame,fe_list::Vector{T};
+    riskFirm=false,smallFirm=false,risksmall=false,constInProds=false) where T
     # Create Fixed Effects
     n, k = size(data_choice)
     L = 0
@@ -324,10 +326,13 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false,smallF
             #     num_effects = length(factor_list) - 4
             # end
         end
-        if bigFirm & occursin("Firm",string(fe))  & (fe!=:Firm)
+        if riskFirm & occursin("Firm",string(fe))  & (fe!=:Firm)
             num_effects-= 1
         end
         if smallFirm & occursin("Firm",string(fe)) & (fe!=:Firm)
+            num_effects-= 1
+        end
+        if risksmall & occursin("Firm",string(fe)) & (fe!=:Firm)
             num_effects-= 1
         end
         L+=num_effects
@@ -361,15 +366,15 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false,smallF
             #     println("HighRisk skip")
             #     continue
             # end
-            if bigFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA_AK_1")
+            if riskFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA_AK_1")
                 println("HighRisk skip")
                 continue
             end
-            if bigFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA_AK_1_Low")
+            if riskFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA_AK_1_Low")
                 println("HighRisk skip")
                 continue
             end
-            if bigFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA_AK_1_Low_1")
+            if riskFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA_AK_1_Low_1")
                 println("HighRisk skip")
                 continue
             end
@@ -388,6 +393,23 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};bigFirm=false,smallF
             end
             if smallFirm & (fac=="AETNA_IL_1_Low_1")
                 println("Small skip")
+                continue
+            end
+
+            if risksmall & (fac=="AETNA_MI")
+                println("Small risk skip")
+                continue
+            end
+            if risksmall & (fac=="AETNA_MI_1")
+                println("Small risk skip")
+                continue
+            end
+            if risksmall & (fac=="AETNA_MI_1_Low")
+                println("Small risk skip")
+                continue
+            end
+            if risksmall & (fac=="AETNA_MI_1_Low_1")
+                println("Small risk skip")
                 continue
             end
 

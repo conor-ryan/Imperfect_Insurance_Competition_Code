@@ -48,10 +48,10 @@ c = ChoiceData(df,df_mkt,df_risk;
             :Family,
             :LowIncome],
     # demoRaw=Vector{Symbol}(undef,0),
-    prodchars=[:Price,:constant,:AV,:HighRisk,:Small],
-    prodchars_0=[:constant,:AV,:HighRisk,:Small],
+    prodchars=[:Price,:constant,:AV,:HighRisk,:Small,:High_small],
+    prodchars_0=[:constant,:AV,:HighRisk,:Small,:High_small],
     # prodchars_0=Vector{Symbol}(undef,0),
-    fixedEffects=[:Firm])
+    fixedEffects=[:Firm_Market_Cat])
 
 #2018 - 12 - 24 : Firm Specification
 #2019 - 03 - 7 : Firm Specification
