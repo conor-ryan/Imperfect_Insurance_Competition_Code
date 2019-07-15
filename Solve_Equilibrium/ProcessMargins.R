@@ -7,7 +7,7 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 
 ## Estimation Run 
-run = "2019-07-12"
+run = "2019-07-14"
 
 #Load Product Data
 predFile = paste("Simulation_Risk_Output/prodData.rData",sep="")

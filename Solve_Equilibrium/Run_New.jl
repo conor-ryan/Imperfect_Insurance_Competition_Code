@@ -54,7 +54,7 @@ chdf = ChoiceData(df,df_mkt,df_risk;
 model = InsuranceLogit(chdf,500)
 
 costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk,mom_ra;
-                baseSpec=[:AGE,:AV_std],
+                baseSpec=[:AvgAge,:AV_std],
                 fixedEffects=[:Firm_ST],
                 constMoments=true)
 
@@ -83,7 +83,7 @@ file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermed
 # p_stg2 = est_stg1[3]
 # p_stg2[3]/=2
 p_stg3 = fit_firm_moments(p_stg2[1:3],par_dem,model,costdf,itrFirms=true)
-mc_est = copy(p_stg3)
+mc_est = copy(p_stg2)
 
 
 # par = parMC(mc_est,par_dem,model,costdf)
@@ -111,7 +111,7 @@ par_cost = parMC(mc_est,par_dem,model,costdf)
 firm = firmData(model,df,eq_mkt,par_dem,par_cost)
 evaluate_model!(model,firm,"All",foc_check=true)
 
-# 
+#
 # r = calc_risk_moments(model,firm.par_dem)
 # println("Risk Moments are $r")
 # f = firm
