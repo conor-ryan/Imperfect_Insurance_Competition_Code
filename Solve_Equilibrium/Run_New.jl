@@ -83,7 +83,7 @@ file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermed
 # p_stg2 = est_stg1[3]
 # p_stg2[3]/=2
 p_stg3 = fit_firm_moments(p_stg2[1:3],par_dem,model,costdf,itrFirms=true)
-mc_est = copy(p_stg2)
+mc_est = copy(p_stg3)
 
 
 # par = parMC(mc_est,par_dem,model,costdf)

@@ -69,8 +69,10 @@ firm_test = prod_data[,list(avgCost=sum(avgCost*lives)/sum(lives),
                             avgRev=sum(P_obs*ageRate*lives)/sum(lives),
                             avgR = sum(avgR*lives)/sum(lives),
                             lives=sum(lives)),
-                      by=c("Market","Firm","FirmAvgCost","prjFirmCost","HighRisk")]
-firm_test[,share:=lives/sum(lives),by="Market"]
+                      by=c("ST","Firm","FirmAvgCost","prjFirmCost","HighRisk")]
+firm_test[,share:=lives/sum(lives),by="ST"]
+firm_test[,avgTransfer:avgCost-pooledCost]
+# firm_test[,target:=exp(logAvgCost)]
 
 
 #### Plot Margin Check ####
