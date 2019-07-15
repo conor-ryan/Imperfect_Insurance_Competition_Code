@@ -15,7 +15,6 @@ include("$load_path/Demand_Estimation/Halton.jl")
 include("$load_path/Demand_Estimation/RandomCoefficients.jl")
 include("$load_path/Demand_Estimation/utility.jl")
 include("$load_path/Demand_Estimation/Contraction.jl")
-include("$load_path/Demand_Estimation/riskMoments.jl")
 include("$load_path/Firm_Side/MC_parameters.jl")
 include("$load_path/Firm_Side/Firm_Inner_Loop.jl")
 
@@ -75,8 +74,8 @@ individual_values!(model,par_dem)
 individual_shares(model,par_dem)
 
 
-r = calc_risk_moments(model,par_dem)
-println("Risk Moments are $r")
+# r = calc_risk_moments(model,par_dem)
+# println("Risk Moments are $r")
 
 ### Load Marginal Cost Estimation
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
