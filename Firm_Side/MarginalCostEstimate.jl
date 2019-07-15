@@ -41,7 +41,7 @@ m = InsuranceLogit(chdf,500)
 
 # Cost Data
 costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk,mom_ra;
-                baseSpec=[:AvgAge,:AV_std],
+                baseSpec=[:AvgAge,:Silver,:Gold,:Platinum],
                 fixedEffects=[:Firm_ST])
 
 
