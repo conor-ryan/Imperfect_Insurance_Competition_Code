@@ -50,7 +50,7 @@ chdf = ChoiceData(df,df_mkt,df_risk;
     prodchars_0=[:constant,:AV,:HighRisk,:Small],
     fixedEffects=[:Firm_Market_Cat],
     wgt=[:PERWT],
-    constMoments=true)
+    constMoments=false)
 
 model = InsuranceLogit(chdf,500)
 
@@ -66,8 +66,8 @@ file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermed
 @load file p_stg2
 p_est = copy(p_stg2)
 
-r = calc_risk_moments(model,p_est)
-println("Risk Moments are $r")
+# r = calc_risk_moments(model,p_est)
+# println("Risk Moments are $r")
 
 #### Compute Demand Estimation
 par_dem = parDict(model,p_est,no2Der=true)

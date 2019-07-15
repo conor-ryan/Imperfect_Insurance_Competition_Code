@@ -83,11 +83,11 @@ p0 = vcat(rand(1)*.2,rand(1).*4,rand(1)*.2)
 est_init = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4,max_itr=200)
 est_stg1 = estimate_NLOpt(est_init[3],par_est,m,costdf,W,itrFirms=true)
 # #
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1b_$rundate.jld2"
 @save file est_stg1
 
 
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1b_$rundate.jld2"
 @load file est_stg1
 # p_stg1, fval = est_stg1
 flag,fval,p_stg1 = est_stg1
@@ -126,7 +126,7 @@ est_stg2 = estimate_NLOpt(est_stg2[3],par_est,m,costdf,W,itrFirms=true)
 #
 
 p_stg2 = fit_firm_moments(est_stg2[3],par_est,m,costdf,itrFirms=true)
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2b_$rundate.jld2"
 @save file p_stg2
 
 # @load file est_stg2
@@ -139,7 +139,7 @@ println("###### Save Results #######")
 println("#################")
 println("#################")
 
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2b_$rundate.jld2"
 @load file p_stg2
 # flag ,fval, p_stg2 = est_stg2
 Avar, se, t_stat, stars = GMM_var(costdf,m,p_stg2,par_est)
