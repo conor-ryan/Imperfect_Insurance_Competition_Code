@@ -343,6 +343,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             no_progress=0
         else
             no_progress+=1
+            println("Last Progress at $f_min")
         end
         skip_x_tol = 0
 
