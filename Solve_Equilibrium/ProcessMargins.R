@@ -71,7 +71,7 @@ firm_test = prod_data[,list(avgCost=sum(avgCost*lives)/sum(lives),
                             lives=sum(lives)),
                       by=c("ST","Firm","FirmAvgCost","prjFirmCost","HighRisk")]
 firm_test[,share:=lives/sum(lives),by="ST"]
-firm_test[,avgTransfer:avgCost-pooledCost]
+firm_test[,avgTransfer:=avgCost-pooledCost]
 # firm_test[,target:=exp(logAvgCost)]
 
 

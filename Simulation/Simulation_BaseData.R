@@ -41,9 +41,10 @@ acs = merge(acs,areaMatch[,c("PUMA","RatingArea","ST","STATEFIP","alloc")],by=c(
 # Distribute weight by population prob that observation is in a given Rating Area
 acs[,PERWT:=PERWT*alloc]
 acs[,household:=as.factor(paste(household,gsub("Rating Area ","",RatingArea),sep="-"))]
+acs[,insured:=!all(uninsured),by="household"]
 
-acs = acs[,c("household","HHincomeFPL","HH_income","AGE","SEX","PERWT","RatingArea","ST")]
-names(acs) = c("household","HHincomeFPL","HH_income","AGE","SEX","PERWT","AREA","ST")
+acs = acs[,c("household","HHincomeFPL","HH_income","AGE","SEX","PERWT","RatingArea","ST","insured")]
+names(acs) = c("household","HHincomeFPL","HH_income","AGE","SEX","PERWT","AREA","ST","insured")
 
 
 
@@ -95,11 +96,12 @@ acs[,SilvHCC_Age:=SilvHCC_Age*PERWT]
 acs[,BronHCC_Age:=BronHCC_Age*PERWT]
 acs[,CataHCC_Age:=CataHCC_Age*PERWT]
 
-acs = acs[,lapply(.SD,sum),by=c("household","HHincomeFPL","HH_income","MaxAge","AREA","ST"),
+acs = acs[,lapply(.SD,sum),by=c("household","HHincomeFPL","HH_income","MaxAge","AREA","ST","insured"),
           .SDcols = c("MEMBERS","AvgAge","ageRate","ageRate_avg","PERWT","catas_cnt",
                       "PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age")]
 
-names(acs) = c("household","HHincomeFPL","HH_income","AGE","AREA","ST","MEMBERS","AvgAge","ageRate","ageRate_avg","PERWT","catas_cnt",
+names(acs) = c("household","HHincomeFPL","HH_income","AGE","AREA","ST","insured",
+               "MEMBERS","AvgAge","ageRate","ageRate_avg","PERWT","catas_cnt",
                "PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age")
 acs[,AvgAge:=AvgAge/PERWT]
 acs$ageRate_avg = with(acs,ageRate_avg/PERWT)
@@ -113,6 +115,9 @@ acs[,CataHCC_Age:=CataHCC_Age/PERWT]
 acs$FAMILY_OR_INDIVIDUAL = "INDIVIDUAL"
 acs$FAMILY_OR_INDIVIDUAL[acs$MEMBERS>1] = "FAMILY"
 acs$catas_elig = acs$catas_cnt==acs$MEMBERS
+
+
+save(acs,file="Intermediate_Output/Simulated_BaseData/acs_prepped.rData")
 
 # acs$count = 1
 # areas = summaryBy(MEMBERS+count~AREA+ST,data=acs,FUN=sum,keep.names=TRUE)
