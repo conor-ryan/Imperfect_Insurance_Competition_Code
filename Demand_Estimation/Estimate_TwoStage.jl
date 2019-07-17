@@ -726,13 +726,14 @@ function ga_twostage(d,p0,W,par_ind::Union{Vector{Int64},UnitRange{Int64}};grad_
         end
 
         grad_size = maximum(abs.(grad_new[par_ind]))
-        if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1)
+        if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1) | (stall_cnt>1)
             conv_flag = 1
             println("Got to Break Point")
             println(grad_size)
             println(f_tol_cnt)
             println(x_tol_cnt)
             println(conv_flag)
+            println(stall_cnt)
             break
         end
         if strict==false
@@ -771,7 +772,7 @@ function ga_twostage(d,p0,W,par_ind::Union{Vector{Int64},UnitRange{Int64}};grad_
         end
 
         println("Initial Step Size: $step")
-        while ((f_test>fval*mistake_thresh) | isnan(f_test)) & (step>1e-15)
+        while ((f_test>fval*mistake_thresh) | isnan(f_test))
             p_test_disp = p_test[1:disp_length]
             if trial_cnt==0
                 println("Trial: Got $f_test at parameters $p_test_disp")
@@ -786,10 +787,15 @@ function ga_twostage(d,p0,W,par_ind::Union{Vector{Int64},UnitRange{Int64}};grad_
                 println("Failed with Approximate Gradient")
                 break
             end
+            if (step<1e-15) & (real_gradient==1)
+                stall_cnt+=1
+                println("Stalled: No Better Point")
+                break
+            end
         end
 
         ## Update Minimum Value
-        if (cnt==1) | (f_test<f_min)
+        if (cnt==1) | ((fval-f_min)>(-1e-14))
             if (abs(f_test-f_min)<f_tol) & (real_gradient==1)
                 f_tol_cnt += 1
             end
@@ -799,6 +805,7 @@ function ga_twostage(d,p0,W,par_ind::Union{Vector{Int64},UnitRange{Int64}};grad_
             f_min = copy(f_test)
             p_min[:] = p_test[:]
             no_progress=0
+            stall_cnt=0
         else
             no_progress+=1
         end
