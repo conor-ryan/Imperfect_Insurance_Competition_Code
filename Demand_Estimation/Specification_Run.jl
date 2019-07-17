@@ -110,33 +110,33 @@ function run_specification_GMM(filename::String,
 
     cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/")
     ## Build Log_Likehood Model
-    println("Build LL Model")
-    c_ll = ChoiceData(df,df_mkt,df_risk;
-        demoRaw=spec_demoRaw,
-        prodchars=spec_prodchars,
-        prodchars_0=Vector{Symbol}(undef,0),
-        fixedEffects=spec_fixedEffects)
+    # println("Build LL Model")
+    # c_ll = ChoiceData(df,df_mkt,df_risk;
+    #     demoRaw=spec_demoRaw,
+    #     prodchars=spec_prodchars,
+    #     prodchars_0=Vector{Symbol}(undef,0),
+    #     fixedEffects=spec_fixedEffects)
+    #
+    # m_ll = InsuranceLogit(c_ll,1,nested=nested)
+    #
+    # ## Initialize Starting Parameters
+    # γstart = rand(m_ll.parLength[:γ])/10 .-.05
+    # β0start = rand(m_ll.parLength[:β])/10 .-.05
+    # βstart = rand(m_ll.parLength[:γ])/10 .- .05
+    # σstart = rand(m_ll.parLength[:σ])/10 .- .05
+    # FEstart = rand(m_ll.parLength[:FE])/100 .-.005
+    #
+    # p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
+    # println("#### Estimate LL Starting Point ####")
+    #
+    # ## Estimate
+    # p_ll, fval = newton_raphson_ll(m_ll,p0)
+    #
+    # println("Save LL Result")
+    # file = "$filename-$rundate-ll.jld2"
+    # @save file p_ll
 
-    m_ll = InsuranceLogit(c_ll,1,nested=nested)
-
-    ## Initialize Starting Parameters
-    γstart = rand(m_ll.parLength[:γ])/10 .-.05
-    β0start = rand(m_ll.parLength[:β])/10 .-.05
-    βstart = rand(m_ll.parLength[:γ])/10 .- .05
-    σstart = rand(m_ll.parLength[:σ])/10 .- .05
-    FEstart = rand(m_ll.parLength[:FE])/100 .-.005
-
-    p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
-    println("#### Estimate LL Starting Point ####")
-
-    ## Estimate
-    p_ll, fval = newton_raphson_ll(m_ll,p0)
-
-    println("Save LL Result")
-    file = "$filename-$rundate-ll.jld2"
-    @save file p_ll
-
-    file = "$filename-$rundate-ll.jld2"
+    file = "$filename-2019-07-17-ll.jld2"
     @load file p_ll
 
 
@@ -160,9 +160,9 @@ function run_specification_GMM(filename::String,
     p0 = zeros(m_GMM.parLength[:All])
     p0[ind1] = p_ll[ind1]
     p0[ind2] = p_ll[ind2.-m_GMM.parLength[:σ]]
-    # if spec_fixedEffects== [:Firm_Market_Cat]
-    #     p0[σ_ind] = [-0.112438, 0.371566, 0.0271]
-    # end
+    if spec_fixedEffects== [:Firm_Market_Cat]
+        p0[σ_ind] = [0.535156, 0.488427, 0.0241993, -0.0498671, 0.144543]
+    end
     println("#### Estimate GMM First Stage ####")
     # p0[σ_ind]=rand(length(σ_ind)).*0.5
     # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/checkin_265.jld2"

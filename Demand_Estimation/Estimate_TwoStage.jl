@@ -51,6 +51,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     ga_skip = 0
     ga_strict = true
     ga_cnt = 0
+    re_opt_cnt = 0
 
     ### Initialize Fixed Effects
     # fval = log_likelihood!(hess_new,grad_new,d,p_vec)
@@ -61,17 +62,19 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
 
     # Maximize by Newtons Method
     while (grad_size>0) & (cnt<max_itr) & (max_trial_cnt<20)
+        re_opt_cnt+=1
         cnt+=1
         trial_cnt=0
 
-        if (cnt%8==0) | (flag=="converged")
+        if (re_opt_cnt==8) | (flag=="converged")
+            re_opt_cnt=0
             p_vec,fe_itrs = reOpt_FE(d,p_vec)
             if (flag=="converged") & (fe_itrs<2)
                 println("Converged in two stages!")
                 break
             end
             println("Gradient Conditioning")
-            p_vec, f_null,ga_null = ga_twostage(d,p_vec,W,par_ind,max_itr=10,strict=true,Grad_Skip_Steps=0)
+            # p_vec, f_null,ga_null = ga_twostage(d,p_vec,W,par_ind,max_itr=10,strict=true,Grad_Skip_Steps=0)
             f_min = 1e3
             flag = "empty"
             f_tol_cnt = 0
@@ -184,7 +187,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 update/= 200
             end
             step_size = maximum(abs.(update))
-            if (step_size>x_tol)
+            if (step_size>x_tol) | (real_hessian==1 & trial_cnt<3)
                 p_test = p_vec .+ update
                 f_test = GMM_objective(d,p_test,W,feFlag=0)
                 p_test_disp = p_test[1:20]
@@ -303,6 +306,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     x_tol_cnt = 0
     skip_x_tol=0
     ga_conv_cnt=0
+
 
 
     # Maximize by Newtons Method
@@ -537,12 +541,17 @@ function GA_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         println("Compute Gradient")
         fval = log_likelihood!(grad_new,d,par,feFlag=1)
 
+        grad_size = maximum(abs.(grad_new))
         if cnt==1
-            step = 1.0
+            step = min(1.0,1/grad_size)
         else
             g = (p_vec - p_last)[FE_ind]
             y = (grad_new - grad_last)[FE_ind]
             step = abs.(dot(g,g)/dot(g,y))
+            if isnan(step)
+                println("Step is NaN, $(dot(g,g)), $(dot(g,y))")
+                step = .001
+            end
         end
 
 
@@ -562,7 +571,7 @@ function GA_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         end
         skip_x_tol = 0
 
-        grad_size = maximum(abs.(grad_new))
+
         if (grad_size<grad_tol)
             conv_flag = 1
             println("Got to Break Point!")
@@ -598,11 +607,6 @@ function GA_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         end
 
 
-        if no_progress>5
-            no_progress = 0
-            println("Return: Limit on No Progress")
-            update = -(1/grad_size).*grad_new[FE_ind]
-        end
 
         step_size = maximum(abs.(update))
         if step_size>10
@@ -740,21 +744,15 @@ function ga_twostage(d,p0,W,par_ind::Union{Vector{Int64},UnitRange{Int64}};grad_
         end
 
         if cnt==1
-            step = 1/grad_size
+            step = min(1.0,1/grad_size)
         elseif (real_gradient==1)
             g = (p_vec - p_last)[par_ind]
             y = (grad_new - grad_last)[par_ind]
             step = abs.(dot(g,g)/dot(g,y))
-        end
-
-        if no_progress>10
-            no_progress = 0
-            println("Return: Limit on No Progress")
-            p_vec = copy(p_min)
-            fval = GMM_objective!(grad_new,d,p_vec,W,feFlag=0)
-            grad_size = maximum(abs.(grad_new))
-            step = 1/grad_size
-            mistake_thresh = 1.00
+            if isnan(step)
+                println("Step is NaN, $(dot(g,g)), $(dot(g,y))")
+                step = .001
+            end
         end
 
 
