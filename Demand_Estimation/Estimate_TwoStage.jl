@@ -409,7 +409,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         update_par(d,par,p_test)
         f_test = log_likelihood(d,par,feFlag=1)
 
-        if hess_steps<Hess_Skip_Steps
+        if (hess_steps<Hess_Skip_Steps) & (no_progress_cnt<5)
             hess_steps+=1
         else
             hess_steps=0
