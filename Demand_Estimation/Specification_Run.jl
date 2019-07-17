@@ -158,6 +158,11 @@ function run_specification_GMM(filename::String,
 
 
     p0 = zeros(m_GMM.parLength[:All])
+    println(length(p0))
+    println(length(p_ll))
+    println(m_GMM.parLength[:All])
+    println(m_GMM.parLength[:σ])
+
     p0[ind1] = p_ll[ind1]
     p0[ind2] = p_ll[ind2.-m_GMM.parLength[:σ]]
     if spec_fixedEffects== [:Firm_Market_Cat]
