@@ -111,25 +111,25 @@ function run_specification_GMM(filename::String,
     cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/")
     # Build Log_Likehood Model
     println("Build LL Model")
-    # c_ll = ChoiceData(df,df_mkt,df_risk;
-    #     demoRaw=spec_demoRaw,
-    #     prodchars=spec_prodchars,
-    #     prodchars_0=Vector{Symbol}(undef,0),
-    #     fixedEffects=spec_fixedEffects)
-    #
-    # m_ll = InsuranceLogit(c_ll,1,nested=nested)
-    #
-    # ## Initialize Starting Parameters
-    # γstart = rand(m_ll.parLength[:γ])/10 .-.05
-    # β0start = rand(m_ll.parLength[:β])/10 .-.05
-    # βstart = rand(m_ll.parLength[:γ])/10 .- .05
-    # σstart = rand(m_ll.parLength[:σ])/10 .- .05
-    # FEstart = rand(m_ll.parLength[:FE])/100 .-.005
-    #
-    # p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
-    # println("#### Estimate LL Starting Point ####")
-    #
-    # ## Estimate
+    c_ll = ChoiceData(df,df_mkt,df_risk;
+        demoRaw=spec_demoRaw,
+        prodchars=spec_prodchars,
+        prodchars_0=Vector{Symbol}(undef,0),
+        fixedEffects=spec_fixedEffects)
+
+    m_ll = InsuranceLogit(c_ll,1,nested=nested)
+
+    ## Initialize Starting Parameters
+    γstart = rand(m_ll.parLength[:γ])/10 .-.05
+    β0start = rand(m_ll.parLength[:β])/10 .-.05
+    βstart = rand(m_ll.parLength[:γ])/10 .- .05
+    σstart = rand(m_ll.parLength[:σ])/10 .- .05
+    FEstart = rand(m_ll.parLength[:FE])/100 .-.005
+
+    p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
+    println("#### Estimate LL Starting Point ####")
+
+    ## Estimate
     # p_ll, fval = newton_raphson_ll(m_ll,p0)
     #
     # println("Save LL Result")
