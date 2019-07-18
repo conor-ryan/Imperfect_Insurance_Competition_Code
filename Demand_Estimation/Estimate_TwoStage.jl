@@ -691,6 +691,7 @@ function ga_twostage(d,p0,W,par_ind::Union{Vector{Int64},UnitRange{Int64}};grad_
     hess_new = Matrix{Float64}(undef,length(p0),length(p0))
     f_final_val = 0.0
     max_trial_cnt = 0
+    stall_cnt = 0 
     grad_steps = 0
     p_last = copy(p_vec)
     grad_last = copy(grad_new)

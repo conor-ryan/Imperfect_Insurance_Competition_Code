@@ -27,12 +27,12 @@ include("FirmFunctions.jl")
 include("EQ_load.jl")
 
 #
-# test = unique(df[[:Person,:PERWT,:Rtype]])
-# total = sum(test[:PERWT])
-# for i in 1:4
-#     perc = round(sum(test[:PERWT][test[:Rtype].==i])/total,digits=3)
-#     println("Risk type $i: $perc")
-# end
+test = unique(df[[:Person,:PERWT,:Rtype]])
+total = sum(test[:PERWT])
+for i in 1:4
+    perc = round(sum(test[:PERWT][test[:Rtype].==i])/total,digits=3)
+    println("Risk type $i: $perc")
+end
 
 rundate = "2019-07-14"
 mark_the_output_date = Dates.today()
