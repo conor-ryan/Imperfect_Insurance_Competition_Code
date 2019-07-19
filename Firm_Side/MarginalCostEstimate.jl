@@ -41,14 +41,14 @@ m = InsuranceLogit(chdf,500)
 
 # Cost Data
 costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk,mom_ra;
-                baseSpec=[:AvgAge,:Silver,:Gold,:Platinum],
+                baseSpec=[:AvgAge,:AV_std],
                 fixedEffects=[:Firm_ST])
 
 
 println("Data Loaded")
 
 #### Load Demand Estimation ####
-rundate = "2019-07-14"
+rundate = "2019-07-18"
 # resDF = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_$rundate.csv")
 # p_est = Float64.(resDF[:pars])
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
@@ -79,7 +79,7 @@ W = Matrix(1.0I,costdf.mom_length,costdf.mom_length)
 # est_stg1 = estimate_GMM(p0,par_est,m,costdf,W,fit=true)
 # incase = est_stg1
 
-p0 = vcat(rand(1)*.2,rand(3).*1,rand(1)*.2)
+p0 = vcat(rand(1)*.2,rand(1).*1,rand(1)*.2)
 est_init = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4,max_itr=200)
 est_stg1 = estimate_NLOpt(est_init[3],par_est,m,costdf,W,itrFirms=true)
 # #
@@ -111,7 +111,7 @@ W = inv(S)
 # S,S_unwt,mom_est = var_bootstrap(costdf,m,p_stg1,par_est,draw_num=5000)
 # W = inv(S)
 
-p0 = vcat(rand(1)*.2,rand(3).*1,rand(1)*.2)
+p0 = vcat(rand(1)*.2,rand(1).*1,rand(1)*.2)
 # # p0 = [0.0152152, 2.42283, -0.21084, 0.154506]
 est_stg2 = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4)
 est_stg2 = estimate_NLOpt(est_stg2[3],par_est,m,costdf,W,itrFirms=true)
