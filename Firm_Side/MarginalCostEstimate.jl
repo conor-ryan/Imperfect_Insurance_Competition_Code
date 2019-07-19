@@ -23,6 +23,7 @@ include("Firm_Inner_Loop.jl")
 # Load the Data
 include("MC_load.jl")
 
+df[:High_small] = df[:HighRisk].*df[:Small]
 #### Build Model ####
 # Structre the data
 chdf = ChoiceData(df,df_mkt,df_risk;
@@ -31,8 +32,8 @@ chdf = ChoiceData(df,df_mkt,df_risk;
             :AgeFE_52_64,
             :Family,
             :LowIncome],
-    prodchars=[:Price,:constant,:AV,:HighRisk,:Small],
-    prodchars_0=[:constant,:AV,:HighRisk,:Small],
+    prodchars=[:Price,:constant,:AV,:HighRisk,:Small,:High_small],
+    prodchars_0=[:constant,:AV,:HighRisk,:Small,:High_small],
     fixedEffects=[:Firm_Market_Cat],
     wgt=[:PERWT])
 
