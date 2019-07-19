@@ -63,6 +63,11 @@ par_est = parDict(m,p_est,no2Der=true)
 individual_values!(m,par_est)
 individual_shares(m,par_est)
 
+if length(p_stg2)!=m.parLength[:All]
+    println(length(p_stg2))
+    println(m.parLength[:All])
+    error("Parameter Vector Not Quite Right")
+end
 
 #### Load Starting Parameter
 # parStart = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/MC_Moments/linregpars_$rundate.csv")
