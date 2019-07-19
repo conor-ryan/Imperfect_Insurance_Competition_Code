@@ -102,7 +102,7 @@ function MC_Data(data_choice::DataFrame,
 
     println("Create Fixed Effects")
     bigFirm = false
-    F, feNames = build_FE(data_choice,fixedEffects,bigFirm = bigFirm)
+    F, feNames = build_FE(data_choice,fixedEffects)
     F = permutedims(F,(2,1))
 
     index = Dict{Symbol, Int}()
