@@ -7,7 +7,7 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 
 ## Estimation Run 
-run = "2019-07-14"
+run = "2019-07-18"
 
 #Load Product Data
 predFile = paste("Simulation_Risk_Output/prodData.rData",sep="")
@@ -35,7 +35,8 @@ prod_data[,share_base:=lives/size]
 share_moment = as.data.table(read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv"))
 share_moment[,Metal_std:=gsub(" .*","",METAL)]
 share_moment[,Product_std:=min(Product),by=c("Firm","Metal_std","Market")]
-share_moment = share_moment[,list(Share=sum(Share)),by=c("Product_std","Firm","Market","unins_rate")]
+share_moment = share_moment[,list(Share=sum(Share)),by=c("Product_std","Firm","Market")]
+share_moment[,unins_rate:=1-sum(Share),by="Market"]
 
 
 
@@ -45,7 +46,7 @@ prod_data[,plot(share_base,Share)]
 prod_data[,unins_base:=1-sum(share_base),by="Market"]
 unins_test = prod_data[,list(unins_base=1-sum(share_base)),by=c("Market","size","unins_rate")]
 
-prod_data[,plot(unins_base,unins_rate)]
+unins_test[,plot(unins_base,unins_rate)]
 
 
 
@@ -77,7 +78,7 @@ firm_test[,avgTransfer:=avgCost-pooledCost]
 
 #### Plot Margin Check ####
 # png("Writing/Images/marginCheckBase.png",width=2000,height=1500,res=275)
-plot = ggplot(prod_data) + aes(y=MR,x=MC_std) +
+plot = ggplot(prod_data[Metal_std=="BRONZE"]) + aes(y=MR,x=MC_std) +
   geom_point() + 
   geom_abline(intercept=0,slope=1) + 
   geom_smooth(color="red",method="lm",se=FALSE) + 
@@ -101,7 +102,7 @@ print(plot)
 # dev.off()
 
 # png("Writing/Images/marginCheckRA.png",width=2000,height=1500,res=275)
-ggplot(prod_data) + aes(x=MR,y=MC_RA) +
+ggplot(prod_data[Metal_std=="BRONZE"]) + aes(y=MR,x=MC_RA) +
   geom_point() + 
   geom_abline(intercept=0,slope=1) + 
   geom_smooth(color="red",method="lm",se=FALSE) + 

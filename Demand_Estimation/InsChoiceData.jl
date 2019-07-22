@@ -601,6 +601,7 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
 
     #total = 1 + γlen + β0len + γlen + flen + σlen
     total = γlen + βlen + γlen + flen + σlen
+    println("Lengths are : $γlen + $βlen + $γlen + $flen + $σlen")
     parLength = Dict(:γ=>γlen,:β0=>β0len,:β=>βlen,:FE=>flen,
     :σ => σlen, :All=>total)
 

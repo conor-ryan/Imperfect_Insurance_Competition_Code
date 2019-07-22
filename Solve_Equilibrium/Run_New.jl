@@ -13,6 +13,7 @@ load_path = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Cod
 include("$load_path/Demand_Estimation/InsChoiceData.jl")
 include("$load_path/Demand_Estimation/Halton.jl")
 include("$load_path/Demand_Estimation/RandomCoefficients.jl")
+include("$load_path/Demand_Estimation/RiskMoments.jl")
 include("$load_path/Demand_Estimation/utility.jl")
 include("$load_path/Demand_Estimation/Contraction.jl")
 include("$load_path/Firm_Side/MC_parameters.jl")
@@ -34,22 +35,23 @@ for i in 1:4
     println("Risk type $i: $perc")
 end
 
-rundate = "2019-07-14"
+rundate = "2019-07-18"
 mark_the_output_date = Dates.today()
 println("Running spec $rundate on $mark_the_output_date")
 
-
+df[:High_small] = df[:HighRisk].*df[:Small]
+#### Build Model ####
+# Structre the data
 chdf = ChoiceData(df,df_mkt,df_risk;
     demoRaw=[:AgeFE_31_39,
             :AgeFE_40_51,
             :AgeFE_52_64,
             :Family,
             :LowIncome],
-    prodchars=[:Price,:constant,:AV,:HighRisk,:Small],
-    prodchars_0=[:constant,:AV,:HighRisk,:Small],
+    prodchars=[:Price,:constant,:AV,:HighRisk,:Small,:High_small],
+    prodchars_0=[:constant,:AV,:HighRisk,:Small,:High_small],
     fixedEffects=[:Firm_Market_Cat],
-    wgt=[:PERWT],
-    constMoments=false)
+    wgt=[:PERWT])
 
 model = InsuranceLogit(chdf,500)
 
@@ -78,7 +80,7 @@ individual_shares(model,par_dem)
 # println("Risk Moments are $r")
 
 ### Load Marginal Cost Estimation
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2b_$rundate.jld2"
 @load file p_stg2
 # p_stg2 = est_stg1[3]
 # p_stg2[3]/=2
@@ -112,8 +114,8 @@ firm = firmData(model,df,eq_mkt,par_dem,par_cost)
 evaluate_model!(model,firm,"All",foc_check=true)
 
 #
-# r = calc_risk_moments(model,firm.par_dem)
-# println("Risk Moments are $r")
+r = calc_risk_moments(model,firm.par_dem)
+println("Risk Moments are $r")
 # f = firm
 # m = model
 

@@ -75,10 +75,10 @@ p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 par0 = parDict(m,p0)
 
 # # ll = log_likelihood(m,par0)
-# rundate = "2019-07-12"
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-$rundate-stg2.jld2"
-# @load file p_stg2
-# p0 = copy(p_stg2)
+rundate = "2019-07-18"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-$rundate-stg2.jld2"
+@load file p_stg2
+p0 = copy(p_stg2)
 r = calc_risk_moments(m,p0)
 println("Risk Moments are $r")
 
