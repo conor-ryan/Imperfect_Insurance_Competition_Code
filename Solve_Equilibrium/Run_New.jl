@@ -114,8 +114,8 @@ firm = firmData(model,df,eq_mkt,par_dem,par_cost)
 evaluate_model!(model,firm,"All",foc_check=true)
 
 #
-r = calc_risk_moments(model,firm.par_dem)
-println("Risk Moments are $r")
+r,t = calc_risk_moments(model,firm.par_dem)
+println("Risk Moments are $r,\n $t")
 # f = firm
 # m = model
 
@@ -123,9 +123,11 @@ println("Risk Moments are $r")
 
 moments = costMoments(costdf,model,firm.par_cost)
 
+println("Check Margins")
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/checkMargins_$rundate.csv"
 checkMargin(model,firm,file)
 
+println("Solve Equilibrium")
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_$rundate.csv"
 solveMain(model,firm,file)
 
@@ -149,9 +151,16 @@ solveMain(model,firm,file)
 ####### TESTING GROUND #####
 # using PyPlot
 #
-# # evaluate_model!(model,firm,foc_check=true)
+# firm = firmData(model,df,eq_mkt,par_dem,par_cost)
+# evaluate_model!(model,firm,"All",foc_check=false)
+
 #
-# solve_model!(model,firm)
+# solve_model!(model,firm,sim="RA")
+# P_Base = copy(firm.P_j[:])
+# evaluate_model!(model,firm,"All")
+# S_Base = copy(firm.S_j[:])
+
+
 #
 #
 # TotalCosts = firm.poolMat*firm.C_j
@@ -159,14 +168,24 @@ solveMain(model,firm,file)
 # dAdj_dp = sum(firm.dCdp_j,dims=2)./PooledCosts - (sum(firm.dCdp_pl_j,dims=2)./PooledCosts).*firm.Adj_j
 #
 #
-# R, C, S, PC = compute_profit(model,firm)
+# evaluate_model!(model,firm,"All")
+# ind_GA = firm._prodSTDict["GA"]
+# ind_GA = ind_GA[inlist(ind_GA,firm.prods)]
+# # ind_GA = ind_GA[.!(inlist(ind_GA,firm.catas_prods))]
+# R, C, S, PC, Adj = compute_profit(model,firm)
+# Mkup,MR, MC, MC_pl = prof_margin(firm,ind_GA)
+# P_std, P_RA, MR2, MC2 = evaluate_FOC(firm,"GA")
+
+
+
 #
-# dR, dC,dS,dPC,dAdj = test_MR(model,firm)
-# ind = findall(dS.!=0.0)
-# println(maximum(abs.(firm.dRdp_j[57,ind] - dR[ind])))
-# println(maximum(abs.(firm.dCdp_j[57,ind] - dC[ind])))
-# println(maximum(abs.(firm.dSdp_j[57,ind] - dS[ind])))
-# println(maximum(abs.(firm.dCdp_pl_j[57,ind] - dPC[ind])))
+# dR, dC,dS,dPC,dAdj,test = test_MR(model,firm)
+# ind = ind_GA
+# ind = findall(dPC.!=0.0)
+# println(maximum(abs.(firm.dRdp_j[1,ind] - dR[ind])))
+# println(maximum(abs.(firm.dCdp_j[1,ind] - dC[ind])))
+# println(maximum(abs.(firm.dSdp_j[1,ind] - dS[ind])))
+# println(maximum(abs.(firm.dCdp_pl_j[1,ind] - dPC[ind])))
 #
 #
 #

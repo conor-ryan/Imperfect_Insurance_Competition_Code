@@ -13,6 +13,9 @@ function compute_profit(d::InsuranceLogit,firm::firmData)
     mem_long = firm[:MEMBERS]
 
     for idxitr in values(d.data._personDict)
+        prod_ids = firm.stdMap[prod_long[idxitr]]
+        catas = findall(inlist(prod_ids,firm.catas_prods))
+
         s_pred = firm.s_pred[idxitr]
         cost = firm.c_pred[idxitr]
         cost_pl = firm.c_pool[idxitr]
@@ -20,13 +23,13 @@ function compute_profit(d::InsuranceLogit,firm::firmData)
         age = age_long[idxitr]
         mem = mem_long[idxitr]
 
-        s_ins = sum(s_pred)
+        s_ins = sum(s_pred) - sum(s_pred[catas])
         # pr = (firm.P_ij[idxitr]*1000 + mandate_long[idxitr])
         # pr = ((pr.*Mems[idxitr])/12 + firm.subsidy_ij[idxitr])./Mems[idxitr]
 
         wgt = wgts_long[idxitr]
 
-        prod_ids = firm.stdMap[prod_long[idxitr]]
+
         for k in 1:length(prod_ids)
             j = prod_ids[k]
             Revenue[j] += wgt[k]*s_pred[k]*rev[k]
@@ -34,12 +37,27 @@ function compute_profit(d::InsuranceLogit,firm::firmData)
             Pooled_Cost[j] += wgt[k]*s_ins*cost_pl[k]
             Market_Total[j] += wgt[k]*s_ins
             Share[j] += wgt[k]*s_pred[k]#*age[k]/mem[k]
+            if isnan(Cost[j])
+                println(idxitr)
+                return
+            end
         end
     end
+
     Pooled_Cost[firm.prods] = Share[firm.prods].*Pooled_Cost[firm.prods]./Market_Total[firm.prods]
 
-    Adj = (firm.poolMat*Cost)./(firm.poolMat*Pooled_Cost)
+
+    PC_adj = copy(Pooled_Cost)
+    PC_adj[firm.catas_prods].=0.0
+
+    C_adj = copy(Cost)
+    C_adj[firm.catas_prods].=0.0
+
+    Adj = zeros(length(Cost))
+    Adj[firm.prods] = ((firm.poolMat*C_adj)./(firm.poolMat*PC_adj))[firm.prods]
+    Adj[firm.catas_prods].=0.0
     Pooled_Cost = Pooled_Cost.*Adj
+    Pooled_Cost[firm.catas_prods] = Cost[firm.catas_prods]
 
     Rev_Firm = firm.ownMat*Revenue
     Cost_Firm = firm.ownMat*Cost
@@ -52,11 +70,11 @@ end
 function test_MR(m::InsuranceLogit,firm::firmData)
     ϵ = 1e-6
     println("First Evaluation")
-    evaluate_model!(m,firm)
+    evaluate_model!(model,firm,"GA",foc_check=false)
     Rev1, Cost1, Share1, PC1, Adj1 = compute_profit(m,firm)
-    firm.P_j[57]+=ϵ
+    firm.P_j[1]+=ϵ
     println("Deviation Evaluation")
-    evaluate_model!(m,firm)
+    evaluate_model!(model,firm,"GA",foc_check=false)
     Rev2, Cost2, Share2, PC2, Adj2 = compute_profit(m,firm)
 
     dR = (Rev2 - Rev1)./ϵ
@@ -64,27 +82,34 @@ function test_MR(m::InsuranceLogit,firm::firmData)
     dS = (Share2 - Share1)./ϵ
     dPC = (PC2 - PC1)./ϵ
     dAdj = (Adj2 - Adj1)./ϵ
-    return dR, dC, dS, dPC, dAdj
+    return dR, dC, dS, dPC, dAdj, (Cost1,PC1,Cost2,PC2)
 end
 
-function prof_margin(firm::firmData)
-    std_ind = firm.prods
+function prof_margin(firm::firmData,std_ind::Union{Vector{Int64},Missing}=missing)
+    if ismissing(std_ind)
+        std_ind = firm.prods
+    end
     dSdp = (firm.dSAdp_j.*firm.ownMat)[std_ind,std_ind]
 
-    # MR = inv(dSdp)*sum(firm.dRdp_j.*firm.ownMat,dims=2)[std_ind]
-    MR = -inv(dSdp)*firm.SA_j[std_ind]
-    MC_std = inv(dSdp)*sum(firm.dCdp_j.*firm.ownMat,dims=2)[std_ind]
-    MC_RA = inv(dSdp)*sum(firm.dCdp_pl_j.*firm.ownMat,dims=2)[std_ind]
+    MR = inv(dSdp)*sum(firm.dRdp_j.*firm.ownMat,dims=2)[std_ind]
+    Mkup = -inv(dSdp)*firm.SA_j[std_ind]
+    # MR = -inv(dSdp)*firm.SA_j[std_ind]
+
+    cost_std = sum(firm.dCdp_j[std_ind,std_ind].*firm.ownMat[std_ind,std_ind],dims=2)
+    cost_pl = sum(firm.dCdp_pl_j[std_ind,std_ind].*firm.ownMat[std_ind,std_ind],dims=2)
+
+    MC_std = inv(dSdp)*cost_std
+    MC_RA = inv(dSdp)*cost_pl
     # MR = -sum(firm.dRdp_j.*firm.ownMat,dims=2)[std_ind]
     # MC_std = -sum(firm.dCdp_j.*firm.ownMat,dims=2)[std_ind]
     # MC_RA = -sum(firm.dCdp_pl_j.*firm.ownMat,dims=2)[std_ind]
-    return MR,MC_std,MC_RA
+    return Mkup, MR,MC_std[:],MC_RA[:]
 end
 
 
 function checkMargin(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All",foc_check=true)
-    Mkup,MC_std,MC_RA = prof_margin(firm)
+    Mkup,MR,MC_std,MC_RA = prof_margin(firm)
     avgCost = f.C_j[f.prods]
     pooledCost = f.PC_j[f.prods]
     lives = f.S_j[f.prods]
@@ -95,6 +120,7 @@ function checkMargin(m::InsuranceLogit,f::firmData,file::String)
     output =  DataFrame(Product=f.prods,
                         P_obs = P_obs,
                         Mkup = Mkup,
+                        MR = MR,
                         MC_std = MC_std,
                         MC_RA = MC_RA,
                         avgCost = avgCost,
@@ -128,16 +154,18 @@ function evaluate_FOC(firm::firmData,ST::String)
     std_ind = firm._prodSTDict[ST]
 
 
-    dSdp = (firm.dSdp_j.*firm.ownMat)[std_ind,std_ind]
-    cost_std = sum(firm.dCdp_j.*firm.ownMat,dims=2)[std_ind]
+    dSdp = (firm.dSAdp_j.*firm.ownMat)[std_ind,std_ind]
+    cost_std = sum(firm.dCdp_j[std_ind,std_ind].*firm.ownMat[std_ind,std_ind],dims=2)
     cost_pl = sum(firm.dCdp_pl_j[std_ind,std_ind].*firm.ownMat[std_ind,std_ind],dims=2)
-    SA = firm.S_j[std_ind]
-
+    SA = firm.SA_j[std_ind]
 
     P_std[std_ind]= inv(dSdp)*(-SA + cost_std)
     P_RA[std_ind] = inv(dSdp)*(-SA + cost_pl)
 
-    return P_std, P_RA
+    MR = inv(dSdp)*(-SA)
+    MC = inv(dSdp)*(cost_pl)
+
+    return P_std, P_RA, MR, MC
 end
 
 function evaluate_FOC(firm::firmData)
@@ -241,7 +269,8 @@ end
 
 function solve_model!(m::InsuranceLogit,f::firmData;sim="Base")
     P_res = zeros(length(f.P_j))
-    states = sort(String.(keys(f._prodSTDict)))
+    states = sort(String.(keys(f._prodSTDict)))[1:6]
+    # states = ["GA"]
     for s in states
         println("Solving for $s")
         solve_model_st!(m,f,s,sim=sim)
@@ -369,12 +398,12 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All")
     S_Base[:] = f.S_j[:]
 
-    f.ownMat = f.ownMat_merge
-    println("###### Solve Merger Scenario ######")
-    solve_model!(m,f,sim="RA")
-    P_Base_m[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
-    S_Base_m[:] = f.S_j[:]
+    # f.ownMat = f.ownMat_merge
+    # println("###### Solve Merger Scenario ######")
+    # solve_model!(m,f,sim="RA")
+    # P_Base_m[:] = f.P_j[:]
+    # evaluate_model!(m,f,"All")
+    # S_Base_m[:] = f.S_j[:]
 
     #### Solve without Risk Adjustment ####
     println("####################################")
@@ -386,48 +415,48 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All")
     S_RA[:] = f.S_j[:]
 
-    f.ownMat = f.ownMat_merge
-    println("###### Solve Merger Scenario ######")
-    solve_model!(m,f,sim="Base")
-    P_RA_m[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
-    S_RA_m[:] = f.S_j[:]
+    # f.ownMat = f.ownMat_merge
+    # println("###### Solve Merger Scenario ######")
+    # solve_model!(m,f,sim="Base")
+    # P_RA_m[:] = f.P_j[:]
+    # evaluate_model!(m,f,"All")
+    # S_RA_m[:] = f.S_j[:]
 
     #### Solve without mandate ####
-    println("####################################")
-    println("#### Solve without mandate ####")
-    println("####################################")
-    f.P_j[:] = P_Obs[:]
-    f.data[:,f.index[:Mandate]].=0.0
-    solve_model!(m,f,sim="RA")
-    P_man[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
-    S_man[:] = f.S_j[:]
+    # println("####################################")
+    # println("#### Solve without mandate ####")
+    # println("####################################")
+    # f.P_j[:] = P_Obs[:]
+    # f.data[:,f.index[:Mandate]].=0.0
+    # solve_model!(m,f,sim="RA")
+    # P_man[:] = f.P_j[:]
+    # evaluate_model!(m,f,"All")
+    # S_man[:] = f.S_j[:]
 
-    f.ownMat = f.ownMat_merge
-    println("###### Solve Merger Scenario ######")
-    solve_model!(m,f,sim="RA")
-    P_man_m[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
-    S_man_m[:] = f.S_j[:]
+    # f.ownMat = f.ownMat_merge
+    # println("###### Solve Merger Scenario ######")
+    # solve_model!(m,f,sim="RA")
+    # P_man_m[:] = f.P_j[:]
+    # evaluate_model!(m,f,"All")
+    # S_man_m[:] = f.S_j[:]
 
     #### Solve without mandate NOR risk adjustment  ####
-    println("####################################")
-    println("#### Solve without mandate NOR risk adjustment  ####")
-    println("####################################")
-    f.P_j[:] = P_Obs[:]
-    f.data[:,f.index[:Mandate]].=0.0
-    solve_model!(m,f,sim="Base")
-    P_RAman[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
-    S_RAman[:] = f.S_j[:]
+    # println("####################################")
+    # println("#### Solve without mandate NOR risk adjustment  ####")
+    # println("####################################")
+    # f.P_j[:] = P_Obs[:]
+    # f.data[:,f.index[:Mandate]].=0.0
+    # solve_model!(m,f,sim="Base")
+    # P_RAman[:] = f.P_j[:]
+    # evaluate_model!(m,f,"All")
+    # S_RAman[:] = f.S_j[:]
 
-    f.ownMat = f.ownMat_merge
-    println("###### Solve Merger Scenario ######")
-    solve_model!(m,f,sim="Base")
-    P_RAman_m[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
-    S_RAman_m[:] = f.S_j[:]
+    # f.ownMat = f.ownMat_merge
+    # println("###### Solve Merger Scenario ######")
+    # solve_model!(m,f,sim="Base")
+    # P_RAman_m[:] = f.P_j[:]
+    # evaluate_model!(m,f,"All")
+    # S_RAman_m[:] = f.S_j[:]
 
 
 

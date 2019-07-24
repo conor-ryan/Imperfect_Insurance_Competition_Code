@@ -157,7 +157,7 @@ function individual_update(d::InsuranceLogit,firm::firmData)
 end
 
 
-function update_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},r_sc::Matrix{Float64},c::Vector{T};returnMat::Bool=false) where T
+function update_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},c::Vector{T},catas::Vector{Int64};returnMat::Bool=false) where T
     (N,K) = size(μ_ij)
     util = Matrix{Float64}(undef,K,N)
     s_hat = Matrix{Float64}(undef,K,N)
@@ -176,7 +176,7 @@ function update_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},r_sc
             @inbounds util[i,n] = a
             expsum += a
         end
-        si = (expsum-1)/expsum
+        si = (expsum-1-sum(util[catas,n]))/expsum
         s_ins[n] = si
         for i in 1:K
             @inbounds @fastmath s = util[i,n]/expsum
@@ -208,16 +208,21 @@ end
 
 function calc_der!(dsdp::Matrix{Float64},dcdp::Matrix{Float64},dcdp_pl::Matrix{Float64},
     s_hat::Matrix{Float64},c_hat::Matrix{Float64},
-    der_ind::Int64,aα::Vector{Float64})
+    der_ind::Int64,aα::Vector{Float64},catas::Vector{Int64})
     (K,N) = size(s_hat)
 
-    s_ins = sum(s_hat,dims=1)
+    s_ins = sum(s_hat,dims=1) - sum(s_hat[catas,:],dims=1)
+    catas_prod = der_ind in catas
 
     alpha = aα[der_ind]
     for n in 1:N
         s_der = s_hat[der_ind,n]
         si = s_ins[n]
-        dsi = alpha*s_der*(1-si)
+        if catas_prod
+            dsi = -alpha*s_der*si
+        else
+            dsi = alpha*s_der*(1-si)
+        end
         for i in 1:K
             if i==der_ind
                 @inbounds @fastmath ds = alpha*s_der*(1-s_der)
@@ -239,16 +244,21 @@ end
 
 function calc_der!(dsdp::Matrix{Float64},dcdp::Matrix{Float64},dcdp_pl::Matrix{Float64},
     s_hat::Matrix{Float64},c_hat::Matrix{Float64},
-    der_ind::Int64,aα::Float64)
+    der_ind::Int64,aα::Float64,catas::Vector{Int64})
     (K,N) = size(s_hat)
 
-    s_ins = sum(s_hat,dims=1)
+    s_ins = sum(s_hat,dims=1) - sum(s_hat[catas,:],dims=1)
+    catas_prod = der_ind in catas
 
     alpha = aα
     for n in 1:N
         s_der = s_hat[der_ind,n]
         si = s_ins[n]
-        dsi = alpha*s_der*(1-si)
+        if catas_prod
+            dsi = -alpha*s_der*si
+        else
+            dsi = alpha*s_der*(1-si)
+        end
         for i in 1:K
             if i==der_ind
                 @inbounds @fastmath ds = alpha*s_der*(1-s_der)
@@ -268,7 +278,7 @@ function calc_der!(dsdp::Matrix{Float64},dcdp::Matrix{Float64},dcdp_pl::Matrix{F
 end
 
 function calc_der(s_hat::Vector{Float64},c_hat::Vector{Float64},
-    der_ind::Int64,aα::Vector{Float64})
+    der_ind::Int64,aα::Vector{Float64},catas::Vector{Int64})
     K = length(s_hat)
 
     dsdp = Vector{Float64}(undef,K)
@@ -276,8 +286,14 @@ function calc_der(s_hat::Vector{Float64},c_hat::Vector{Float64},
     dcdp_pl = Vector{Float64}(undef,K)
 
     s_der = s_hat[der_ind]
-    si = sum(s_hat)
+    si = sum(s_hat) - sum(s_hat[catas])
     dsi = aα[der_ind]*s_der*(1-si)
+    catas_prod = der_ind in catas
+    if catas_prod
+        dsi = -aα[der_ind]*s_der*si
+    else
+        dsi = aα[der_ind]*s_der*(1-si)
+    end
     for i in 1:K
         if i==der_ind
             @inbounds @fastmath ds = aα[der_ind]*s_der*(1-s_der)
@@ -293,7 +309,7 @@ function calc_der(s_hat::Vector{Float64},c_hat::Vector{Float64},
 end
 
 function calc_der(s_hat::Vector{Float64},c_hat::Vector{Float64},
-    der_ind::Int64,aα::Float64)
+    der_ind::Int64,aα::Float64,catas::Vector{Int64})
     K = length(s_hat)
 
     dsdp = Vector{Float64}(undef,K)
@@ -301,8 +317,14 @@ function calc_der(s_hat::Vector{Float64},c_hat::Vector{Float64},
     dcdp_pl = Vector{Float64}(undef,K)
 
     s_der = s_hat[der_ind]
-    si = sum(s_hat)
-    dsi = aα*s_der*(1-si)
+    si = sum(s_hat) - sum(s_hat[catas])
+    catas_prod = der_ind in catas
+    if catas_prod
+        dsi = -aα*s_der*si
+    else
+        dsi = aα*s_der*(1-si)
+    end
+
     for i in 1:K
         if i==der_ind
             @inbounds @fastmath ds = aα*s_der*(1-s_der)
@@ -345,21 +367,25 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,ST::String;foc_chec
 # for idxitr in values(d.data._personDict)
     for p in pers
         idxitr = d.data._personDict[p]
+        prod_ids = firm.stdMap[prod_long[idxitr]]
+        catas = findall(inlist(prod_ids,firm.catas_prods))
+
+
         δ = δ_long[idxitr]
         @inbounds u = μ_ij_large[:,idxitr]
         @inbounds u_nr = μnr_ij_large[idxitr]
         r_ind = Int.(risk_long[idxitr])
         @inbounds r_cost = p_cost.risks[:,r_ind]
-        @inbounds r_scores = d.draws[:,r_ind]
         @inbounds any_r = any_long[idxitr[1]]
         wgt = wgt_long[idxitr]
         c_nr = cost_nonRisk[idxitr]
         c_nr = capped_cost(c_nr)
+        Ze_prem = firm.zero_ij[idxitr]
 
-        s_r,c_r,c_r_pl,s_mat,c_mat = update_cost(u,δ,r_cost,r_scores,c_nr,returnMat=true)
+        s_r,c_r,c_r_pl,s_mat,c_mat = update_cost(u,δ,r_cost,c_nr,catas,returnMat=true)
         s_nr = calc_shares(u_nr,δ)
-        s_r_ins = sum(s_r)
-        s_nr_ins = sum(s_nr)
+        s_r_ins = sum(s_r) - sum(s_r[catas])
+        s_nr_ins = sum(s_nr) - sum(s_nr[catas])
 
         s_hat = (any_r.*s_r + (1-any_r).*s_nr)
         c_hat = (any_r.*s_r.*c_r + (1-any_r).*s_nr.*c_nr)./s_hat
@@ -377,11 +403,10 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,ST::String;foc_chec
         @inbounds m = mem_long[idxitr[1]]
         aα = ((12/1000)*(a/m)*(p_dem.β_0 + p_dem.β*Z)[1])#.*(1 .-Ze_prem)
         if foc_check
-            Ze_prem = firm.zero_ij[idxitr]
             aα = aα.*(1 .- Ze_prem)
         end
 
-        prod_ids = firm.stdMap[prod_long[idxitr]]
+
         rev = firm.Rev_ij[idxitr]
 
         K = length(idxitr)
@@ -392,14 +417,14 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,ST::String;foc_chec
         for k in 1:length(prod_ids)
             j = prod_ids[k]
 
-            dsdp_r, dcdp_r, dcdp_r_pl = calc_der!(dsdp_mat,dcdp_mat,dcdp_pl_mat,s_mat,c_mat,k,aα)
-            dsdp_nr, dcdp_nr, dcdp_nr_pl = calc_der(s_nr,c_nr,k,aα)
+            dsdp_r, dcdp_r, dcdp_r_pl = calc_der!(dsdp_mat,dcdp_mat,dcdp_pl_mat,s_mat,c_mat,k,aα,catas)
+            dsdp_nr, dcdp_nr, dcdp_nr_pl = calc_der(s_nr,c_nr,k,aα,catas)
 
             @fastmath dsdp =  (any_r.*dsdp_r + (1-any_r).*dsdp_nr)
             @fastmath dcdp =  (any_r.*dcdp_r + (1-any_r).*dcdp_nr)
 
 
-            dsdp_pl = sum(dsdp)
+            dsdp_pl = sum(dsdp) - sum(dsdp[catas])
             @fastmath dcdp_pl =  (any_r.*dcdp_r_pl + (1-any_r).*dcdp_nr_pl)#./s_ins_hat - (dsdp_pl./s_ins_hat).*c_pool
             # @fastmath dcdp_pl = dcdp_pl.*s_hat + c_pool.*dsdp
 
@@ -428,7 +453,7 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,ST::String;foc_chec
 
     firm.PC_j[prod_ind] = firm.PC_j[prod_ind]./firm.Mkt_j[prod_ind]#.*firm.S_j
 
-    firm.Mkt_j = firm.poolMat*firm.S_j
+    # firm.Mkt_j = firm.poolMat*firm.S_j
     TotalCosts = firm.C_j[:]
     TotalCosts[firm.catas_prods].=0.0
     PooledCosts = (firm.PC_j[:].*firm.S_j[:])
@@ -437,8 +462,8 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,ST::String;foc_chec
     TotalCosts = firm.poolMat*TotalCosts
     PooledCosts = firm.poolMat*PooledCosts
     firm.Adj_j = zeros(length(firm.PC_j))
-    firm.Adj_j[non_catas] = (TotalCosts./PooledCosts)[non_catas]
-
+    # firm.Adj_j[non_catas] = (TotalCosts./PooledCosts)[non_catas]
+    firm.Adj_j[firm.prods] = (TotalCosts./PooledCosts)[firm.prods]
 
 
     for j in prod_ind, k in prod_ind
@@ -446,7 +471,7 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,ST::String;foc_chec
                                         firm.dSdp_j[j,k]*firm.PC_j[k] -
                                        (firm.dMdp_j[j,k]/firm.Mkt_j[k])*firm.PC_j[k]*firm.S_j[k])
     end
-    # firm.PC_j[firm.prods] = firm.PC_j[firm.prods].*Adj_j[firm.prods]
+
     # dAdj_dp = firm.poolMat
     dC_pool = copy(firm.dCdp_j)
     dC_pool[:,firm.catas_prods].=0.0
@@ -463,8 +488,11 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,ST::String;foc_chec
     end
 
     firm.dCdp_pl_j[:,firm.catas_prods] = firm.dCdp_j[:,firm.catas_prods]
-    firm.PC_j[firm.catas_prods] = firm.C_j[firm.catas_prods]./firm.S_j[firm.catas_prods]
-    firm.C_j = firm.C_j./firm.S_j
+
+    firm.PC_j[firm.prods] = firm.PC_j[firm.prods].*firm.S_j[firm.prods]
+    firm.PC_j[firm.prods] = firm.PC_j[firm.prods].*firm.Adj_j[firm.prods]
+    firm.PC_j[firm.catas_prods] = firm.C_j[firm.catas_prods]#./firm.S_j[firm.catas_prods]
+    # firm.C_j = firm.C_j./firm.S_j
 
     return nothing
 end

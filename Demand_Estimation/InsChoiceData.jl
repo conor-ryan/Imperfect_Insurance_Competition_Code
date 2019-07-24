@@ -587,6 +587,10 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
     βlen = size(prodchars(c_data),1)
     flen = size(fixedEffects(c_data),1)
 
+    println(γlen)
+    test = demoRaw(c_data)
+    println(test[:,1:5])
+
     if haltonDim==1 & !nested
         σlen = 0
     elseif (haltonDim>1) & (!nested)

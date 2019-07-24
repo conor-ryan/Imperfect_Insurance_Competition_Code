@@ -191,7 +191,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
 
     ### Pooled Cost Areas
     states = Vector{Union{Missing,String}}(missing,J)
-    states[prod_std] = mkt[:ST]
+    states[prod_std] = mkt[:Market]
     poolMat = zeros(J,J)
     for j in prod_std
         st = states[j]
