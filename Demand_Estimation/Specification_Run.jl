@@ -165,11 +165,11 @@ function run_specification_GMM(filename::String,
 
     p0[ind1] = p_ll[ind1]
     p0[ind2] = p_ll[ind2.-m_GMM.parLength[:σ]]
-    if spec_fixedEffects== [:Firm_Market_Cat]
-        p0[σ_ind] = [0.535156, 0.488427, 0.0241993, -0.0498671, 0.144543]
-    end
+    # if spec_fixedEffects== [:Firm_Market_Cat]
+    #     p0[σ_ind] = [0.535156, 0.488427, 0.0241993, -0.0498671, 0.144543]
+    # end
     println("#### Estimate GMM First Stage ####")
-    # p0[σ_ind]=rand(length(σ_ind)).*0.5
+    p0[σ_ind]=rand(length(σ_ind)).*0.5
     # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/checkin_265.jld2"
     # @load file p_vec
     # p0 = copy(p_vec)
@@ -206,10 +206,10 @@ function run_specification_GMM(filename::String,
     file = "$filename-$rundate-stg2.jld2"
     @save file p_stg2 obj_2
 
-    println("#### Calculate Standard Errors and Save Results ####")
-    AsVar, stdErr,t_stat, stars = res_process(m_GMM,p_stg2,σ_ind)
+    # println("#### Calculate Standard Errors and Save Results ####")
+    # AsVar, stdErr,t_stat, stars = res_process(m_GMM,p_stg2,σ_ind)
 
-    out1 = DataFrame(pars=p_stg2,se=stdErr,ts=t_stat,sig=stars)
+    out1 = DataFrame(pars=p_stg2)#,se=stdErr,ts=t_stat,sig=stars)
     file1 = "$filename-$rundate.csv"
     CSV.write(file1,out1)
 
