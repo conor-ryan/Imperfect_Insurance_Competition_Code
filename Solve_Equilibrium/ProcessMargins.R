@@ -7,14 +7,14 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 
 ## Estimation Run 
-run = "2019-07-18"
+run = "2019-07-12"
 
 #Load Product Data
 predFile = paste("Simulation_Risk_Output/prodData.rData",sep="")
 load(predFile)
 
 
-eqFile = paste("Estimation_Output/checkMargins_",run,".csv",sep="")
+eqFile = paste("Estimation_Output/checkMarginsb_",run,".csv",sep="")
 eqData = as.data.table(read.csv(eqFile))
 
 prod_data = merge(prod_data,eqData,by="Product")
@@ -61,24 +61,23 @@ fMom = unique(fMom[,c("logAvgCost","M_num","Product")])
 
 prod_data = merge(prod_data,firmClaims,by=c("ST","Firm"))
 prod_data = merge(prod_data,fMom,by="Product")
-prod_data[,MR:=premBase-Mkup]
 setkey(prod_data,Market,Firm,AV_std)
 
 
 firm_test = prod_data[,list(avgCost=sum(avgCost*lives)/sum(lives),
                             pooledCost=sum(pooledCost*lives)/sum(lives),
                             avgRev=sum(P_obs*ageRate*lives)/sum(lives),
-                            avgR = sum(avgR*lives)/sum(lives),
+                            # avgR = sum(avgR*lives)/sum(lives),
                             lives=sum(lives)),
                       by=c("ST","Firm","FirmAvgCost","prjFirmCost","HighRisk")]
 firm_test[,share:=lives/sum(lives),by="ST"]
 firm_test[,avgTransfer:=avgCost-pooledCost]
 # firm_test[,target:=exp(logAvgCost)]
-
+prod_data[,MR:=P_obs-Mkup]
 
 #### Plot Margin Check ####
 # png("Writing/Images/marginCheckBase.png",width=2000,height=1500,res=275)
-plot = ggplot(prod_data[Metal_std=="BRONZE"]) + aes(y=MR,x=MC_std) +
+plot = ggplot(prod_data[,]) + aes(y=MR,x=MC_std) +
   geom_point() + 
   geom_abline(intercept=0,slope=1) + 
   geom_smooth(color="red",method="lm",se=FALSE) + 
@@ -102,7 +101,7 @@ print(plot)
 # dev.off()
 
 # png("Writing/Images/marginCheckRA.png",width=2000,height=1500,res=275)
-ggplot(prod_data[Metal_std=="BRONZE"]) + aes(y=MR,x=MC_RA) +
+ggplot(prod_data[,]) + aes(y=MR,x=MC_RA) +
   geom_point() + 
   geom_abline(intercept=0,slope=1) + 
   geom_smooth(color="red",method="lm",se=FALSE) + 

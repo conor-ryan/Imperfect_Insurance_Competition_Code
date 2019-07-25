@@ -174,6 +174,7 @@ eHealth = eHealth[,c("STATE","APP_RECORD_NUM","QUOTED_RATE","HOUSEHOLD_INCOME","
 
 
 
+#### Merge in ACS Uninsured Population ####
 
 load("Intermediate_Output/Simulated_BaseData/acs_prepped.rData")
 acs = acs[acs$ST%in%choiceSets$ST,]
@@ -201,19 +202,19 @@ fulldf = rbind(acs_unins,eHealth)
 acs[,Income:=0]
 acs[HHincomeFPL>4,Income:=1]
 acs[ST%in%c("MD","CT"),Income:=1]
-wgts = acs[,list(totalWeight=sum(PERWT)),by=c("ST","AREA","insured","Income")]
+wgts = acs[,list(totalWeight=sum(PERWT)),by=c("ST","AREA","insured")]
 
 fulldf[,insured:=!is.na(Firm)]
-fulldf[,Income:=0]
-fulldf[is.na(FPL)|FPL>4,Income:=1]
+# fulldf[,Income:=0]
+# fulldf[is.na(FPL)|FPL>4,Income:=1]
 
 ## MD and CT don't have income information. Maybe need another category for censored income
-fulldf[STATE%in%c("MD","CT"),Income:=1]
+# fulldf[STATE%in%c("MD","CT"),Income:=1]
 
 
-fulldf = merge(fulldf,wgts,by.x=c("STATE","AREA","insured","Income"),by.y=c("ST","AREA","insured","Income"),all=TRUE)
+fulldf = merge(fulldf,wgts,by.x=c("STATE","AREA","insured"),by.y=c("ST","AREA","insured"),all=TRUE)
 
-fulldf[,sampleSum:=sum(N),by=c("STATE","AREA","insured","Income")]
+fulldf[,sampleSum:=sum(N),by=c("STATE","AREA","insured")]
 fulldf[,N:=(N/sampleSum)*totalWeight]
 fulldf = fulldf[N>0,]
                 
@@ -408,6 +409,21 @@ choices[FPL_imp>=1.5 & FPL_imp<2,CSR:="87"]
 choices[FPL_imp>=1 & FPL_imp<1.5,CSR:="94"]
 
 
+#### Re-Weight ####
+wgt_test = unique(choices[,c("APP_RECORD_NUM","N","STATE","AREA","insured")])
+wgt_test = wgt_test[,list(Pop = sum(N)),by=c("STATE","AREA","insured")]
+# ins[,insured:=TRUE]
+# unins = wgt_test[,list(Pop = sum((unins_rate)*N)),by=c("STATE","AREA")]
+# unins[,insured:=FALSE]
+# wgt_test = rbind(ins,unins)
+wgt_test = merge(wgts,wgt_test,by.x=c("ST","AREA","insured"),by.y=c("STATE","AREA","insured"))
+wgt_test[,wgt_adj:=totalWeight/Pop]
+
+choices = merge(choices,wgt_test[,c("ST","AREA","insured","wgt_adj")],
+                by.x=c("STATE","AREA","insured"),
+                by.y=c("ST","AREA","insured"))
+choices[,N:=wgt_adj*N]
+
 ##### Discretize the Data into Type Buckets #####
 choices[,FPL_bucket:= "Less than 1"]
 choices[FPL_imp>=1&FPL_imp<1.25,FPL_bucket:="1 - 1.25"]
@@ -484,6 +500,7 @@ choices = choices[,list(AGE = sum(AGE*N)/sum(N),
 
 choices[,S_ij:= Y/N]
 choices[,unins_rate:=1-sum(S_ij),by=c("STATE","AREA","FPL_bucket","AGE_bucket","Mem_bucket")]
+
 
 ## Re-Calculate Premiums for Choice Set
 choices[,Benchmark:=benchBase*ageRate]
@@ -865,12 +882,21 @@ setkey(choices,Person,Product)
 setkey(shares,Product)
 
 
+# wgt_test = unique(choices[,c("Person","N","STATE","AREA","unins_rate")])
+# ins = wgt_test[,list(Pop = sum((1-unins_rate)*N)),by=c("STATE","AREA")]
+# ins[,insured:=TRUE]
+# unins = wgt_test[,list(Pop = sum((unins_rate)*N)),by=c("STATE","AREA")]
+# unins[,insured:=FALSE]
+# wgt_test = rbind(ins,unins)
+# wgt_test = merge(wgts,wgt_test,by.x=c("ST","AREA","insured"),by.y=c("STATE","AREA","insured"))
+# wgt_test[,wgt_adj:=totalWeight/Pop]
+# 
 
 write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price",
                      "Firm_Market","Firm_Market_Cat","Firm_Market_Age","Firm_Market_Cat_Age",
                      "PriceDiff",#"MedDeductDiff","ExcOOPDiff","HighDiff",
                      "MedDeduct","ExcOOP","High","AV","AV_old","HighRisk","Small","High_small",
-                     "Family","Age","LowIncome","AGE","HighIncome","IncomeCts","AvgAge",
+                     "Family","Age","LowIncome","AGE","HighIncome","IncomeCts",
                      "METAL",
                      "ageRate_avg","HCC_age","SilvHCC_Age",
                      "mean_HCC_Platinum","mean_HCC_Gold","mean_HCC_Silver","mean_HCC_Bronze","mean_HCC_Catastrophic",

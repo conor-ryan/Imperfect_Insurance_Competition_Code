@@ -28,7 +28,7 @@ for (v in c("base","RA","man","RAman")){
   }
 }
 
-states = sort(unique(prod_pred$ST))[1:6]
+# states = sort(unique(prod_pred$ST))[1:6]
 states = c("GA")
 vars = names(prod_pred)[grepl("(_base$|_RA$)",names(prod_pred))]
 
