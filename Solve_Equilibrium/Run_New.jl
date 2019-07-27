@@ -35,7 +35,7 @@ for i in 1:4
     println("Risk type $i: $perc")
 end
 
-rundate = "2019-07-18"
+rundate = "2019-07-12"
 mark_the_output_date = Dates.today()
 println("Running spec $rundate on $mark_the_output_date")
 
@@ -48,8 +48,8 @@ chdf = ChoiceData(df,df_mkt,df_risk;
             :AgeFE_52_64,
             :Family,
             :LowIncome],
-    prodchars=[:Price,:constant,:AV,:HighRisk,:Small,:High_small],
-    prodchars_0=[:constant,:AV,:HighRisk,:Small,:High_small],
+    prodchars=[:Price,:constant,:AV,:HighRisk],
+    prodchars_0=[:constant,:AV,:HighRisk],
     fixedEffects=[:Firm_Market_Cat],
     wgt=[:PERWT])
 
@@ -80,7 +80,7 @@ individual_shares(model,par_dem)
 # println("Risk Moments are $r")
 
 ### Load Marginal Cost Estimation
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2b_$rundate.jld2"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
 @load file p_stg2
 # p_stg2 = est_stg1[3]
 # p_stg2[3]/=2
