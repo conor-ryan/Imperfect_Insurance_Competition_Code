@@ -249,7 +249,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     return p_min,f_min
 end
 
-function reOpt_FE(d::InsuranceLogit,p_vec::Vector{Float64},max_itr=30)
+function reOpt_FE(d::InsuranceLogit,p_vec::Vector{Float64};max_itr=30)
     println("## RE-Optimize Fixed Effects ##")
     # par = parDict(d,p_vec)
     # individual_values!(d,par)
