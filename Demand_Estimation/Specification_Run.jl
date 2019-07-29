@@ -195,7 +195,7 @@ function run_specification_GMM(filename::String,
     println(W2)
     println(W[mom_pars,mom_pars])
 
-    p0[σ_ind]=rand(length(σ_ind)).*0.5
+    p0[σ_ind]=rand(length(σ_ind)).*0.05 .- .025
     # if spec_fixedEffects== [:Firm_Market_Cat]
     #     p0[σ_ind] = [1.94114, 0.769856, 0.0100126]
     # end
