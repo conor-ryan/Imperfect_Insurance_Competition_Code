@@ -10,6 +10,7 @@ load_path = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Cod
 include("$load_path/InsChoiceData.jl")
 include("$load_path/Halton.jl")
 include("$load_path/RandomCoefficients.jl")
+include("$load_path/RiskMoments.jl")
 include("$load_path/utility.jl")
 include("$load_path/Contraction.jl")
 
@@ -40,16 +41,8 @@ chdf = ChoiceData(df,df_mkt,df_risk;
 # Fit into model
 m = InsuranceLogit(chdf,500)
 
-# Cost Data
-costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk,mom_ra;
-                baseSpec=[:AvgAge,:AV_std],
-                fixedEffects=[:Firm_ST])
-
-
-println("Data Loaded")
-
 #### Load Demand Estimation ####
-rundate = "2019-07-18"
+rundate = "2019-07-27"
 # resDF = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_$rundate.csv")
 # p_est = Float64.(resDF[:pars])
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
@@ -69,6 +62,19 @@ if length(p_stg2)!=m.parLength[:All]
     error("Parameter Vector Not Quite Right")
 end
 
+
+
+
+#### Cost Data ####
+costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk,mom_ra;
+                baseSpec=[:AvgAge,:AV_std],
+                fixedEffects=[:Firm_ST])
+
+
+println("Data Loaded")
+
+
+
 #### Load Starting Parameter
 # parStart = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/MC_Moments/linregpars_$rundate.csv")
 # p0 = Float64.(parStart[:par_start])
@@ -85,8 +91,8 @@ W = Matrix(1.0I,costdf.mom_length,costdf.mom_length)
 # est_stg1 = estimate_GMM(p0,par_est,m,costdf,W,fit=true)
 # incase = est_stg1
 
-p0 = vcat(rand(1)*.2,rand(1).*1,rand(1)*.2)
-est_init = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4,max_itr=200)
+p0 = vcat(rand(1)*.2,rand(1).*2,rand(1)*.2)
+est_init = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4,max_itr=100)
 est_stg1 = estimate_NLOpt(est_init[3],par_est,m,costdf,W,itrFirms=true)
 # #
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
@@ -119,7 +125,7 @@ W = inv(S)
 
 p0 = vcat(rand(1)*.2,rand(1).*1,rand(1)*.2)
 # # p0 = [0.0152152, 2.42283, -0.21084, 0.154506]
-est_stg2 = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4)
+est_stg2 = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4,max_itr=100)
 est_stg2 = estimate_NLOpt(est_stg2[3],par_est,m,costdf,W,itrFirms=true)
 # x1,x2,p_init = est_stg2
 # p_full = fit_firm_moments(p_init,par_est,m,costdf)
@@ -155,21 +161,21 @@ file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Interme
 CSV.write(file1,out1)
 
 
-# #### TEST OUTCOMES ####
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
-# @load file p_stg2
-# p=  copy(p_stg2)
-# # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
-# # @load file est_stg1
+#### TEST OUTCOMES ####
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
+@load file p_stg2
+p=  copy(p_stg2)
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
+# @load file est_stg1
 # p = fit_firm_moments(est_stg1[3],par_est,m,costdf,itrFirms=true)
-# # S,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
-# # W = inv(S)
-# #
-# # p=p_full
-# # p = p_full[1:4]
-# par = parMC(p,par_est,m,costdf)
-# individual_costs(m,par)
-# moments= costMoments(costdf,m,par)
+# S,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
+# W = inv(S)
+#
+# p=p_full
+# p = p_full[1:4]
+par = parMC(p,par_est,m,costdf)
+individual_costs(m,par)
+moments= costMoments(costdf,m,par)
 #
 # GMM_objective(p,par_est,m,costdf,W)
 #

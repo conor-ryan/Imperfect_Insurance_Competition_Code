@@ -58,7 +58,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     # grad_size = maximum(abs.(grad_new))
     # println(grad_size)
 
-    p_vec,fe_itrs = reOpt_FE(d,p_vec)
+    p_vec,fe_itrs = reOpt_FE(d,p_vec,max_itr=500)
 
     # Maximize by Newtons Method
     while (grad_size>0) & (cnt<max_itr) & (max_trial_cnt<20)
@@ -68,7 +68,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
 
         if (re_opt_cnt==8) | (flag=="converged")
             re_opt_cnt=0
-            p_vec,fe_itrs = reOpt_FE(d,p_vec)
+            p_vec,fe_itrs = reOpt_FE(d,p_vec,max_itr=50)
             if (flag=="converged") & (fe_itrs<2)
                 println("Converged in two stages!")
                 break
@@ -177,7 +177,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         trial_max = 0
         while ((f_test>fval*mistake_thresh) | isnan(f_test)) & (trial_max==0)
             if trial_cnt==0
-                p_test_disp = p_test[1:20]
+                p_test_disp = p_test[par_ind]
                 println("Trial (Init): Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
             end
@@ -190,7 +190,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             if (step_size>x_tol) | (real_hessian==1 & trial_cnt<3)
                 p_test = p_vec .+ update
                 f_test = GMM_objective(d,p_test,W,feFlag=0)
-                p_test_disp = p_test[1:20]
+                p_test_disp = p_test[par_ind]
                 println("Trial (NR): Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
                 trial_cnt+=1
@@ -229,7 +229,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         p_vec = copy(p_test)
         grad_last = copy(grad_new)
         H_last = copy(H_k)
-        p_vec_disp = p_vec[1:20]
+        p_vec_disp = p_vec[par_ind]
         f_final_val = fval
         println("Update Parameters to $p_vec_disp")
 
@@ -249,12 +249,12 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     return p_min,f_min
 end
 
-function reOpt_FE(d::InsuranceLogit,p_vec::Vector{Float64})
+function reOpt_FE(d::InsuranceLogit,p_vec::Vector{Float64},max_itr=30)
     println("## RE-Optimize Fixed Effects ##")
     # par = parDict(d,p_vec)
     # individual_values!(d,par)
     # individual_shares(d,par)
-    p_min,f_min,cnt = NR_fixedEffects(d,p_vec,Hess_Skip_Steps=30,max_itr=30)
+    p_min,f_min,cnt = NR_fixedEffects(d,p_vec,Hess_Skip_Steps=30,max_itr=max_itr)
     # p_vec[FE_ind] = par.FE[:]
     return p_min,cnt
 end
@@ -691,7 +691,7 @@ function ga_twostage(d,p0,W,par_ind::Union{Vector{Int64},UnitRange{Int64}};grad_
     hess_new = Matrix{Float64}(undef,length(p0),length(p0))
     f_final_val = 0.0
     max_trial_cnt = 0
-    stall_cnt = 0 
+    stall_cnt = 0
     grad_steps = 0
     p_last = copy(p_vec)
     grad_last = copy(grad_new)
