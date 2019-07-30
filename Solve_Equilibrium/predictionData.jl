@@ -82,7 +82,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
 
     catas_prods = Int.(mkt[:Product][mkt[:Metal_std].=="CATASTROPHIC"])
 
-    prod_vec = df[:Product_std]
+    prod_vec = convert(Vector{Float64},df[:,:Product_std])
     _productDict = build_ProdDict(prod_vec)
 
     println("Supplemental Data")
