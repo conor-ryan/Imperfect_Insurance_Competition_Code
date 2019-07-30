@@ -78,14 +78,14 @@ function ChoiceData(data_choice::DataFrame,
     n, k = size(data_choice)
 
     # Convert everything to an array once for performance
-    i = convert(Matrix{Float64},data_choice[person])
-    j = convert(Matrix{Float64},data_choice[product])
-    X = convert(Matrix{Float64},data_choice[prodchars])
+    i = convert(Matrix{Float64},data_choice[:,person])
+    j = convert(Matrix{Float64},data_choice[:,product])
+    X = convert(Matrix{Float64},data_choice[:,prodchars])
     # X_0 = convert(Array{Float64},data_choice[prodchars_0])
-    y = convert(Matrix{Float64},data_choice[choice])
-    Z = convert(Matrix{Float64},data_choice[demoRaw])
-    w = convert(Matrix{Float64},data_choice[wgt])
-    s0= convert(Matrix{Float64},data_choice[unins])
+    y = convert(Matrix{Float64},data_choice[:,choice])
+    Z = convert(Matrix{Float64},data_choice[:,demoRaw])
+    w = convert(Matrix{Float64},data_choice[:,wgt])
+    s0= convert(Matrix{Float64},data_choice[:,unins])
 
     riskChars=[:ageRate_avg,:HCC_age]
     rm = convert(Matrix{Float64},data_choice[riskChars])

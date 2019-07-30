@@ -64,6 +64,15 @@ function inlist(x::Vector{T},y::Vector{T}) where T
     return bits
 end
 
+function inlist(x::UnitRange{T},y::Vector{T}) where T
+    bits = BitArray{1}(undef,length(x))
+    # min_y = minimum(y)
+    for (n,i) in enumerate(x)
+        bits[n] = i in y
+    end
+    return bits
+end
+
 function inlist(x::UnitRange{T},y::Vector{Union{Missing,T}}) where T
     bits = BitArray{1}(undef,length(x))
     # min_y = minimum(y)
