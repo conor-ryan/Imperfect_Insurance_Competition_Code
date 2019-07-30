@@ -35,7 +35,7 @@ chdf = ChoiceData(df,df_mkt,df_risk;
             :LowIncome],
     prodchars=[:Price,:constant,:AV,:HighRisk,:Small,:High_small],
     prodchars_0=[:constant,:AV,:HighRisk,:Small,:High_small],
-    fixedEffects=[:Firm_Market_Cat],
+    fixedEffects=[:Firm],
     wgt=[:PERWT])
 
 # Fit into model
@@ -47,14 +47,9 @@ rundate = "2019-07-27"
 # p_est = Float64.(resDF[:pars])
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
 # @load file p_stg2
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-$rundate-stg2.jld2"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_Firm-$rundate-stg2.jld2"
 @load file p_stg2
 p_est = copy(p_stg2)
-
-#### Compute Demand Estimation
-par_est = parDict(m,p_est,no2Der=true)
-individual_values!(m,par_est)
-individual_shares(m,par_est)
 
 if length(p_stg2)!=m.parLength[:All]
     println(length(p_stg2))
@@ -62,8 +57,16 @@ if length(p_stg2)!=m.parLength[:All]
     error("Parameter Vector Not Quite Right")
 end
 
+#### Compute Demand Estimation
+par_est = parDict(m,p_est,no2Der=true)
+individual_values!(m,par_est)
+individual_shares(m,par_est)
 
 
+
+
+# r,t = calc_risk_moments(m,par_est)
+# println("Risk Moments are $r,\n $t")
 
 #### Cost Data ####
 costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk,mom_ra;

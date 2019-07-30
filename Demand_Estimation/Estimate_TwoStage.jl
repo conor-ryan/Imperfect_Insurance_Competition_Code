@@ -52,13 +52,14 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     ga_strict = true
     ga_cnt = 0
     re_opt_cnt = 0
+    # H_save = missing
 
     ### Initialize Fixed Effects
     # fval = log_likelihood!(hess_new,grad_new,d,p_vec)
     # grad_size = maximum(abs.(grad_new))
     # println(grad_size)
 
-    p_vec,fe_itrs = reOpt_FE(d,p_vec,max_itr=500)
+    p_vec,fe_itrs,H_save = reOpt_FE(d,p_vec,max_itr=500)
 
     # Maximize by Newtons Method
     while (grad_size>0) & (cnt<max_itr) & (max_trial_cnt<20)
@@ -68,7 +69,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
 
         if (re_opt_cnt==8) | (flag=="converged")
             re_opt_cnt=0
-            p_vec,fe_itrs = reOpt_FE(d,p_vec,max_itr=50)
+            p_vec,fe_itrs,H_save = reOpt_FE(d,p_vec,max_itr=50,H=H_save)
             if (flag=="converged") & (fe_itrs<2)
                 println("Converged in two stages!")
                 break
@@ -249,18 +250,18 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     return p_min,f_min
 end
 
-function reOpt_FE(d::InsuranceLogit,p_vec::Vector{Float64};max_itr=30)
+function reOpt_FE(d::InsuranceLogit,p_vec::Vector{Float64};max_itr=30,H=missing)
     println("## RE-Optimize Fixed Effects ##")
     # par = parDict(d,p_vec)
     # individual_values!(d,par)
     # individual_shares(d,par)
-    p_min,f_min,cnt = NR_fixedEffects(d,p_vec,Hess_Skip_Steps=30,max_itr=max_itr)
+    p_min,f_min,cnt,H_k = NR_fixedEffects(d,p_vec,Hess_Skip_Steps=30,max_itr=max_itr,H_init=H)
     # p_vec[FE_ind] = par.FE[:]
-    return p_min,cnt
+    return p_min,cnt,H_k
 end
 
 function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
-    max_itr=30,strict=true,Hess_Skip_Steps=5)
+    max_itr=30,strict=true,Hess_Skip_Steps=5,H_init::Union{Missing,Array{Float64}}=missing)
 
     # Initialize Gradient
     grad_new = Vector{Float64}(undef,d.parLength[:All])
@@ -279,6 +280,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     p_last = copy(p_vec)
     grad_last = copy(grad_new)
     H_last = copy(hess_new)
+    H_k = copy(hess_new)
     disp_length = min(length(p0),20)
     f_min = -1e3
     p_min  = copy(p0)
@@ -317,7 +319,12 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         # p_vec = par.FE[:]
         update_par(d,par,p_vec)
         # Compute Gradient, holding δ fixed
-        if hess_steps==0
+        if (!ismissing(H_init)) & (cnt==1)
+            println("Pre-computed Hessian")
+            fval = log_likelihood!(grad_new,d,par,feFlag=1)
+            H_k = copy(H_init)
+            real_hessian=0
+        elseif hess_steps==0
             println("Compute Hessian")
             fval = log_likelihood!(hess_new,grad_new,d,par,feFlag=1)
             H_k = inv(hess_new[FE_ind,FE_ind])
@@ -334,7 +341,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         end
 
         if (cnt==1) | ((fval-f_min)>(-1e-14))
-            if abs(fval-f_min)<f_tol
+            if (abs(fval-f_min)<f_tol) & (skip_x_tol==0)
                 f_tol_cnt += 1
             end
             if (maximum(abs.(p_vec - p_min))<x_tol) & (skip_x_tol==0)
@@ -483,7 +490,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         println("Steps since last improvement: $no_progress")
     end
     # println("Lowest Function Value is $f_min at $p_min")
-    return p_min,f_min, cnt
+    return p_min,f_min, cnt, H_k
 end
 
 function GA_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,

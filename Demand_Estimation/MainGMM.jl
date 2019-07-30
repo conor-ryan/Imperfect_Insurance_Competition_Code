@@ -45,7 +45,7 @@ spec_prodchars_0=[:constant,:AV,:HighRisk,:Small,:High_small]
 
 rundate = Dates.today()
 println("Running on $rundate")
-# #### Run Specification 1 ####
+#### Run Specification 1 ####
 # println("#### Run Specification 1  - Firm Fixed Effects ####")
 # filename = "GMM_Estimate_Firm"
 # spec1 = run_specification_GMM(filename,rundate,

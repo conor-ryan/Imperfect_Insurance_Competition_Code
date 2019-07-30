@@ -163,6 +163,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     ## Build Ownership Matrix
     firms = Vector{Union{Missing,String}}(missing,J)
     firms[prod_std] = mkt[:Firm]
+    # firms[prod_std] = string.(mkt[:Product])
     # firms[prod_std] = mkt[:Market]
     ownMat = zeros(J,J)
     for j in prod_std

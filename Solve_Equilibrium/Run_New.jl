@@ -35,7 +35,7 @@ for i in 1:4
     println("Risk type $i: $perc")
 end
 
-rundate = "2019-07-12"
+rundate = "2019-07-27"
 mark_the_output_date = Dates.today()
 println("Running spec $rundate on $mark_the_output_date")
 
@@ -48,9 +48,9 @@ chdf = ChoiceData(df,df_mkt,df_risk;
             :AgeFE_52_64,
             :Family,
             :LowIncome],
-    prodchars=[:Price,:constant,:AV,:HighRisk],
-    prodchars_0=[:constant,:AV,:HighRisk],
-    fixedEffects=[:Firm_Market_Cat],
+    prodchars=[:Price,:constant,:AV,:HighRisk,:Small,:High_small],
+    prodchars_0=[:constant,:AV,:HighRisk,:Small,:High_small],
+    fixedEffects=[:Firm],
     wgt=[:PERWT])
 
 model = InsuranceLogit(chdf,500)
@@ -63,9 +63,17 @@ costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk,mom_ra;
 
 
 ## Load Demand Estimation
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-$rundate-stg2.jld2"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_Firm-$rundate-stg2.jld2"
 @load file p_stg2
 p_est = copy(p_stg2)
+
+
+if length(p_stg2)!=model.parLength[:All]
+    println(length(p_stg2))
+    println(model.parLength[:All])
+    error("Parameter Vector Not Quite Right")
+end
+
 
 # r = calc_risk_moments(model,p_est)
 # println("Risk Moments are $r")
@@ -114,8 +122,8 @@ firm = firmData(model,df,eq_mkt,par_dem,par_cost)
 evaluate_model!(model,firm,"All",foc_check=true)
 
 #
-r,t = calc_risk_moments(model,firm.par_dem)
-println("Risk Moments are $r,\n $t")
+# r,t = calc_risk_moments(model,firm.par_dem)
+# println("Risk Moments are $r,\n $t")
 # f = firm
 # m = model
 
@@ -151,41 +159,34 @@ solveMain(model,firm,file)
 ####### TESTING GROUND #####
 # using PyPlot
 #
-# firm = firmData(model,df,eq_mkt,par_dem,par_cost)
-# evaluate_model!(model,firm,"All",foc_check=false)
+firm = firmData(model,df,eq_mkt,par_dem,par_cost)
+evaluate_model!(model,firm,"All",foc_check=false)
 
-#
+
 # solve_model!(model,firm,sim="RA")
 # P_Base = copy(firm.P_j[:])
 # evaluate_model!(model,firm,"All")
 # S_Base = copy(firm.S_j[:])
 
 
-#
-#
-# TotalCosts = firm.poolMat*firm.C_j
-# PooledCosts = firm.poolMat*(firm.PC_j.*firm.S_j)
-# dAdj_dp = sum(firm.dCdp_j,dims=2)./PooledCosts - (sum(firm.dCdp_pl_j,dims=2)./PooledCosts).*firm.Adj_j
-#
-#
-# evaluate_model!(model,firm,"All")
-# ind_GA = firm._prodSTDict["GA"]
-# ind_GA = ind_GA[inlist(ind_GA,firm.prods)]
-# # ind_GA = ind_GA[.!(inlist(ind_GA,firm.catas_prods))]
-# R, C, S, PC, Adj = compute_profit(model,firm)
-# Mkup,MR, MC, MC_pl = prof_margin(firm,ind_GA)
-# P_std, P_RA, MR2, MC2 = evaluate_FOC(firm,"GA")
+evaluate_model!(model,firm,"All")
+ind_GA = firm._prodSTDict["GA"]
+ind_GA = ind_GA[inlist(ind_GA,firm.prods)]
+# ind_GA = ind_GA[.!(inlist(ind_GA,firm.catas_prods))]
+R, C, S, PC, Adj = compute_profit(model,firm)
+MR, MC, MC_pl = prof_margin_raw(firm,ind_GA)
+P_std, P_RA, MR2, MC2 = evaluate_FOC(firm,"GA")
 
 
 
-#
-# dR, dC,dS,dPC,dAdj,test = test_MR(model,firm)
-# ind = ind_GA
-# ind = findall(dPC.!=0.0)
-# println(maximum(abs.(firm.dRdp_j[1,ind] - dR[ind])))
-# println(maximum(abs.(firm.dCdp_j[1,ind] - dC[ind])))
-# println(maximum(abs.(firm.dSdp_j[1,ind] - dS[ind])))
-# println(maximum(abs.(firm.dCdp_pl_j[1,ind] - dPC[ind])))
+
+dR, dC,dS,dPC,dAdj,test = test_MR(model,firm)
+ind = ind_GA
+ind = findall(dPC.!=0.0)
+println(maximum(abs.(firm.dRdp_j[1,ind] - dR[ind])))
+println(maximum(abs.(firm.dCdp_j[1,ind] - dC[ind])))
+println(maximum(abs.(firm.dSdp_j[1,ind] - dS[ind])))
+println(maximum(abs.(firm.dCdp_pl_j[1,ind] - dPC[ind])))
 #
 #
 #

@@ -106,6 +106,21 @@ function prof_margin(firm::firmData,std_ind::Union{Vector{Int64},Missing}=missin
     return Mkup, MR,MC_std[:],MC_RA[:]
 end
 
+function prof_margin_raw(firm::firmData,std_ind::Union{Vector{Int64},Missing}=missing)
+    if ismissing(std_ind)
+        std_ind = firm.prods
+    end
+    dSdp = (firm.dSAdp_j)[std_ind,std_ind]
+
+    MR = firm.SA_j[std_ind] + dSdp*firm.P_j[std_ind]
+    # MR = -inv(dSdp)*firm.SA_j[std_ind]
+
+    cost_std = sum(firm.dCdp_j[std_ind,std_ind],dims=2)
+    cost_pl = sum(firm.dCdp_pl_j[std_ind,std_ind],dims=2)
+
+    return MR,cost_std,cost_pl
+end
+
 
 function checkMargin(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All",foc_check=true)
@@ -269,8 +284,8 @@ end
 
 function solve_model!(m::InsuranceLogit,f::firmData;sim="Base")
     P_res = zeros(length(f.P_j))
-    # states = sort(String.(keys(f._prodSTDict)))[1:6]
-    states = ["GA"]
+    states = sort(String.(keys(f._prodSTDict)))[1:6]
+    # states = ["GA"]
     for s in states
         println("Solving for $s")
         solve_model_st!(m,f,s,sim=sim)

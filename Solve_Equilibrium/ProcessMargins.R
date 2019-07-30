@@ -7,14 +7,14 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 
 ## Estimation Run 
-run = "2019-07-12"
+run = "2019-07-27"
 
 #Load Product Data
 predFile = paste("Simulation_Risk_Output/prodData.rData",sep="")
 load(predFile)
 
 
-eqFile = paste("Estimation_Output/checkMarginsb_",run,".csv",sep="")
+eqFile = paste("Estimation_Output/checkMargins_",run,".csv",sep="")
 eqData = as.data.table(read.csv(eqFile))
 
 prod_data = merge(prod_data,eqData,by="Product")
@@ -22,7 +22,7 @@ prod_data = merge(prod_data,eqData,by="Product")
 # firms = prod_data[,list(R_avg=sum(share_base*size*R_avg)/sum(share_base*size),
 #                         Revenue=sum(share_base*size*premBase*ageRate)/sum(share_base*size)),
 #                   by=c("ST","Firm")]
-baseData = read.csv("Intermediate_Output/Simulated_BaseData/simchoiceData_discrete.csv")
+baseData = as.data.table(read.csv("Intermediate_Output/Simulated_BaseData/simchoiceData_discrete.csv"))
 
 
 
@@ -77,7 +77,7 @@ prod_data[,MR:=P_obs-Mkup]
 
 #### Plot Margin Check ####
 # png("Writing/Images/marginCheckBase.png",width=2000,height=1500,res=275)
-plot = ggplot(prod_data[,]) + aes(y=MR,x=MC_std) +
+plot = ggplot(prod_data[Metal_std%in%c("BRONZE"),]) + aes(y=MR,x=MC_std) +
   geom_point() + 
   geom_abline(intercept=0,slope=1) + 
   geom_smooth(color="red",method="lm",se=FALSE) + 
@@ -101,7 +101,7 @@ print(plot)
 # dev.off()
 
 # png("Writing/Images/marginCheckRA.png",width=2000,height=1500,res=275)
-ggplot(prod_data[,]) + aes(y=MR,x=MC_RA) +
+ggplot(prod_data[Metal_std%in%c("BRONZE","SILVER"),]) + aes(y=MR,x=MC_RA) +
   geom_point() + 
   geom_abline(intercept=0,slope=1) + 
   geom_smooth(color="red",method="lm",se=FALSE) + 
