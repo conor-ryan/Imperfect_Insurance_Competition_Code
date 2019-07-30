@@ -644,7 +644,7 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
     # Copy Firm Level Data for Changing in Estimation
     pmat = c_data.pdata
     pmat[:delta] = 1.0
-    sort!(pmat)
+    # sort!(pmat)
 
     d = InsuranceLogit(parLength,
                         c_data,
