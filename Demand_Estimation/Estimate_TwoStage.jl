@@ -82,7 +82,6 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             x_tol_cnt = 0
             ga_conv_cnt = 0
             ga_cnt = 0
-            hess_steps=0
         end
 
         # Compute Gradient, holding δ fixed
