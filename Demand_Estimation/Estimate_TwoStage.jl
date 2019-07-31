@@ -60,6 +60,8 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
     # println(grad_size)
 
     p_vec,fe_itrs,H_save = reOpt_FE(d,p_vec,max_itr=500)
+    println("Gradient Pre-Conditioning")
+    p_vec, f_test,ga_conv = ga_twostage(d,p_vec,W,par_ind,max_itr=50,strict=false,Grad_Skip_Steps=10)
 
     # Maximize by Newtons Method
     while (grad_size>0) & (cnt<max_itr) & (max_trial_cnt<20)
