@@ -1,4 +1,4 @@
-function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
+function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
     max_itr=2000,strict=true,Hess_Skip_Steps=15,checkin=false)
     ## Initialize Parameter Vector
 
@@ -261,7 +261,7 @@ function reOpt_FE(d::InsuranceLogit,p_vec::Vector{Float64};max_itr=30,H=missing)
     return p_min,cnt,H_k
 end
 
-function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
+function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
     max_itr=30,strict=true,Hess_Skip_Steps=5,H_init::Union{Missing,Array{Float64}}=missing)
 
     # Initialize Gradient
