@@ -88,7 +88,9 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         if hess_steps==0
             println("Compute Hessian")
             fval = GMM_objective!(hess_new,grad_new,d,p_vec,W,feFlag=0)
-            H_k = inv(hess_new[par_ind,par_ind])
+            H = hess_new[par_ind,par_ind]
+            H = enforcePosDef(H)
+            H_k = inv(H)
             real_hessian=1
         else
             println("BFGS Approximation")
@@ -326,7 +328,9 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         elseif hess_steps==0
             println("Compute Hessian")
             fval = log_likelihood!(hess_new,grad_new,d,par,feFlag=1)
-            H_k = inv(hess_new[FE_ind,FE_ind])
+            H = hess_new[FE_ind,FE_ind]
+            H = enforceNegDef(H)
+            H_k = inv(H)
             real_hessian=1
         else
             println("BFGS Approximation")

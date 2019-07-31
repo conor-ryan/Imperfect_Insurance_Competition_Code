@@ -81,3 +81,29 @@ function inlist(x::UnitRange{T},y::Vector{Union{Missing,T}}) where T
     end
     return bits
 end
+
+function enforcePosDef(H::Matrix{Float64})
+    check = issuccess(cholesky(H,check=false))
+    if !check
+        println("Not Convex: Compute Direction of Sufficient Descent") #http://web.stanford.edu/class/cme304/docs/newton-type-methods.pdf
+        E = eigen(H)
+        max_eig_val = minimum(E.values)
+        println("Min Eigenvalue is $max_eig_val")
+        Λ = abs.(Diagonal(E.values))
+        hess = E.vectors*Λ*E.vectors'
+    end
+    return H
+end
+
+function enforceNegDef(H::Matrix{Float64})
+    check = issuccess(cholesky(-H,check=false))
+    if !check
+        println("Not Concave: Compute Direction of Sufficient Ascent") #http://web.stanford.edu/class/cme304/docs/newton-type-methods.pdf
+        E = eigen(H)
+        max_eig_val = maximum(E.values)
+        println("Max Eigenvalue is $max_eig_val")
+        Λ = -abs.(Diagonal(E.values))
+        hess = E.vectors*Λ*E.vectors'
+    end
+    return H
+end
