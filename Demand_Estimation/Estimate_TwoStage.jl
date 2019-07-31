@@ -74,7 +74,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
                 println("Converged in two stages!")
                 break
             end
-            println("Gradient Conditioning")
+            # println("Gradient Conditioning")
             # p_vec, f_null,ga_null = ga_twostage(d,p_vec,W,par_ind,max_itr=10,strict=true,Grad_Skip_Steps=0)
             f_min = 1e3
             flag = "empty"

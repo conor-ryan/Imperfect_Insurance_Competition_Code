@@ -116,7 +116,7 @@ function run_specification_GMM(filename::String,
     #     prodchars=spec_prodchars,
     #     prodchars_0=Vector{Symbol}(undef,0),
     #     fixedEffects=spec_fixedEffects)
-    # 
+    #
     # m_ll = InsuranceLogit(c_ll,1,nested=nested)
     #
     # ## Initialize Starting Parameters
@@ -174,7 +174,7 @@ function run_specification_GMM(filename::String,
     # # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/checkin_265.jld2"
     # # @load file p_vec
     # # p0 = copy(p_vec)
-    # W = Matrix(1.0I,m_GMM.parLength[:All]+length(m_GMM.data.tMoments),m_GMM.parLength[:All]+length(m_GMM.data.tMoments))
+    W = Matrix(1.0I,m_GMM.parLength[:All]+length(m_GMM.data.tMoments),m_GMM.parLength[:All]+length(m_GMM.data.tMoments))
     # p_stg1, obj_1 = two_stage_est(m_GMM,p0,W)
     # #
     # println("Save First Stage Result")
