@@ -284,7 +284,7 @@ end
 
 function solve_model!(m::InsuranceLogit,f::firmData;sim="Base")
     P_res = zeros(length(f.P_j))
-    states = sort(String.(keys(f._prodSTDict)))[1:6]
+    states = sort(String.(keys(f._prodSTDict)))#[1:6]
     # states = ["GA"]
     for s in states
         println("Solving for $s")
@@ -413,12 +413,12 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All")
     S_Base[:] = f.S_j[:]
 
-    # f.ownMat = f.ownMat_merge
-    # println("###### Solve Merger Scenario ######")
-    # solve_model!(m,f,sim="RA")
-    # P_Base_m[:] = f.P_j[:]
-    # evaluate_model!(m,f,"All")
-    # S_Base_m[:] = f.S_j[:]
+    f.ownMat = f.ownMat_merge
+    println("###### Solve Merger Scenario ######")
+    solve_model!(m,f,sim="RA")
+    P_Base_m[:] = f.P_j[:]
+    evaluate_model!(m,f,"All")
+    S_Base_m[:] = f.S_j[:]
 
     #### Solve without Risk Adjustment ####
     println("####################################")
@@ -430,48 +430,48 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All")
     S_RA[:] = f.S_j[:]
 
-    # f.ownMat = f.ownMat_merge
-    # println("###### Solve Merger Scenario ######")
-    # solve_model!(m,f,sim="Base")
-    # P_RA_m[:] = f.P_j[:]
-    # evaluate_model!(m,f,"All")
-    # S_RA_m[:] = f.S_j[:]
+    f.ownMat = f.ownMat_merge
+    println("###### Solve Merger Scenario ######")
+    solve_model!(m,f,sim="Base")
+    P_RA_m[:] = f.P_j[:]
+    evaluate_model!(m,f,"All")
+    S_RA_m[:] = f.S_j[:]
 
-    #### Solve without mandate ####
-    # println("####################################")
-    # println("#### Solve without mandate ####")
-    # println("####################################")
-    # f.P_j[:] = P_Obs[:]
-    # f.data[:,f.index[:Mandate]].=0.0
-    # solve_model!(m,f,sim="RA")
-    # P_man[:] = f.P_j[:]
-    # evaluate_model!(m,f,"All")
-    # S_man[:] = f.S_j[:]
+    ### Solve without mandate ####
+    println("####################################")
+    println("#### Solve without mandate ####")
+    println("####################################")
+    f.P_j[:] = P_Obs[:]
+    f.data[:,f.index[:Mandate]].=0.0
+    solve_model!(m,f,sim="RA")
+    P_man[:] = f.P_j[:]
+    evaluate_model!(m,f,"All")
+    S_man[:] = f.S_j[:]
 
-    # f.ownMat = f.ownMat_merge
-    # println("###### Solve Merger Scenario ######")
-    # solve_model!(m,f,sim="RA")
-    # P_man_m[:] = f.P_j[:]
-    # evaluate_model!(m,f,"All")
-    # S_man_m[:] = f.S_j[:]
+    f.ownMat = f.ownMat_merge
+    println("###### Solve Merger Scenario ######")
+    solve_model!(m,f,sim="RA")
+    P_man_m[:] = f.P_j[:]
+    evaluate_model!(m,f,"All")
+    S_man_m[:] = f.S_j[:]
 
-    #### Solve without mandate NOR risk adjustment  ####
-    # println("####################################")
-    # println("#### Solve without mandate NOR risk adjustment  ####")
-    # println("####################################")
-    # f.P_j[:] = P_Obs[:]
-    # f.data[:,f.index[:Mandate]].=0.0
-    # solve_model!(m,f,sim="Base")
-    # P_RAman[:] = f.P_j[:]
-    # evaluate_model!(m,f,"All")
-    # S_RAman[:] = f.S_j[:]
+    ### Solve without mandate NOR risk adjustment  ####
+    println("####################################")
+    println("#### Solve without mandate NOR risk adjustment  ####")
+    println("####################################")
+    f.P_j[:] = P_Obs[:]
+    f.data[:,f.index[:Mandate]].=0.0
+    solve_model!(m,f,sim="Base")
+    P_RAman[:] = f.P_j[:]
+    evaluate_model!(m,f,"All")
+    S_RAman[:] = f.S_j[:]
 
-    # f.ownMat = f.ownMat_merge
-    # println("###### Solve Merger Scenario ######")
-    # solve_model!(m,f,sim="Base")
-    # P_RAman_m[:] = f.P_j[:]
-    # evaluate_model!(m,f,"All")
-    # S_RAman_m[:] = f.S_j[:]
+    f.ownMat = f.ownMat_merge
+    println("###### Solve Merger Scenario ######")
+    solve_model!(m,f,sim="Base")
+    P_RAman_m[:] = f.P_j[:]
+    evaluate_model!(m,f,"All")
+    S_RAman_m[:] = f.S_j[:]
 
 
 

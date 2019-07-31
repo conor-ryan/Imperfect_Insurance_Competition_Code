@@ -138,6 +138,10 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
             println(x_tol_cnt)
             println(ga_conv_cnt)
             flag = "converged"
+            if re_opt_cnt==0
+                println("Converged in two stages!")
+                break
+            end
             continue
         end
         if strict==false
