@@ -65,8 +65,8 @@ individual_shares(m,par_est)
 
 
 
-# r,t = calc_risk_moments(m,par_est)
-# println("Risk Moments are $r,\n $t")
+r,t = calc_risk_moments(m,par_est)
+println("Risk Moments are $r,\n $t")
 
 #### Cost Data ####
 costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk,mom_ra;

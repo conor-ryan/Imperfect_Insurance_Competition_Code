@@ -108,36 +108,43 @@ function run_specification_GMM(filename::String,
                             spec_fixedEffects=Vector{Symbol}(undef,0),
                             nested = false)
 
-    cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/")
-    # Build Log_Likehood Model
-    # println("Build LL Model")
-    # c_ll = ChoiceData(df,df_mkt,df_risk;
-    #     demoRaw=spec_demoRaw,
-    #     prodchars=spec_prodchars,
-    #     prodchars_0=Vector{Symbol}(undef,0),
-    #     fixedEffects=spec_fixedEffects)
-    #
-    # m_ll = InsuranceLogit(c_ll,1,nested=nested)
-    #
-    # ## Initialize Starting Parameters
-    # γstart = rand(m_ll.parLength[:γ])/10 .-.05
-    # β0start = rand(m_ll.parLength[:β])/10 .-.05
-    # βstart = rand(m_ll.parLength[:γ])/10 .- .05
-    # σstart = rand(m_ll.parLength[:σ])/10 .- .05
-    # FEstart = rand(m_ll.parLength[:FE])/100 .-.005
-    #
-    # p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
-    # println("#### Estimate LL Starting Point ####")
-    #
-    # ## Estimate
-    # p_ll, fval = newton_raphson_ll(m_ll,p0)
-    #
-    # println("Save LL Result")
-    # file = "$filename-$rundate-ll.jld2"
-    # @save file p_ll
+    spec_Dict = Dict("prodchars" => spec_prodchars,
+    "prodchars_0"=> spec_prodchars_0,
+    "demoRaw"=>spec_demR,
+    "fixedEffects"=>spec_fixedEffects,
+    "nested"=>nested,
+    "haltonDim"=>haltonDim)
 
+    cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/")
+    Build Log_Likehood Model
+    println("Build LL Model")
+    c_ll = ChoiceData(df,df_mkt,df_risk;
+        demoRaw=spec_demoRaw,
+        prodchars=spec_prodchars,
+        prodchars_0=Vector{Symbol}(undef,0),
+        fixedEffects=spec_fixedEffects)
+
+    m_ll = InsuranceLogit(c_ll,1,nested=nested)
+
+    ## Initialize Starting Parameters
+    γstart = rand(m_ll.parLength[:γ])/10 .-.05
+    β0start = rand(m_ll.parLength[:β])/10 .-.05
+    βstart = rand(m_ll.parLength[:γ])/10 .- .05
+    σstart = rand(m_ll.parLength[:σ])/10 .- .05
+    FEstart = rand(m_ll.parLength[:FE])/100 .-.005
+
+    p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
+    println("#### Estimate LL Starting Point ####")
+
+    ## Estimate
+    p_ll, fval = newton_raphson_ll(m_ll,p0)
+
+    println("Save LL Result")
     file = "$filename-$rundate-ll.jld2"
-    @load file p_ll
+    @save file p_ll spec_Dict
+
+    # file = "$filename-$rundate-ll.jld2"
+    # @load file p_ll
 
 
 
@@ -166,24 +173,24 @@ function run_specification_GMM(filename::String,
     p0[ind1] = p_ll[ind1]
     p0[ind2] = p_ll[ind2.-m_GMM.parLength[:σ]]
 
-    # println("#### Estimate GMM First Stage ####")
-    # p0[σ_ind]=rand(length(σ_ind)).*0.05 .- .025
+    println("#### Estimate GMM First Stage ####")
+    p0[σ_ind]=rand(length(σ_ind)).*0.05 .- .025
     # if spec_fixedEffects== [:Firm_Market_Cat]
     #     p0[σ_ind] = [0.534812, 0.497257, 0.0252315, -0.0605508, 0.144096]
     # end
-    # # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/checkin_265.jld2"
-    # # @load file p_vec
-    # # p0 = copy(p_vec)
+    # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/checkin_265.jld2"
+    # @load file p_vec
+    # p0 = copy(p_vec)
     W = Matrix(1.0I,m_GMM.parLength[:All]+length(m_GMM.data.tMoments),m_GMM.parLength[:All]+length(m_GMM.data.tMoments))
-    # p_stg1, obj_1 = two_stage_est(m_GMM,p0,W)
-    # #
-    # println("Save First Stage Result")
-    # file = "$filename-$rundate-stg1.jld2"
-    # @save file p_stg1 obj_1
-    # else
-    # println("Load First Stage Result")
+    p_stg1, obj_1 = two_stage_est(m_GMM,p0,W)
+    #
+    println("Save First Stage Result")
     file = "$filename-$rundate-stg1.jld2"
-    @load file p_stg1 obj_1
+    @save file p_stg1 obj_1 spec_Dict
+
+    # println("Load First Stage Result")
+    # file = "$filename-$rundate-stg1.jld2"
+    # @load file p_stg1 obj_1
     # end
 
     println("#### Estimate GMM Second Stage ####")
@@ -205,7 +212,7 @@ function run_specification_GMM(filename::String,
 
     println("Save Second Stage Result")
     file = "$filename-$rundate-stg2.jld2"
-    @save file p_stg2 obj_2
+    @save file p_stg2 obj_2 spec_Dict
 
     # println("#### Calculate Standard Errors and Save Results ####")
     # AsVar, stdErr,t_stat, stars = res_process(m_GMM,p_stg2,σ_ind)

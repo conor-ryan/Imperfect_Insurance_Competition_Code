@@ -240,7 +240,7 @@ function foc_error(firm::firmData,ST::String,stp::Float64;sim="Base")
         exited = length(findall(ProdExit[prod_ind]))
         choked = length(findall(ChokePrice[prod_ind]))
         all = length(prod_ind)
-        println("Product Exits for $exited out of $all products, $choked at choke price.")
+        # println("Product Exits for $exited out of $all products, $choked at choke price.")
     end
 
     ### Negative Prices
@@ -284,8 +284,8 @@ end
 
 function solve_model!(m::InsuranceLogit,f::firmData;sim="Base")
     P_res = zeros(length(f.P_j))
-    states = sort(String.(keys(f._prodSTDict)))#[1:6]
-    # states = ["GA"]
+    # states = sort(String.(keys(f._prodSTDict)))#[1:6]
+    states = ["AK","NE","IA"]
     for s in states
         println("Solving for $s")
         solve_model_st!(m,f,s,sim=sim)
@@ -306,9 +306,9 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;sim="Base")
     P_new_last = zeros(length(f.P_j[:]))
     while err_new>1e-12
         itr_cnt+=1
-        println("Evaluate Model")
+        # println("Evaluate Model")
         evaluate_model!(m,f,ST)
-        println("Update Price")
+        # println("Update Price")
 
 
         foc_err, err_new, tot_err,P_new = foc_error(f,ST,stp,sim=sim)
@@ -342,7 +342,7 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;sim="Base")
         P_last[:] = copy(f.P_j[:])
         P_new_last[:] = copy(P_new[:])
         f.P_j[:] = (1-stp).*f.P_j[:] + stp.*P_new[:]
-        println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
+        # println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
         # println(foc_err)
         # println(P_new[f._prodSTDict[ST]])
         # println(f.P_j[f._prodSTDict[ST]])
@@ -413,6 +413,9 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All")
     S_Base[:] = f.S_j[:]
 
+    println(median(f[:Mandate]))
+    println(median(f.P_j[findall(f.P_j.>0)]))
+
     f.ownMat = f.ownMat_merge
     println("###### Solve Merger Scenario ######")
     solve_model!(m,f,sim="RA")
@@ -437,6 +440,9 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All")
     S_RA_m[:] = f.S_j[:]
 
+    println(median(f[:Mandate]))
+    println(median(f.P_j[findall(f.P_j.>0)]))
+
     ### Solve without mandate ####
     println("####################################")
     println("#### Solve without mandate ####")
@@ -448,12 +454,18 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All")
     S_man[:] = f.S_j[:]
 
+    println(median(f[:Mandate]))
+    println(median(f.P_j[findall(f.P_j.>0)]))
+
     f.ownMat = f.ownMat_merge
     println("###### Solve Merger Scenario ######")
     solve_model!(m,f,sim="RA")
     P_man_m[:] = f.P_j[:]
     evaluate_model!(m,f,"All")
     S_man_m[:] = f.S_j[:]
+
+    println(median(f[:Mandate]))
+    println(median(f.P_j[findall(f.P_j.>0)]))
 
     ### Solve without mandate NOR risk adjustment  ####
     println("####################################")
@@ -466,12 +478,18 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All")
     S_RAman[:] = f.S_j[:]
 
+    println(median(f[:Mandate]))
+    println(median(f.P_j[findall(f.P_j.>0)]))
+
     f.ownMat = f.ownMat_merge
     println("###### Solve Merger Scenario ######")
     solve_model!(m,f,sim="Base")
     P_RAman_m[:] = f.P_j[:]
     evaluate_model!(m,f,"All")
     S_RAman_m[:] = f.S_j[:]
+
+    println(median(f[:Mandate]))
+    println(median(f.P_j[findall(f.P_j.>0)]))
 
 
 

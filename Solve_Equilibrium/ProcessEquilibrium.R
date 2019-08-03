@@ -5,7 +5,7 @@ library(ggplot2)
 library(scales)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
-run = "2019-07-12"
+run = "2019-07-27"
 
 #### Read in Data ####
 eqFile = paste("Estimation_Output/solvedEquilibrium_",run,".csv",sep="")
@@ -28,12 +28,12 @@ for (v in c("base","RA","man","RAman")){
   }
 }
 
-# states = sort(unique(prod_pred$ST))[1:6]
-states = c("GA")
-vars = names(prod_pred)[grepl("(_base$|_RA$)",names(prod_pred))]
+# # states = sort(unique(prod_pred$ST))[1:6]
+# states = c("GA")
+# vars = names(prod_pred)[grepl("(_base$|_RA$)",names(prod_pred))]
 
-prod_pred = prod_pred[ST%in%states,.SD,.SDcols=c("Product","Market","ST","Firm","Metal_std","size",vars)]
-
+# prod_pred = prod_pred[ST%in%states,.SD,.SDcols=c("Product","Market","ST","Firm","Metal_std","size",vars)]
+prod_pred = prod_pred[ST%in%c("AK","NE","IA"),]
 
 
 #### HHI Breakdown ####
@@ -53,14 +53,14 @@ prod_pred = merge(prod_pred,Mkt,by="Market")
 
 #### Insured Results ####
 Insured = prod_pred[,lapply(.SD,sum),
-                    .SDcols=c("Lives_base","Lives_RA"),#,"Lives_man","Lives_RAman","Lives_base_m","Lives_RA_m","Lives_man_m","Lives_RAman_m"),
+                    .SDcols=c("Lives_base","Lives_RA","Lives_man","Lives_RAman","Lives_base_m","Lives_RA_m","Lives_man_m","Lives_RAman_m"),
                     by=c("ST","Market","size","HHI_flag")]
 Insured = Insured[,lapply(.SD,sum),
-                    .SDcols=c("size","Lives_base","Lives_RA"),#,"Lives_man","Lives_RAman","Lives_base_m","Lives_RA_m","Lives_man_m","Lives_RAman_m"),
+                    .SDcols=c("size","Lives_base","Lives_RA","Lives_man","Lives_RAman","Lives_base_m","Lives_RA_m","Lives_man_m","Lives_RAman_m"),
                     by=c("HHI_flag")]
 
-for (v in c("base","RA")){#,"man","RAman")){
-  for (m in c("")){#,"_m")){
+for (v in c("base","RA","man","RAman")){
+  for (m in c("","_m")){
     var_name = paste("Ins_",v,m,sep="")
     lives_name = paste("Lives_",v,m,sep="")
     Insured[,c(var_name):=.SD/size,.SDcols=c(lives_name)]
@@ -69,17 +69,11 @@ for (v in c("base","RA")){#,"man","RAman")){
 
 #### Premium Results ####
 
-prem = prod_pred[Lives_base>1,list(Price_base = sum(Price_base*Lives_base)/sum(Lives_base),
-                       Price_RA = sum(Price_RA*Lives_base)/sum(Lives_base)#,
-                       #Price_man = sum(Price_man*Lives_base)/sum(Lives_base),
-                       #Price_RAman = sum(Price_RAman*Lives_base)/sum(Lives_base)
+prem = prod_pred[,list(Price_base = sum(Price_base*Lives_base)/sum(Lives_base),
+                       Price_RA = sum(Price_RA*Lives_base)/sum(Lives_base),
+                       Price_man = sum(Price_man*Lives_base)/sum(Lives_base),
+                       Price_RAman = sum(Price_RAman*Lives_base)/sum(Lives_base)
                         ),
                  by=c("Metal_std","HHI_flag")]
 setkey(prem,HHI_flag,Price_RA)
 
-prem = prod_pred[Lives_base>1,list(Price_base = sum(Price_base*Lives_base)/sum(Lives_base),
-                                   Price_RA = sum(Price_RA*Lives_base)/sum(Lives_base),
-                                   Price_man = sum(Price_man*Lives_base)/sum(Lives_base),
-                                   Price_RAman = sum(Price_RAman*Lives_base)/sum(Lives_base)),
-                 by=c("Metal_std","Market")]
-# setkey(prem,HHI_flag,Price_RA)

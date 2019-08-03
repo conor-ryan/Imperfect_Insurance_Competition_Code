@@ -149,10 +149,10 @@ riskMoments$M_num = 1:nrow(riskMoments)
 #### Create Moment Index DF ####
 setkey(choiceData,Person,Product)
 choiceData[,index:=1:nrow(choiceData)]
-firmMoments = merge(firmClaims,choiceData,by=c("ST","Firm"))
+firmMoments = merge(firmClaims,choiceData[Metal_std!="PLATINUM",],by=c("ST","Firm"))
 firmMoments = firmMoments[,c("logAvgCost","M_num","Product","index")]
 
-raMoments = merge(choiceData,RAmom,by=c("ST","Firm"))
+raMoments = merge(choiceData[Metal_std!="PLATINUM",],RAmom,by=c("ST","Firm"))
 raMoments = raMoments[,c("avgTransfer","M_num","Product","index")]
 
 
