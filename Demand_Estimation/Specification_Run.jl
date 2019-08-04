@@ -110,7 +110,7 @@ function run_specification_GMM(filename::String,
 
     spec_Dict = Dict("prodchars" => spec_prodchars,
     "prodchars_0"=> spec_prodchars_0,
-    "demoRaw"=>spec_demR,
+    "demoRaw"=>spec_demoRaw,
     "fixedEffects"=>spec_fixedEffects,
     "nested"=>nested,
     "haltonDim"=>haltonDim)
