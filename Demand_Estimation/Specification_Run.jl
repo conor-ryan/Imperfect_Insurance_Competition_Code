@@ -116,7 +116,7 @@ function run_specification_GMM(filename::String,
     "haltonDim"=>haltonDim)
 
     cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/")
-    Build Log_Likehood Model
+    ## Build Log_Likehood Model
     println("Build LL Model")
     c_ll = ChoiceData(df,df_mkt,df_risk;
         demoRaw=spec_demoRaw,
