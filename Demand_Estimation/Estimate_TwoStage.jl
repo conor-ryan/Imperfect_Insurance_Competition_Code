@@ -69,7 +69,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
         cnt+=1
         trial_cnt=0
 
-        if (re_opt_cnt==8) | (flag=="converged")
+        if (re_opt_cnt==20) | (flag=="converged")
             re_opt_cnt=0
             p_vec,fe_itrs,H_save = reOpt_FE(d,p_vec,max_itr=50,H=H_save)
             if (flag=="converged") & (fe_itrs<2)
@@ -84,6 +84,9 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
             x_tol_cnt = 0
             ga_conv_cnt = 0
             ga_cnt = 0
+            if fe_itrs>5
+                hess_steps = 0
+            end
         end
 
         # Compute Gradient, holding δ fixed
