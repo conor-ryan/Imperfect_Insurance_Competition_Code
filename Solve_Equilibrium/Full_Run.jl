@@ -10,6 +10,7 @@ using DataFrames
 
 load_path = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Code/"
 include("$load_path/Demand_Estimation/InsChoiceData.jl")
+include("$load_path/Demand_Estimation/RandomCoefficients.jl")
 include("$load_path/Demand_Estimation/Specification_Run.jl")
 include("$load_path/Firm_Side/SpecRunMC.jl")
 include("predictionData.jl")
