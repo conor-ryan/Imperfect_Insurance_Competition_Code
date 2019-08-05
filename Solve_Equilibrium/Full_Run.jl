@@ -10,11 +10,8 @@ using DataFrames
 
 load_path = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Code/"
 include("$load_path/Demand_Estimation/InsChoiceData.jl")
-include("$load_path/Demand_Estimation/RandomCoefficients.jl")
 include("$load_path/Demand_Estimation/Specification_Run.jl")
 include("$load_path/Firm_Side/SpecRunMC.jl")
-include("predictionData.jl")
-include("FirmFunctions.jl")
 
 
 ##### Set Specification ####
@@ -50,5 +47,7 @@ estimate_marginal_cost(rundate,spec,cost_spec)
 
 
 println("##### Solve Equilibrium #####")
+include("predictionData.jl")
+include("FirmFunctions.jl")
 rundate = "2019-08-03"
 solve_equilibrium(rundate,spec)
