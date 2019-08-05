@@ -908,6 +908,9 @@ choices[,High_small:=Small*HighRisk]
 # wgt_test[,wgt_adj:=totalWeight/Pop]
 # 
 
+setkey(choices,Person,Product)
+setkey(shares,Product)
+
 write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price",
                      "Firm_Market","Firm_Market_Cat","Firm_Market_Age","Firm_Market_Cat_Age",
                      "PriceDiff",#"MedDeductDiff","ExcOOPDiff","HighDiff",

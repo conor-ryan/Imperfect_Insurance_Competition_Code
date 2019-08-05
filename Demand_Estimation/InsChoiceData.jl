@@ -614,7 +614,7 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
     #draws = permutedims(MVHaltonNormal(haltonDim,2),(2,1))
     #draws = MVHaltonNormal(haltonDim,4;scrambled=false)
 
-    draws = MVHalton(haltonDim,1;scrambled=false)
+    draws = MVHalton(haltonDim,1,scrambled=false)
     if riskscores
         risk_draws = Matrix{Float64}(undef,haltonDim,size(c_data.rMoments,1))
         for mom in 1:size(c_data.rMoments,1)

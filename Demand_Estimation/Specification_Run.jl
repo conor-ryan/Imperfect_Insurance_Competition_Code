@@ -235,42 +235,42 @@ function estimate_demand(filename,rundate,
                     spec_prodchars,
                     spec_prodchars_0,
                     spec_fixedEffects)
-println("Loading Code...")
-codeDir = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Code/Demand_Estimation"
-# Data Structure
-include("$codeDir/InsChoiceData.jl")
+    println("Loading Code...")
+    codeDir = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Code/Demand_Estimation"
+    # Data Structure
+    include("$codeDir/InsChoiceData.jl")
 
-#Halton Draws
-include("$codeDir/Halton.jl")
+    #Halton Draws
+    include("$codeDir/Halton.jl")
 
-# Random Coefficients MLE
-include("$codeDir/RandomCoefficients.jl")
-include("$codeDir/Specification_Run.jl")
-include("$codeDir/RandomCoefficients_der.jl")
-include("$codeDir/Contraction.jl")
-include("$codeDir/Log_Likehood.jl")
-include("$codeDir/RiskMoments.jl")
-include("$codeDir/Estimate_Basic.jl")
-include("$codeDir/Estimate_GMM.jl")
-include("$codeDir/Estimate_TwoStage.jl")
-include("$codeDir/GMM_Var.jl")
-include("$codeDir/utility.jl")
-include("$codeDir/DerivFunctions.jl")
-println("Code Loaded")
+    # Random Coefficients MLE
+    include("$codeDir/RandomCoefficients.jl")
+    include("$codeDir/Specification_Run.jl")
+    include("$codeDir/RandomCoefficients_der.jl")
+    include("$codeDir/Contraction.jl")
+    include("$codeDir/Log_Likehood.jl")
+    include("$codeDir/RiskMoments.jl")
+    include("$codeDir/Estimate_Basic.jl")
+    include("$codeDir/Estimate_GMM.jl")
+    include("$codeDir/Estimate_TwoStage.jl")
+    include("$codeDir/GMM_Var.jl")
+    include("$codeDir/utility.jl")
+    include("$codeDir/DerivFunctions.jl")
+    println("Code Loaded")
 
-# Load the Data
-println("Loading Data...")
-include("$codeDir/load.jl")
+    # Load the Data
+    println("Loading Data...")
+    include("$codeDir/load.jl")
 
 
-### Run Specification 1 ####
-println("#### Run Specification ####")
-spec1 = run_specification_GMM(filename,rundate,
-                    df,df_mkt,df_risk,
-                    haltonDim = halton_draws,
-                    spec_demoRaw=spec_demoRaw,
-                    spec_prodchars=spec_prodchars,
-                    spec_prodchars_0=spec_prodchars_0,
-                    spec_fixedEffects=spec_fixedEffects)
-    return nothing
+    ### Run Specification 1 ####
+    println("#### Run Specification ####")
+    spec1 = run_specification_GMM(filename,rundate,
+                        df,df_mkt,df_risk,
+                        haltonDim = halton_draws,
+                        spec_demoRaw=spec_demoRaw,
+                        spec_prodchars=spec_prodchars,
+                        spec_prodchars_0=spec_prodchars_0,
+                        spec_fixedEffects=spec_fixedEffects)
+        return nothing
 end
