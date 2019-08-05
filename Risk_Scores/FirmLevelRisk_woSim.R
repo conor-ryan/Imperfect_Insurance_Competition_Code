@@ -149,4 +149,4 @@ firm_RA[,share:=memberMonths/(sum(memberMonths)),by="ST"]
 #### Save Files ####
 firmRiskFile = "Simulation_Risk_Output/FirmRiskScores_woSim.rData"
 save(firm_RA,file=firmRiskFile)
-
+rm(list=ls())

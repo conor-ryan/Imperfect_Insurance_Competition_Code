@@ -42,13 +42,13 @@ predFile = paste("Simulation_Risk_Output/prodData.rData",sep="")
 save(prod_data,file=predFile)
 
 
-for (st in sort(unique(prod_data$ST))){
-  
-  write.csv(prod_data[ST==st,],
-            file=paste("Intermediate_Output/Equilibrium_Data/estimated_prodData_",st,".csv",sep=""),
-            row.names=FALSE)
-  
-}
+# for (st in sort(unique(prod_data$ST))){
+#   
+#   write.csv(prod_data[ST==st,],
+#             file=paste("Intermediate_Output/Equilibrium_Data/estimated_prodData_",st,".csv",sep=""),
+#             row.names=FALSE)
+#   
+# }
 
 write.csv(prod_data[Firm!="OTHER",],
           file=paste("Intermediate_Output/Equilibrium_Data/estimated_prodData_full.csv",sep=""),

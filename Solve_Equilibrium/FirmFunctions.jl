@@ -1,31 +1,31 @@
-function compute_profit(d::InsuranceLogit,firm::firmData)
+function compute_profit(d::InsuranceLogit,f::firmData)
     Revenue = zeros(length(d.prods))
     Cost = zeros(length(d.prods))
     Share = zeros(length(d.prods))
     Pooled_Cost = zeros(length(d.prods))
 
     Market_Total = zeros(length(d.prods))
-    # mandate_long = firm[:Mandate]
-    # Mems   = firm[:MEMBERS]
+    # mandate_long = f[:Mandate]
+    # Mems   = f[:MEMBERS]
     wgts_long = weight(d.data)[:]
     prod_long = Int.(product(d.data))
-    age_long = firm[:ageRate]
-    mem_long = firm[:MEMBERS]
+    age_long = f[:ageRate]
+    mem_long = f[:MEMBERS]
 
     for idxitr in values(d.data._personDict)
-        prod_ids = firm.stdMap[prod_long[idxitr]]
-        catas = findall(inlist(prod_ids,firm.catas_prods))
+        prod_ids = f.stdMap[prod_long[idxitr]]
+        catas = findall(inlist(prod_ids,f.catas_prods))
 
-        s_pred = firm.s_pred[idxitr]
-        cost = firm.c_pred[idxitr]
-        cost_pl = firm.c_pool[idxitr]
-        rev = firm.Rev_ij[idxitr]
+        s_pred = f.s_pred[idxitr]
+        cost = f.c_pred[idxitr]
+        cost_pl = f.c_pool[idxitr]
+        rev = f.Rev_ij[idxitr]
         age = age_long[idxitr]
         mem = mem_long[idxitr]
 
         s_ins = sum(s_pred) - sum(s_pred[catas])
-        # pr = (firm.P_ij[idxitr]*1000 + mandate_long[idxitr])
-        # pr = ((pr.*Mems[idxitr])/12 + firm.subsidy_ij[idxitr])./Mems[idxitr]
+        # pr = (f.P_ij[idxitr]*1000 + mandate_long[idxitr])
+        # pr = ((pr.*Mems[idxitr])/12 + f.subsidy_ij[idxitr])./Mems[idxitr]
 
         wgt = wgts_long[idxitr]
 
@@ -44,38 +44,38 @@ function compute_profit(d::InsuranceLogit,firm::firmData)
         end
     end
 
-    Pooled_Cost[firm.prods] = Share[firm.prods].*Pooled_Cost[firm.prods]./Market_Total[firm.prods]
+    Pooled_Cost[f.prods] = Share[f.prods].*Pooled_Cost[f.prods]./Market_Total[f.prods]
 
 
     PC_adj = copy(Pooled_Cost)
-    PC_adj[firm.catas_prods].=0.0
+    PC_adj[f.catas_prods].=0.0
 
     C_adj = copy(Cost)
-    C_adj[firm.catas_prods].=0.0
+    C_adj[f.catas_prods].=0.0
 
     Adj = zeros(length(Cost))
-    Adj[firm.prods] = ((firm.poolMat*C_adj)./(firm.poolMat*PC_adj))[firm.prods]
-    Adj[firm.catas_prods].=0.0
+    Adj[f.prods] = ((f.poolMat*C_adj)./(f.poolMat*PC_adj))[f.prods]
+    Adj[f.catas_prods].=0.0
     Pooled_Cost = Pooled_Cost.*Adj
-    Pooled_Cost[firm.catas_prods] = Cost[firm.catas_prods]
+    Pooled_Cost[f.catas_prods] = Cost[f.catas_prods]
 
-    Rev_Firm = firm.ownMat*Revenue
-    Cost_Firm = firm.ownMat*Cost
-    PC_Firm = firm.ownMat*Pooled_Cost
+    Rev_Firm = f.ownMat*Revenue
+    Cost_Firm = f.ownMat*Cost
+    PC_Firm = f.ownMat*Pooled_Cost
     Profit = Rev_Firm - Cost_Firm
     # MLR = Cost_Firm./Rev_Firm
     return Revenue, Cost, Share, Pooled_Cost, Adj
 end
 
-function test_MR(m::InsuranceLogit,firm::firmData)
+function test_MR(m::InsuranceLogit,f::firmData)
     ϵ = 1e-6
     println("First Evaluation")
-    evaluate_model!(model,firm,"GA",foc_check=false)
-    Rev1, Cost1, Share1, PC1, Adj1 = compute_profit(m,firm)
-    firm.P_j[1]+=ϵ
+    evaluate_model!(model,f,"GA",foc_check=false)
+    Rev1, Cost1, Share1, PC1, Adj1 = compute_profit(m,f)
+    f.P_j[1]+=ϵ
     println("Deviation Evaluation")
-    evaluate_model!(model,firm,"GA",foc_check=false)
-    Rev2, Cost2, Share2, PC2, Adj2 = compute_profit(m,firm)
+    evaluate_model!(model,f,"GA",foc_check=false)
+    Rev2, Cost2, Share2, PC2, Adj2 = compute_profit(m,f)
 
     dR = (Rev2 - Rev1)./ϵ
     dC = (Cost2 - Cost1)./ϵ
@@ -85,38 +85,38 @@ function test_MR(m::InsuranceLogit,firm::firmData)
     return dR, dC, dS, dPC, dAdj, (Cost1,PC1,Cost2,PC2)
 end
 
-function prof_margin(firm::firmData,std_ind::Union{Vector{Int64},Missing}=missing)
+function prof_margin(f::firmData,std_ind::Union{Vector{Int64},Missing}=missing)
     if ismissing(std_ind)
-        std_ind = firm.prods
+        std_ind = f.prods
     end
-    dSdp = (firm.dSAdp_j.*firm.ownMat)[std_ind,std_ind]
+    dSdp = (f.dSAdp_j.*f.ownMat)[std_ind,std_ind]
 
-    MR = inv(dSdp)*sum(firm.dRdp_j.*firm.ownMat,dims=2)[std_ind]
-    Mkup = -inv(dSdp)*firm.SA_j[std_ind]
-    # MR = -inv(dSdp)*firm.SA_j[std_ind]
+    MR = inv(dSdp)*sum(f.dRdp_j.*f.ownMat,dims=2)[std_ind]
+    Mkup = -inv(dSdp)*f.SA_j[std_ind]
+    # MR = -inv(dSdp)*f.SA_j[std_ind]
 
-    cost_std = sum(firm.dCdp_j[std_ind,std_ind].*firm.ownMat[std_ind,std_ind],dims=2)
-    cost_pl = sum(firm.dCdp_pl_j[std_ind,std_ind].*firm.ownMat[std_ind,std_ind],dims=2)
+    cost_std = sum(f.dCdp_j[std_ind,std_ind].*f.ownMat[std_ind,std_ind],dims=2)
+    cost_pl = sum(f.dCdp_pl_j[std_ind,std_ind].*f.ownMat[std_ind,std_ind],dims=2)
 
     MC_std = inv(dSdp)*cost_std
     MC_RA = inv(dSdp)*cost_pl
-    # MR = -sum(firm.dRdp_j.*firm.ownMat,dims=2)[std_ind]
-    # MC_std = -sum(firm.dCdp_j.*firm.ownMat,dims=2)[std_ind]
-    # MC_RA = -sum(firm.dCdp_pl_j.*firm.ownMat,dims=2)[std_ind]
+    # MR = -sum(f.dRdp_j.*f.ownMat,dims=2)[std_ind]
+    # MC_std = -sum(f.dCdp_j.*f.ownMat,dims=2)[std_ind]
+    # MC_RA = -sum(f.dCdp_pl_j.*f.ownMat,dims=2)[std_ind]
     return Mkup, MR,MC_std[:],MC_RA[:]
 end
 
-function prof_margin_raw(firm::firmData,std_ind::Union{Vector{Int64},Missing}=missing)
+function prof_margin_raw(f::firmData,std_ind::Union{Vector{Int64},Missing}=missing)
     if ismissing(std_ind)
-        std_ind = firm.prods
+        std_ind = f.prods
     end
-    dSdp = (firm.dSAdp_j)[std_ind,std_ind]
+    dSdp = (f.dSAdp_j)[std_ind,std_ind]
 
-    MR = firm.SA_j[std_ind] + dSdp*firm.P_j[std_ind]
-    # MR = -inv(dSdp)*firm.SA_j[std_ind]
+    MR = f.SA_j[std_ind] + dSdp*f.P_j[std_ind]
+    # MR = -inv(dSdp)*f.SA_j[std_ind]
 
-    cost_std = sum(firm.dCdp_j[std_ind,std_ind],dims=2)
-    cost_pl = sum(firm.dCdp_pl_j[std_ind,std_ind],dims=2)
+    cost_std = sum(f.dCdp_j[std_ind,std_ind],dims=2)
+    cost_pl = sum(f.dCdp_pl_j[std_ind,std_ind],dims=2)
 
     return MR,cost_std,cost_pl
 end
@@ -124,7 +124,7 @@ end
 
 function checkMargin(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All",foc_check=true)
-    Mkup,MR,MC_std,MC_RA = prof_margin(firm)
+    Mkup,MR,MC_std,MC_RA = prof_margin(f)
     avgCost = f.C_j[f.prods]
     pooledCost = f.PC_j[f.prods]
     lives = f.S_j[f.prods]
@@ -161,18 +161,18 @@ function calc_avgR(m::InsuranceLogit,f::firmData)
     return R_j[f.prods]
 end
 
-function evaluate_FOC(firm::firmData,ST::String)
+function evaluate_FOC(f::firmData,ST::String)
 
-    P_std = zeros(length(firm.P_j))
-    P_RA = zeros(length(firm.P_j))
+    P_std = zeros(length(f.P_j))
+    P_RA = zeros(length(f.P_j))
 
-    std_ind = firm._prodSTDict[ST]
+    std_ind = f._prodSTDict[ST]
 
 
-    dSdp = (firm.dSAdp_j.*firm.ownMat)[std_ind,std_ind]
-    cost_std = sum(firm.dCdp_j[std_ind,std_ind].*firm.ownMat[std_ind,std_ind],dims=2)
-    cost_pl = sum(firm.dCdp_pl_j[std_ind,std_ind].*firm.ownMat[std_ind,std_ind],dims=2)
-    SA = firm.SA_j[std_ind]
+    dSdp = (f.dSAdp_j.*f.ownMat)[std_ind,std_ind]
+    cost_std = sum(f.dCdp_j[std_ind,std_ind].*f.ownMat[std_ind,std_ind],dims=2)
+    cost_pl = sum(f.dCdp_pl_j[std_ind,std_ind].*f.ownMat[std_ind,std_ind],dims=2)
+    SA = f.SA_j[std_ind]
 
     P_std[std_ind]= inv(dSdp)*(-SA + cost_std)
     P_RA[std_ind] = inv(dSdp)*(-SA + cost_pl)
@@ -183,18 +183,18 @@ function evaluate_FOC(firm::firmData,ST::String)
     return P_std, P_RA, MR, MC
 end
 
-function evaluate_FOC(firm::firmData)
+function evaluate_FOC(f::firmData)
 
-    P_std = zeros(length(firm.P_j))
-    P_RA = zeros(length(firm.P_j))
+    P_std = zeros(length(f.P_j))
+    P_RA = zeros(length(f.P_j))
 
-    std_ind = firm.prods
+    std_ind = f.prods
 
 
-    dSdp = (firm.dSdp_j.*firm.ownMat)[std_ind,std_ind]
-    cost_std = sum(firm.dCdp_j.*firm.ownMat,dims=2)[std_ind]
-    cost_pl = sum(firm.dCdp_pl_j[std_ind,std_ind].*firm.ownMat[std_ind,std_ind],dims=2)
-    SA = firm.S_j[std_ind]
+    dSdp = (f.dSdp_j.*f.ownMat)[std_ind,std_ind]
+    cost_std = sum(f.dCdp_j.*f.ownMat,dims=2)[std_ind]
+    cost_pl = sum(f.dCdp_pl_j[std_ind,std_ind].*f.ownMat[std_ind,std_ind],dims=2)
+    SA = f.S_j[std_ind]
 
 
     P_std[std_ind]= inv(dSdp)*(-SA + cost_std)
@@ -203,10 +203,10 @@ function evaluate_FOC(firm::firmData)
     return P_std, P_RA
 end
 
-function predict_price(firm::firmData,ST::String;sim="Base")
+function predict_price(f::firmData,ST::String;sim="Base")
 
-    P_std, P_RA = evaluate_FOC(firm,ST)
-    # println(P_std[firm._prodSTDict[ST]])
+    P_std, P_RA = evaluate_FOC(f,ST)
+    # println(P_std[f._prodSTDict[ST]])
 
     if sim=="Base"
         P_new = copy(P_std)
@@ -217,11 +217,11 @@ function predict_price(firm::firmData,ST::String;sim="Base")
 end
 
 
-function foc_error(firm::firmData,ST::String,stp::Float64;sim="Base")
+function foc_error(f::firmData,ST::String,stp::Float64;sim="Base")
 
-    P_new = predict_price(firm,ST,sim=sim)
-    prod_ind = firm._prodSTDict[ST]
-    tot_err = (P_new[prod_ind] - firm.P_j[prod_ind])./100
+    P_new = predict_price(f,ST,sim=sim)
+    prod_ind = f._prodSTDict[ST]
+    tot_err = (P_new[prod_ind] - f.P_j[prod_ind])./100
     # println(prod_ind)
     # println(tot_err)
     # println(P_new[prod_ind])
@@ -230,10 +230,10 @@ function foc_error(firm::firmData,ST::String,stp::Float64;sim="Base")
 
     ### 0 Market Share
     exit_thresh = 1.0
-    ProdExit = firm.S_j.< exit_thresh
+    ProdExit = f.S_j.< exit_thresh
     choke_point = 1e-3
-    ChokePrice = firm.S_j.< choke_point
-    P_new[ChokePrice] = min.(firm.P_j[ChokePrice],P_new[ChokePrice])
+    ChokePrice = f.S_j.< choke_point
+    P_new[ChokePrice] = min.(f.P_j[ChokePrice],P_new[ChokePrice])
 
 
     if any(ProdExit[prod_ind])
@@ -245,11 +245,11 @@ function foc_error(firm::firmData,ST::String,stp::Float64;sim="Base")
 
     ### Negative Prices
     P_new[non_prods].=0.0
-    P_new[P_new.<0] = 0.5.*firm.P_j[P_new.<0]
+    P_new[P_new.<0] = 0.5.*f.P_j[P_new.<0]
 
     ## Error in Prices
-    prod_ind = prod_ind[firm.S_j[prod_ind].>exit_thresh]
-    foc_err = (P_new[prod_ind] - firm.P_j[prod_ind])./100
+    prod_ind = prod_ind[f.S_j[prod_ind].>exit_thresh]
+    foc_err = (P_new[prod_ind] - f.P_j[prod_ind])./100
 
 
     # ### MLR Constraint
@@ -266,26 +266,26 @@ function foc_error(firm::firmData,ST::String,stp::Float64;sim="Base")
 
 
     err_new = sum(foc_err.^2)/length(prod_ind)
-    tot_err = sum(tot_err.^2)/length(firm._prodSTDict[ST])
+    tot_err = sum(tot_err.^2)/length(f._prodSTDict[ST])
 
     ### New Prices
 
-    P_new[non_prods] = firm.P_j[non_prods]
-    P_update = firm.P_j.*(1-stp) + stp.*P_new
-    P_update[non_prods] = firm.P_j[non_prods]
+    P_new[non_prods] = f.P_j[non_prods]
+    P_update = f.P_j.*(1-stp) + stp.*P_new
+    P_update[non_prods] = f.P_j[non_prods]
     # P_update[P_new.>=MLR_const] = MLR_const[P_new.>MLR_const]
     # Contrain Prices at 0
     #P_update = max.(P_update,0)
 
-    # firm.P_j[:] = P_update[:]
+    # f.P_j[:] = P_update[:]
 
     return foc_err, err_new, tot_err, P_new
 end
 
 function solve_model!(m::InsuranceLogit,f::firmData;sim="Base")
     P_res = zeros(length(f.P_j))
-    # states = sort(String.(keys(f._prodSTDict)))#[1:6]
-    states = ["AK","NE","IA"]
+    states = sort(String.(keys(f._prodSTDict)))#[1:6]
+    # states = ["AK","NE","IA"]
     for s in states
         println("Solving for $s")
         solve_model_st!(m,f,s,sim=sim)
@@ -514,6 +514,89 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
                         Lives_RAman_m=S_RAman_m)
 
     CSV.write(file,output)
+
+    return nothing
+end
+
+function solve_equilibrium(rundate,spec)
+
+    println("Loading Code...")
+    codeDir = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Code/"
+    # Data Structure
+    include("$codeDir/Demand_Estimation/InsChoiceData.jl")
+    include("$codeDir/Demand_Estimation/Halton.jl")
+    include("$codeDir/Demand_Estimation/RandomCoefficients.jl")
+    include("$codeDir/Demand_Estimation/RiskMoments.jl")
+    include("$codeDir/Demand_Estimation/utility.jl")
+    include("$codeDir/Demand_Estimation/Contraction.jl")
+    include("$codeDir/Firm_Side/MC_parameters.jl")
+    include("$codeDir/Firm_Side/Firm_Inner_Loop.jl")
+
+
+    #Equilibrium Functions
+    include("EvaluateModel.jl")
+    include("PriceUpdate.jl")
+    #Load Data
+    println("Loading Data...")
+    include("EQ_load.jl")
+
+    df[:High_small] = df[:HighRisk].*df[:Small]
+
+    mark_the_output_date = Dates.today()
+    println("Running spec $rundate on $mark_the_output_date")
+
+    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$spec-$rundate.jld2"
+    @load file p_stg2 p_dem_est cost_spec spec_Dict
+    mc_est = copy(p_stg2)
+    #### Load Estimation Results ####
+
+
+    #### Build Model ####
+    println("Rebuild Demand Model...")
+    # Structre the data
+    chdf = ChoiceData(df,df_mkt,df_risk;
+        demoRaw=spec_Dict["demoRaw"],
+        prodchars=spec_Dict["prodchars"],
+        prodchars_0=spec_Dict["prodchars_0"],
+        fixedEffects=spec_Dict["fixedEffects"],
+        wgt=[:PERWT])
+
+    # Fit into model
+    model = InsuranceLogit(chdf,spec_Dict["haltonDim"])
+
+
+    if length(p_dem_est)!=model.parLength[:All]
+        println(length(p_dem_est))
+        println(model.parLength[:All])
+        error("Parameter Vector Not Quite Right")
+    end
+
+    println("Rebuild Cost Data...")
+
+    costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk,mom_ra;
+                    baseSpec=cost_spec,
+                    fixedEffects=[:Firm_ST],
+                    constMoments=true)
+
+
+    #### Compute Parameter Objects ####
+    println("Compute Parameters...")
+    par_dem = parDict(model,p_dem_est,no2Der=true)
+    individual_values!(model,par_dem)
+    individual_shares(model,par_dem)
+
+    par_cost = parMC(mc_est,par_dem,model,costdf)
+
+
+    #### Solve Equilibrium ####
+    firm = firmData(model,df,eq_mkt,par_dem,par_cost)
+    println("Check Margins...")
+    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/checkMargins_$spec-$rundate.csv"
+    checkMargin(model,firm,file)
+
+    println("Solve Equilibrium...")
+    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_$spec-$rundate.csv"
+    solveMain(model,firm,file)
 
     return nothing
 end

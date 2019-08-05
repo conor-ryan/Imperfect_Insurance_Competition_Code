@@ -25,31 +25,32 @@ include("Firm_Inner_Loop.jl")
 include("MC_load.jl")
 
 df[:High_small] = df[:HighRisk].*df[:Small]
-#### Build Model ####
-# Structre the data
-chdf = ChoiceData(df,df_mkt,df_risk;
-    demoRaw=[:AgeFE_31_39,
-            :AgeFE_40_51,
-            :AgeFE_52_64,
-            :Family,
-            :LowIncome],
-    prodchars=[:Price,:constant,:AV,:HighRisk,:Small,:High_small],
-    prodchars_0=[:constant,:AV,:HighRisk,:Small,:High_small],
-    fixedEffects=[:Firm],
-    wgt=[:PERWT])
 
-# Fit into model
-m = InsuranceLogit(chdf,500)
 
-#### Load Demand Estimation ####
-rundate = "2019-07-27"
+#### Load Demand Estimation Results ####
+rundate = "2019-08-03"
+spec = "Firm"
 # resDF = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_$rundate.csv")
 # p_est = Float64.(resDF[:pars])
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
 # @load file p_stg2
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_Firm-$rundate-stg2.jld2"
-@load file p_stg2
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_$spec-$rundate-stg2.jld2"
+@load file p_stg2 spec_Dict
 p_est = copy(p_stg2)
+
+
+#### Build Model ####
+# Structre the data
+chdf = ChoiceData(df,df_mkt,df_risk;
+    demoRaw=spec_Dict["demoRaw"],
+    prodchars=spec_Dict["prodchars"],
+    prodchars_0=spec_Dict["prodchars_0"],
+    fixedEffects=spec_Dict["fixedEffects"],
+    wgt=[:PERWT])
+
+# Fit into model
+m = InsuranceLogit(chdf,spec_Dict["haltonDim"])
+
 
 if length(p_stg2)!=m.parLength[:All]
     println(length(p_stg2))

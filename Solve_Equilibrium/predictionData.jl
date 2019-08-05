@@ -286,7 +286,7 @@ function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;foc_check=fals
     f.Mkt_j[:].=0.0
 
     if foc_check==false
-        premPaid!(firm)
+        premPaid!(f)
     else
         f.Rev_ij = f[:Rev_foc]
         f.P_ij   = price(m.data)
