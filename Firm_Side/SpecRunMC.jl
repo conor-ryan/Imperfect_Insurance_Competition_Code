@@ -1,26 +1,8 @@
 function estimate_marginal_cost(rundate,spec,cost_spec)
-
-    codeDirDemand = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Code/Demand_Estimation"
-    codeDirMC = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Code/Firm_Side"
-    println("Loading Code...")
-    # Data Structure
-    include("$codeDirDemand/InsChoiceData.jl")
-    include("$codeDirDemand/Halton.jl")
-    include("$codeDirDemand/RandomCoefficients.jl")
-    include("$codeDirDemand/RiskMoments.jl")
-    include("$codeDirDemand/utility.jl")
-    include("$codeDirDemand/Contraction.jl")
-
-    # MC Parameters
-    include("$codeDirMC/MC_parameters.jl")
-    include("$codeDirMC/MC_GMM.jl")
-    include("$codeDirMC/MC_var.jl")
-    include("$codeDirMC/MC_derivatives.jl")
-    include("$codeDirMC/MC_optimization.jl")
-    include("$codeDirMC/Firm_Inner_Loop.jl")
     # Load the Data
     println("Loading Data...")
-    include("$codeDirMC/MC_load.jl")
+    codeDir = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Code/Firm_Side"
+    include("$codeDir/MC_load.jl")
 
 
     df[:High_small] = df[:HighRisk].*df[:Small]

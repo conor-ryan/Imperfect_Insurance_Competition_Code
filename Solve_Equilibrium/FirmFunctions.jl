@@ -519,23 +519,6 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
 end
 
 function solve_equilibrium(rundate,spec)
-
-    println("Loading Code...")
-    codeDir = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Code/"
-    # Data Structure
-    include("$codeDir/Demand_Estimation/InsChoiceData.jl")
-    include("$codeDir/Demand_Estimation/Halton.jl")
-    include("$codeDir/Demand_Estimation/RandomCoefficients.jl")
-    include("$codeDir/Demand_Estimation/RiskMoments.jl")
-    include("$codeDir/Demand_Estimation/utility.jl")
-    include("$codeDir/Demand_Estimation/Contraction.jl")
-    include("$codeDir/Firm_Side/MC_parameters.jl")
-    include("$codeDir/Firm_Side/Firm_Inner_Loop.jl")
-
-
-    #Equilibrium Functions
-    include("EvaluateModel.jl")
-    include("PriceUpdate.jl")
     #Load Data
     println("Loading Data...")
     include("EQ_load.jl")
