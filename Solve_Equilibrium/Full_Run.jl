@@ -22,8 +22,7 @@ spec_fixedEffects=[:Firm]
 
 cost_spec = [:AvgAge,:AV]
 
-# rundate = Dates.today()
-rundate = "2019-08-05"
+rundate = Dates.today()
 println("Running on $rundate")
 spec = "Firm"
 
