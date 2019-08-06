@@ -413,8 +413,6 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All")
     S_Base[:] = f.S_j[:]
 
-    println(median(f[:Mandate]))
-    println(median(f.P_j[findall(f.P_j.>0)]))
 
     f.ownMat = f.ownMat_merge
     println("###### Solve Merger Scenario ######")
@@ -440,8 +438,6 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All")
     S_RA_m[:] = f.S_j[:]
 
-    println(median(f[:Mandate]))
-    println(median(f.P_j[findall(f.P_j.>0)]))
 
     ### Solve without mandate ####
     println("####################################")
@@ -454,8 +450,8 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All")
     S_man[:] = f.S_j[:]
 
-    println(median(f[:Mandate]))
-    println(median(f.P_j[findall(f.P_j.>0)]))
+    # println(median(f[:Mandate]))
+    # println(median(f.P_j[findall(f.P_j.>0)]))
 
     f.ownMat = f.ownMat_merge
     println("###### Solve Merger Scenario ######")
@@ -464,8 +460,6 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All")
     S_man_m[:] = f.S_j[:]
 
-    println(median(f[:Mandate]))
-    println(median(f.P_j[findall(f.P_j.>0)]))
 
     ### Solve without mandate NOR risk adjustment  ####
     println("####################################")
@@ -478,8 +472,6 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All")
     S_RAman[:] = f.S_j[:]
 
-    println(median(f[:Mandate]))
-    println(median(f.P_j[findall(f.P_j.>0)]))
 
     f.ownMat = f.ownMat_merge
     println("###### Solve Merger Scenario ######")
@@ -488,8 +480,6 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All")
     S_RAman_m[:] = f.S_j[:]
 
-    println(median(f[:Mandate]))
-    println(median(f.P_j[findall(f.P_j.>0)]))
 
 
 

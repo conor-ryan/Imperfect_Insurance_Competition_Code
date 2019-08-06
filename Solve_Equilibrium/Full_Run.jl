@@ -22,7 +22,8 @@ spec_fixedEffects=[:Firm]
 
 cost_spec = [:AvgAge,:AV]
 
-rundate = Dates.today()
+# rundate = Dates.today()
+rundate = "2019-08-05"
 println("Running on $rundate")
 spec = "Firm"
 
@@ -57,7 +58,6 @@ filename = "GMM_Estimate_$spec"
 #                     spec_prodchars_0,
 #                     spec_fixedEffects)
 
-rundate = "2019-08-05"
 
 println("##### Estimation Marginal Cost #####")
 println("Load Marginal Cost Estimation Code...")
@@ -68,7 +68,7 @@ include("$codeDir/Firm_Side/MC_derivatives.jl")
 include("$codeDir/Firm_Side/MC_optimization.jl")
 include("$codeDir/Firm_Side/Firm_Inner_Loop.jl")
 include("$codeDir/Firm_Side/SpecRunMC.jl")
-estimate_marginal_cost(rundate,spec,cost_spec)
+# estimate_marginal_cost(rundate,spec,cost_spec)
 
 
 println("##### Solve Equilibrium #####")
