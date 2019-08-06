@@ -113,7 +113,7 @@ function MC_Data(data_choice::DataFrame,
 
     data = permutedims(data,(2,1))
 
-    anyHCC = data_choice[:Any_HCC]
+    anyHCC = data_choice[:,:Any_HCC]
 
     ## Parameter Specification
     _baseIndex = 1:length(baseSpec)
@@ -130,15 +130,15 @@ function MC_Data(data_choice::DataFrame,
     ### State-Level Sampling Dictionary
     println("Sampling Dictionary")
     # st_vec = data_choice[:ST]
-    states = sort(unique(data_choice[:ST]))
-    st_vec = Vector{Int}(undef,length(data_choice[:ST]))
+    states = sort(unique(data_choice[:,:ST]))
+    st_vec = Vector{Int}(undef,length(data_choice[:,:ST]))
     for (k,s) in enumerate(states)
-        st_vec[data_choice[:ST].==s] .= k
+        st_vec[data_choice[:,:ST].==s] .= k
     end
 
     _stDict_temp = build_ProdDict(st_vec)
     _stDict = Dict{Int,Array{Int,1}}()
-    person_vec = data_choice[:Person]
+    person_vec = data_choice[:,:Person]
     for (st,ind) in _stDict_temp
         _stDict[st] = unique(person_vec[ind])
     end
@@ -152,74 +152,74 @@ function MC_Data(data_choice::DataFrame,
     _firmMomentDict = Dict{Int,Array{Int64,1}}()
     _firmMomentBit = Dict{Int,BitArray{1}}()
     _firmMomentProdDict = Dict{Int,Array{Int64,1}}()
-    moments = sort(unique(mom_firm[:M_num]))
+    moments = sort(unique(mom_firm[:,:M_num]))
     firmMoments = Vector{Float64}(undef,length(moments))
     if constMoments
         for m in moments
-            m_df_index = findall(mom_firm[:M_num].==m)
-            m_index = mom_firm[:index][m_df_index]
+            m_df_index = findall(mom_firm[:,:M_num].==m)
+            m_index = mom_firm[:,:index][m_df_index]
             _firmMomentDict[m] = m_index
             _firmMomentBit[m] = inlist(all_idx,m_index)
-            _firmMomentProdDict[m] = sort(unique(mom_firm[:Product][m_df_index]))
-            firmMoments[m] = mom_firm[:logAvgCost][m_df_index][1]
+            _firmMomentProdDict[m] = sort(unique(mom_firm[:,:Product][m_df_index]))
+            firmMoments[m] = mom_firm[:,:logAvgCost][m_df_index][1]
         end
     end
 
     _metalMomentDict = Dict{Int,Array{Int64,1}}()
     _metalMomentBit = Dict{Int,BitArray{1}}()
     _metalMomentProdDict = Dict{Int,Array{Int64,1}}()
-    moments = sort(unique(mom_metal[:M_num]))
+    moments = sort(unique(mom_metal[:,:M_num]))
     metalMoments = Vector{Float64}(undef,length(moments))
     if constMoments
         for m in moments
-            m_df_index = findall(mom_metal[:M_num].==m)
-            m_index = mom_metal[:index][m_df_index]
+            m_df_index = findall(mom_metal[:,:M_num].==m)
+            m_index = mom_metal[:,:index][m_df_index]
             _metalMomentDict[m] = m_index
             _metalMomentBit[m] = inlist(all_idx,m_index)
-            _metalMomentProdDict[m] = sort(unique(mom_metal[:Product][m_df_index]))
-            metalMoments[m] = mom_metal[:costIndex][m_df_index][1]
+            _metalMomentProdDict[m] = sort(unique(mom_metal[:,:Product][m_df_index]))
+            metalMoments[m] = mom_metal[:,:costIndex][m_df_index][1]
         end
     end
 
     _ageMomentDict = Dict{Int,Array{Int64,1}}()
     _ageMomentBit = Dict{Int,BitArray{1}}()
-    moments = sort(unique(mom_age[:M_num]))
+    moments = sort(unique(mom_age[:,:M_num]))
     ageMoments = Vector{Float64}(undef,length(moments))
     if constMoments
         for m in moments
-            m_index = mom_age[:index][findall(mom_age[:M_num].==m)]
+            m_index = mom_age[:,:index][findall(mom_age[:,:M_num].==m)]
             _ageMomentDict[m] = m_index
             _ageMomentBit[m] = inlist(all_idx,m_index)
-            ageMoments[m] = mom_age[:costIndex][findall(mom_age[:M_num].==m)][1]
+            ageMoments[m] = mom_age[:,:costIndex][findall(mom_age[:,:M_num].==m)][1]
         end
     end
 
     _agenoMomentDict = Dict{Int,Array{Int64,1}}()
     _agenoMomentBit = Dict{Int,BitArray{1}}()
-    moments = sort(unique(mom_ageno[:M_num]))
+    moments = sort(unique(mom_ageno[:,:M_num]))
     agenoMoments = Vector{Float64}(undef,length(moments))
     if constMoments
         for m in moments
-            m_index = mom_ageno[:index][findall(mom_ageno[:M_num].==m)]
+            m_index = mom_ageno[:,:index][findall(mom_ageno[:,:M_num].==m)]
             _agenoMomentDict[m] = m_index
             _agenoMomentBit[m] = inlist(all_idx,m_index)
-            agenoMoments[m] = mom_ageno[:costIndex][findall(mom_ageno[:M_num].==m)][1]
+            agenoMoments[m] = mom_ageno[:,:costIndex][findall(mom_ageno[:,:M_num].==m)][1]
         end
     end
 
-    riskMoment = mom_risk[:costIndex][2]
+    riskMoment = mom_risk[:,:costIndex][2]
 
 
     _raMomentDict = Dict{Int,Array{Int64,1}}()
     _raMomentBit = Dict{Int,BitArray{1}}()
-    moments = sort(unique(mom_ra[:M_num]))
+    moments = sort(unique(mom_ra[:,:M_num]))
     raMoments = Vector{Float64}(undef,length(moments))
     if constMoments
         for m in moments
-            m_index = sort(unique(mom_ra[:Product][findall(mom_ra[:M_num].==m)]))
+            m_index = sort(unique(mom_ra[:,:Product][findall(mom_ra[:,:M_num].==m)]))
             _raMomentDict[m] = m_index
             # _agenoMomentBit[m] = inlist(all_idx,m_index)
-            raMoments[m] = mom_ra[:avgTransfer][findall(mom_ra[:M_num].==m)][1]
+            raMoments[m] = mom_ra[:,:avgTransfer][findall(mom_ra[:,:M_num].==m)][1]
         end
     end
 

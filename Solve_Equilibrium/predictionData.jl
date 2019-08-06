@@ -75,19 +75,19 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
 
     println("Product Map/Dict")
     ### Standard Products
-    prodMap = unique(df[[:Product,:Product_std]])
+    prodMap = unique(df[:,[:Product,:Product_std]])
     sort!(prodMap,:Product)
-    prodMap = convert(Vector{Int64},prodMap[:Product_std])
+    prodMap = convert(Vector{Int64},prodMap[:,:Product_std])
     prod_std = unique(prodMap)
 
-    catas_prods = Int.(mkt[:Product][mkt[:Metal_std].=="CATASTROPHIC"])
+    catas_prods = Int.(mkt[:,:Product][mkt[:,:Metal_std].=="CATASTROPHIC"])
 
     prod_vec = convert(Vector{Float64},df[:,:Product_std])
     _productDict = build_ProdDict(prod_vec)
 
     println("Supplemental Data")
-    df[:Catastrophic] = Float64.(df[:Metal_std].=="CATASTROPHIC")
-    df[:Rev_foc] = df[:premBase].*df[:ageRate]./df[:MEMBERS]
+    df[:,:Catastrophic] = Float64.(df[:,:Metal_std].=="CATASTROPHIC")
+    df[:,:Rev_foc] = df[:,:premBase].*df[:,:ageRate]./df[:,:MEMBERS]
     dataNames = [:ageRate,:ageRate_avg,:IncomeCont,:Mandate,:MEMBERS,:Catastrophic,:subsidy,:Rev_foc]
     data = convert(Matrix{Float64},df[dataNames])
     index = Dict{Symbol, Int}()
@@ -112,7 +112,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     #### Firm Values
     # P_j = mkt[:premBase][mkt[:Firm].!="OTHER"]
     P_j = Vector{Float64}(undef,J)
-    P_j[prod_std] = mkt[:premBase]
+    P_j[prod_std] = mkt[:,:premBase]
     SA_j = Vector{Float64}(undef,J)
     S_j = Vector{Float64}(undef,J)
     Mkt_j = Vector{Float64}(undef,J)
@@ -121,9 +121,9 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     Adj_j = Vector{Float64}(undef,J)
 
     hix_cnt = Vector{Float64}(undef,J)
-    hix_cnt[prod_std] = Float64.(mkt[:count_hix_prod])
+    hix_cnt[prod_std] = Float64.(mkt[:,:count_hix_prod])
     bench_base = Vector{Float64}(undef,J)
-    bench_base[prod_std] = Float64.(mkt[:benchBase])
+    bench_base[prod_std] = Float64.(mkt[:,:benchBase])
 
 
     dSdp_j = Matrix{Float64}(undef,J,J)
@@ -138,13 +138,13 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     #### Dictionary/Mappings
     mkt_index = Dict{Real,Array{Int64,1}}()
     silv_index = Dict{Real,Array{Int64,1}}()
-    markets = mkt[:Market]
-    metals = mkt[:Metal_std]
+    markets = mkt[:,:Market]
+    metals = mkt[:,:Metal_std]
     uniq_mkts = sort(unique(markets))
     for (n,mt) in enumerate(uniq_mkts)
         m_ind = findall(markets.==mt)
-        mkt_index[n] = mkt[:Product][m_ind]
-        silv_index[n] = mkt[:Product][findall(metals[m_ind].=="SILVER")]
+        mkt_index[n] = mkt[:,:Product][m_ind]
+        silv_index[n] = mkt[:,:Product][findall(metals[m_ind].=="SILVER")]
     end
 
     mkt_map = Dict{Real,Int64}()
@@ -155,14 +155,14 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     end
 
     mkt_index_long = Vector{Int64}(undef,M)
-    for (n,prod) in enumerate(df[:Product_std])
+    for (n,prod) in enumerate(df[:,:Product_std])
         mkt_index_long[n] = mkt_map[prod]
     end
 
     #### Ownership Matrix
     ## Build Ownership Matrix
     firms = Vector{Union{Missing,String}}(missing,J)
-    firms[prod_std] = mkt[:Firm]
+    firms[prod_std] = mkt[:,:Firm]
     # firms[prod_std] = string.(mkt[:Product])
     # firms[prod_std] = mkt[:Market]
     ownMat = zeros(J,J)
@@ -192,7 +192,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
 
     ### Pooled Cost Areas
     states = Vector{Union{Missing,String}}(missing,J)
-    states[prod_std] = mkt[:Market]
+    states[prod_std] = mkt[:,:Market]
     poolMat = zeros(J,J)
     for j in prod_std
         st = states[j]
@@ -204,17 +204,17 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     end
 
     #### State Person Index ####
-    st_per = unique(df[[:Person,:ST]])
+    st_per = unique(df[:,[:Person,:ST]])
     _perSTDict = Dict{String,Array{Int64,1}}()
-    states = unique(st_per[:ST])
+    states = unique(st_per[:,:ST])
     for s in states
-        _perSTDict[s] = st_per[:Person][st_per[:ST].==s]
+        _perSTDict[s] = st_per[:,:Person][st_per[:,:ST].==s]
     end
 
 
     _prodSTDict = Dict{String,Array{Int64,1}}()
     for s in states
-        _prodSTDict[s] = mkt[:Product][mkt[:ST].==s]
+        _prodSTDict[s] = mkt[:,:Product][mkt[:,:ST].==s]
     end
 
 
