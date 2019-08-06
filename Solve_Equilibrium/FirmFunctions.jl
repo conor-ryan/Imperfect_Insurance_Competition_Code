@@ -378,6 +378,7 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;sim="Base")
         err_last = copy(err_new)
         # println(P_last)
     end
+    println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
     return nothing
 end
 
@@ -563,6 +564,7 @@ function solve_equilibrium(rundate,spec)
 
     #### Solve Equilibrium ####
     firm = firmData(model,df,eq_mkt,par_dem,par_cost)
+    # evaluate_model!(model,firm,"All",foc_check=true)
     println("Check Margins...")
     file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/checkMargins_$spec-$rundate.csv"
     checkMargin(model,firm,file)

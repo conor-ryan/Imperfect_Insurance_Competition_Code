@@ -218,6 +218,7 @@ fulldf[,sampleSum:=sum(N),by=c("STATE","AREA","insured")]
 fulldf[,N:=(N/sampleSum)*totalWeight]
 fulldf = fulldf[N>0,]
 
+
 #### Merge eHealth and Plan Data ####
 # Merge in eHealth data
 setkey(fulldf,STATE,AREA)
@@ -308,7 +309,7 @@ choices = merge(choices,benchmark,by.x=c("STATE","AREA"),by.y=c("ST","AREA"),all
 rm(benchmark)
 
 # Make bechmark for Age Rating = 1
-choices[,benchBase:=PREMI27/1.048]
+choices[,benchBase:=bench27/1.048]
 choices[STATE=="DC",benchBase:=bench27/.727]
 choices[STATE=="MA",benchBase:=bench27/1.22]
 choices[STATE=="MN",benchBase:=bench27/1.048]
@@ -499,8 +500,32 @@ choices = choices[,list(AGE = sum(AGE*N)/sum(N),
                        #"MedDeductDiff","MedOOPDiff","HighDiff",
                        "benchBase","premBase")]
 
-choices[,S_ij:= Y/N]
-choices[,unins_rate:=1-sum(S_ij),by=c("STATE","AREA","FPL_bucket","AGE_bucket","Mem_bucket")]
+
+# #### Merge in Uninsured Rate ####
+# choices$inc_cat = 1
+# choices$inc_cat[with(choices,is.na(FPL_imp)|FPL_imp>4)] = 2
+# 
+# choices$AGE_cat = 1
+# choices$AGE_cat[choices$AGE>35] = 2
+# 
+# choices$mem_cat = 1
+# choices$mem_cat[choices$MEMBERS==2] = 2
+# choices$mem_cat[choices$MEMBERS>2] = 3
+# 
+# unins = read.csv("Data/2015_ACS/uninsured_acs2015.csv")
+# non_unins = read.csv("Data/2015_ACS/uninsured_nonexchange_acs2015.csv")
+# 
+# choices = merge(choices,unins,by.x=c("STATE","inc_cat","AGE_cat","mem_cat"),
+#                 by.y=c("state","inc_cat","AGE_cat","mem_cat"),all.x=TRUE)
+# choices = merge(choices,non_unins,by.x=c("STATE","inc_cat","AGE_cat","mem_cat"),
+#                 by.y=c("state","inc_cat","AGE_cat","mem_cat"),all.x=TRUE)
+
+
+
+choices[,S_raw_ij:= Y/N]
+choices[,unins_rate:=1-sum(S_raw_ij),by=c("STATE","AREA","FPL_bucket","AGE_bucket","Mem_bucket")]
+choices[,S_ij:= S_raw_ij/(1-unins_rate)]
+choices[unins_rate==1,S_ij:= S_raw_ij]
 
 
 ## Re-Calculate Premiums for Choice Set
@@ -547,25 +572,6 @@ choices[MEMBERS>1,Mandate:=pmin(pmax(pmin(325*2+325*.5*(MEMBERS-2),975),
                                 2484*2+2484*.5*(MEMBERS-2))]
 
 
-#### Merge in Uninsured Rate ####
-choices$inc_cat = 1
-choices$inc_cat[with(choices,is.na(FPL_imp)|FPL_imp>4)] = 2
-
-choices$AGE_cat = 1
-choices$AGE_cat[choices$AGE>35] = 2
-
-choices$mem_cat = 1
-choices$mem_cat[choices$MEMBERS==2] = 2
-choices$mem_cat[choices$MEMBERS>2] = 3
-
-# unins = read.csv("Data/2015_ACS/uninsured_acs2015.csv")
-# non_unins = read.csv("Data/2015_ACS/uninsured_nonexchange_acs2015.csv")
-# 
-# choices = merge(choices,unins,by.x=c("STATE","inc_cat","AGE_cat","mem_cat"),
-#                     by.y=c("state","inc_cat","AGE_cat","mem_cat"),all.x=TRUE)
-# choices = merge(choices,non_unins,by.x=c("STATE","inc_cat","AGE_cat","mem_cat"),
-#                 by.y=c("state","inc_cat","AGE_cat","mem_cat"),all.x=TRUE)
-
 
 
 
@@ -576,7 +582,7 @@ choices = choices[,c("STATE","AREA","FPL_bucket","AGE_bucket","Mem_bucket",
                      #"MedDeductDiff","MedOOPDiff","HighDiff",
                      #"MedDeductStandard","MedOOPStandard","HighStandard",
                      "ageRate","ageRate_avg","FPL_imp","Benchmark","HHcont","subsidy","Quote","premBase",
-                     "PremPaid","PremPaidDiff","S_ij","N","Income","Mandate","unins_rate")]
+                     "PremPaid","PremPaidDiff","S_ij","S_raw_ij","N","Income","Mandate","unins_rate")]
 
 #### Merge in Risk Score Moments ####
 r_mom = read.csv("Intermediate_Output/MEPS_Moments/R_Score_Moments.csv")
@@ -751,15 +757,15 @@ choices[,Firm_Market_Cat_Age:=paste(Firm,Market,prodCat,Age,sep="_")]
 choices[,premMin:=min(PremPaid),by=c("Person")]
 choices[,lowestPrem:=as.numeric(premMin==PremPaid)]
 
-t1 = choices[,list(enroll=sum(S_ij*N)),by=c("METAL","lowestPrem")]
+t1 = choices[,list(enroll=sum(S_raw_ij*N)),by=c("METAL","lowestPrem")]
 t1[,share:=enroll/sum(enroll)]
 setkey(t1,METAL,lowestPrem)
 
-t1 = choices[Family==1,list(enroll=sum(S_ij*N)),by=c("METAL","lowestPrem")]
+t1 = choices[Family==1,list(enroll=sum(S_raw_ij*N)),by=c("METAL","lowestPrem")]
 t1[,share:=enroll/sum(enroll)]
 setkey(t1,METAL,lowestPrem)
 
-t1 = choices[,list(enroll=sum(S_ij*N)),by=c("METAL","LowIncome")]
+t1 = choices[,list(enroll=sum(S_raw_ij*N)),by=c("METAL","LowIncome")]
 t1[,share:=enroll/sum(enroll)]
 setkey(t1,METAL,LowIncome)
 
@@ -784,7 +790,7 @@ insured = merge(insured,test,by.x=c("STATE","LowIncome"),by.y=c("ST","LowIncome"
 
 
 choices[,obs:=1]
-shares = choices[,list(enroll=sum(S_ij*N),obs=sum(S_ij*obs)),by=c("Product","Firm","Market","STATE","METAL",
+shares = choices[,list(enroll=sum(S_raw_ij*N),obs=sum(S_raw_ij*obs)),by=c("Product","Firm","Market","STATE","METAL",
                                                                   "Gamma_j","AV",
                                                                   "Firm_Market_Cat","MedDeduct","MedOOP","High","premBase")]
 markets = unique(choices[,c("Person","STATE","Market","N")])
@@ -798,7 +804,7 @@ shares[,Share:=enroll/size]
 
 
 
-firmShares = choices[,list(enroll=sum(S_ij*N)),by=c("Firm","Market")]
+firmShares = choices[,list(enroll=sum(S_raw_ij*N)),by=c("Firm","Market")]
 firmShares[,lives:=sum(enroll),by="Market"]
 firmShares[,share:= enroll/lives]
 
@@ -873,7 +879,7 @@ save(choices,file="Intermediate_Output/Estimation_Data/estimationData.rData")
 ### Run the Firm Risk Score File to get Risk Distribution in the data ###
 source("Code/Risk_Scores/FirmLevelRisk_woSim.R")
 
-shares = read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv")
+shares = as.data.table(read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv"))
 load("Intermediate_Output/Estimation_Data/estimationData.rData")
 
 load("Simulation_Risk_Output/FirmRiskScores_woSim.rData")
@@ -883,7 +889,7 @@ choices = merge(choices,firm_RA,by.y=c("ST","Firm"),by.x=c("STATE","Firm"))
 choices[,Big:=HighRisk]
 
 
-firmShares = choices[,list(enroll=sum(S_ij*N)),by=c("Firm","STATE")]
+firmShares = choices[,list(enroll=sum(S_raw_ij*N)),by=c("Firm","STATE")]
 firmShares[,share:=enroll/sum(enroll),by="STATE"]
 firmShares[,Small:= as.numeric(share<0.05)]
 
@@ -911,7 +917,7 @@ choices[,High_small:=Small*HighRisk]
 setkey(choices,Person,Product)
 setkey(shares,Product)
 
-write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price",
+write.csv(choices[,c("Person","Firm","Market","Product","S_ij","S_raw_ij","N","Price",
                      "Firm_Market","Firm_Market_Cat","Firm_Market_Age","Firm_Market_Cat_Age",
                      "PriceDiff",#"MedDeductDiff","ExcOOPDiff","HighDiff",
                      "MedDeduct","ExcOOP","High","AV","AV_old","HighRisk","Small","High_small",
