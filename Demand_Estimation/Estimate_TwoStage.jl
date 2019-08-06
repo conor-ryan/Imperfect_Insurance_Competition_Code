@@ -94,7 +94,9 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
             println("Compute Hessian")
             fval = GMM_objective!(hess_new,grad_new,d,p_vec,W,feFlag=0)
             H = hess_new[par_ind,par_ind]
-            H = enforcePosDef(H)
+            if ga_cnt%2==0
+                H = enforcePosDef(H)
+            end
             H_k = inv(H)
             real_hessian=1
         else
