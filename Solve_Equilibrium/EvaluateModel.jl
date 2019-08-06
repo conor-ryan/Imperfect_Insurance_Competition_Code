@@ -493,7 +493,7 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,ST::String;foc_chec
     firm.PC_j[firm.prods] = firm.PC_j[firm.prods].*firm.Adj_j[firm.prods]
     firm.PC_j[firm.catas_prods] = firm.C_j[firm.catas_prods]#./firm.S_j[firm.catas_prods]
     firm.C_j = firm.C_j./firm.S_j
-    firmP.C_j = firm.PC_j./firm.S_j
+    firm.PC_j = firm.PC_j./firm.S_j
 
     return nothing
 end
