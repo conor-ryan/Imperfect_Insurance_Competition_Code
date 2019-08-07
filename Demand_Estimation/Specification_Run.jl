@@ -182,6 +182,8 @@ function run_specification_GMM(filename::String,
     # p0 = copy(p_vec)
     W = Matrix(1.0I,m_GMM.parLength[:All]+length(m_GMM.data.tMoments),m_GMM.parLength[:All]+length(m_GMM.data.tMoments))
     flag = ""
+    p_stg1 = similar(p0)
+    obj_1 = 0.0
     while flag!="converged"
         p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
         p_stg1, obj_1, flag = two_stage_est(m_GMM,p0,W)
@@ -208,6 +210,8 @@ function run_specification_GMM(filename::String,
 
     ## Estimate
     flag = ""
+    p_stg2 = similar(p0)
+    obj_2 = 0.0
     while flag!="converged"
         p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
         p_stg2, obj_2, flag = two_stage_est(m_GMM,p0,W)
