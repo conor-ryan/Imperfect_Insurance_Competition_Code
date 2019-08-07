@@ -161,17 +161,20 @@ function calc_avgR(m::InsuranceLogit,f::firmData)
     return R_j[f.prods]
 end
 
-function evaluate_FOC(f::firmData,ST::String)
 
+function evaluate_FOC(f::firmData,std_ind::Vector{Int64},merg::String="Base")
     P_std = zeros(length(f.P_j))
     P_RA = zeros(length(f.P_j))
 
-    std_ind = f._prodSTDict[ST]
+    ownershipMatrix = f.ownMat
+    if merg=="Merger"
+        ownershipMatrix = f.ownMat_merge
+    end
 
 
-    dSdp = (f.dSAdp_j.*f.ownMat)[std_ind,std_ind]
-    cost_std = sum(f.dCdp_j[std_ind,std_ind].*f.ownMat[std_ind,std_ind],dims=2)
-    cost_pl = sum(f.dCdp_pl_j[std_ind,std_ind].*f.ownMat[std_ind,std_ind],dims=2)
+    dSdp = (f.dSAdp_j.*ownershipMatrix)[std_ind,std_ind]
+    cost_std = sum(f.dCdp_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
+    cost_pl = sum(f.dCdp_pl_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
     SA = f.SA_j[std_ind]
 
     P_std[std_ind]= inv(dSdp)*(-SA + cost_std)
@@ -183,29 +186,22 @@ function evaluate_FOC(f::firmData,ST::String)
     return P_std, P_RA, MR, MC
 end
 
-function evaluate_FOC(f::firmData)
 
-    P_std = zeros(length(f.P_j))
-    P_RA = zeros(length(f.P_j))
-
-    std_ind = f.prods
-
-
-    dSdp = (f.dSdp_j.*f.ownMat)[std_ind,std_ind]
-    cost_std = sum(f.dCdp_j.*f.ownMat,dims=2)[std_ind]
-    cost_pl = sum(f.dCdp_pl_j[std_ind,std_ind].*f.ownMat[std_ind,std_ind],dims=2)
-    SA = f.S_j[std_ind]
-
-
-    P_std[std_ind]= inv(dSdp)*(-SA + cost_std)
-    P_RA[std_ind] = inv(dSdp)*(-SA + cost_pl)
-
-    return P_std, P_RA
+function evaluate_FOC(f::firmData,ST::String,merg::String="Base")
+    std_ind = f._prodSTDict[ST]
+    P_std, P_RA, MR, MC = evaluate_FOC(f,std_ind,merg)
+    return P_std, P_RA, MR, MC
 end
 
-function predict_price(f::firmData,ST::String;sim="Base")
+function evaluate_FOC(f::firmData,merg::String="Base")
+    std_ind = f.prods
+    P_std, P_RA, MR, MC = evaluate_FOC(f,std_ind,merg)
+    return P_std, P_RA, MR, MC
+end
 
-    P_std, P_RA = evaluate_FOC(f,ST)
+function predict_price(f::firmData,ST::String;sim="Base",merg::String="Base")
+
+    P_std, P_RA = evaluate_FOC(f,ST,merg)
     # println(P_std[f._prodSTDict[ST]])
 
     if sim=="Base"
@@ -217,9 +213,9 @@ function predict_price(f::firmData,ST::String;sim="Base")
 end
 
 
-function foc_error(f::firmData,ST::String,stp::Float64;sim="Base")
+function foc_error(f::firmData,ST::String,stp::Float64;sim="Base",merg::String="Base")
 
-    P_new = predict_price(f,ST,sim=sim)
+    P_new = predict_price(f,ST,sim=sim,merg=merg)
     prod_ind = f._prodSTDict[ST]
     tot_err = (P_new[prod_ind] - f.P_j[prod_ind])./100
     # println(prod_ind)
@@ -282,20 +278,20 @@ function foc_error(f::firmData,ST::String,stp::Float64;sim="Base")
     return foc_err, err_new, tot_err, P_new
 end
 
-function solve_model!(m::InsuranceLogit,f::firmData;sim="Base")
+function solve_model!(m::InsuranceLogit,f::firmData;sim="Base",merg::String="Base")
     P_res = zeros(length(f.P_j))
     states = sort(String.(keys(f._prodSTDict)))#[1:6]
     # states = ["AK","NE","IA"]
     for s in states
         println("Solving for $s")
-        solve_model_st!(m,f,s,sim=sim)
+        solve_model_st!(m,f,s,sim=sim,merg=merg)
         P_res[f._prodSTDict[s]] = f.P_j[f._prodSTDict[s]]
     end
     f.P_j[:] = P_res[:]
     return nothing
 end
 
-function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;sim="Base")
+function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;sim="Base",merg::String="Base")
     err_new = 1
     err_last = 1
     itr_cnt = 0
@@ -311,33 +307,8 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;sim="Base")
         # println("Update Price")
 
 
-        foc_err, err_new, tot_err,P_new = foc_error(f,ST,stp,sim=sim)
+        foc_err, err_new, tot_err,P_new = foc_error(f,ST,stp,sim=sim,merg=merg)
 
-        # if (err_last<1e-4) & (err_new>(err_last*2)) & (no_prog==0) #& (no_better==0)
-        #     println("Attempt to Find Better Step")
-        #     sub_cnt = 0
-        #     println("Sub Iteration Count: $sub_cnt, Current Error: $err_new, Step Size: $stp ")
-        #     println(f.P_j[f._prodSTDict[ST]])
-        #     println(P_new[f._prodSTDict[ST]])
-        #     # return P_last, P_new_last
-        #
-        #     stp = min(stp,.001)
-        #     while (err_new>err_last) & (stp>1e-8)
-        #         f.P_j[:] = (1-stp).*P_last[:] + stp.*P_new_last[:]
-        #         evaluate_model!(m,f,ST)
-        #         foc_err, err_new, tot_err,P_new = foc_error(f,ST,stp,sim=sim)
-        #         sub_cnt+=1
-        #
-        #         println("Sub Iteration Count: $sub_cnt, Current Error: $err_new, Step Size: $stp ")
-        #
-        #         println(f.P_j[f._prodSTDict[ST]])
-        #         println(P_new[f._prodSTDict[ST]])
-        #         stp/=10
-        #     end
-        #     if (stp<1e-10)
-        #         stp = 1.0
-        #     end
-        # end
 
         P_last[:] = copy(f.P_j[:])
         P_new_last[:] = copy(P_new[:])
@@ -415,9 +386,8 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     S_Base[:] = f.S_j[:]
 
 
-    f.ownMat = f.ownMat_merge
     println("###### Solve Merger Scenario ######")
-    solve_model!(m,f,sim="RA")
+    solve_model!(m,f,sim="RA",merg="Merger")
     P_Base_m[:] = f.P_j[:]
     evaluate_model!(m,f,"All")
     S_Base_m[:] = f.S_j[:]
@@ -432,9 +402,8 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All")
     S_RA[:] = f.S_j[:]
 
-    f.ownMat = f.ownMat_merge
     println("###### Solve Merger Scenario ######")
-    solve_model!(m,f,sim="Base")
+    solve_model!(m,f,sim="Base",merg="Merger")
     P_RA_m[:] = f.P_j[:]
     evaluate_model!(m,f,"All")
     S_RA_m[:] = f.S_j[:]
@@ -454,9 +423,8 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     # println(median(f[:Mandate]))
     # println(median(f.P_j[findall(f.P_j.>0)]))
 
-    f.ownMat = f.ownMat_merge
     println("###### Solve Merger Scenario ######")
-    solve_model!(m,f,sim="RA")
+    solve_model!(m,f,sim="RA",merg="Merger")
     P_man_m[:] = f.P_j[:]
     evaluate_model!(m,f,"All")
     S_man_m[:] = f.S_j[:]
@@ -474,9 +442,8 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     S_RAman[:] = f.S_j[:]
 
 
-    f.ownMat = f.ownMat_merge
     println("###### Solve Merger Scenario ######")
-    solve_model!(m,f,sim="Base")
+    solve_model!(m,f,sim="Base",merg="Merger")
     P_RAman_m[:] = f.P_j[:]
     evaluate_model!(m,f,"All")
     S_RAman_m[:] = f.S_j[:]
@@ -485,7 +452,7 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
 
 
 
-    output =  DataFrame(Product=sort(model.prods),
+    output =  DataFrame(Product=sort(m.prods),
                         Price_data=P_Obs,
                         Price_base=P_Base,
                         Price_RA =P_RA,

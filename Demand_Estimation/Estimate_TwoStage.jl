@@ -436,7 +436,7 @@ function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
             hess_steps=0
         end
 
-        if no_progress>5
+        if no_progress>7
             hess_steps=0
             no_progress=0
         end
