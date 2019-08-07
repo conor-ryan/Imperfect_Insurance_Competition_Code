@@ -7,14 +7,15 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 
 ## Estimation Run 
-run = "2019-07-27"
+run = "2019-08-06"
+spec = "Firm"
 
 #Load Product Data
 predFile = paste("Simulation_Risk_Output/prodData.rData",sep="")
 load(predFile)
 
 
-eqFile = paste("Estimation_Output/checkMargins_",run,".csv",sep="")
+eqFile = paste("Estimation_Output/checkMargins_",spec,"-",run,".csv",sep="")
 eqData = as.data.table(read.csv(eqFile))
 
 prod_data = merge(prod_data,eqData,by="Product")

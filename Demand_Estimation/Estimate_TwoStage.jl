@@ -61,7 +61,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
 
     p_vec,fe_itrs,H_save = reOpt_FE(d,p_vec,max_itr=500)
     println("Gradient Pre-Conditioning")
-    p_vec, f_test,ga_conv = ga_twostage(d,p_vec,W,par_ind,max_itr=50,strict=false,Grad_Skip_Steps=10)
+    p_vec, f_test,ga_conv = ga_twostage(d,p_vec,W,par_ind,max_itr=30,strict=false,Grad_Skip_Steps=2)
 
     # Maximize by Newtons Method
     while (grad_size>0) & (cnt<max_itr) & (max_trial_cnt<20)
@@ -162,16 +162,8 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
 
         update[par_ind] = -H_k*grad_new[par_ind]
         if any(isnan.(update))
-            println("Step contains NaN")
-            #Check Hessian
-            # eig = sort(abs.(eigvals(hess_new)))
-            # sm_e = eig[1]
-            # println("Smallest Eigenvalue: $sm_e ")
-            NaN_steps +=1
-            grad_size = sqrt(dot(grad_new,grad_new))
-            update = -(1/grad_size).*grad_new
-        else
-            NaN_steps = 0
+            println("Step contains NaN, Algorithm Failed")
+            return p_min, f_min, "failed"
         end
 
         step_size = maximum(abs.(update))
@@ -259,7 +251,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
         # end
     end
     println("Lowest Function Value is $f_min at $p_min")
-    return p_min,f_min
+    return p_min,f_min, "converged"
 end
 
 function reOpt_FE(d::InsuranceLogit,p_vec::Vector{Float64};max_itr=30,H=missing)

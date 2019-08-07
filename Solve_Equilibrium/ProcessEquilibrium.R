@@ -5,10 +5,11 @@ library(ggplot2)
 library(scales)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
-run = "2019-07-27"
+run = "2019-08-06"
+spec = "Firm"
 
 #### Read in Data ####
-eqFile = paste("Estimation_Output/solvedEquilibrium_",run,".csv",sep="")
+eqFile = paste("Estimation_Output/solvedEquilibrium_",spec,"-",run,".csv",sep="")
 eqData = as.data.table(read.csv(eqFile))
 
 prodData = as.data.table(read.csv("Intermediate_Output/Equilibrium_Data/estimated_prodData_full.csv"))
@@ -33,7 +34,7 @@ for (v in c("base","RA","man","RAman")){
 # vars = names(prod_pred)[grepl("(_base$|_RA$)",names(prod_pred))]
 
 # prod_pred = prod_pred[ST%in%states,.SD,.SDcols=c("Product","Market","ST","Firm","Metal_std","size",vars)]
-prod_pred = prod_pred[ST%in%c("AK","NE","IA"),]
+# prod_pred = prod_pred[ST%in%c("AK","NE","IA"),]
 
 
 #### HHI Breakdown ####
@@ -75,5 +76,5 @@ prem = prod_pred[,list(Price_base = sum(Price_base*Lives_base)/sum(Lives_base),
                        Price_RAman = sum(Price_RAman*Lives_base)/sum(Lives_base)
                         ),
                  by=c("Metal_std","HHI_flag")]
-setkey(prem,HHI_flag,Price_RA)
+setkey(prem,HHI_flag,Price_base)
 
