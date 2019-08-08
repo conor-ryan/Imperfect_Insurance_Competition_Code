@@ -75,7 +75,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
 
         ## Check Constraint
         if any(p_vec[par_ind].>constraint)
-            ind = bound_ind[findall(p_vec[par_ind].>constraint)]
+            ind = par_ind[findall(p_vec[par_ind].>constraint)]
             println("Hit Constraint at $ind")
             p_vec[ind].= constraint
             constrained = 1
