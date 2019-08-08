@@ -54,6 +54,10 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
     re_opt_cnt = 0
     # H_save = missing
 
+    ### Bound Parameters
+    constraint = 8.0
+    constrained = 0
+
     ### Initialize Fixed Effects
     # fval = log_likelihood!(hess_new,grad_new,d,p_vec)
     # grad_size = maximum(abs.(grad_new))
@@ -68,6 +72,16 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
         re_opt_cnt+=1
         cnt+=1
         trial_cnt=0
+
+        ## Check Constraint
+        if any(p_vec[par_ind].>constraint)
+            ind = bound_ind[findall(p_vec[bound_ind].>constraint)]
+            println("Hit Constraint at $ind")
+            p_vec[ind].= constraint
+            constrained = 1
+        else
+            constrained = 0
+        end
 
         if (re_opt_cnt==20) | (flag=="converged")
             re_opt_cnt=0
@@ -99,6 +113,8 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
             end
             H_k = inv(H)
             real_hessian=1
+            up_temp, H_k = boundedUpdate(par_ind,p_vec,H,grad_new[par_ind],constraint)
+            update[par_ind] = up_temp
         else
             println("BFGS Approximation")
             fval = GMM_objective!(grad_new,d,p_vec,W,feFlag=0)
@@ -108,8 +124,11 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
             # hess_new = hess_new + (yk*yk')./(yk'*Δxk) - (yk*yk')./(yk'*Δxk) - (hess_new*Δxk*(hess_new*Δxk)')./(Δxk'*hess_new*Δxk)
             H_k = (Eye - (Δxk*yk')./(yk'*Δxk) )*H_last*(Eye - (yk*Δxk')./(yk'*Δxk) ) + (Δxk*Δxk')./(yk'*Δxk)
             real_hessian=0
+            up_temp, H_k = boundAtZero(par_ind,p_vec,Eye,H_last,Δxk,yk,grad_new[par_ind],constraint)
         end
 
+        # update[par_ind] = -H_k*grad_new[par_ind]
+        update[par_ind] = up_temp
 
         # Advance Hessian Approx Counter
         if hess_steps<Hess_Skip_Steps
@@ -118,7 +137,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
             hess_steps=0
         end
 
-        if (cnt==1) | (fval<f_min)
+        if (cnt==1) | (fval<f_min) | (constrained==1)
             if abs(fval-f_min)<f_tol
                 f_tol_cnt += 1
             end
@@ -160,7 +179,6 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
         end
 
 
-        update[par_ind] = -H_k*grad_new[par_ind]
         if any(isnan.(update))
             println("Step contains NaN, Algorithm Failed")
             return p_min, f_min, "failed"

@@ -107,3 +107,87 @@ function enforceNegDef(H::Matrix{Float64})
     end
     return H
 end
+
+
+function boundedUpdate(p_ind::Vector{Int64},p::Vector{Float64},
+    α::Float64,grad::Vector{Float64},bound::Float64)
+
+    update = α*grad
+    if length(p_ind)==0
+        return update
+    end
+
+    bound_ind = p_ind[findall((p[p_ind].>=bound) .& (update[p_ind].>0))]
+
+    if length(bound_ind)==0
+        return update
+    end
+
+    update = zeros(length(p))
+    unbounded = .!(inlist(1:length(p),bound_ind))
+
+    update[unbounded] = α*grad[unbounded]
+    return update
+end
+
+
+function boundedUpdate(p_ind::Vector{Int64},p::Vector{Float64},hess::Matrix{Float64},grad::Vector{Float64},bound::Float64)
+    H_k_f = inv(hess)
+    update = -H_k_f*grad
+
+    if length(p_ind)==0
+        println("Standard Update 1")
+        return update, H_k_f
+    end
+
+    bound_ind = p_ind[findall((p[p_ind].>=bound) .& (update[p_ind].>0))]
+
+    if length(bound_ind)==0
+        println("Standard Update 2")
+        return update, H_k_f
+    end
+
+    update = zeros(length(p))
+    unbounded = .!(inlist(1:length(p),bound_ind))
+
+    H_k = inv(hess[unbounded,unbounded])
+    update[unbounded] = -H_k*grad[unbounded]
+
+    H_k_f[unbounded,unbounded] = H_k
+
+    println("Bounded Update")
+    return update, H_k_f
+end
+
+function boundedUpdate(p_ind::Vector{Int64},p::Vector{Float64},
+    Eye::Matrix{Float64},H_last::Matrix{Float64},Δx::Vector{Float64},Δy::Vector{Float64},
+    grad::Vector{Float64},bound::Float64)
+    H_k_f = (Eye - (Δx*Δy')./(Δy'*Δx) )*H_last*(Eye - (Δy*Δx')./(Δy'*Δx) ) + (Δx*Δx')./(Δy'*Δx)
+    update = -H_k_f*grad
+
+    if length(p_ind)==0
+        println("Standard Update 1")
+        return update, H_k_f
+    end
+
+    bound_ind = p_ind[findall((p[p_ind].>=bound) .& (update[p_ind].>0))]
+
+    if length(bound_ind)==0
+        println("Standard Update 2")
+        return update, H_k_f
+    end
+
+    update = zeros(length(p))
+    unbounded = .!(inlist(1:length(p),bound_ind))
+
+    Δxk = Δx[unbounded]
+    Δyk = Δy[unbounded]
+
+    H_k = (Eye[unbounded,unbounded] - (Δxk*Δyk')./(Δyk'*Δxk) )*H_last[unbounded,unbounded]*(Eye[unbounded,unbounded] - (Δyk*Δxk')./(Δyk'*Δxk) ) + (Δxk*Δxk')./(Δyk'*Δxk)
+    update[unbounded] = -H_k*grad[unbounded]
+
+    H_k_f[unbounded,unbounded] = H_k
+
+    println("Bounded Update")
+    return update, H_k_f
+end
