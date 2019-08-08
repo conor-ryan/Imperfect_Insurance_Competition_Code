@@ -186,7 +186,7 @@ function run_specification_GMM(filename::String,
     obj_1 = 0.0
     while flag!="converged"
         p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
-        p0[σ_ind[1]]=10.0
+        # p0[σ_ind[1]]=10.0
         p_stg1, obj_1, flag = two_stage_est(m_GMM,p0,W)
     end
     #
