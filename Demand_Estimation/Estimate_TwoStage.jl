@@ -123,7 +123,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
             # hess_new = hess_new + (yk*yk')./(yk'*Δxk) - (yk*yk')./(yk'*Δxk) - (hess_new*Δxk*(hess_new*Δxk)')./(Δxk'*hess_new*Δxk)
             H_k = (Eye - (Δxk*yk')./(yk'*Δxk) )*H_last*(Eye - (yk*Δxk')./(yk'*Δxk) ) + (Δxk*Δxk')./(yk'*Δxk)
             real_hessian=0
-            up_temp, H_k = boundAtZero(bound_ind,p_vec[par_ind],Eye,H_last,Δxk,yk,grad_new[par_ind],constraint)
+            up_temp, H_k = boundedUpdate(bound_ind,p_vec[par_ind],Eye,H_last,Δxk,yk,grad_new[par_ind],constraint)
         end
 
         # update[par_ind] = -H_k*grad_new[par_ind]
