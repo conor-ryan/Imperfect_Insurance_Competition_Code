@@ -60,8 +60,9 @@ c = ChoiceData(df,df_mkt,df_risk;
 
 
 # Fit into model
-m = InsuranceLogit(c,500)
+m = InsuranceLogit(c,2000)
 println("Data Loaded")
+println(mean(m.draws,dims=1))
 
 #γ0start = rand(1)-.5
 γstart = rand(m.parLength[:γ])/10 .-.05
