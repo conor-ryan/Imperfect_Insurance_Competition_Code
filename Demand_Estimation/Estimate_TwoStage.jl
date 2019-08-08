@@ -55,7 +55,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
     # H_save = missing
 
     ### Bound Parameters
-    constraint = 0.0
+    constraint = 6.0
     constrained = 0
     bound_ind = Int.(1:5)
     ### Initialize Fixed Effects
@@ -65,7 +65,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
 
     p_vec,fe_itrs,H_save = reOpt_FE(d,p_vec,max_itr=500)
     println("Gradient Pre-Conditioning")
-    # p_vec, f_test,ga_conv = ga_twostage(d,p_vec,W,par_ind,max_itr=30,strict=false,Grad_Skip_Steps=2)
+    p_vec, f_test,ga_conv = ga_twostage(d,p_vec,W,par_ind,max_itr=30,strict=false,Grad_Skip_Steps=2)
 
     # Maximize by Newtons Method
     while (grad_size>0) & (cnt<max_itr) & (max_trial_cnt<20)
@@ -77,7 +77,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
         if any(p_vec[par_ind].>constraint)
             ind = par_ind[findall(p_vec[par_ind].>constraint)]
             println("Hit Constraint at $ind")
-            p_vec[ind].= 2.0
+            p_vec[ind].= 0.0
             constrained = 1
         else
             constrained = 0
