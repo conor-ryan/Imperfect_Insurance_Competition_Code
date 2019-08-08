@@ -57,7 +57,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
     ### Bound Parameters
     constraint = 8.0
     constrained = 0
-
+    bound_ind = Int.(1:5)
     ### Initialize Fixed Effects
     # fval = log_likelihood!(hess_new,grad_new,d,p_vec)
     # grad_size = maximum(abs.(grad_new))
@@ -113,8 +113,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
             end
             H_k = inv(H)
             real_hessian=1
-            up_temp, H_k = boundedUpdate(par_ind,p_vec,H,grad_new[par_ind],constraint)
-            update[par_ind] = up_temp
+            up_temp, H_k = boundedUpdate(bound_ind,p_vec[par_ind],H,grad_new[par_ind],constraint)
         else
             println("BFGS Approximation")
             fval = GMM_objective!(grad_new,d,p_vec,W,feFlag=0)
@@ -124,7 +123,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
             # hess_new = hess_new + (yk*yk')./(yk'*Δxk) - (yk*yk')./(yk'*Δxk) - (hess_new*Δxk*(hess_new*Δxk)')./(Δxk'*hess_new*Δxk)
             H_k = (Eye - (Δxk*yk')./(yk'*Δxk) )*H_last*(Eye - (yk*Δxk')./(yk'*Δxk) ) + (Δxk*Δxk')./(yk'*Δxk)
             real_hessian=0
-            up_temp, H_k = boundAtZero(par_ind,p_vec,Eye,H_last,Δxk,yk,grad_new[par_ind],constraint)
+            up_temp, H_k = boundAtZero(bound_ind,p_vec[par_ind],Eye,H_last,Δxk,yk,grad_new[par_ind],constraint)
         end
 
         # update[par_ind] = -H_k*grad_new[par_ind]
