@@ -77,13 +77,13 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
         if any(p_vec[par_ind].>constraint)
             ind = par_ind[findall(p_vec[par_ind].>constraint)]
             println("Hit Constraint at $ind")
-            p_vec[ind].= 0.0
+            p_vec[ind].= 2.0
             constrained = 1
         else
             constrained = 0
         end
 
-        if (re_opt_cnt==20) | (flag=="converged")
+        if (re_opt_cnt==25) | (flag=="converged")
             re_opt_cnt=0
             p_vec,fe_itrs,H_save = reOpt_FE(d,p_vec,max_itr=50,H=H_save)
             if (flag=="converged") & (fe_itrs<2)
