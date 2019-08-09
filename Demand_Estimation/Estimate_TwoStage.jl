@@ -11,8 +11,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
     Q = d.parLength[:All]
     Q_0 = Q - d.parLength[:FE]
     Q_no_σ = Q_0 - d.parLength[:σ]
-    # par_ind = (Q_no_σ+1):Q_0
-    par_ind = vcat((d.parLength[:γ] + 2):(d.parLength[:γ]+d.parLength[:β]),(Q_no_σ+1):Q_0)
+    par_ind = (Q_no_σ+1):Q_0
     parLen = length(par_ind)
     p_vec = copy(p0)
     update = zeros(N)
@@ -56,7 +55,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
     # H_save = missing
 
     ### Bound Parameters
-
+    constraint = 6.0
     constrained = 0
     bound_ind = Int.(1:5)
     ### Initialize Fixed Effects
@@ -65,7 +64,6 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
     # println(grad_size)
 
     p_vec,fe_itrs,H_save = reOpt_FE(d,p_vec,max_itr=500)
-    constraint = p_vec[par_ind[bound_ind]]
     println("Gradient Pre-Conditioning")
     p_vec, f_test,ga_conv = ga_twostage(d,p_vec,W,par_ind,max_itr=30,strict=false,Grad_Skip_Steps=2)
 
@@ -76,13 +74,10 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
         trial_cnt=0
 
         ## Check Constraint
-        sgn = sign.(p_vec[par_ind[6:10]])
-        check = (sgn.*p_vec[par_ind[bound_ind]]).>(sgn.*constraint)
-
-        if any(check)
-            ind = par_ind[bound_ind[findall(check)]]
+        if any(p_vec[par_ind].>constraint)
+            ind = par_ind[findall(p_vec[par_ind].>constraint)]
             println("Hit Constraint at $ind")
-            p_vec[ind] = constraint[findall(check)]
+            p_vec[ind].= 0.0
             constrained = 1
         else
             constrained = 0
@@ -91,7 +86,6 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
         if (re_opt_cnt==20) | (flag=="converged")
             re_opt_cnt=0
             p_vec,fe_itrs,H_save = reOpt_FE(d,p_vec,max_itr=50,H=H_save)
-            constraint = p_vec[par_ind[bound_ind]]
             if (flag=="converged") & (fe_itrs<2)
                 println("Converged in two stages!")
                 break
@@ -115,11 +109,11 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
             fval = GMM_objective!(hess_new,grad_new,d,p_vec,W,feFlag=0)
             H = hess_new[par_ind,par_ind]
             if ga_cnt%2==0
-                H_new = enforcePosDef(H)
+                H = enforcePosDef(H)
             end
             H_k = inv(H)
             real_hessian=1
-            up_temp, H_k = boundedUpdate(bound_ind,p_vec[par_ind],H,grad_new[par_ind],sgn,constraint)
+            up_temp, H_k = boundedUpdate(bound_ind,p_vec[par_ind],H,grad_new[par_ind],constraint)
         else
             println("BFGS Approximation")
             fval = GMM_objective!(grad_new,d,p_vec,W,feFlag=0)
@@ -129,7 +123,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
             # hess_new = hess_new + (yk*yk')./(yk'*Δxk) - (yk*yk')./(yk'*Δxk) - (hess_new*Δxk*(hess_new*Δxk)')./(Δxk'*hess_new*Δxk)
             H_k = (Eye - (Δxk*yk')./(yk'*Δxk) )*H_last*(Eye - (yk*Δxk')./(yk'*Δxk) ) + (Δxk*Δxk')./(yk'*Δxk)
             real_hessian=0
-            up_temp, H_k = boundedUpdate(bound_ind,p_vec[par_ind],Eye,H_last,Δxk,yk,grad_new[par_ind],sgn,constraint)
+            up_temp, H_k = boundedUpdate(bound_ind,p_vec[par_ind],Eye,H_last,Δxk,yk,grad_new[par_ind],constraint)
         end
 
         # update[par_ind] = -H_k*grad_new[par_ind]

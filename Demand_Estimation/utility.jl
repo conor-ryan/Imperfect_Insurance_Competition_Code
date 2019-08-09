@@ -139,8 +139,7 @@ function boundedUpdate(p_ind::UnitRange{Int64},p::Vector{Float64},hess::Matrix{F
     return boundedUpdate(Int.(p_ind),p,hess,grad,bound)
 end
 
-function boundedUpdate(p_ind::Vector{Int64},p::Vector{Float64},hess::Matrix{Float64},grad::Vector{Float64},
-    sgn::Vector{Float64},constraint::Vector{Float64})
+function boundedUpdate(p_ind::Vector{Int64},p::Vector{Float64},hess::Matrix{Float64},grad::Vector{Float64},bound::Float64)
     H_k_f = inv(hess)
     update = -H_k_f*grad
 
@@ -148,8 +147,8 @@ function boundedUpdate(p_ind::Vector{Int64},p::Vector{Float64},hess::Matrix{Floa
         println("Standard Update 1")
         return update, H_k_f
     end
-    check = (sgn.*p[p_ind]).>=(sgn.*constraint)
-    bound_ind = p_ind[findall(check .& (sgn.*update[p_ind].>0))]
+
+    bound_ind = p_ind[findall((p[p_ind].>=bound) .& (update[p_ind].>0))]
 
     if length(bound_ind)==0
         println("Standard Update 2")
@@ -176,7 +175,7 @@ end
 
 function boundedUpdate(p_ind::Vector{Int64},p::Vector{Float64},
     Eye::Matrix{Float64},H_last::Matrix{Float64},Δx::Vector{Float64},Δy::Vector{Float64},
-    grad::Vector{Float64},sgn::Vector{Float64},constraint::Vector{Float64})
+    grad::Vector{Float64},bound::Float64)
     H_k_f = (Eye - (Δx*Δy')./(Δy'*Δx) )*H_last*(Eye - (Δy*Δx')./(Δy'*Δx) ) + (Δx*Δx')./(Δy'*Δx)
     update = -H_k_f*grad
 
@@ -185,8 +184,7 @@ function boundedUpdate(p_ind::Vector{Int64},p::Vector{Float64},
         return update, H_k_f
     end
 
-    check = (sgn.*p[p_ind]).>=(sgn.*constraint)
-    bound_ind = p_ind[findall(check .& (sgn.*update[p_ind].>0))]
+    bound_ind = p_ind[findall((p[p_ind].>=bound) .& (update[p_ind].>0))]
 
     if length(bound_ind)==0
         println("Standard Update 2")
