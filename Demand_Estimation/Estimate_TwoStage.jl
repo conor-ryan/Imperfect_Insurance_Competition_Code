@@ -56,7 +56,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
     # H_save = missing
 
     ### Bound Parameters
-    constraint = 6.0
+    constraint = 1e3
     constrained = 0
     bound_ind = Int.(1:5)
     ### Initialize Fixed Effects
