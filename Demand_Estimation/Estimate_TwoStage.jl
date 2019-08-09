@@ -56,7 +56,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
     # H_save = missing
 
     ### Bound Parameters
-    constraint = 1e3
+
     constrained = 0
     bound_ind = Int.(1:5)
     ### Initialize Fixed Effects
@@ -65,6 +65,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
     # println(grad_size)
 
     p_vec,fe_itrs,H_save = reOpt_FE(d,p_vec,max_itr=500)
+    constraint = p_vec[par_ind[bound_ind]]
     println("Gradient Pre-Conditioning")
     p_vec, f_test,ga_conv = ga_twostage(d,p_vec,W,par_ind,max_itr=30,strict=false,Grad_Skip_Steps=2)
 
@@ -75,10 +76,13 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
         trial_cnt=0
 
         ## Check Constraint
-        if any(p_vec[par_ind].>constraint)
+        sgn = sign.(p_vec[par_ind[6:10]])
+        check = (sgn.*p_vec[par_ind[bound_ind]]).>(sgn.*constraint)
+
+        if any(check)
             ind = par_ind[findall(p_vec[par_ind].>constraint)]
             println("Hit Constraint at $ind")
-            p_vec[ind].= 0.0
+            p_vec[ind] = constraint[findall(check)]
             constrained = 1
         else
             constrained = 0
@@ -87,6 +91,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
         if (re_opt_cnt==20) | (flag=="converged")
             re_opt_cnt=0
             p_vec,fe_itrs,H_save = reOpt_FE(d,p_vec,max_itr=50,H=H_save)
+            constraint = p_vec[par_ind[bound_ind]]
             if (flag=="converged") & (fe_itrs<2)
                 println("Converged in two stages!")
                 break
