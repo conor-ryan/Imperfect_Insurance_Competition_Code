@@ -60,10 +60,9 @@ metal_moments[,momentID:=1:nrow(metal_moments)]
 
 #### Firm Moments ####
 firm_moments = firm_RA[,c("ST","Firm","T_norm_adj","R_adj_natl","memberMonths","payments_adj","HighRisk")]
+firm_data = unique(mkt_data[,c("STATE","Firm","Small")])
+firm_moments = merge(firm_moments,firm_data,by.x=c("ST","Firm"),by.y=c("STATE","Firm"))
 
-firm_moments[,ST_MM:=sum(memberMonths),by="ST"]
-firm_moments[,firmShare:=memberMonths/ST_MM]
-firm_moments[,Small:=as.numeric(firmShare<.05)]
 
 firm_moments[,R_avg:=sum(R_adj_natl*memberMonths)/sum(memberMonths),by=c("HighRisk","Small")]
 

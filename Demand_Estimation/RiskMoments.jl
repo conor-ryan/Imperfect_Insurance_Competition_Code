@@ -309,38 +309,30 @@ function calc_risk_moments(d::InsuranceLogit,p::parDict{T}) where T
         #@inbounds @fastmath s_hat_j[j]= (S_unwt[j]/d.lives[j])*d.data.st_share[j]
         @inbounds s_hat_j[j]= S_unwt[j]
         r_hat_unwt_j[j] = sliceMean_wgt(p.r_hat,wgts_share,j_index_all)
-        r_hat_j[j] = sliceMean_wgt(p.r_hat,wgts_share,j_index_all)*d.Γ_j[j]
-        a_hat_j[j] = sliceMean_wgt(ageRate_long,wgts_share,j_index_all)*d.AV_j[j]*d.Γ_j[j]
+        # r_hat_j[j] = sliceMean_wgt(p.r_hat,wgts_share,j_index_all)*d.Γ_j[j]
+        # a_hat_j[j] = sliceMean_wgt(ageRate_long,wgts_share,j_index_all)*d.AV_j[j]*d.Γ_j[j]
     end
     # out=0.0
-    t_norm_j = Vector{T}(undef,num_prods)
-    t_norm_j[:] .= 0.0
-    for (s,idx_prod) in d.data._stDict
-        ST_R = sliceMean_wgt(r_hat_j,s_hat_j,idx_prod)
-        ST_A = sliceMean_wgt(a_hat_j,s_hat_j,idx_prod)
-        for j in idx_prod
-            t_norm_j[j] = r_hat_j[j]/ST_R - a_hat_j[j]/ST_A
-        end
-    end
-
+    # t_norm_j = Vector{T}(undef,num_prods)
+    # t_norm_j[:] .= 0.0
+    # for (s,idx_prod) in d.data._stDict
+    #     ST_R = sliceMean_wgt(r_hat_j,s_hat_j,idx_prod)
+    #     ST_A = sliceMean_wgt(a_hat_j,s_hat_j,idx_prod)
+    #     for j in idx_prod
+    #         t_norm_j[j] = r_hat_j[j]/ST_R - a_hat_j[j]/ST_A
+    #     end
+    # end
 
     mom_value = Vector{T}(undef,length(d.data.tMoments))
 
     for (m,idx_mom) in d.data._tMomentDict
-        if true
-            t_est = sliceMean_wgt(r_hat_unwt_j,s_hat_j,idx_mom)
-            #mom_value[m] = d.data.tMoments[m] - t_est
-            mom_value[m] = t_est
-        else
-            t_est = sliceMean_wgt(t_norm_j,s_hat_j,idx_mom)
-            #mom_value[m] = d.data.tMoments[m] - t_est
-            mom_value[m] = t_est
-        end
-
+        t_est = sliceMean_wgt(r_hat_unwt_j,s_hat_j,idx_mom)
+        #mom_value[m] = d.data.tMoments[m] - t_est
+        mom_value[m] = t_est
     end
 
-    return mom_value .- d.data.tMoments
-    # return mom_value, d.data.tMoments
+    # return mom_value .- d.data.tMoments
+    return mom_value, d.data.tMoments
 end
 
 

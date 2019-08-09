@@ -65,21 +65,24 @@ println("Data Loaded")
 println(mean(m.draws,dims=1))
 
 #γ0start = rand(1)-.5
-γstart = rand(m.parLength[:γ])/10 .-.05
-β0start = rand(m.parLength[:β])/10 .-.05
-βstart = rand(m.parLength[:γ])/10 .- .05
-σstart = rand(m.parLength[:σ])/10 .- .05
-# σstart = zeros(m.parLength[:σ])
-FEstart = rand(m.parLength[:FE])/100 #.-.005
-#
-p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
-par0 = parDict(m,p0,no2Der=true)
+# γstart = rand(m.parLength[:γ])/10 .-.05
+# β0start = rand(m.parLength[:β])/10 .-.05
+# βstart = rand(m.parLength[:γ])/10 .- .05
+# σstart = rand(m.parLength[:σ])/10 .- .05
+# # σstart = zeros(m.parLength[:σ])
+# FEstart = rand(m.parLength[:FE])/100 #.-.005
+# #
+# p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 
 # # ll = log_likelihood(m,par0)
-rundate = "2019-07-18"
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_FMC-$rundate-stg2.jld2"
+rundate = "2019-08-08"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_Firm-$rundate-stg2.jld2"
 @load file p_stg2
 p0 = copy(p_stg2)
+par0 = parDict(m,p0,no2Der=true)
+
+
+
 r,t = calc_risk_moments(m,p0)
 println("Risk Moments are $r,\n $t")
 
