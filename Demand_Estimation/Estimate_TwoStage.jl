@@ -119,7 +119,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
             end
             H_k = inv(H)
             real_hessian=1
-            up_temp, H_k = boundedUpdate(bound_ind,p_vec[par_ind],H,grad_new[par_ind],constraint)
+            up_temp, H_k = boundedUpdate(bound_ind,p_vec[par_ind],H,grad_new[par_ind],sgn,constraint)
         else
             println("BFGS Approximation")
             fval = GMM_objective!(grad_new,d,p_vec,W,feFlag=0)
@@ -129,7 +129,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
             # hess_new = hess_new + (yk*yk')./(yk'*Δxk) - (yk*yk')./(yk'*Δxk) - (hess_new*Δxk*(hess_new*Δxk)')./(Δxk'*hess_new*Δxk)
             H_k = (Eye - (Δxk*yk')./(yk'*Δxk) )*H_last*(Eye - (yk*Δxk')./(yk'*Δxk) ) + (Δxk*Δxk')./(yk'*Δxk)
             real_hessian=0
-            up_temp, H_k = boundedUpdate(bound_ind,p_vec[par_ind],Eye,H_last,Δxk,yk,grad_new[par_ind],constraint)
+            up_temp, H_k = boundedUpdate(bound_ind,p_vec[par_ind],Eye,H_last,Δxk,yk,grad_new[par_ind],sgn,constraint)
         end
 
         # update[par_ind] = -H_k*grad_new[par_ind]

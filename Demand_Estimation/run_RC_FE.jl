@@ -60,19 +60,22 @@ c = ChoiceData(df,df_mkt,df_risk;
 
 
 # Fit into model
-m = InsuranceLogit(c,500)
+m = InsuranceLogit(c,50)
 println("Data Loaded")
 
-#γ0start = rand(1)-.5
-# γstart = rand(m.parLength[:γ])/10 .-.05
-# β0start = rand(m.parLength[:β])/10 .-.05
-# βstart = rand(m.parLength[:γ])/10 .- .05
-# σstart = rand(m.parLength[:σ])/10 .- .05
-# # σstart = zeros(m.parLength[:σ])
-# FEstart = rand(m.parLength[:FE])/100 #.-.005
-# #
-# p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 
+γstart = rand(m.parLength[:γ])/10 .-.05
+β0start = rand(m.parLength[:β])/10 .-.05
+βstart = rand(m.parLength[:γ])/10 .- .05
+σstart = rand(m.parLength[:σ])/10 .- .05
+# σstart = zeros(m.parLength[:σ])
+FEstart = rand(m.parLength[:FE])/100 #.-.005
+#
+p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
+
+
+
+two_stage_est(m,p0)
 # # ll = log_likelihood(m,par0)
 rundate = "2019-08-08"
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_Firm-$rundate-stg2.jld2"
