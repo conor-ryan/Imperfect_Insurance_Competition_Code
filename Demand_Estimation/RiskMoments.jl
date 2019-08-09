@@ -331,8 +331,8 @@ function calc_risk_moments(d::InsuranceLogit,p::parDict{T}) where T
         mom_value[m] = t_est
     end
 
-    # return mom_value .- d.data.tMoments
-    return mom_value, d.data.tMoments
+    return mom_value .- d.data.tMoments
+    # return mom_value, d.data.tMoments
 end
 
 
