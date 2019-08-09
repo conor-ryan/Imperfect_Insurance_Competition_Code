@@ -11,7 +11,8 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
     Q = d.parLength[:All]
     Q_0 = Q - d.parLength[:FE]
     Q_no_σ = Q_0 - d.parLength[:σ]
-    par_ind = (Q_no_σ+1):Q_0
+    # par_ind = (Q_no_σ+1):Q_0
+    par_ind = vcat((d.parLength[:γ] + 2):(d.parLength[:γ]+d.parLength[:β]),(Q_no_σ+1):Q_0)
     parLen = length(par_ind)
     p_vec = copy(p0)
     update = zeros(N)

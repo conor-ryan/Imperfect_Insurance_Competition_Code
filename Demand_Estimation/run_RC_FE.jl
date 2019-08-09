@@ -81,7 +81,7 @@ p0 = copy(p_stg2)
 par0 = parDict(m,p0,no2Der=true)
 
 
-
+p0[17] = 6.0
 r,t = calc_risk_moments(m,p0)
 println("Risk Moments are $r,\n $t")
 
