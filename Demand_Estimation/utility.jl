@@ -149,7 +149,7 @@ function boundedUpdate(p_ind::Vector{Int64},p::Vector{Float64},hess::Matrix{Floa
         return update, H_k_f
     end
     check = (sgn.*p[p_ind]).>=(sgn.*constraint)
-    bound_ind = p_ind[findall(check .& (update[p_ind].>0))]
+    bound_ind = p_ind[findall(check .& (sgn.*update[p_ind].>0))]
 
     if length(bound_ind)==0
         println("Standard Update 2")
@@ -186,7 +186,7 @@ function boundedUpdate(p_ind::Vector{Int64},p::Vector{Float64},
     end
 
     check = (sgn.*p[p_ind]).>=(sgn.*constraint)
-    bound_ind = p_ind[findall(check .& (update[p_ind].>0))]
+    bound_ind = p_ind[findall(check .& (sgn.*update[p_ind].>0))]
 
     if length(bound_ind)==0
         println("Standard Update 2")
