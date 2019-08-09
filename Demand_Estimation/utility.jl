@@ -90,9 +90,9 @@ function enforcePosDef(H::Matrix{Float64})
         max_eig_val = minimum(E.values)
         println("Min Eigenvalue is $max_eig_val")
         Λ = abs.(Diagonal(E.values))
-        hess = E.vectors*Λ*E.vectors'
+        H = E.vectors*Λ*E.vectors'
     end
-    return hess
+    return H
 end
 
 function enforceNegDef(H::Matrix{Float64})
@@ -103,9 +103,9 @@ function enforceNegDef(H::Matrix{Float64})
         max_eig_val = maximum(E.values)
         println("Max Eigenvalue is $max_eig_val")
         Λ = -abs.(Diagonal(E.values))
-        hess = E.vectors*Λ*E.vectors'
+        H = E.vectors*Λ*E.vectors'
     end
-    return hess
+    return H
 end
 
 function boundedUpdate(p_ind::UnitRange{Int64},p::Vector{Float64},
