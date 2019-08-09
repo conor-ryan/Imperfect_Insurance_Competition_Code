@@ -105,7 +105,8 @@ function calc_Mom_Der!(grad::Matrix{Float64},
     Q_0 = Q - d.parLength[:FE]
     Q_no_σ = Q_0 - d.parLength[:σ]
     if feFlag==0
-        parList = (Q_no_σ+1):Q_0
+        # parList = (Q_no_σ+1):Q_0
+        parList = vcat((d.parLength[:γ] + 2):(d.parLength[:γ]+d.parLength[:β]),(Q_no_σ+1):Q_0)
     elseif feFlag==1
         parList = vcat(1:Q_no_σ,(Q_0 + 1):Q)
     else
@@ -146,7 +147,8 @@ function calc_Mom_Der!(grad::Matrix{Float64},
     Q_0 = Q - d.parLength[:FE]
     Q_no_σ = Q_0 - d.parLength[:σ]
     if feFlag==0
-        parList = (Q_no_σ+1):Q_0
+        # parList = (Q_no_σ+1):Q_0
+        parList = vcat((d.parLength[:γ] + 2):(d.parLength[:γ]+d.parLength[:β]),(Q_no_σ+1):Q_0)
     elseif feFlag==1
         parList = vcat(1:Q_no_σ,(Q_0 + 1):Q)
     else

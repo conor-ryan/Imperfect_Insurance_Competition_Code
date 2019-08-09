@@ -92,7 +92,7 @@ function enforcePosDef(H::Matrix{Float64})
         Λ = abs.(Diagonal(E.values))
         hess = E.vectors*Λ*E.vectors'
     end
-    return H
+    return hess
 end
 
 function enforceNegDef(H::Matrix{Float64})
@@ -105,7 +105,7 @@ function enforceNegDef(H::Matrix{Float64})
         Λ = -abs.(Diagonal(E.values))
         hess = E.vectors*Λ*E.vectors'
     end
-    return H
+    return hess
 end
 
 function boundedUpdate(p_ind::UnitRange{Int64},p::Vector{Float64},
