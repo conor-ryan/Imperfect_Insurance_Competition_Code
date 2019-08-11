@@ -10,7 +10,7 @@ rm(list=ls())
 source("Code/MEPS_Moments/MEPS_Moments.R")
 
 rm(list=ls())
-source("Code/Demand_Data_Prep/Estimation_Data_Discrete.R")
+source("Code/Demand_Data_Prep/Estimation_Data_Discrete.R",echo=TRUE)
 
 ###### Data Preperation ######
 rm(list=ls())

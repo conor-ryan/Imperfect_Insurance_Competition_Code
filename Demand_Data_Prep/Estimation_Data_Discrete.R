@@ -199,22 +199,22 @@ acs_unins = acs_unins[,c("STATE","APP_RECORD_NUM","QUOTED_RATE","HOUSEHOLD_INCOM
 fulldf = rbind(acs_unins,eHealth)
 
 ### Re-weight Choice Data
-acs[,Income:=0]
-acs[HHincomeFPL>4,Income:=1]
-acs[ST%in%c("MD","CT"),Income:=1]
-wgts = acs[,list(totalWeight=sum(PERWT)),by=c("ST","AREA","insured")]
+acs[,Income_flag:=0]
+acs[HHincomeFPL>4,Income_flag:=1]
+acs[ST%in%c("MD","CT"),Income_flag:=1]
+wgts = acs[,list(totalWeight=sum(PERWT)),by=c("ST","AREA","insured","Income_flag")]
 
 fulldf[,insured:=!is.na(Firm)]
-# fulldf[,Income:=0]
-# fulldf[is.na(FPL)|FPL>4,Income:=1]
+fulldf[,Income_flag:=0]
+fulldf[is.na(FPL)|FPL>4,Income_flag:=1]
 
 ## MD and CT don't have income information. Maybe need another category for censored income
-# fulldf[STATE%in%c("MD","CT"),Income:=1]
+fulldf[STATE%in%c("MD","CT"),Income_flag:=1]
 
 
-fulldf = merge(fulldf,wgts,by.x=c("STATE","AREA","insured"),by.y=c("ST","AREA","insured"),all=TRUE)
+fulldf = merge(fulldf,wgts,by.x=c("STATE","AREA","insured","Income_flag"),by.y=c("ST","AREA","insured","Income_flag"),all=TRUE)
 
-fulldf[,sampleSum:=sum(N),by=c("STATE","AREA","insured")]
+fulldf[,sampleSum:=sum(N),by=c("STATE","AREA","insured","Income_flag")]
 fulldf[,N:=(N/sampleSum)*totalWeight]
 fulldf = fulldf[N>0,]
 
@@ -290,7 +290,7 @@ choices = choices[choices$valid,]
 # Keep only relevant variables
 choices = choices[,c("STATE","APP_RECORD_NUM","QUOTED_RATE","HOUSEHOLD_INCOME","FFM_APTC_AMOUNT","FFM_PREMIUM_DUE",
                      "FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","ageRate","SMOKER","AREA","Firm","METAL","hix","PREMI27",
-                     "MedDeduct","MedOOP","Y","N","FPL","insured",
+                     "MedDeduct","MedOOP","Y","N","FPL","insured","Income_flag",
                      "PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age")]
 
 
@@ -412,18 +412,18 @@ choices[FPL_imp>=1 & FPL_imp<1.5,CSR:="94"]
 
 
 #### Re-Weight ####
-wgt_test = unique(choices[,c("APP_RECORD_NUM","N","STATE","AREA","insured")])
-wgt_test = wgt_test[,list(Pop = sum(N)),by=c("STATE","AREA","insured")]
+wgt_test = unique(choices[,c("APP_RECORD_NUM","N","STATE","AREA","insured","Income_flag")])
+wgt_test = wgt_test[,list(Pop = sum(N)),by=c("STATE","AREA","insured","Income_flag")]
 # ins[,insured:=TRUE]
 # unins = wgt_test[,list(Pop = sum((unins_rate)*N)),by=c("STATE","AREA")]
 # unins[,insured:=FALSE]
 # wgt_test = rbind(ins,unins)
-wgt_test = merge(wgts,wgt_test,by.x=c("ST","AREA","insured"),by.y=c("STATE","AREA","insured"))
+wgt_test = merge(wgts,wgt_test,by.x=c("ST","AREA","insured","Income_flag"),by.y=c("STATE","AREA","insured","Income_flag"))
 wgt_test[,wgt_adj:=totalWeight/Pop]
 
-choices = merge(choices,wgt_test[,c("ST","AREA","insured","wgt_adj")],
-                by.x=c("STATE","AREA","insured"),
-                by.y=c("ST","AREA","insured"))
+choices = merge(choices,wgt_test[,c("ST","AREA","insured","Income_flag","wgt_adj")],
+                by.x=c("STATE","AREA","insured","Income_flag"),
+                by.y=c("ST","AREA","insured","Income_flag"))
 choices[,N:=wgt_adj*N]
 
 ##### Discretize the Data into Type Buckets #####
@@ -782,8 +782,8 @@ setkey(t1,METAL,LowIncome)
 insured = unique(choices[,c("Person","STATE","unins_rate","N","LowIncome")])
 insured = insured[,list(unins_rate=sum(unins_rate*N)/sum(N)),by=c("STATE","LowIncome")]
 
-test = acs[ST%in%choices$STATE,list(pop=sum(PERWT)),by=c("ST","insured","Income")]
-test[,LowIncome:=1-Income]
+test = acs[ST%in%choices$STATE,list(pop=sum(PERWT)),by=c("ST","insured","Income_flag")]
+test[,LowIncome:=1-Income_flag]
 test[,unins_acs:=pop/sum(pop),by=c("ST","LowIncome")]
 test = test[insured==FALSE]
 insured = merge(insured,test,by.x=c("STATE","LowIncome"),by.y=c("ST","LowIncome"))
