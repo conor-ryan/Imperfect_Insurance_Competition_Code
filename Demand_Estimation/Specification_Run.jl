@@ -201,10 +201,14 @@ function run_specification_GMM(filename::String,
     println("#### Estimate GMM Second Stage ####")
     mom_pars = vcat(1:length(m_GMM.data.tMoments),(length(m_GMM.data.tMoments)+1).+σ_ind)
     S = calc_mom_Avar(m_GMM,p_stg1)
-    W2 = inv(S[mom_pars,mom_pars])
+    S_mom = S[mom_pars,mom_pars]
+    diag_sigma = diag(S_mom[1:length(m_GMM.data.tMoments),1:length(m_GMM.data.tMoments)])
+    S_mom[1:length(m_GMM.data.tMoments),:] .=0.0
+    S_mom[:,1:length(m_GMM.data.tMoments)] .=0.0
+    S_mom[1:length(m_GMM.data.tMoments),1:length(m_GMM.data.tMoments)] = Diagonal(diag_sigma)
+    W2 = inv(S_mom)
     W[mom_pars,mom_pars] = W2[:,:]
-    W[:,(length(m_GMM.data.tMoments)+1).+σ_ind] .=0.0
-    W[(length(m_GMM.data.tMoments)+1).+σ_ind,:] .=0.0
+
 
     println(S[mom_pars,mom_pars])
     println(W2)
@@ -221,23 +225,6 @@ function run_specification_GMM(filename::String,
     println("Save Second Stage Result")
     file = "$filename-$rundate-stg2.jld2"
     @save file p_stg2 obj_2 spec_Dict
-
-    println("TEST 2")
-    W[mom_pars,mom_pars] = W2[:,:]
-    W[1:length(m_GMM.data.tMoments),1:length(m_GMM.data.tMoments)] .=0.0
-
-    println(S[mom_pars,mom_pars])
-    println(W2)
-    println(W[mom_pars,mom_pars])
-
-    ## Estimate
-    flag = ""
-    p_stg2 = similar(p0)
-    obj_2 = 0.0
-    while flag!="converged"
-        p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
-        p_stg2, obj_2, flag = two_stage_est(m_GMM,p0,W)
-    end
 
     # println("#### Calculate Standard Errors and Save Results ####")
     # AsVar, stdErr,t_stat, stars = res_process(m_GMM,p_stg2,σ_ind)
