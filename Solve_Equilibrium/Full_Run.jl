@@ -10,7 +10,7 @@ using DataFrames
 codeDir = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Code/"
 
 ##### Set Specification ####
-halton_draws = 500
+halton_draws = 1000
 spec_demoRaw = [:AgeFE_31_39,
         :AgeFE_40_51,
         :AgeFE_52_64,
@@ -18,7 +18,7 @@ spec_demoRaw = [:AgeFE_31_39,
         :LowIncome]
 spec_prodchars=[:Price,:constant,:AV,:HighRisk,:Small,:High_small]
 spec_prodchars_0=[:constant,:AV,:HighRisk,:Small,:High_small]
-spec_fixedEffects=[:Firm]
+spec_fixedEffects=[:Firm_Market_Cat]
 
 cost_spec = [:AvgAge,:AV]
 

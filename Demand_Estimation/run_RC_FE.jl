@@ -60,7 +60,7 @@ c = ChoiceData(df,df_mkt,df_risk;
 
 
 # Fit into model
-m = InsuranceLogit(c,50)
+m = InsuranceLogit(c,500)
 println("Data Loaded")
 
 
@@ -74,8 +74,9 @@ FEstart = rand(m.parLength[:FE])/100 #.-.005
 p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 
 
+W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
 
-two_stage_est(m,p0)
+# two_stage_est(m,p0,W)
 # # ll = log_likelihood(m,par0)
 rundate = "2019-08-08"
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_Firm-$rundate-stg2.jld2"
@@ -84,13 +85,14 @@ p0 = copy(p_stg2)
 par0 = parDict(m,p0,no2Der=true)
 
 
-p0[17] = 6.0
+p0[17] = 10.0
 r,t = calc_risk_moments(m,p0)
 println("Risk Moments are $r,\n $t")
 
 grad = Vector{Float64}(undef,length(p0))
 W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
-GMM_objective!(grad,m,p0,W)
+res = GMM_objective!(grad,m,p0,W,feFlag=0)
+
 res = GMM_objective(m,p0,W)
 
 # # #
