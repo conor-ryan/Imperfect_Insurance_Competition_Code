@@ -144,7 +144,7 @@ function run_specification_GMM(filename::String,
     # @save file p_ll spec_Dict
 
     file = "GMM_Estimate_FMC-2019-08-11-stg1.jld2"
-    @load file p_ll
+    @load file p_ll spec_Dict
 
 
 
@@ -195,7 +195,7 @@ function run_specification_GMM(filename::String,
 
     println("Load First Stage Result")
     file = "GMM_Estimate_FMC-2019-08-11-stg1.jld2"
-    @load file p_stg1 obj_1
+    @load file p_stg1 obj_1 spec_Dict
 
 
     println("#### Estimate GMM Second Stage ####")
