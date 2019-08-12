@@ -143,7 +143,7 @@ function run_specification_GMM(filename::String,
     # file = "$filename-$rundate-ll.jld2"
     # @save file p_ll spec_Dict
 
-    file = "GMM_Estimate_FMC-2019-08-11-stg1.jld2"
+    file = "GMM_Estimate_FMC-2019-08-11-ll.jld2"
     @load file p_ll spec_Dict
 
 
