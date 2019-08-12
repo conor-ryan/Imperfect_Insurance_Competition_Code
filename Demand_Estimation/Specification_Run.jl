@@ -203,7 +203,8 @@ function run_specification_GMM(filename::String,
     S = calc_mom_Avar(m_GMM,p_stg1)
     W2 = inv(S[mom_pars,mom_pars])
     W[mom_pars,mom_pars] = W2[:,:]
-    W[σ_ind,σ_ind] .=0.0
+    W[:,(length(m_GMM.data.tMoments)+1).+σ_ind] .=0.0
+    W[(length(m_GMM.data.tMoments)+1).+σ_ind,:] .=0.0
 
     println(S[mom_pars,mom_pars])
     println(W2)
