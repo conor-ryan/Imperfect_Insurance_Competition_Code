@@ -61,7 +61,7 @@ mutable struct MC_Data
     _firmMomentProdDict::Dict{Int,Array{Int,1}}
     firmMoments::Vector{Float64}
 
-    _metalMomentDict::Dict{Int,Array{Int,1}}
+    _metalMomentDict::Dict{Int,Dict{Int,Array{Int64,1}}}
     _metalMomentBit::Dict{Int,BitArray{1}}
     _metalMomentProdDict::Dict{Int,Array{Int,1}}
     metalMoments::Vector{Float64}
@@ -165,19 +165,26 @@ function MC_Data(data_choice::DataFrame,
         end
     end
 
-    _metalMomentDict = Dict{Int,Array{Int64,1}}()
+    _metalMomentDict = Dict{Int,Dict{Int,Array{Int64,1}}}()
     _metalMomentBit = Dict{Int,BitArray{1}}()
     _metalMomentProdDict = Dict{Int,Array{Int64,1}}()
     moments = sort(unique(mom_metal[:,:M_num]))
+    firms = sort(unique(mom_metal[:,:F_M_num]))
+
     metalMoments = Vector{Float64}(undef,length(moments))
     if constMoments
-        for m in moments
-            m_df_index = findall(mom_metal[:,:M_num].==m)
-            m_index = mom_metal[:,:index][m_df_index]
-            _metalMomentDict[m] = m_index
-            _metalMomentBit[m] = inlist(all_idx,m_index)
-            _metalMomentProdDict[m] = sort(unique(mom_metal[:,:Product][m_df_index]))
-            metalMoments[m] = mom_metal[:,:costIndex][m_df_index][1]
+        for f in firms
+            _subDict = Dict{Int,Array{Int64,1}}()
+            for m in moments
+                m_f_df_index = findall( (mom_metal[:,:M_num].==m) .& (mom_metal[:,:F_M_num].==f) )
+                m_df_index = findall( (mom_metal[:,:M_num].==m) )
+                m_index = mom_metal[:,:index][m_f_df_index]
+                _subDict[m] = m_index
+                _metalMomentBit[m] = inlist(all_idx,m_index)
+                _metalMomentProdDict[m] = sort(unique(mom_metal[:,:Product][m_df_index]))
+                metalMoments[m] = mom_metal[:,:costIndex][m_df_index][1]
+            end
+            _metalMomentDict[f] = _subDict
         end
     end
 
@@ -460,15 +467,38 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     end
 
     ## Metal Moments
-    refval = sliceMean_wgt(c_hat_cap,wgts_share,c._metalMomentDict[1])
-    for (m,m_idx) in c._metalMomentDict
-        if m==1
-            continue
-        else
-            c_avg = sliceMean_wgt(c_hat_cap,wgts_share,m_idx)
-            mmom[m-1] = c_avg/refval[1] #- c.metalMoments[m]
+
+    f_num = maximum(keys(c._metalMomentDict))
+    m_num = maximum(keys(c._metalMomentDict[1]))
+    m_mom_mat = zeros(m_num-1,f_num)
+    lives_f = zeros(f_num)
+    for (f,sub_dict) in c._metalMomentDict
+        refval = sliceMean_wgt(c_hat_cap,wgts_share,sub_dict[1])
+
+        for (m,m_idx) in sub_dict
+            if m==1
+                continue
+            else
+                c_avg = sliceMean_wgt(c_hat_cap,wgts_share,m_idx)
+                # mmom[m-1] = c_avg/refval[1] #- c.metalMoments[m]
+                m_mom_mat[m-1,f] = c_avg/refval[1]
+            end
+            lives_f[f]+=sum(wgts_share[m_idx])
         end
     end
+
+    m_lives = zeros(m_num-1)
+    mmom[:].=0.0
+    for m in 2:m_num
+        for f in 1:f_num
+            if !isnan(m_mom_mat[m-1,f])
+                mmom[m-1]+=m_mom_mat[m-1,f]*lives_f[f]
+                m_lives[m-1]+= lives_f[f]
+            end
+        end
+    end
+    mmom = mmom./m_lives
+
 
     ## Age Moments
     refval = sliceMean_wgt(c_hat,wgts_share,c._ageMomentDict[1])

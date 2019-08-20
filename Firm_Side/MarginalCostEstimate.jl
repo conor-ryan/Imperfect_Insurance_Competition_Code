@@ -28,7 +28,7 @@ df[:High_small] = df[:HighRisk].*df[:Small]
 
 
 #### Load Demand Estimation Results ####
-rundate = "2019-08-03"
+rundate = "2019-08-06"
 spec = "Firm"
 # resDF = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_$rundate.csv")
 # p_est = Float64.(resDF[:pars])
@@ -166,9 +166,9 @@ CSV.write(file1,out1)
 
 
 #### TEST OUTCOMES ####
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
-@load file p_stg2
-p=  copy(p_stg2)
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$spec-$rundate.jld2"
+@load file p_stg2 p_dem_est cost_spec spec_Dict
+p = copy(p_stg2)
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
 # @load file est_stg1
 # p = fit_firm_moments(est_stg1[3],par_est,m,costdf,itrFirms=true)

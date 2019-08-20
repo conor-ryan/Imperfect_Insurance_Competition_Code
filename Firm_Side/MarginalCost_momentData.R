@@ -156,7 +156,13 @@ raMoments = merge(choiceData[Metal_std!="PLATINUM",],RAmom,by=c("ST","Firm"))
 raMoments = raMoments[,c("avgTransfer","M_num","Product","index")]
 
 
-metalMoments = merge(metalMoments,choiceData[,c("Product","index")],by="Product")
+metalMoments = merge(metalMoments,choiceData[,c("Product","index","Firm","ST")],by="Product")
+f_merge = unique(choiceData[,c("Firm","ST")])
+setkey(f_merge,ST,Firm)
+f_merge[,F_M_num:=1:nrow(f_merge)]
+
+metalMoments = merge(metalMoments,f_merge,by=c("Firm","ST"))
+metalMoments = metalMoments[,c("M_num","Product","index","F_M_num","costIndex")]
 # metalDict = merge(metalClaims,choiceData,by=c("ST","Firm","Metal_std"))
 # avgMoments = rbind(firmDict[,c("logAvgCost","M_num","Product","index")],metalDict[,c("logAvgCost","M_num","Product","index")])
 # avgMoments = avgMoments[!is.na(M_num),]

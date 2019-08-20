@@ -5,7 +5,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
     include("$codeDir/MC_load.jl")
 
 
-    df[:High_small] = df[:HighRisk].*df[:Small]
+    # df[:High_small] = df[:HighRisk].*df[:Small]
 
 
     #### Load Demand Estimation Results ####
