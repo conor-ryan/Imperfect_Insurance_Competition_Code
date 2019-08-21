@@ -493,7 +493,7 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
 
     m_lives = Vector{T}(undef,m_num-1)
     mmom[:].=0.0
-    m_lives[:]=0.0
+    m_lives[:].=0.0
     for m in 2:m_num
         for f in 1:f_num
             if !isnan(m_mom_mat[m-1,f]) & (m_mom_mat[m-1,f]!=0)
