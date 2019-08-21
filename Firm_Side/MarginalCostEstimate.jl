@@ -28,8 +28,8 @@ df[:High_small] = df[:HighRisk].*df[:Small]
 
 
 #### Load Demand Estimation Results ####
-rundate = "2019-08-06"
-spec = "Firm"
+rundate = "2019-08-12"
+spec = "FMC"
 # resDF = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_$rundate.csv")
 # p_est = Float64.(resDF[:pars])
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
