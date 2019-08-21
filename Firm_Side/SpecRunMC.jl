@@ -73,7 +73,8 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
 
     p_full1 = fit_firm_moments(p_stg1,par_est,m,costdf)
     S,Σ,Δ,mom_long = aVar(costdf,m,p_full1,par_est)
-    W = Matrix(Diagonal(diag(inv(S))))
+    S_diag = Matrix(Diagonal(diag(S)))
+    W = Matrix(Diagonal(diag(inv(S_diag))))
 
     p0 = vcat(rand(length(cost_spec)+1)*.2)
 
