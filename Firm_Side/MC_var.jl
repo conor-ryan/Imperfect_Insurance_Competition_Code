@@ -584,7 +584,7 @@ function GMM_var(c::MC_Data,d::InsuranceLogit,p::Array{Float64},par_est::parDict
     G = mom_gradient(p,par_est,d,c)
 
     ## Calculate Variance
-    Avar = inv(G*inv(S)*G')
+    Avar = inv(G'*inv(S)*G)
     Pop = calc_pop(d.data)
 
     V = (1/sqrt(Pop)).*Avar
