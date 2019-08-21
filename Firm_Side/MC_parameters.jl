@@ -472,7 +472,8 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
 
     f_num = maximum(keys(c._metalMomentDict))
     m_num = maximum(keys(c._metalMomentDict[1]))
-    m_mom_mat = zeros(m_num-1,f_num)
+    m_mom_mat = Matrix{T}(undef,m_num-1,f_num)
+    m_mom_mat[:].=0.0
     lives_f = zeros(f_num)
     for (f,sub_dict) in c._metalMomentDict
         refval = sliceMean_wgt(c_hat_cap,wgts_share,sub_dict[1])
@@ -490,8 +491,9 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
         end
     end
 
-    m_lives = zeros(m_num-1)
+    m_lives = Vector{T}(undef,m_num-1)
     mmom[:].=0.0
+    m_lives[:]=0.0
     for m in 2:m_num
         for f in 1:f_num
             if !isnan(m_mom_mat[m-1,f]) & (m_mom_mat[m-1,f]!=0)
