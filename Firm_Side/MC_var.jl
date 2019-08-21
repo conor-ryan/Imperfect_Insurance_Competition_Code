@@ -581,7 +581,7 @@ function GMM_var(c::MC_Data,d::InsuranceLogit,p::Array{Float64},par_est::parDict
     println("Moment Gradient")
     G = Matrix{Float64}(undef,c.par_length,c.mom_length)
     # moments = costMoments!(G,c,d,p,par_est)
-    G = mom_gradient(p,par_est,m,costdf)
+    G = mom_gradient(p,par_est,d,costdf)
 
     ## Calculate Variance
     Avar = inv(G*inv(S)*G')
