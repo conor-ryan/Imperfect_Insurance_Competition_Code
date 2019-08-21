@@ -405,7 +405,7 @@ function calc_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},r_sc::
     return s_mean, c_mean, c_mean_capped, c_mean_pool #, c_mean_risk, dc_mean, dc_mean_risk, d2c_mean, d2c_mean_risk
 end
 
-function capped_cost(c::Float64;thresh::Float64=3750.0,cap::Float64=20833.33,rate::Float64=0.55)
+function capped_cost(c::T;thresh::Float64=3750.0,cap::Float64=20833.33,rate::Float64=0.55) where T
     c_base = min(c,thresh)
     c_rein = min(max(c-thresh,0),cap-thresh)
     c_exc  = max(c-cap,0)
@@ -413,7 +413,7 @@ function capped_cost(c::Float64;thresh::Float64=3750.0,cap::Float64=20833.33,rat
     return c
 end
 
-function capped_cost(c::Vector{Float64};thresh::Float64=3750.0,cap::Float64=20833.33,rate::Float64=0.55)
+function capped_cost(c::Vector{T};thresh::Float64=3750.0,cap::Float64=20833.33,rate::Float64=0.55) where T
     c_cap = similar(c)
     for i in 1:length(c)
         c_cap[i] = capped_cost(c[i],thresh=thresh,cap=cap,rate=rate)
@@ -421,7 +421,7 @@ function capped_cost(c::Vector{Float64};thresh::Float64=3750.0,cap::Float64=2083
     return c_cap
 end
 
-function capped_cost(c::Matrix{Float64};thresh::Float64=3750.0,cap::Float64=20833.33,rate::Float64=0.55)
+function capped_cost(c::Matrix{T};thresh::Float64=3750.0,cap::Float64=20833.33,rate::Float64=0.55) where T
     c_cap = similar(c)
     (J,K) = size(c)
     for j in 1:J, k in 1:K
