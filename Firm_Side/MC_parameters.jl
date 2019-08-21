@@ -63,7 +63,7 @@ mutable struct MC_Data
 
     _metalMomentDict::Dict{Int,Dict{Int,Array{Int64,1}}}
     _metalMomentBit::Dict{Int,BitArray{1}}
-    _metalMomentProdDict::Dict{Int,Array{Int,1}}
+    _metalMomentProdDict::Dict{Int,Dict{Int,Array{Int64,1}}}
     metalMoments::Vector{Float64}
 
     _ageMomentDict::Dict{Int,Array{Int,1}}
@@ -167,7 +167,7 @@ function MC_Data(data_choice::DataFrame,
 
     _metalMomentDict = Dict{Int,Dict{Int,Array{Int64,1}}}()
     _metalMomentBit = Dict{Int,BitArray{1}}()
-    _metalMomentProdDict = Dict{Int,Array{Int64,1}}()
+    _metalMomentProdDict = Dict{Int,Dict{Int,Array{Int64,1}}}()
     moments = sort(unique(mom_metal[:,:M_num]))
     firms = sort(unique(mom_metal[:,:F_M_num]))
 
@@ -175,16 +175,18 @@ function MC_Data(data_choice::DataFrame,
     if constMoments
         for f in firms
             _subDict = Dict{Int,Array{Int64,1}}()
+            _subProdDict = Dict{Int,Array{Int64,1}}()
             for m in moments
                 m_f_df_index = findall( (mom_metal[:,:M_num].==m) .& (mom_metal[:,:F_M_num].==f) )
                 m_df_index = findall( (mom_metal[:,:M_num].==m) )
                 m_index = mom_metal[:,:index][m_f_df_index]
                 _subDict[m] = m_index
                 _metalMomentBit[m] = inlist(all_idx,m_index)
-                _metalMomentProdDict[m] = sort(unique(mom_metal[:,:Product][m_df_index]))
+                _subProdDict[m] = sort(unique(mom_metal[:,:Product][m_f_df_index]))
                 metalMoments[m] = mom_metal[:,:costIndex][m_df_index][1]
             end
             _metalMomentDict[f] = _subDict
+            _metalMomentProdDict[f] = _subProdDict
         end
     end
 
@@ -476,14 +478,15 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
         refval = sliceMean_wgt(c_hat_cap,wgts_share,sub_dict[1])
 
         for (m,m_idx) in sub_dict
+            lives_f[f]+=sum(wgts_share[m_idx])
             if m==1
                 continue
             else
                 c_avg = sliceMean_wgt(c_hat_cap,wgts_share,m_idx)
+                # println("Firm: $f, Metal: $m, Cost: $c_avg")
                 # mmom[m-1] = c_avg/refval[1] #- c.metalMoments[m]
                 m_mom_mat[m-1,f] = c_avg/refval[1]
             end
-            lives_f[f]+=sum(wgts_share[m_idx])
         end
     end
 
@@ -491,14 +494,13 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     mmom[:].=0.0
     for m in 2:m_num
         for f in 1:f_num
-            if !isnan(m_mom_mat[m-1,f])
+            if !isnan(m_mom_mat[m-1,f]) & (m_mom_mat[m-1,f]!=0)
                 mmom[m-1]+=m_mom_mat[m-1,f]*lives_f[f]
                 m_lives[m-1]+= lives_f[f]
             end
         end
     end
     mmom = mmom./m_lives
-
 
     ## Age Moments
     refval = sliceMean_wgt(c_hat,wgts_share,c._ageMomentDict[1])

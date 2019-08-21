@@ -192,12 +192,21 @@ function moments_Avar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{T}) wher
     num_prods = length(d.prods)
     f_moments_p1= Vector{T}(undef,length(c.firmMoments))
     f_moments_p2= Vector{T}(undef,length(c.firmMoments))
-    m_moments_p1= Vector{T}(undef,length(c.metalMoments))
-    m_moments_p2= Vector{T}(undef,length(c.metalMoments))
+
+    f_num = maximum(keys(c._metalMomentDict))
+    m_moments_p1= Matrix{T}(undef,length(c.metalMoments),f_num)
+    m_moments_p2= Matrix{T}(undef,length(c.metalMoments),f_num)
+    m_moments_p3= Vector{T}(undef,length(c.metalMoments))
+    m_moments_p1[:] .= 0.0
+    m_moments_p2[:] .= 0.0
+    m_moments_p3[:] .= 0.0
+
     a_moments_p1= Vector{T}(undef,length(c.ageMoments))
     a_moments_p2= Vector{T}(undef,length(c.ageMoments))
+
     n_moments_p1= Vector{T}(undef,length(c.agenoMoments))
     n_moments_p2= Vector{T}(undef,length(c.agenoMoments))
+
     r_moments_p1= Vector{T}(undef,2)
     r_moments_p2= Vector{T}(undef,2)
 
@@ -227,10 +236,22 @@ function moments_Avar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{T}) wher
         f_moments_p1[m] = sum(cost_moments[m_idx])
         f_moments_p2[m] = sum(cost_moments[num_prods .+ m_idx])
     end
-    for (m,m_idx) in c._metalMomentProdDict
-        m_moments_p1[m] = sum(cost_moments[m_idx])
-        m_moments_p2[m] = sum(cost_moments[num_prods .+ m_idx])
+    for (f,sub_dict) in c._metalMomentProdDict
+        for m in 1:length(c.metalMoments)
+            m_idx = sub_dict[m]
+            if (m==1)&(length(sub_dict[m])==0)
+                break
+            elseif length(sub_dict[m])>0
+                m_moments_p1[m,f] = sum(cost_moments[m_idx])
+                m_moments_p2[m,f] = sum(cost_moments[num_prods .+ m_idx])
+            end
+        end
     end
+
+    # for (m,m_idx) in c._metalMomentProdDict
+    #     m_moments_p1[m] = sum(cost_moments[m_idx])
+    #     m_moments_p2[m] = sum(cost_moments[num_prods .+ m_idx])
+    # end
     ## Age Moments
     a_moments_p1[:] = cost_moments[M1 .+ (1:length(c.ageMoments))]
     a_moments_p2[:] = cost_moments[(M1 + length(c.ageMoments)) .+ (1:length(c.ageMoments))]
@@ -249,11 +270,19 @@ function moments_Avar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{T}) wher
         # pmom[m] = f_moments_p2[m]/f_moments_p1[m]
     end
     ## Total Metal Moments
-    refval = m_moments_p2[1]/m_moments_p1[1]
-    for m in 2:length(m_moments_p1)
-        c_avg = m_moments_p2[m]/m_moments_p1[m]
-        mmom[m-1] = c_avg/refval - c.metalMoments[m]
+    mmom[:] .= 0.0
+    for m in 2:size(m_moments_p1,1)
+        for f in 1:size(m_moments_p1,2)
+            refval = m_moments_p2[1,f]/m_moments_p1[1,f]
+            c_avg = m_moments_p2[m,f]/m_moments_p1[m,f]
+            if (refval!=0) & (m_moments_p1[m,f]!=0)
+                mmom[m-1] += (c_avg/refval)*sum(m_moments_p1[:,f]) #- c.metalMoments[m]
+                m_moments_p3[m] += sum(m_moments_p1[:,f])
+            end
+        end
+        mmom[m-1] = mmom[m-1]/m_moments_p3[m] - c.metalMoments[m]
     end
+
     ## Total Age Moments
     refval = a_moments_p2[1]/a_moments_p1[1]
     for m in 2:length(a_moments_p1)
@@ -551,8 +580,8 @@ function GMM_var(c::MC_Data,d::InsuranceLogit,p::Array{Float64},par_est::parDict
     ## Derivative of Moments wrt Parameters
     println("Moment Gradient")
     G = Matrix{Float64}(undef,c.par_length,c.mom_length)
-    moments = costMoments!(G,c,d,p,par_est)
-    # G = mom_gradient(p,par_est,m,costdf)
+    # moments = costMoments!(G,c,d,p,par_est)
+    G = mom_gradient(p,par_est,m,costdf)
 
     ## Calculate Variance
     Avar = inv(G*inv(S)*G')

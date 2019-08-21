@@ -198,67 +198,67 @@ moments= costMoments(costdf,m,par)
 #
 #
 # #### TEST FUNCTIONS ####
-# p =  vcat(rand(1)*.2,rand(2).*4,rand(1)*.2,rand(length(costdf._feIndex)).*3 .+1)
-# W = Matrix(1.0I,costdf.mom_length,costdf.mom_length)
-# # W = zeros(costdf.mom_length,costdf.mom_length)
-# # M2 = 1+ length(costdf.firmMoments) #+ length(costdf.metalMoments)-1 #+ length(costdf.ageMoments)-1
-# # M3 = length(costdf.firmMoments) + length(costdf.metalMoments)-1 #+ length(costdf.ageMoments)-1
-# # for i in M2:M3
-# #         W[i,i]=1.0
-# # end
-# p0 = est_init[3]
-#
-# p = fit_firm_moments(p0,par_est,m,costdf)
-# par = parMC(p,par_est,m,costdf)
-# individual_costs(m,par)
-# moments = costMoments(costdf,m,par)
-#
-# S,Σ,Δ,mom_long = aVar(costdf,m,p,par_est)
-# moments_test = moments_Avar(costdf,m,mom_long)
-# println("Test Moment Gradient Function")
-# println(maximum(abs.(moments_test-moments)))
-#
-#
-# grad2 = Vector{Float64}(undef,length(p))
-# hess2 = Matrix{Float64}(undef,length(p),length(p))
-# obj2 = GMM_objective!(hess2,grad2,p,par_est,m,costdf,W)
-#
-# grad3 = Vector{Float64}(undef,length(p))
-# obj3 = GMM_objective!(grad3,p,par_est,m,costdf,W)
-# println("Matching Derivative Functions")
-# println(obj2-obj3)
-# println(maximum(abs.(grad2-grad3)))
-#
-# # f_obj(x) = GMM_objective(x,par_est,m,costdf,W)
-# f_obj(x) = GMM_test(x,p,par_est,m,costdf,W)
-# p_test = p[1:5]
-# L = length(p_test)
-# fval = f_obj(p_test)
-# println(fval-obj2)
-#
-#
-# grad = Vector{Float64}(undef,length(p_test))
-# hess = Matrix{Float64}(undef,length(p_test),length(p_test))
-# println("Gradient")
-# ForwardDiff.gradient!(grad, f_obj, p_test)
-# println(maximum(abs.(grad-grad2[1:L])))
-# println("Hessian")
-# ForwardDiff.hessian!(hess, f_obj, p_test)
-# println(maximum(abs.(hess-hess2[1:L,1:L])))
-#
-#
-#
-# mom_grad1 = Matrix{Float64}(undef,costdf.par_length,costdf.mom_length)
-# mom_grad2 = Matrix{Float64}(undef,costdf.par_length,costdf.mom_length)
-# mom_hess = Array{Float64,3}(undef,costdf.par_length,costdf.par_length,costdf.mom_length)
-#
-# moments1 = costMoments!(mom_hess,mom_grad1,costdf,m,par)
-# moments2 = costMoments!(mom_grad2,costdf,m,par)
-# println("Matching Moment Derivatives")
-# println(maximum(abs.(moments1-moments2)))
-#
-# println(sum(moments.^2))
-# println(sum(moments.^4))
+p =  vcat(rand(1)*.2,rand(1).*4,rand(1)*.2,rand(length(costdf._feIndex)).*3 .+1)
+W = Matrix(1.0I,costdf.mom_length,costdf.mom_length)
+# W = zeros(costdf.mom_length,costdf.mom_length)
+# M2 = 1+ length(costdf.firmMoments) #+ length(costdf.metalMoments)-1 #+ length(costdf.ageMoments)-1
+# M3 = length(costdf.firmMoments) + length(costdf.metalMoments)-1 #+ length(costdf.ageMoments)-1
+# for i in M2:M3
+#         W[i,i]=1.0
+# end
+# p0 = p_stg2[1:3]
+
+p = fit_firm_moments(p[1:3],par_est,m,costdf)
+par = parMC(p,par_est,m,costdf)
+individual_costs(m,par)
+moments = costMoments(costdf,m,par)
+
+S,Σ,Δ,mom_long = aVar(costdf,m,p,par_est)
+moments_test = moments_Avar(costdf,m,mom_long)
+println("Test Moment Gradient Function")
+println(maximum(abs.(moments_test-moments)))
+
+
+grad2 = Vector{Float64}(undef,length(p))
+hess2 = Matrix{Float64}(undef,length(p),length(p))
+obj2 = GMM_objective!(hess2,grad2,p,par_est,m,costdf,W)
+
+grad3 = Vector{Float64}(undef,length(p))
+obj3 = GMM_objective!(grad3,p,par_est,m,costdf,W)
+println("Matching Derivative Functions")
+println(obj2-obj3)
+println(maximum(abs.(grad2-grad3)))
+
+# f_obj(x) = GMM_objective(x,par_est,m,costdf,W)
+f_obj(x) = GMM_test(x,p,par_est,m,costdf,W)
+p_test = p[1:5]
+L = length(p_test)
+fval = f_obj(p_test)
+println(fval-obj2)
+
+
+grad = Vector{Float64}(undef,length(p_test))
+hess = Matrix{Float64}(undef,length(p_test),length(p_test))
+println("Gradient")
+ForwardDiff.gradient!(grad, f_obj, p_test)
+println(maximum(abs.(grad-grad2[1:L])))
+println("Hessian")
+ForwardDiff.hessian!(hess, f_obj, p_test)
+println(maximum(abs.(hess-hess2[1:L,1:L])))
+
+
+
+mom_grad1 = Matrix{Float64}(undef,costdf.par_length,costdf.mom_length)
+mom_grad2 = Matrix{Float64}(undef,costdf.par_length,costdf.mom_length)
+mom_hess = Array{Float64,3}(undef,costdf.par_length,costdf.par_length,costdf.mom_length)
+
+moments1 = costMoments!(mom_hess,mom_grad1,costdf,m,par)
+moments2 = costMoments!(mom_grad2,costdf,m,par)
+println("Matching Moment Derivatives")
+println(maximum(abs.(moments1-moments2)))
+
+println(sum(moments.^2))
+println(sum(moments.^4))
 #
 # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
 # @load file est_stg2
