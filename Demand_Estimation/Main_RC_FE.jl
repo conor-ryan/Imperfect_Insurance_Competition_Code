@@ -12,13 +12,14 @@ include("InsChoiceData.jl")
 include("Halton.jl")
 
 # Random Coefficients MLE
-include("RandomCoefficients_nonzero.jl")
-include("RandomCoefficients_3der.jl")
+include("RandomCoefficients.jl")
+include("RandomCoefficients_der.jl")
 include("Contraction.jl")
 include("Log_Likehood.jl")
 include("RiskMoments.jl")
 include("Estimate_Basic.jl")
 include("utility.jl")
+include("DerivFunctions.jl")
 # include("Estimate_GMM.jl")
 include("Specification_Run.jl")
 # Load the Data
@@ -29,14 +30,14 @@ println("Code Loaded")
 P_mat = Matrix{Float64}(undef,20,4)
 #### General Specification ####
 
-halton_draws = 1000
+halton_draws = 100
 spec_demoRaw = [:AgeFE_31_39,
         :AgeFE_40_51,
         :AgeFE_52_64,
         :Family,
         :LowIncome]
-spec_prodchars=[:Price,:AV,:Big]
-spec_prodchars_0=[:Price,:AV,:Big]
+spec_prodchars=[:Price,:constant,:AV,:HighRisk,:Small,:High_small]
+spec_prodchars_0=[:Price,:AV,:HighRisk]
 
 rundate = Dates.today()
 # rundate = "2018-12-23"
@@ -47,7 +48,7 @@ spec1 = run_specification(df,df_mkt,df_risk,
                     haltonDim = halton_draws,
                     spec_demoRaw=spec_demoRaw,
                     spec_prodchars=spec_prodchars,
-                    spec_prodchars_0=[:AV,:Big],
+                    spec_prodchars_0=[:AV,:HighRisk],
                     spec_fixedEffects=[:Firm_Market_Cat])
 p_est, model, fval = spec1
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estresults_fe_rc_FMC_$rundate.jld2"

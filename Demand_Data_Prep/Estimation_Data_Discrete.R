@@ -196,9 +196,10 @@ acs_unins = acs_unins[,c("STATE","APP_RECORD_NUM","QUOTED_RATE","HOUSEHOLD_INCOM
                          "FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","ageRate","SMOKER","AREA","alloc", "Firm","PLAN_METAL_LEVEL","FPL","N",
                          "PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age","catas_elig")]
 
-fulldf = rbind(acs_unins,eHealth)
+
 
 ### Re-weight Choice Data
+fulldf = rbind(acs_unins,eHealth)
 acs[,Income_flag:=0]
 acs[HHincomeFPL>4,Income_flag:=1]
 acs[ST%in%c("MD","CT"),Income_flag:=1]
@@ -218,6 +219,11 @@ fulldf[,sampleSum:=sum(N),by=c("STATE","AREA","insured","Income_flag")]
 fulldf[,N:=(N/sampleSum)*totalWeight]
 fulldf = fulldf[N>0,]
 
+# ### Un Weighted Code
+# fulldf = eHealth
+# fulldf[,insured:=TRUE]
+# fulldf[,Income_flag:=0]
+# fulldf[is.na(FPL)|FPL>4,Income_flag:=1]
 
 #### Merge eHealth and Plan Data ####
 # Merge in eHealth data
@@ -519,7 +525,10 @@ choices = choices[,list(AGE = sum(AGE*N)/sum(N),
 #                 by.y=c("state","inc_cat","AGE_cat","mem_cat"),all.x=TRUE)
 # choices = merge(choices,non_unins,by.x=c("STATE","inc_cat","AGE_cat","mem_cat"),
 #                 by.y=c("state","inc_cat","AGE_cat","mem_cat"),all.x=TRUE)
-
+# 
+# 
+# choices[,S_ij:=Y/N]
+# choices[,S_raw_ij:=S_ij*(1-unins_rate)]
 
 
 choices[,S_raw_ij:= Y/N]
@@ -731,7 +740,7 @@ rm(gcf)
 
 #### Categorical Variables for Later Dummy Creation
 choices[,prodCat:="Low"]
-choices[METAL%in%c("GOLD","PLATINUM"),prodCat:="High"]
+choices[METAL%in%c("SILVER 87","SILVER 94","GOLD","PLATINUM"),prodCat:="High"]
 choices[,Firm_Market_Cat:=paste(Firm,Market,prodCat,sep="_")]
 choices[,Firm_Market:=paste(Firm,Market,sep="_")]
 choices[,Firm_Market_Age:=paste(Firm,Market,Age,sep="_")]
@@ -782,11 +791,11 @@ setkey(t1,METAL,LowIncome)
 insured = unique(choices[,c("Person","STATE","unins_rate","N","LowIncome")])
 insured = insured[,list(unins_rate=sum(unins_rate*N)/sum(N)),by=c("STATE","LowIncome")]
 
-test = acs[ST%in%choices$STATE,list(pop=sum(PERWT)),by=c("ST","insured","Income_flag")]
-test[,LowIncome:=1-Income_flag]
-test[,unins_acs:=pop/sum(pop),by=c("ST","LowIncome")]
-test = test[insured==FALSE]
-insured = merge(insured,test,by.x=c("STATE","LowIncome"),by.y=c("ST","LowIncome"))
+# test = acs[ST%in%choices$STATE,list(pop=sum(PERWT)),by=c("ST","insured","Income_flag")]
+# test[,LowIncome:=1-Income_flag]
+# test[,unins_acs:=pop/sum(pop),by=c("ST","LowIncome")]
+# test = test[insured==FALSE]
+# insured = merge(insured,test,by.x=c("STATE","LowIncome"),by.y=c("ST","LowIncome"))
 
 
 choices[,obs:=1]
