@@ -84,8 +84,8 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
 
     p_stg2 = fit_firm_moments(est_stg2[3],par_est,m,costdf,itrFirms=true)
     file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$spec-$rundate.jld2"
-    # @save file p_stg2 p_dem_est cost_spec spec_Dict
-    @load file p_stg2 p_dem_est cost_spec spec_Dict
+    @save file p_stg2 p_dem_est cost_spec spec_Dict
+    # @load file p_stg2 p_dem_est cost_spec spec_Dict
 
 
 
