@@ -234,8 +234,8 @@ function MC_Data(data_choice::DataFrame,
 
 
     ### Lengths
-    # mom_length = length(firmMoments)  + (length(metalMoments)-1) + (length(ageMoments)-1) + (length(agenoMoments)-1) + length(riskMoment)
-    mom_length = length(firmMoments)  + (length(metalMoments)-1) + (length(ageMoments)-1) + length(riskMoment) + length(raMoments)
+    # mom_length = length(firmMoments)  + (length(metalMoments)-1) + (length(ageMoments)-1) + length(riskMoment) + length(raMoments)
+    mom_length = length(firmMoments)  + (length(metalMoments)-1) + (length(ageMoments)-1) + length(riskMoment) 
     par_length = length(_baseIndex) + length(_riskIndex) + length(_feIndex)
 
     fePars = zeros(length(firmMoments))
@@ -542,10 +542,15 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
 
     tmom = transferMoment(c,d,p)
 
-    est_moments = vcat(fmom,mmom,nmom,rmom,tmom)
+    est_moments = vcat(fmom,mmom,nmom,rmom)
     targ_moments = vcat(c.firmMoments,c.metalMoments[2:length(c.metalMoments)],
-                    c.agenoMoments[2:length(c.agenoMoments)],c.riskMoment,c.raMoments)
+                    c.agenoMoments[2:length(c.agenoMoments)],c.riskMoment)
     return est_moments .- targ_moments
+
+    # est_moments = vcat(fmom,mmom,nmom,rmom,tmom)
+    # targ_moments = vcat(c.firmMoments,c.metalMoments[2:length(c.metalMoments)],
+    #                 c.agenoMoments[2:length(c.agenoMoments)],c.riskMoment,c.raMoments)
+    # return est_moments .- targ_moments
     # return est_moments,targ_moments
 end
 

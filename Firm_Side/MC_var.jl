@@ -302,21 +302,21 @@ function moments_Avar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{T}) wher
     rmom = HCC_avg/non_avg - c.riskMoment
 
     ## Total Risk Transfer Moments
-    T_total = 0
-    S_total = 0
-    for j in c._raMomentDict[1]
-        PC = cost_moments[num_prods*3 + j]/cost_moments[num_prods*2 + j]
-        AC = cost_moments[num_prods + j]/cost_moments[j]
-        S_j = cost_moments[j]
-        T_total+= S_j*(PC-AC)
-        S_total+= S_j
-    end
-    avgTransfer = (T_total/S_total)/10
-    tmom = avgTransfer - c.raMoments[1]
+    # T_total = 0
+    # S_total = 0
+    # for j in c._raMomentDict[1]
+    #     PC = cost_moments[num_prods*3 + j]/cost_moments[num_prods*2 + j]
+    #     AC = cost_moments[num_prods + j]/cost_moments[j]
+    #     S_j = cost_moments[j]
+    #     T_total+= S_j*(PC-AC)
+    #     S_total+= S_j
+    # end
+    # avgTransfer = (T_total/S_total)/10
+    # tmom = avgTransfer - c.raMoments[1]
 
 
-    # return vcat(fmom,mmom,amom,nmom,rmom)
-    return vcat(fmom,mmom,nmom,rmom,tmom)
+    return vcat(fmom,mmom,nmom,rmom)
+    # return vcat(fmom,mmom,nmom,rmom,tmom)
 end
 
 function Δavar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{Float64})

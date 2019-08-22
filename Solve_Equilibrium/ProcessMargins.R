@@ -75,13 +75,22 @@ firm_test[,share:=lives/sum(lives),by="ST"]
 firm_test[,avgTransfer:=avgCost-pooledCost]
 # firm_test[,target:=exp(logAvgCost)]
 prod_data[,MR:=P_obs-Mkup]
+## Best Fit MR
+res_std = prod_data[,glm(MR~MC_std,weights=lives)]
+res_RA = prod_data[,glm(MR~MC_RA,weights=lives)]
+summary(res_std)
+summary(res_RA)
+prod_data[,MR_fit_std:=predict(res_std)]
+prod_data[,MR_fit_RA:=predict(res_RA)]
+
 
 #### Plot Margin Check ####
 # png("Writing/Images/marginCheckBase.png",width=2000,height=1500,res=275)
-plot = ggplot(prod_data[,]) + aes(y=MR,x=MC_std) +
+plot = ggplot(prod_data[,]) + aes(y=MR,x=MC_std,size=lives) +
   geom_point() + 
   geom_abline(intercept=0,slope=1) + 
   geom_smooth(color="red",method="lm",se=FALSE) + 
+  geom_line(aes(y=MR_fit_std),color="blue") +
   # scale_x_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
   # scale_y_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
   # coord_cartesian(ylim=c(0,6)) +
@@ -102,7 +111,7 @@ print(plot)
 # dev.off()
 
 # png("Writing/Images/marginCheckRA.png",width=2000,height=1500,res=275)
-ggplot(prod_data[Metal_std!="PLATINUM",]) + aes(y=MR,x=MC_RA) +
+ggplot(prod_data[,]) + aes(y=MR,x=MC_RA,size=lives) +
   geom_point() + 
   geom_abline(intercept=0,slope=1) + 
   geom_smooth(color="red",method="lm",se=FALSE) + 
