@@ -245,7 +245,7 @@ function ChoiceData(data_choice::DataFrame,
     _stDict = Dict{Int,Array{Int64,1}}()
     if constMoments
 
-        for m in moments
+        for m in moments[1:5]
             _tMomentDict[m] = data_risk[:,:Product][findall(data_risk[:,:momentID].==m)]
             tMoments[m] = data_risk[:,:T_moment][findall(data_risk[:,:momentID].==m)][1]
         end

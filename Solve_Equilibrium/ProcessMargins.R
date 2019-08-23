@@ -111,10 +111,11 @@ print(plot)
 # dev.off()
 
 # png("Writing/Images/marginCheckRA.png",width=2000,height=1500,res=275)
-ggplot(prod_data[,]) + aes(y=MR,x=MC_RA,size=lives) +
+ggplot(prod_data[Metal_std=="GOLD",]) + aes(y=MR,x=MC_RA,size=lives) +
   geom_point() + 
   geom_abline(intercept=0,slope=1) + 
   geom_smooth(color="red",method="lm",se=FALSE) + 
+  geom_line(aes(y=MR_fit_RA),color="blue") +
   # scale_x_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
   # scale_y_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
   # coord_cartesian(ylim=c(0,8)) +

@@ -235,7 +235,7 @@ function MC_Data(data_choice::DataFrame,
 
     ### Lengths
     # mom_length = length(firmMoments)  + (length(metalMoments)-1) + (length(ageMoments)-1) + length(riskMoment) + length(raMoments)
-    mom_length = length(firmMoments)  + (length(metalMoments)-1) + (length(ageMoments)-1) + length(riskMoment) 
+    mom_length = length(firmMoments)  + (length(metalMoments)-1) + (length(ageMoments)-1) + length(riskMoment)
     par_length = length(_baseIndex) + length(_riskIndex) + length(_feIndex)
 
     fePars = zeros(length(firmMoments))

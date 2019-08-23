@@ -24,19 +24,15 @@ include("Firm_Inner_Loop.jl")
 # Load the Data
 include("MC_load.jl")
 
-df[:High_small] = df[:HighRisk].*df[:Small]
+rundate = "2019-08-21"
+spec = "FMC"
 
 
 #### Load Demand Estimation Results ####
-rundate = "2019-08-12"
-spec = "FMC"
-# resDF = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_$rundate.csv")
-# p_est = Float64.(resDF[:pars])
-# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estimationresults_stage2_$rundate.jld2"
-# @load file p_stg2
+println("Rebuild Demand Model...")
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_$spec-$rundate-stg2.jld2"
 @load file p_stg2 spec_Dict
-p_est = copy(p_stg2)
+p_dem_est = copy(p_stg2)
 
 
 #### Build Model ####
@@ -59,15 +55,15 @@ if length(p_stg2)!=m.parLength[:All]
 end
 
 #### Compute Demand Estimation
-par_est = parDict(m,p_est,no2Der=true)
+par_est = parDict(m,p_dem_est,no2Der=true)
 individual_values!(m,par_est)
 individual_shares(m,par_est)
 
 
 
 
-r,t = calc_risk_moments(m,par_est)
-println("Risk Moments are $r,\n $t")
+# r,t = calc_risk_moments(m,par_est)
+# println("Risk Moments are $r,\n $t")
 
 #### Cost Data ####
 costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk,mom_ra;
@@ -91,11 +87,10 @@ println("#################")
 println("#################")
 
 W = Matrix(1.0I,costdf.mom_length,costdf.mom_length)
-# p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2,rand(length(costdf._feIndex)).*3 .+1)
-# est_stg1 = estimate_GMM(p0,par_est,m,costdf,W,fit=true)
-# incase = est_stg1
+W[1:85,1:85].=0.0
+p0 = vcat(rand(3)*.2)
+p0[2] = rand()*3+1
 
-p0 = vcat(rand(1)*.2,rand(1).*2,rand(1)*.2)
 est_init = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4,max_itr=100)
 est_stg1 = estimate_NLOpt(est_init[3],par_est,m,costdf,W,itrFirms=true)
 # #
@@ -108,38 +103,31 @@ file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermed
 # p_stg1, fval = est_stg1
 flag,fval,p_stg1 = est_stg1
 #
-# p_test = fit_firm_moments(p_stg1[1:4],par_est,m,costdf)
+p_test = fit_firm_moments(p_stg1,par_est,m,costdf,itrFirms=true)
+
+par = parMC(p_test,par_est,m,costdf)
+individual_costs(m,par)
+moments= costMoments(costdf,m,par)
 
 println("#################")
 println("#################")
 println("###### Estimation 2 #######")
 println("#################")
 println("#################")
-# p_stg1 = [0.313535, -2.57428, 0.62655, 0.140377]
-p_full1 = fit_firm_moments(p_stg1,par_est,m,costdf)
-S,Σ,Δ,mom_long = aVar(costdf,m,p_full1,par_est)
-# S,Σ,Δ,mom_long = aVar(costdf,m,p_stg1,par_est)
-# W = zeros(costdf.mom_length,costdf.mom_length)
-# for i in 1:costdf.mom_length
-#     W[i,i] = 1/S[i,i]
-# end
-W = inv(S)
-# S,S_unwt,mom_est = var_bootstrap(costdf,m,p_stg1,par_est,draw_num=5000)
-# W = inv(S)
 
-p0 = vcat(rand(1)*.2,rand(1).*1,rand(1)*.2)
-# # p0 = [0.0152152, 2.42283, -0.21084, 0.154506]
+p_full1 = fit_firm_moments(p_stg1,par_est,m,costdf,itrFirms=true)
+S,Σ,Δ,mom_long = aVar(costdf,m,p_full1,par_est)
+S_diag = Matrix(Diagonal(diag(S)))
+W = Matrix(Diagonal(diag(inv(S_diag))))
+W[1:85,1:85].=0.0
+
+p0 = vcat(rand(3)*.2)
+p0[2] = rand()*3+1
+
 est_stg2 = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4,max_itr=100)
 est_stg2 = estimate_NLOpt(est_stg2[3],par_est,m,costdf,W,itrFirms=true)
-# x1,x2,p_init = est_stg2
-# p_full = fit_firm_moments(p_init,par_est,m,costdf)
 
-# p0 = vcat(rand(1)*.2,rand(2).*4,rand(1)*.2,rand(length(costdf._feIndex)).*3 .+1)
-# est_stg2 = estimate_GMM(p0,par_est,m,costdf,W,max_ga_itr=45,fit=true)
-# p_stg2, fval = est_stg2
 
-# GMM_objective(p_fit,par_est,m,costdf,W,squared=true)
-#
 
 p_stg2 = fit_firm_moments(est_stg2[3],par_est,m,costdf,itrFirms=true)
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"

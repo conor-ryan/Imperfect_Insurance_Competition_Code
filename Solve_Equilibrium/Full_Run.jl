@@ -16,8 +16,8 @@ spec_demoRaw = [:AgeFE_31_39,
         :AgeFE_52_64,
         :Family,
         :LowIncome]
-spec_prodchars=[:Price,:constant,:AV,:HighRisk,:Small,:High_small]
-spec_prodchars_0=[:constant,:AV,:HighRisk,:Small,:High_small]
+spec_prodchars=[:Price,:constant,:AV]
+spec_prodchars_0=[:constant,:AV]
 
 
 cost_spec = [:AvgAge,:AV]
@@ -51,12 +51,12 @@ include("$codeDir/Demand_Estimation/utility.jl")
 include("$codeDir/Demand_Estimation/Specification_Run.jl")
 
 filename = "GMM_Estimate_$spec"
-# estimate_demand(filename,rundate,
-#                     halton_draws,
-#                     spec_demoRaw,
-#                     spec_prodchars,
-#                     spec_prodchars_0,
-#                     spec_fixedEffects)
+estimate_demand(filename,rundate,
+                    halton_draws,
+                    spec_demoRaw,
+                    spec_prodchars,
+                    spec_prodchars_0,
+                    spec_fixedEffects)
 
 
 println("##### Estimation Marginal Cost #####")
