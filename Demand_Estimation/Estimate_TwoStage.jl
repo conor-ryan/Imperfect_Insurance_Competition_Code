@@ -63,7 +63,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
     # grad_size = maximum(abs.(grad_new))
     # println(grad_size)
 
-    p_vec,fe_itrs,H_save = reOpt_FE(d,p_vec,max_itr=500)
+    # p_vec,fe_itrs,H_save = reOpt_FE(d,p_vec,max_itr=500)
     println("Gradient Pre-Conditioning")
     # p_vec, f_test,ga_conv = ga_twostage(d,p_vec,W,par_ind,max_itr=30,strict=false,Grad_Skip_Steps=2)
 
