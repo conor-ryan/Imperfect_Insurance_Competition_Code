@@ -62,7 +62,7 @@ firmClaims = merge(firmClaims,firmFilings,by.x=c("ST","Firm"),by.y=c("STATE","Fi
 
 
 # Expecatation Adjustment
-# firmClaims[!is.na(expFirmCost)&Year==2017,sum(EXP_MM*expFirmCost)/sum(EXP_MM)/(sum(MLR_lives*AvgCost)/sum(MLR_lives)),by="ST"]
+# firmClaims[!is.na(expAvgCost)&expAvgCost>5,sum(EXP_MM_WK1*expAvgCost)/sum(EXP_MM_WK1)/(sum(MLR_lives*AvgCost)/sum(MLR_lives))]
 prj_adj=firmClaims[!is.na(prjAvgCost),sum(PRJ_MM_WK1*prjAvgCost)/sum(PRJ_MM_WK1)/(sum(MLR_lives*AvgCost)/sum(MLR_lives))]
 firmClaims[is.na(prjAvgCost),prjAvgCost:=AvgCost*prj_adj]
 
@@ -79,11 +79,15 @@ firmClaims$M_num = 1:nrow(firmClaims)
 
 ### Bronze Cost Ratio
 load("Intermediate_Output/Average_Claims/allMetalFilings.rData")
-metalAvg[METAL=="BRONZE",bronzeCost:=expAvgCost]
+metalAvg[METAL=="BRONZE",bronzeCost:=prjAvgCost]
 metalAvg[,bronzeCost:=max(bronzeCost,na.rm=TRUE),by=c("STATE","MARKET","COMPANY","Year")]
 metalAvg[bronzeCost<=0,bronzeCost:=NA]
-metalAvg[!is.na(bronzeCost),costRatio:=expAvgCost/bronzeCost]
-metalAvg = metalAvg[!is.na(costRatio),list(costIndex=sum(costRatio*EXP_MM)/sum(EXP_MM)),by=c("METAL","Year")]
+metalAvg[!is.na(bronzeCost),costRatio:=prjAvgCost/bronzeCost]
+metalAvg[,max_ratio:=max(costRatio),by=c("STATE","MARKET","COMPANY","Year")]
+metalAvg = metalAvg[max_ratio>1.05,]
+
+metalAvg[,firmSize:=sum(PRJ_MM),by=c("STATE","MARKET","COMPANY","Year")]
+metalAvg = metalAvg[!is.na(costRatio),list(costIndex=sum(costRatio*firmSize)/sum(firmSize)),by=c("METAL","Year")]
 metalAvg = metalAvg[METAL!="CATASTROPHIC"&Year=="2016",c("METAL","costIndex")]
 
 # metalAvg[METAL=="BRONZE",bronzeCost:=expAvgCost]

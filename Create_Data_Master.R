@@ -1,6 +1,8 @@
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
 
-
+###### Choice Set ######
+rm(list=ls())
+source("Code/2015_Premiums/ChoiceSets.R")
 
 ###### Base Demand Data ######
 rm(list=ls())

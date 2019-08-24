@@ -75,6 +75,8 @@ risk_test[,costDev:=expAvgCost - sum(expAvgCost*EXP_MM)/sum(EXP_MM),by=c("STATE"
 
 ### Save Metal Avg Costs ###
 metalAvg = filings[EXP_MM>0,list(expAvgCost=sum(expAvgCost*EXP_MM)/sum(EXP_MM),EXP_MM=sum(EXP_MM)),by=c("METAL","STATE","MARKET","COMPANY","Year")]
+metalAvg2 = filings[PRJ_MM>0,list(prjAvgCost=sum(prjAvgCost*PRJ_MM)/sum(PRJ_MM),PRJ_MM=sum(PRJ_MM)),by=c("METAL","STATE","MARKET","COMPANY","Year")]
+metalAvg = merge(metalAvg,metalAvg2,by=c("METAL","STATE","MARKET","COMPANY","Year"))
 save(metalAvg,file="Intermediate_Output/Average_Claims/allMetalFilings.rData")
 
 

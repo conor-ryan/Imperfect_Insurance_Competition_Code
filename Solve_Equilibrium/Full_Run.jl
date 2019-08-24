@@ -16,8 +16,8 @@ spec_demoRaw = [:AgeFE_31_39,
         :AgeFE_52_64,
         :Family,
         :LowIncome]
-spec_prodchars=[:Price,:constant,:AV]
-spec_prodchars_0=[:constant,:AV]
+spec_prodchars=[:Price,:constant,:AV,:HighRisk,:Small,:High_small]
+spec_prodchars_0=[:constant,:AV,:HighRisk,:Small,:High_small]
 
 
 cost_spec = [:AvgAge,:AV]
@@ -26,6 +26,7 @@ rundate = Dates.today()
 println("Running on $rundate")
 spec = "FMC"
 spec_fixedEffects=[:Firm_Market_Cat]
+# rundate = "2019-08-21"
 
 println("##### Estimate Demand #####")
 println("Load Demand Estimation Code...")

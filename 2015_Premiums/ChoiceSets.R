@@ -276,8 +276,8 @@ comb$premRank = ave(comb$PREMI27,with(comb,paste(ST,AREA,Firm,METAL)),
                     FUN=function(x){return(rank(x,ties.method="first"))})
 comb$medRank = floor(ave(comb$premRank,with(comb,paste(ST,AREA,Firm,METAL)),FUN=median))
 
-choiceSet = comb[comb$premRank==comb$medRank,]
-
+# choiceSet = comb[comb$premRank==comb$medRank,]
+choiceSet = comb[comb$premRank==1,]
 
 #### HIX Silver Benchmark ####
 hixSilver = comb[with(comb,PLANMARKET%in%c(1,3)&METAL=="Silver"),]

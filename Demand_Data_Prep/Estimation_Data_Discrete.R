@@ -931,7 +931,7 @@ write.csv(choices[,c("Person","Firm","Market","Product","S_ij","S_raw_ij","N","P
                      "PriceDiff",#"MedDeductDiff","ExcOOPDiff","HighDiff",
                      "MedDeduct","ExcOOP","High","AV","AV_old","HighRisk","Small","High_small",
                      "Family","Age","LowIncome","AGE","HighIncome","IncomeCts",
-                     "METAL",
+                     "METAL","Catas",
                      "ageRate_avg","HCC_age","SilvHCC_Age",
                      "mean_HCC_Platinum","mean_HCC_Gold","mean_HCC_Silver","mean_HCC_Bronze","mean_HCC_Catastrophic",
                      "Rtype","Any_HCC",

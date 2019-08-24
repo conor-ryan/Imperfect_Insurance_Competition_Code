@@ -7,8 +7,8 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 
 ## Estimation Run 
-run = "2019-08-11"
-spec = "Firm"
+run = "2019-08-21"
+spec = "FMC"
 
 #Load Product Data
 predFile = paste("Simulation_Risk_Output/prodData.rData",sep="")
@@ -86,14 +86,14 @@ prod_data[,MR_fit_RA:=predict(res_RA)]
 
 #### Plot Margin Check ####
 # png("Writing/Images/marginCheckBase.png",width=2000,height=1500,res=275)
-plot = ggplot(prod_data[,]) + aes(y=MR,x=MC_std,size=lives) +
-  geom_point() + 
+plot = ggplot(prod_data[,]) + aes(y=MR,x=MC_std) +
+  geom_point(size=1.5,alpha=0.5) + 
   geom_abline(intercept=0,slope=1) + 
   geom_smooth(color="red",method="lm",se=FALSE) + 
   geom_line(aes(y=MR_fit_std),color="blue") +
   # scale_x_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
   # scale_y_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
-  # coord_cartesian(ylim=c(0,6)) +
+  coord_cartesian(ylim=c(-250,500),xlim=c(0,1500)) +
   ylab("Marginal Revenue") + 
   xlab("Marginal Cost") + 
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
@@ -111,14 +111,14 @@ print(plot)
 # dev.off()
 
 # png("Writing/Images/marginCheckRA.png",width=2000,height=1500,res=275)
-ggplot(prod_data[Metal_std=="GOLD",]) + aes(y=MR,x=MC_RA,size=lives) +
-  geom_point() + 
+ggplot(prod_data[,]) + aes(y=premBase,x=MC_RA) +
+  geom_point(size=1.5,alpha=0.5) + 
   geom_abline(intercept=0,slope=1) + 
   geom_smooth(color="red",method="lm",se=FALSE) + 
   geom_line(aes(y=MR_fit_RA),color="blue") +
   # scale_x_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
   # scale_y_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
-  # coord_cartesian(ylim=c(0,8)) +
+  coord_cartesian(ylim=c(-250,500),xlim=c(0,1500)) +
   xlab("Marginal Cost") + 
   ylab("Marginal Revenue") + 
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),

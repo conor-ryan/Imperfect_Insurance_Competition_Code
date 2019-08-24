@@ -122,7 +122,7 @@ W = Matrix(Diagonal(diag(inv(S_diag))))
 W[1:85,1:85].=0.0
 
 p0 = vcat(rand(3)*.2)
-p0[2] = rand()*3+1
+p0[2] = rand()*2+1
 
 est_stg2 = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4,max_itr=100)
 est_stg2 = estimate_NLOpt(est_stg2[3],par_est,m,costdf,W,itrFirms=true)
