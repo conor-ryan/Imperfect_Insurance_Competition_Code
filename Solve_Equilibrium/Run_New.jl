@@ -225,9 +225,9 @@ println(maximum(abs.(firm.dCdp_pl_j[1,ind] - dPC[ind])))
 #
 #
 #
-# using Profile
-# Profile.init(n=10^8,delay=.001)
-# Profile.clear()
-# Juno.@profile evaluate_model!(model,firm)
-# Juno.profiletree()
-# Juno.profiler()
+using Profile
+Profile.init(n=10^8,delay=.001)
+Profile.clear()
+Juno.@profile evaluate_model!(model,firm)
+Juno.profiletree()
+Juno.profiler()

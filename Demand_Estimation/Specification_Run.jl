@@ -214,13 +214,15 @@ function run_specification_GMM(filename::String,
     println(W[mom_pars,mom_pars])
 
     ## Estimate
-    flag = ""
-    p_stg2 = similar(p0)
-    obj_2 = 0.0
-    while flag!="converged"
-        p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
-        p_stg2, obj_2, flag = two_stage_est(m_GMM,p0,W)
-    end
+    # flag = ""
+    # p_stg2 = similar(p0)
+    # obj_2 = 0.0
+    # while flag!="converged"
+    #     p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
+    #     p_stg2, obj_2, flag = two_stage_est(m_GMM,p0,W)
+    # end
+    p_stg2 = copy(p_stg1)
+    obj_2 = copy(obj_1)
     println("Save Second Stage Result")
     file = "$filename-$rundate-stg2.jld2"
     @save file p_stg2 obj_2 spec_Dict
