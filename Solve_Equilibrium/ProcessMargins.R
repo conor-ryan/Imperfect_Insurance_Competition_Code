@@ -7,7 +7,7 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 
 ## Estimation Run 
-run = "2019-08-21"
+run = "2019-08-25"
 spec = "FMC"
 
 #Load Product Data
@@ -76,12 +76,12 @@ firm_test[,avgTransfer:=avgCost-pooledCost]
 # firm_test[,target:=exp(logAvgCost)]
 prod_data[,MR:=P_obs-Mkup]
 ## Best Fit MR
-res_std = prod_data[,glm(MR~MC_std,weights=lives)]
-res_RA = prod_data[,glm(MR~MC_RA,weights=lives)]
+res_std = prod_data[!ST%in%c("MD"),glm(MR~MC_std,weights=lives)]
+res_RA = prod_data[!ST%in%c("MD"),glm(MR~MC_RA,weights=lives)]
 summary(res_std)
 summary(res_RA)
-prod_data[,MR_fit_std:=predict(res_std)]
-prod_data[,MR_fit_RA:=predict(res_RA)]
+prod_data[!ST%in%c("MD"),MR_fit_std:=predict(res_std)]
+prod_data[!ST%in%c("MD"),MR_fit_RA:=predict(res_RA)]
 
 
 #### Plot Margin Check ####
@@ -93,7 +93,7 @@ plot = ggplot(prod_data[,]) + aes(y=MR,x=MC_std) +
   geom_line(aes(y=MR_fit_std),color="blue") +
   # scale_x_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
   # scale_y_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
-  coord_cartesian(ylim=c(-250,500),xlim=c(0,1500)) +
+  # coord_cartesian(ylim=c(-250,500),xlim=c(0,1500)) +
   ylab("Marginal Revenue") + 
   xlab("Marginal Cost") + 
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
@@ -111,14 +111,14 @@ print(plot)
 # dev.off()
 
 # png("Writing/Images/marginCheckRA.png",width=2000,height=1500,res=275)
-ggplot(prod_data[,]) + aes(y=premBase,x=MC_RA) +
+ggplot(prod_data[,]) + aes(y=MR,x=MC_RA) +
   geom_point(size=1.5,alpha=0.5) + 
   geom_abline(intercept=0,slope=1) + 
   geom_smooth(color="red",method="lm",se=FALSE) + 
   geom_line(aes(y=MR_fit_RA),color="blue") +
   # scale_x_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
   # scale_y_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
-  coord_cartesian(ylim=c(-250,500),xlim=c(0,1500)) +
+  # coord_cartesian(ylim=c(-250,500),xlim=c(0,1500)) +
   xlab("Marginal Cost") + 
   ylab("Marginal Revenue") + 
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),

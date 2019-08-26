@@ -325,15 +325,24 @@ choices[STATE=="UT",benchBase:=bench27/1.39]
 # 2015 FPL Calculation - Individual Only
 # choices$FPL = with(choices,HOUSEHOLD_INCOME/(11770 + (MEMBERS-1)*4160))
 
+### Get Subsidy and Age Rating from eHealth
+# choices[Y==1&!is.na(QUOTED_RATE),ageRate_eh:=QUOTED_RATE/premBase]
+# choices[,ageRate_eh:=max(ageRate_eh,na.rm=TRUE),by="APP_RECORD_NUM"]
+# choices[ageRate_eh<0,ageRate_eh:=NA]
+
+
 # Calculate Rated Subsidy
 choices$Benchmark = with(choices,benchBase*ageRate)
 choices$HHcont = subsPerc(choices$FPL)
-choices$subsidy = pmax(with(choices,Benchmark - HHcont*HOUSEHOLD_INCOME/12),0)
+# choices[,subsidy:=FFM_APTC_AMOUNT]
+# choices[is.na(subsidy),subsidy:=pmax(Benchmark - HHcont*HOUSEHOLD_INCOME/12,0)]
+# choices[,subsidy:=0]
+
 
 # If HOUSEHOLD_INCOME is missing, but there is a subsidy observation, take it as true subsidy. 
+choices$subsidy = pmax(with(choices,Benchmark - HHcont*HOUSEHOLD_INCOME/12),0)
 choices$subsidy[is.na(choices$subsidy)] = choices$FFM_APTC_AMOUNT[is.na(choices$subsidy)]
 choices$subsidy[is.na(choices$subsidy)] = 0
-
 
 #### Impute Income ####
 choices$IncCont = with(choices,Benchmark-subsidy)
@@ -855,8 +864,8 @@ choices = choices[choices$Product%in%shares$Product,]
 
 
 #### Clean and Print ####
-#choices$Price = (choices$PremPaid*12-choices$Mandate)/1000
-choices$Price = (choices$PremPaid*12)/1000
+choices$Price = (choices$PremPaid*12-choices$Mandate)/1000
+# choices$Price = (choices$PremPaid*12)/1000
 choices$PriceDiff = (choices$PremPaidDiff*12)/1000
 choices$MedDeduct = choices$MedDeduct/1000
 choices$MedDeductDiff = choices$MedDeductDiff/1000

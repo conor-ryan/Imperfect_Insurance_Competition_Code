@@ -65,6 +65,7 @@ indMarket[,MLR:=Cost/Revenue]
 
 #### Evidence for Across Firm Selection ####
 indMarket[,risk_pmpm:=Payments1/Enrollment]
+indMarket[,rev_pmpm:=Revenue/Enrollment]
 indMarket[,prem_pmpm:=Premiums/Enrollment]
 indMarket[,claims_pmpm:=Cost/Enrollment]
 indMarket[prem_pmpm<=0,prem_pmpm:=NA]

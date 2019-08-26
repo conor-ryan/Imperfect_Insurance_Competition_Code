@@ -39,17 +39,19 @@ for i in 1:4
     println("Risk type $i: $perc")
 end
 
+df[:unins_test] = 0.0
 
 #Structure the data
 c = ChoiceData(df,df_mkt,df_risk;
-    demoRaw=[:AgeFE_31_39,
-            :AgeFE_40_51,
-            :AgeFE_52_64,
-            :Family,
-            :LowIncome],
-    # demoRaw=Vector{Symbol}(undef,0),
+    # demoRaw=[:AgeFE_31_39,
+    #         :AgeFE_40_51,
+    #         :AgeFE_52_64,
+    #         :Family,
+    #         :LowIncome],
+    demoRaw=Vector{Symbol}(undef,0),
     prodchars=[:Price,:constant,:AV,:HighRisk,:Small,:High_small],
-    prodchars_0=[:constant,:AV,:HighRisk,:Small,:High_small],
+    prodchars_0=[:AV,:HighRisk,:Small,:High_small],
+    unins = [:unins_test]
     # prodchars_0=Vector{Symbol}(undef,0),
     fixedEffects=[:Firm])
 
@@ -76,7 +78,9 @@ p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 
 W = Matrix(1.0I,length(p0)+length(m.data.tMoments),length(p0)+length(m.data.tMoments))
 
-# two_stage_est(m,p0,W)
+res = two_stage_est(m,p0,W)
+
+
 # # ll = log_likelihood(m,par0)
 rundate = "2019-08-08"
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_Firm-$rundate-stg2.jld2"

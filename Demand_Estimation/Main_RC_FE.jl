@@ -36,8 +36,8 @@ spec_demoRaw = [:AgeFE_31_39,
         :AgeFE_52_64,
         :Family,
         :LowIncome]
-spec_prodchars=[:Price,:constant,:AV,:HighRisk,:Small,:High_small]
-spec_prodchars_0=[:Price,:AV,:HighRisk]
+spec_prodchars=[:Price,:constant,:AV]
+spec_prodchars_0=[:Price,:AV]
 
 rundate = Dates.today()
 # rundate = "2018-12-23"
@@ -48,7 +48,7 @@ spec1 = run_specification(df,df_mkt,df_risk,
                     haltonDim = halton_draws,
                     spec_demoRaw=spec_demoRaw,
                     spec_prodchars=spec_prodchars,
-                    spec_prodchars_0=[:AV,:HighRisk],
+                    spec_prodchars_0=[:constant],
                     spec_fixedEffects=[:Firm_Market_Cat])
 p_est, model, fval = spec1
 file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/estresults_fe_rc_FMC_$rundate.jld2"

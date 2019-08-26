@@ -28,7 +28,8 @@ include("FirmFunctions.jl")
 include("EQ_load.jl")
 
 
-rundate = "2019-07-27"
+rundate = "2019-08-25"
+spec = "FMC"
 mark_the_output_date = Dates.today()
 println("Running spec $rundate on $mark_the_output_date")
 
@@ -150,6 +151,16 @@ solveMain(model,firm,file)
 
 
 ####### TESTING GROUND #####
+age_long = firm[:ageRate]
+mem_long = firm[:MEMBERS]
+alpha_long = par_dem.β_0[1] .+ par_dem.β[1,:]'*demoRaw(model.data)
+price_long = prodchars(model.data)[1,:]
+elas = Vector{Float64}(undef,length(alpha_long))
+for i in 1:length(elas)
+    elas[i] = age_long[i]/mem_long[i]*alpha_long[i]*price_long[i]*(1 - par_dem.s_hat[i])
+end
+
+
 # using PyPlot
 #
 firm = firmData(model,df,eq_mkt,par_dem,par_cost)

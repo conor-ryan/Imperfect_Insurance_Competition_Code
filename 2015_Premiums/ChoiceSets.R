@@ -275,9 +275,11 @@ comb$count_all = ave(comb$count,with(comb,paste(ST,AREA)),FUN=sum)
 comb$premRank = ave(comb$PREMI27,with(comb,paste(ST,AREA,Firm,METAL)),
                     FUN=function(x){return(rank(x,ties.method="first"))})
 comb$medRank = floor(ave(comb$premRank,with(comb,paste(ST,AREA,Firm,METAL)),FUN=median))
+comb$maxRank = floor(ave(comb$premRank,with(comb,paste(ST,AREA,Firm,METAL)),FUN=max))
 
 # choiceSet = comb[comb$premRank==comb$medRank,]
 choiceSet = comb[comb$premRank==1,]
+choiceSet_max = comb[comb$premRank==comb$maxRank,]
 
 #### HIX Silver Benchmark ####
 hixSilver = comb[with(comb,PLANMARKET%in%c(1,3)&METAL=="Silver"),]
@@ -349,6 +351,9 @@ choiceSet$valid = with(choiceSet,paste(ST,AREA))%in%with(validAreas,paste(ST,ARE
 
 write.csv(choiceSet[,c("ST","AREA","Firm","METAL","PREMI27","MedDeduct","MedOOP","MedDeductFam","MedOOPFam","hix","valid","count_hix_prod")],
           "Intermediate_Output/Premiums/choiceSets2015.csv",row.names=FALSE)
+
+write.csv(choiceSet_max[,c("ST","AREA","Firm","METAL","PREMI27")],
+          "Intermediate_Output/Premiums/choiceSets2015_maxPrems.csv",row.names=FALSE)
 
 
 # ##### Check to what we've got left #####

@@ -481,7 +481,7 @@ function solve_equilibrium(rundate,spec)
     println("Loading Data...")
     include("EQ_load.jl")
 
-    df[:High_small] = df[:HighRisk].*df[:Small]
+    # df[:High_small] = df[:HighRisk].*df[:Small]
 
     mark_the_output_date = Dates.today()
     println("Running spec $rundate on $mark_the_output_date")
