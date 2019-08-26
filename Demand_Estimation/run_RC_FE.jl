@@ -51,7 +51,7 @@ c = ChoiceData(df,df_mkt,df_risk;
     demoRaw=Vector{Symbol}(undef,0),
     prodchars=[:Price,:constant,:AV,:HighRisk,:Small,:High_small],
     prodchars_0=[:AV,:HighRisk,:Small,:High_small],
-    unins = [:unins_test]
+    unins = [:unins_test],
     # prodchars_0=Vector{Symbol}(undef,0),
     fixedEffects=[:Firm])
 
