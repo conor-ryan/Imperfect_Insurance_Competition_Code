@@ -239,7 +239,7 @@ function ChoiceData(data_choice::DataFrame,
     # Construct Risk Moments
     println("Construct Risk Moments")
     _tMomentDict = Dict{Int,Array{Int64,1}}()
-    moments = sort(unique(data_risk[:,:momentID]))[1:5]
+    moments = sort(unique(data_risk[:,:momentID]))
     tMoments = Vector{Float64}(undef,length(moments))
     st_share = zeros(length(keys(_productDict)))
     _stDict = Dict{Int,Array{Int64,1}}()
