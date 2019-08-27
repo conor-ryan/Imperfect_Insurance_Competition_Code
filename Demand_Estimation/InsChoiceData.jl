@@ -356,7 +356,7 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};
         L+=num_effects
     end
 
-    F = zeros(n,L)
+    F = zeros(n,L+5)
     feNames = Vector{Symbol}(undef,0)
     ind = 1
     for fe in fe_list
