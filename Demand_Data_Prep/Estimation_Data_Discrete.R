@@ -751,7 +751,9 @@ rm(gcf)
 choices[,prodCat:="Low"]
 choices[METAL%in%c("SILVER 87","SILVER 94","GOLD","PLATINUM"),prodCat:="High"]
 choices[,Firm_Market_Cat:=paste(Firm,Market,prodCat,sep="_")]
+choices[,Firm_ST_Cat:=paste(Firm,STATE,prodCat,sep="_")]
 choices[,Firm_Market:=paste(Firm,Market,sep="_")]
+choices[,Firm_ST:=paste(Firm,STATE,sep="_")]
 choices[,Firm_Market_Age:=paste(Firm,Market,Age,sep="_")]
 choices[,Firm_Market_Cat_Age:=paste(Firm,Market,prodCat,Age,sep="_")]
 
@@ -810,7 +812,7 @@ insured = insured[,list(unins_rate=sum(unins_rate*N)/sum(N)),by=c("STATE","LowIn
 choices[,obs:=1]
 shares = choices[,list(enroll=sum(S_raw_ij*N),obs=sum(S_raw_ij*obs)),by=c("Product","Firm","Market","STATE","METAL",
                                                                   "Gamma_j","AV",
-                                                                  "Firm_Market_Cat","MedDeduct","MedOOP","High","premBase")]
+                                                                  "Firm_ST_Cat","MedDeduct","MedOOP","High","premBase")]
 markets = unique(choices[,c("Person","STATE","Market","N")])
 markets=markets[,list(size=sum(N)),by=c("Market","STATE")]
 
@@ -822,22 +824,23 @@ shares[,Share:=enroll/size]
 
 
 
-firmShares = choices[,list(enroll=sum(S_raw_ij*N)),by=c("Firm","Market")]
-firmShares[,lives:=sum(enroll),by="Market"]
+firmShares = choices[,list(enroll=sum(S_raw_ij*N)),by=c("Firm","STATE")]
+firmShares[,lives:=sum(enroll),by="STATE"]
 firmShares[,share:= enroll/lives]
 
 
 absent = firmShares[firmShares$share==0,]
 
 #Drop all firms that are absent in that market
-shares = shares[!with(shares,paste(Firm,Market))%in%with(absent,paste(Firm,Market)),]
+shares = shares[!with(shares,paste(Firm,STATE))%in%with(absent,paste(Firm,STATE)),]
 #Drop markets with less than 10 observations
 # One market in Illinois. and older ages in MI. May need to re-add
 shares[,all_obs:=sum(obs),by="Market"]
 shares = shares[shares$all_obs>10,]
 #Drop Products with 0 market share
-shares = shares[shares$s_inside>0,]
-
+# shares = shares[shares$s_inside>0,]
+shares[,cat_share:=sum(s_inside),by=c("Firm_ST_Cat")]
+shares = shares[cat_share>0,]
 #Drop TX market with only one plan pruchased
 shares = shares[Market!="TX_1_94_1",]
 
@@ -936,7 +939,7 @@ setkey(choices,Person,Product)
 setkey(shares,Product)
 
 write.csv(choices[,c("Person","Firm","Market","Product","S_ij","S_raw_ij","N","Price",
-                     "Firm_Market","Firm_Market_Cat","Firm_Market_Age","Firm_Market_Cat_Age",
+                     "Firm_Market","Firm_ST","Firm_Market_Cat","Firm_ST_Cat","Firm_Market_Age","Firm_Market_Cat_Age",
                      "PriceDiff",#"MedDeductDiff","ExcOOPDiff","HighDiff",
                      "MedDeduct","ExcOOP","High","AV","AV_old","HighRisk","Small","High_small",
                      "Family","Age","LowIncome","AGE","HighIncome","IncomeCts",

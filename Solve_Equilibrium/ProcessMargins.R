@@ -43,12 +43,44 @@ share_moment[,unins_rate:=1-sum(Share),by="Market"]
 
 prod_data = merge(prod_data,share_moment[,c("Product_std","unins_rate","Share")],by.x=c("Product"),by.y="Product_std",all=TRUE)
 
-prod_data[,plot(share_base,Share)]
 prod_data[,unins_base:=1-sum(share_base),by="Market"]
 unins_test = prod_data[,list(unins_base=1-sum(share_base)),by=c("Market","size","unins_rate")]
 
-unins_test[,plot(unins_base,unins_rate)]
+ggplot(unins_test) + aes(y=unins_rate,x=unins_base) +
+  geom_point(size=1.5,alpha=0.5) + 
+  geom_abline(intercept=0,slope=1) + 
+  geom_smooth(color="red",method="lm",se=FALSE) + 
+  ylab("Data") + 
+  xlab("Prediction") + 
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    #panel.grid.major = element_line(color=grey(.8)),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title=element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "none",
+    axis.title=element_text(size=14),
+    axis.text = element_text(size=16))
 
+ggplot(prod_data) + aes(y=Share,x=share_base) +
+  geom_point(size=1.5,alpha=0.5) + 
+  geom_abline(intercept=0,slope=1) + 
+  geom_smooth(color="red",method="lm",se=FALSE) + 
+  ylab("Data") + 
+  xlab("Prediction") + 
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    #panel.grid.major = element_line(color=grey(.8)),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title=element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "none",
+    axis.title=element_text(size=14),
+    axis.text = element_text(size=16))
 
 
 
@@ -76,12 +108,12 @@ firm_test[,avgTransfer:=avgCost-pooledCost]
 # firm_test[,target:=exp(logAvgCost)]
 prod_data[,MR:=P_obs-Mkup]
 ## Best Fit MR
-res_std = prod_data[!ST%in%c("MD"),glm(MR~MC_std,weights=lives)]
-res_RA = prod_data[!ST%in%c("MD"),glm(MR~MC_RA,weights=lives)]
+res_std = prod_data[,glm(MR~MC_std,weights=lives)]
+res_RA = prod_data[,glm(MR~MC_RA,weights=lives)]
 summary(res_std)
 summary(res_RA)
-prod_data[!ST%in%c("MD"),MR_fit_std:=predict(res_std)]
-prod_data[!ST%in%c("MD"),MR_fit_RA:=predict(res_RA)]
+prod_data[,MR_fit_std:=predict(res_std)]
+prod_data[,MR_fit_RA:=predict(res_RA)]
 
 
 #### Plot Margin Check ####

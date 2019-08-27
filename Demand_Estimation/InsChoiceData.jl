@@ -197,6 +197,24 @@ function ChoiceData(data_choice::DataFrame,
     ev = sort(eigvals(X))
     smallest_ev = ev[1]
     println("Smallest Data Eigenvalue: $smallest_ev")
+    # while abs(smallest_ev)<1e-10
+    #     X = F*F'
+    #     v = eigvecs(X)
+    #     zero_vals = findall(evs.<1e-10)
+    #     drop_list = Vector{Int}(undef,0)
+    #     for ind_v in zero_vals
+    #         ind_colin = maximum(findall(abs.(v[:,ind_v]).>1e-10))
+    #         println(feNames[ind_colin])
+    #         drop_list = vcat(drop_list,[ind_colin])
+    #     end
+    #     F_ind = 1:size(F,1)
+    #     for k in drop_list
+    #         F_ind = F_ind[F_ind.!=k]
+    #     end
+    #     F = F[F_ind,:]
+    #     feNames = feNames[F_ind]
+    #     println("Dropping: $drop_list")
+    # end
 
     ## Rand Coefficient Index
     _randCoeffs = Array{Int,1}(undef,length(prodchars_0))
@@ -355,17 +373,21 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};
             st_ind = 2
         end
 
+        # println(factor_list[st_ind:length(factor_list)])
         for fac in factor_list[st_ind:length(factor_list)]
             # fac_data = zeros(n)
             # fac_data[fac_variables.==fac] = 1.0
             # if fac in ["ND_4","MD_4","IA_7"]
             #     continue
             # end
-
-            # if bigFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA")
-            #     println("HighRisk skip")
-            #     continue
-            # end
+            if (:Firm_ST in fe_list) & (fac in ["AK_1","DE_1","GA_1","IA_1","IL_1","MD_1","MI_1","MO_1","ND_1","NE_3","NJ_1","NM_1","OK_1","OR_1","TX_1","UT_1"])
+                println("Market-Firm Skip $fac")
+                continue
+            end
+            if riskFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA_AK")
+                println("HighRisk skip")
+                continue
+            end
             if riskFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA_AK_1")
                 println("HighRisk skip")
                 continue
@@ -420,6 +442,7 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};
             feNames = vcat(feNames,Symbol(fac))
         end
     end
+    F = F[:,1:(ind-1)]
     return F, feNames
 end
 
