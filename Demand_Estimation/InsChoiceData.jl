@@ -356,7 +356,7 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};
         L+=num_effects
     end
 
-    F = zeros(n,L+5)
+    F = zeros(n,L)
     feNames = Vector{Symbol}(undef,0)
     ind = 1
     for fe in fe_list
@@ -396,6 +396,10 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};
                 println("HighRisk skip")
                 continue
             end
+            if riskFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA_AK_Low")
+                println("HighRisk skip")
+                continue
+            end
             if riskFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA_AK_1_Low_1")
                 println("HighRisk skip")
                 continue
@@ -413,6 +417,10 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};
                 println("Small skip")
                 continue
             end
+            if smallFirm & (fac=="AETNA_IL_Low")
+                println("Small skip")
+                continue
+            end
             if smallFirm & (fac=="AETNA_IL_1_Low_1")
                 println("Small skip")
                 continue
@@ -427,6 +435,10 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};
                 continue
             end
             if risksmall & (fac=="AETNA_MI_1_Low")
+                println("Small risk skip")
+                continue
+            end
+            if risksmall & (fac=="AETNA_MI_Low")
                 println("Small risk skip")
                 continue
             end
