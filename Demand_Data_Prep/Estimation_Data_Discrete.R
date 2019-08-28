@@ -572,7 +572,7 @@ choices$PremPaid[choices$METAL=="CATASTROPHIC"] = with(choices[choices$METAL=="C
 # choices[median==1,list(shareL=mean(Y),premL=mean(PremPaid))]
 
 # Per Member Premium
-choices[,PremPaid:=PremPaid/MEMBERS]
+choices[,PremPaid:=PremPaid]
 choices[,ageRate_avg:=ageRate/MEMBERS]
 # Difference Out the Base Premium
 choices[,PremPaidDiff:=PremPaid-premBase]

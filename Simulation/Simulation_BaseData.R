@@ -185,7 +185,7 @@ acs[subsidy==0,IncomeCont:=1e6]
 
 
 # Per Member Premium
-acs[,PremPaid:=PremPaid/MEMBERS]
+# acs[,PremPaid:=PremPaid/MEMBERS]
 # Difference Out the Base Premium
 acs[,PremPaidDiff:=PremPaid-premBase]
 
