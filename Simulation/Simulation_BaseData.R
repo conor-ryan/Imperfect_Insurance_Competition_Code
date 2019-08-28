@@ -236,6 +236,7 @@ acs[METAL%in%c("SILVER 87","SILVER 94","GOLD","PLATINUM"),prodCat:="High"]
 acs[,Firm_Market:=paste(Firm,Market,sep="_")]
 acs[,Firm_Market_Cat:=paste(Firm,Market,prodCat,sep="_")]
 acs[,Firm_ST:=paste(Firm,ST,sep="_")]
+acs[,Firm_ST_Cat:=paste(Firm,ST,prodCat,sep="_")]
 
 
 #### Merge in Product Map #### 
@@ -381,7 +382,7 @@ acs[,c("Age_Cat","Inc_Cat"):=NULL]
 
 
 #### Output Analogous Data ####
-choiceData = acs[,c("Person","Firm","ST","Firm_ST","Firm_Market","Firm_Market_Cat","Market","Product","PERWT","Price",
+choiceData = acs[,c("Person","Firm","ST","Firm_ST","Firm_Market","Firm_Market_Cat","Firm_ST_Cat","Market","Product","PERWT","Price",
                     "MedDeduct","ExcOOP","High","AV","AV_std","AV_diff","HighRisk","Small","High_small","Gamma_j",
                     "Mandate","subsidy","benchBase","IncomeCont","mkt_density",
                     "Family","Age","LowIncome","AGE","AvgAge",

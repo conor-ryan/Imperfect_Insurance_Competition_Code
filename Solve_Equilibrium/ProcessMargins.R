@@ -7,8 +7,8 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 
 ## Estimation Run 
-run = "2019-08-27"
-spec = "Firm_ST"
+run = "2019-08-28"
+spec = "FS"
 
 #Load Product Data
 predFile = paste("Simulation_Risk_Output/prodData.rData",sep="")
@@ -92,22 +92,25 @@ names(firmClaims) = c("ST","Firm","FirmAvgCost","prjFirmCost","expFirmCost")
 fMom = read.csv("Intermediate_Output/MC_Moments/firmMoments.csv")
 fMom = unique(fMom[,c("logAvgCost","M_num","Product")])
 
-prod_data = merge(prod_data,firmClaims,by=c("ST","Firm"))
-prod_data = merge(prod_data,fMom,by="Product")
+prod_data = merge(prod_data,firmClaims,by=c("ST","Firm"),all.x=TRUE)
+prod_data = merge(prod_data,fMom,by="Product",all.x=TRUE)
 setkey(prod_data,Market,Firm,AV_std)
 
 
-firm_test = prod_data[,list(avgCost=sum(avgCost*lives)/sum(lives),
+firm_test = prod_data[Metal_std!="PLATINUM",list(avgCost=sum(avgCost*lives)/sum(lives),
                             pooledCost=sum(pooledCost*lives)/sum(lives),
                             avgRev=sum(P_obs*ageRate*lives)/sum(lives),
                             # avgR = sum(avgR*lives)/sum(lives),
                             lives=sum(lives)),
-                      by=c("ST","Firm","FirmAvgCost","prjFirmCost","HighRisk")]
+                      by=c("ST","Firm","FirmAvgCost","prjFirmCost","HighRisk","logAvgCost")]
 firm_test[,share:=lives/sum(lives),by="ST"]
 firm_test[,avgTransfer:=avgCost-pooledCost]
-# firm_test[,target:=exp(logAvgCost)]
+firm_test[,target:=exp(logAvgCost)]
 prod_data[,MR:=P_obs-Mkup]
 ## Best Fit MR
+# prod_data[Metal_std!="PLATINUM",firmAvgEst:=sum(avgCost*lives)/sum(lives),by=c("Firm","ST")]
+# prod_data[,adj:=prjFirmCost/firmAvgEst]
+
 res_std = prod_data[,glm(MR~MC_std,weights=lives)]
 res_RA = prod_data[,glm(MR~MC_RA,weights=lives)]
 summary(res_std)
@@ -165,3 +168,45 @@ ggplot(prod_data[,]) + aes(y=MR,x=MC_RA) +
     axis.title=element_text(size=14),
     axis.text = element_text(size=16))
 # dev.off()
+
+ggplot(prod_data[,]) + aes(y=MC_std,x=MC_RA) +
+  geom_point(size=1.5,alpha=0.5) + 
+  geom_abline(intercept=0,slope=1) + 
+  geom_smooth(color="red",method="lm",se=FALSE) + 
+  # scale_x_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
+  # scale_y_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
+  # coord_cartesian(ylim=c(-250,500),xlim=c(0,1500)) +
+  xlab("Risk Adjusted Marginal Cost") + 
+  ylab("Incurred Marginal Cost") + 
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    #panel.grid.major = element_line(color=grey(.8)),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title=element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "none",
+    axis.title=element_text(size=14),
+    axis.text = element_text(size=16))
+
+ggplot(prod_data[,]) + aes(y=MC_std,x=avgCost) +
+  geom_point(size=1.5,alpha=0.5) + 
+  geom_abline(intercept=0,slope=1) + 
+  geom_smooth(color="red",method="lm",se=FALSE) + 
+  # scale_x_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
+  # scale_y_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
+  # coord_cartesian(ylim=c(-250,500),xlim=c(0,1500)) +
+  xlab("Average Cost") + 
+  ylab("Incurred Marginal Cost") + 
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    #panel.grid.major = element_line(color=grey(.8)),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title=element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "none",
+    axis.title=element_text(size=14),
+    axis.text = element_text(size=16))
