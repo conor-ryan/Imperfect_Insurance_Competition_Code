@@ -91,7 +91,7 @@ function ChoiceData(data_choice::DataFrame,
     rm = convert(Matrix{Float64},data_choice[:,riskChars])
 
     println("Create Fixed Effects")
-    riskFirm = :HighRisk in prodchars
+    riskFirm = (:HighRisk in prodchars) | (:Big in prodchars)
     smallFirm = :Small in prodchars
     risksmall = :High_small in prodchars
     constInProds = :constant in prodchars
