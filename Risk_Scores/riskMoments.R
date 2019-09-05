@@ -60,17 +60,11 @@ metal_moments[,momentID:=1:nrow(metal_moments)]
 
 #### Firm Moments ####
 firm_moments = firm_RA[,c("ST","Firm","T_norm_adj","R_adj_natl","memberMonths","payments_adj","HighRisk")]
-firm_data = unique(mkt_data[,c("STATE","Firm","Small")])
-firm_moments = merge(firm_moments,firm_data,by.x=c("ST","Firm"),by.y=c("STATE","Firm"))
 
 
-firm_moments[,R_avg:=sum(R_adj_natl*memberMonths)/sum(memberMonths),by=c("HighRisk","Small")]
-
-# firm_moments = firm_moments[HighRisk==1,]
-firm_moments[,momentID:=nrow(metal_moments)+2+HighRisk+Small*2]
-setkey(firm_moments,momentID)
-firm_moments[,sum(R_adj_natl*memberMonths)/sum(memberMonths),by=c("HighRisk","Small","momentID")]
-
+firm_moments[,R_avg:=sum(R_adj_natl*memberMonths)/sum(memberMonths),by="HighRisk"]
+firm_moments = firm_moments[HighRisk==1,]
+firm_moments[,momentID:=nrow(metal_moments)+2]
 
 #### Total Enrolled Moment ####
 total_moment = mkt_data[mkt_data$METAL!="CATASTROPHIC",c("STATE","Firm","Product")]
@@ -91,7 +85,7 @@ mkt_data$METAL = gsub(" [0-9]+","",mkt_data$METAL)
 metal_moments = merge(mkt_data[,c("STATE","Firm","METAL","Product")],metal_moments,
                       by.x=c("METAL"),by.y=c("Metal_std"))
 firm_moments = merge(mkt_data[,c("STATE","Firm","Product")],firm_moments,
-                      by.x=c("STATE","Firm"),by.y=c("ST","Firm"))
+                     by.x=c("STATE","Firm"),by.y=c("ST","Firm"))
 
 metal_moments = metal_moments[,c("Product","momentID","R_adj","STATE")]
 names(metal_moments) = c("Product","momentID","T_moment","ST")
@@ -112,6 +106,5 @@ unique(risk_moments[,c("T_moment","momentID")])
 # risk_moment_test = read.csv("Intermediate_Output/Estimation_Data/riskMoments.csv")
 # 
 # test = merge(risk_moments,risk_moment_test,by=c("Product","momentID","ST"),all=TRUE)
-risk_moments = as.data.table(risk_moments)
-setkey(risk_moments,momentID,Product)
+
 write.csv(risk_moments,"Intermediate_Output/Estimation_Data/riskMoments.csv",row.names=FALSE)

@@ -94,59 +94,59 @@ hixData = hixData[hixData$Child.Only.Offering=="Allows Adult and Child-Only",]
 
 #Isolate important characteristic variables
 hixData = hixData[,c("State","Metal.Level","Rating.Area","Plan.ID..standard.component.",
-                       "Plan.Marketing.Name",
-                       "Premium.Adult.Individual.Age.27",
-                       "Medical.Deductible.individual.standard",
-                       "Drug.Deductible.individual.standard",
-                       "Medical.Maximum.Out.Of.Pocket...individual...standard",  
-                       "Drug.Maximum.Out.of.Pocket...individual...standard",
-                       "Medical.Deductible...individual...73.percent",
-                       "Drug.Deductible...individual...73.percent",
-                       "Medical.Maximum.Out.Of.Pocket...individual...73.percent",
-                       "Drug.Maximum.Out.of.Pocket...individual...73.percent",
-                       "Medical.Deductible...individual...87.percent",
-                       "Drug.Deductible...individual...87.percent",
-                       "Medical.Maximum.Out.Of.Pocket...individual...87.percent",
-                       "Drug.Maximum.Out.of.Pocket...individual...87.percent",
-                       "Medical.Deductible...individual...94.percent",
-                       "Drug.Deductible...individual...94.percent",
-                       "Medical.Maximum.Out.Of.Pocket..individual...94.percent",
-                       "Drug.Maximum.Out.of.Pocket...individual...94.percent",
-                       "Medical.Deductible.family.standard",
-                       "Drug.Deductible...family...standard",
-                       "Medical.Maximum.Out.of.Pocket...family...standard",  
-                       "Drug.Maximum.Out.of.Pocket...Family....standard",
-                       "Medical.Deductible...family...73.percent",
-                       "Drug.Deductible...family...73.percent",
-                       "Medical.Maximum.Out.of.Pocket...family...73.percent",
-                       "Drug.Maximum.Out.of.Pocket...Family...73.percent",
-                       "Medical.Deductible...family...87.percent",
-                       "Drug.Deductible...family...87.percent",
-                       "Medical.Maximum.Out.of.Pocket...family...87.percent",
-                       "Drug.Maximum.Out.of.Pocket...Family...87.percent",
-                       "Medical.Deductible...family...94.percent",
-                       "Drug.Deductible...family...94.percent",
-                       "Medical.Maximum.Out.of.Pocket...family...94.percent",
-                       "Drug.Maximum.Out.of.Pocket...Family....94.percent"
+                     "Plan.Marketing.Name",
+                     "Premium.Adult.Individual.Age.27",
+                     "Medical.Deductible.individual.standard",
+                     "Drug.Deductible.individual.standard",
+                     "Medical.Maximum.Out.Of.Pocket...individual...standard",  
+                     "Drug.Maximum.Out.of.Pocket...individual...standard",
+                     "Medical.Deductible...individual...73.percent",
+                     "Drug.Deductible...individual...73.percent",
+                     "Medical.Maximum.Out.Of.Pocket...individual...73.percent",
+                     "Drug.Maximum.Out.of.Pocket...individual...73.percent",
+                     "Medical.Deductible...individual...87.percent",
+                     "Drug.Deductible...individual...87.percent",
+                     "Medical.Maximum.Out.Of.Pocket...individual...87.percent",
+                     "Drug.Maximum.Out.of.Pocket...individual...87.percent",
+                     "Medical.Deductible...individual...94.percent",
+                     "Drug.Deductible...individual...94.percent",
+                     "Medical.Maximum.Out.Of.Pocket..individual...94.percent",
+                     "Drug.Maximum.Out.of.Pocket...individual...94.percent",
+                     "Medical.Deductible.family.standard",
+                     "Drug.Deductible...family...standard",
+                     "Medical.Maximum.Out.of.Pocket...family...standard",  
+                     "Drug.Maximum.Out.of.Pocket...Family....standard",
+                     "Medical.Deductible...family...73.percent",
+                     "Drug.Deductible...family...73.percent",
+                     "Medical.Maximum.Out.of.Pocket...family...73.percent",
+                     "Drug.Maximum.Out.of.Pocket...Family...73.percent",
+                     "Medical.Deductible...family...87.percent",
+                     "Drug.Deductible...family...87.percent",
+                     "Medical.Maximum.Out.of.Pocket...family...87.percent",
+                     "Drug.Maximum.Out.of.Pocket...Family...87.percent",
+                     "Medical.Deductible...family...94.percent",
+                     "Drug.Deductible...family...94.percent",
+                     "Medical.Maximum.Out.of.Pocket...family...94.percent",
+                     "Drug.Maximum.Out.of.Pocket...Family....94.percent"
 )]
 
 names(hixData) = c("State","Metal","RatingArea","PlanID","PlanName",
-                    "Prem27","MedDeduct","DrugDeduct",
-                    "MedOOP","DrugOOP",
-                    "MedDeduct73","DrugDeduct73",
-                    "MedOOP73","DrugOOP73",
-                    "MedDeduct87","DrugDeduct87",
-                    "MedOOP87","DrugOOP87",
-                    "MedDeduct94","DrugDeduct94",
-                    "MedOOP94","DrugOOP94",
-                    "MedDeductFam","DrugDeductFam",
-                    "MedOOPFam","DrugOOPFam",
-                    "MedDeduct73Fam","DrugDeduct73Fam",
-                    "MedOOP73Fam","DrugOOP73Fam",
-                    "MedDeduct87Fam","DrugDeduct87Fam",
-                    "MedOOP87Fam","DrugOOP87Fam",
-                    "MedDeduct94Fam","DrugDeduct94Fam",
-                    "MedOOP94Fam","DrugOOP94Fam")
+                   "Prem27","MedDeduct","DrugDeduct",
+                   "MedOOP","DrugOOP",
+                   "MedDeduct73","DrugDeduct73",
+                   "MedOOP73","DrugOOP73",
+                   "MedDeduct87","DrugDeduct87",
+                   "MedOOP87","DrugOOP87",
+                   "MedDeduct94","DrugDeduct94",
+                   "MedOOP94","DrugOOP94",
+                   "MedDeductFam","DrugDeductFam",
+                   "MedOOPFam","DrugOOPFam",
+                   "MedDeduct73Fam","DrugDeduct73Fam",
+                   "MedOOP73Fam","DrugOOP73Fam",
+                   "MedDeduct87Fam","DrugDeduct87Fam",
+                   "MedOOP87Fam","DrugOOP87Fam",
+                   "MedDeduct94Fam","DrugDeduct94Fam",
+                   "MedOOP94Fam","DrugOOP94Fam")
 
 allVars = c("Prem27","MedDeduct","DrugDeduct",
             "MedOOP","DrugOOP",
@@ -227,7 +227,7 @@ comb$MedOOPFam[is.na(comb$MedOOPFam)] = 2*comb$MedOOP[is.na(comb$MedOOPFam)]
 # missingIDs_out = unique(comb$PLANID[comb$PLANMARKET==2&(is.na(comb$MedDeduct)|is.na(comb$MedOOP))])
 # 
 # plans = unique(planData[planData$PLANID%in%missingIDs_in&is.na(planData$MedOOP),c("ST","CARRIER","PLANNAME")])
- 
+
 comb = comb[with(comb,order(ST,AREA,METAL,CARRIER,PLANID)),
             c("ST","AREA","PLANID","METAL","CARRIER","Firm","PLANNAME","PREMI27","PLANMARKET","CSR","MedDeduct","MedOOP","MedDeductFam","MedOOPFam")]
 
@@ -247,16 +247,16 @@ ggplot(plotData) +
   scale_y_continuous(labels=dollar) + 
   scale_x_continuous(labels=dollar) + 
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
-        strip.background = element_blank(),
-        #panel.grid.major = element_line(color=grey(.8)),
-        legend.background = element_rect(color=grey(.5)),
-        legend.title=element_blank(),
-        legend.text = element_text(size=18),
-        legend.key.width = unit(.075,units="npc"),
-        legend.key = element_rect(color="transparent",fill="transparent"),
-        legend.position = "none",
-        axis.title=element_text(size=12),
-        axis.text = element_text(size=12))
+    strip.background = element_blank(),
+    #panel.grid.major = element_line(color=grey(.8)),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title=element_blank(),
+    legend.text = element_text(size=18),
+    legend.key.width = unit(.075,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "none",
+    axis.title=element_text(size=12),
+    axis.text = element_text(size=12))
 dev.off()
 
 ##### Create Rating Area Choice Sets #####
@@ -275,16 +275,14 @@ comb$count_all = ave(comb$count,with(comb,paste(ST,AREA)),FUN=sum)
 comb$premRank = ave(comb$PREMI27,with(comb,paste(ST,AREA,Firm,METAL)),
                     FUN=function(x){return(rank(x,ties.method="first"))})
 comb$medRank = floor(ave(comb$premRank,with(comb,paste(ST,AREA,Firm,METAL)),FUN=median))
-comb$maxRank = floor(ave(comb$premRank,with(comb,paste(ST,AREA,Firm,METAL)),FUN=max))
 
-# choiceSet = comb[comb$premRank==comb$medRank,]
-choiceSet = comb[comb$premRank==1,]
-choiceSet_max = comb[comb$premRank==comb$maxRank,]
+choiceSet = comb[comb$premRank==comb$medRank,]
+
 
 #### HIX Silver Benchmark ####
 hixSilver = comb[with(comb,PLANMARKET%in%c(1,3)&METAL=="Silver"),]
 hixSilver$premRank = ave(hixSilver$PREMI27,with(hixSilver,paste(ST,AREA)),
-                    FUN=function(x){return(rank(x,ties.method="first"))})
+                         FUN=function(x){return(rank(x,ties.method="first"))})
 hixSilver$maxRank = floor(ave(hixSilver$premRank,with(hixSilver,paste(ST,AREA)),FUN=max))
 benchmark = hixSilver[with(hixSilver,premRank==2|maxRank==1),c("ST","AREA","PREMI27")]
 names(benchmark) = c("ST","AREA","bench27")
@@ -294,7 +292,7 @@ write.csv(benchmark,"Intermediate_Output/Premiums/benchmark2015.csv",row.names=F
 testSilver = choiceSet[with(choiceSet,METAL=="Silver"&count_hix_prod>0),]
 testSilver = testSilver[with(testSilver,order(ST,AREA,PREMI27)),]
 testSilver$premRank = ave(testSilver$count_hix_prod,with(testSilver,paste(ST,AREA)),
-                         FUN=function(x){return(cumsum(x))})
+                          FUN=function(x){return(cumsum(x))})
 testSilver$countRank= ave(testSilver$premRank,with(testSilver,paste(ST,AREA)),
                           FUN=function(x){return(rank(x,ties.method="first"))})
 testSilver$minPremRank = floor(ave(testSilver$premRank,with(testSilver,paste(ST,AREA)),FUN=min))
@@ -352,9 +350,6 @@ choiceSet$valid = with(choiceSet,paste(ST,AREA))%in%with(validAreas,paste(ST,ARE
 write.csv(choiceSet[,c("ST","AREA","Firm","METAL","PREMI27","MedDeduct","MedOOP","MedDeductFam","MedOOPFam","hix","valid","count_hix_prod")],
           "Intermediate_Output/Premiums/choiceSets2015.csv",row.names=FALSE)
 
-write.csv(choiceSet_max[,c("ST","AREA","Firm","METAL","PREMI27")],
-          "Intermediate_Output/Premiums/choiceSets2015_maxPrems.csv",row.names=FALSE)
-
 
 # ##### Check to what we've got left #####
 # mapping = read.csv("Data/Zip_RatingArea/Zip3_to_RatingArea.csv")
@@ -375,4 +370,3 @@ write.csv(choiceSet_max[,c("ST","AREA","Firm","METAL","PREMI27")],
 # match = match[match$valid,]
 # match$count = 1 
 # obs_market = summaryBy(count~STATE+AREA,data=match,FUN=sum)
-

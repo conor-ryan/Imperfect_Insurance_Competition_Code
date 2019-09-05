@@ -20,10 +20,10 @@ firm_RA[,RA_share:=1-max(oth_share,na.rm=TRUE),by="ST"]
 
 prod_data = simData[,list(count_hix_prod= max(count_hix_prod)),
                     by=c("Product_std","Metal_std","ST","Market","Firm",
-                                   "premBase_std","AV_std","benchBase","HighRisk")]
+                         "premBase_std","AV_std","benchBase","Big")]
 
 names(prod_data) = c("Product","Metal_std","ST","Market","Firm",
-                     "premBase","AV_std","benchBase","count_hix_prod","HighRisk")
+                     "premBase","AV_std","benchBase","count_hix_prod","Big")
 
 prod_data = merge(prod_data,firm_RA[,c("ST","Firm","RA_share","HighRisk")],by=c("ST","Firm"),all=TRUE)
 names(prod_data) = c("ST","Firm","Product","Metal_std","Market","premBase","AV_std","benchBase","count_hix_prod","Big","RA_share","HighRisk")
@@ -42,15 +42,14 @@ predFile = paste("Simulation_Risk_Output/prodData.rData",sep="")
 save(prod_data,file=predFile)
 
 
-# for (st in sort(unique(prod_data$ST))){
-#   
-#   write.csv(prod_data[ST==st,],
-#             file=paste("Intermediate_Output/Equilibrium_Data/estimated_prodData_",st,".csv",sep=""),
-#             row.names=FALSE)
-#   
-# }
+for (st in sort(unique(prod_data$ST))){
+  
+  write.csv(prod_data[ST==st,],
+            file=paste("Intermediate_Output/Equilibrium_Data/estimated_prodData_",st,".csv",sep=""),
+            row.names=FALSE)
+  
+}
 
 write.csv(prod_data[Firm!="OTHER",],
           file=paste("Intermediate_Output/Equilibrium_Data/estimated_prodData_full.csv",sep=""),
           row.names=FALSE)
-

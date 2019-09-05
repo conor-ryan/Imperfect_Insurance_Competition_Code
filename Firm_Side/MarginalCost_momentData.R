@@ -15,7 +15,7 @@ choiceData[,Metal_std:=gsub(" [0-9]+","",METAL)]
 prod_data = as.data.table(read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv"))
 prod_data[,Metal_std:=gsub(" .*","",METAL)]
 prod_adj = prod_data[,list(lives=sum(lives),
-                            AV=sum(lives*AV)/sum(lives)),by=c("STATE","Firm","Metal_std")]
+                           AV=sum(lives*AV)/sum(lives)),by=c("STATE","Firm","Metal_std")]
 # firm_adj = prod_data[,list(lives=sum(lives),
 #                             AV=sum(lives*AV)/sum(lives)),by=c("STATE","Firm")]
 
@@ -62,7 +62,7 @@ firmClaims = merge(firmClaims,firmFilings,by.x=c("ST","Firm"),by.y=c("STATE","Fi
 
 
 # Expecatation Adjustment
-# firmClaims[!is.na(expAvgCost)&expAvgCost>5,sum(EXP_MM_WK1*expAvgCost)/sum(EXP_MM_WK1)/(sum(MLR_lives*AvgCost)/sum(MLR_lives))]
+# firmClaims[!is.na(expFirmCost)&Year==2017,sum(EXP_MM*expFirmCost)/sum(EXP_MM)/(sum(MLR_lives*AvgCost)/sum(MLR_lives)),by="ST"]
 prj_adj=firmClaims[!is.na(prjAvgCost),sum(PRJ_MM_WK1*prjAvgCost)/sum(PRJ_MM_WK1)/(sum(MLR_lives*AvgCost)/sum(MLR_lives))]
 firmClaims[is.na(prjAvgCost),prjAvgCost:=AvgCost*prj_adj]
 
@@ -79,15 +79,11 @@ firmClaims$M_num = 1:nrow(firmClaims)
 
 ### Bronze Cost Ratio
 load("Intermediate_Output/Average_Claims/allMetalFilings.rData")
-metalAvg[METAL=="BRONZE",bronzeCost:=prjAvgCost]
+metalAvg[METAL=="BRONZE",bronzeCost:=expAvgCost]
 metalAvg[,bronzeCost:=max(bronzeCost,na.rm=TRUE),by=c("STATE","MARKET","COMPANY","Year")]
 metalAvg[bronzeCost<=0,bronzeCost:=NA]
-metalAvg[!is.na(bronzeCost),costRatio:=prjAvgCost/bronzeCost]
-metalAvg[,max_ratio:=max(costRatio),by=c("STATE","MARKET","COMPANY","Year")]
-metalAvg = metalAvg[max_ratio>1.05,]
-
-metalAvg[,firmSize:=sum(PRJ_MM),by=c("STATE","MARKET","COMPANY","Year")]
-metalAvg = metalAvg[!is.na(costRatio),list(costIndex=sum(costRatio*firmSize)/sum(firmSize)),by=c("METAL","Year")]
+metalAvg[!is.na(bronzeCost),costRatio:=expAvgCost/bronzeCost]
+metalAvg = metalAvg[!is.na(costRatio),list(costIndex=sum(costRatio*EXP_MM)/sum(EXP_MM)),by=c("METAL","Year")]
 metalAvg = metalAvg[METAL!="CATASTROPHIC"&Year=="2016",c("METAL","costIndex")]
 
 # metalAvg[METAL=="BRONZE",bronzeCost:=expAvgCost]
@@ -132,10 +128,7 @@ setkey(riskMoments,HCC_positive)
 #### Risk Transfer Moments ####
 firmRiskFile = "Simulation_Risk_Output/FirmRiskScores_woSim.rData"
 load(firmRiskFile)
-firms = unique(prod_data[,c("Firm","STATE","Small")])
-firm_RA = merge(firm_RA,firms,by.x=c("Firm","ST"),by.y=c("Firm","STATE"))
-
-RAmom = firm_RA[,list(memberMonths=sum(memberMonths),payments=sum(payments_adj)),by=c("HighRisk")]
+RAmom = firm_RA[,list(memberMonths=sum(memberMonths),payments=sum(payments_adj)),by="HighRisk"]
 RAmom[,avgTransfer:=payments/memberMonths]
 
 RAmom = merge(firm_RA[,c("Firm","ST","HighRisk")],RAmom[,c("HighRisk","avgTransfer")],by="HighRisk")
@@ -153,20 +146,14 @@ riskMoments$M_num = 1:nrow(riskMoments)
 #### Create Moment Index DF ####
 setkey(choiceData,Person,Product)
 choiceData[,index:=1:nrow(choiceData)]
-firmMoments = merge(firmClaims,choiceData[Metal_std!="PLATINUM",],by=c("ST","Firm"))
+firmMoments = merge(firmClaims,choiceData,by=c("ST","Firm"))
 firmMoments = firmMoments[,c("logAvgCost","M_num","Product","index")]
 
-raMoments = merge(choiceData[Metal_std!="PLATINUM",],RAmom,by=c("ST","Firm"))
+raMoments = merge(choiceData,RAmom,by=c("ST","Firm"))
 raMoments = raMoments[,c("avgTransfer","M_num","Product","index")]
 
 
-metalMoments = merge(metalMoments,choiceData[,c("Product","index","Firm","ST")],by="Product")
-f_merge = unique(choiceData[,c("Firm","ST")])
-setkey(f_merge,ST,Firm)
-f_merge[,F_M_num:=1:nrow(f_merge)]
-
-metalMoments = merge(metalMoments,f_merge,by=c("Firm","ST"))
-metalMoments = metalMoments[,c("M_num","Product","index","F_M_num","costIndex")]
+metalMoments = merge(metalMoments,choiceData[,c("Product","index")],by="Product")
 # metalDict = merge(metalClaims,choiceData,by=c("ST","Firm","Metal_std"))
 # avgMoments = rbind(firmDict[,c("logAvgCost","M_num","Product","index")],metalDict[,c("logAvgCost","M_num","Product","index")])
 # avgMoments = avgMoments[!is.na(M_num),]

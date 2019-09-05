@@ -40,7 +40,7 @@ for (year in 2015:2017){
   temp_file[PRJ_MM>0,prjAvgCost:=(PRJ_TAC-PRJ_TAC_NOT+PRJ_RSK_ADJ)/PRJ_MM]
   temp_file[EXP_MM==0,expAvgCost:=0]
   temp_file[PRJ_MM==0,prjAvgCost:=0]
-
+  
   ## Mean of remaining duplicates
   
   # filings = filings[,list(
@@ -68,15 +68,10 @@ for (year in 2015:2017){
   
 }
 
-### Risk and Claims Correlation ###
-risk_test = filings[Year==2016&!is.na(EXP_RSK_ADJ)&EXP_RSK_ADJ!=0.0&EXP_MM>0,]
-risk_test[,avgRisk:=EXP_RSK_ADJ/EXP_MM]
-risk_test[,costDev:=expAvgCost - sum(expAvgCost*EXP_MM)/sum(EXP_MM),by=c("STATE")]
+
 
 ### Save Metal Avg Costs ###
 metalAvg = filings[EXP_MM>0,list(expAvgCost=sum(expAvgCost*EXP_MM)/sum(EXP_MM),EXP_MM=sum(EXP_MM)),by=c("METAL","STATE","MARKET","COMPANY","Year")]
-metalAvg2 = filings[PRJ_MM>0,list(prjAvgCost=sum(prjAvgCost*PRJ_MM)/sum(PRJ_MM),PRJ_MM=sum(PRJ_MM)),by=c("METAL","STATE","MARKET","COMPANY","Year")]
-metalAvg = merge(metalAvg,metalAvg2,by=c("METAL","STATE","MARKET","COMPANY","Year"))
 save(metalAvg,file="Intermediate_Output/Average_Claims/allMetalFilings.rData")
 
 
