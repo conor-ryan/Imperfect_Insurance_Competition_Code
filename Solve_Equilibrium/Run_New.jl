@@ -103,10 +103,10 @@ evaluate_model!(model,firm,"All",foc_check=true)
 
 moments = costMoments(costdf,model,firm.par_cost)
 
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/checkMargins_$rundate.csv"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/checkMargins_test.csv"
 checkMargin(model,firm,file)
 
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_$rundate.csv"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_test.csv"
 solveMain(model,firm,file)
 
 

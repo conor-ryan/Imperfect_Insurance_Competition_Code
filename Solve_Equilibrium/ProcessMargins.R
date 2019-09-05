@@ -7,7 +7,7 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 
 ## Estimation Run 
-run = "2019-07-12"
+run = "test"
 
 #Load Product Data
 predFile = paste("Simulation_Risk_Output/prodData.rData",sep="")
@@ -16,6 +16,8 @@ load(predFile)
 
 eqFile = paste("Estimation_Output/checkMargins_",run,".csv",sep="")
 eqData = as.data.table(read.csv(eqFile))
+eqData[,MR:=P_obs-Mkup]
+eqData[,summary(MR-MC_RA)]
 
 prod_data = merge(prod_data,eqData,by="Product")
 
