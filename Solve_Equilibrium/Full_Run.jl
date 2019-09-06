@@ -23,7 +23,7 @@ spec_prodchars_0=[:constant,:AV,:Big]
 cost_spec = [:AGE,:AV]
 
 rundate = Dates.today()
-rundate = "2019-09-06"
+rundate = "2019-09-05"
 println("Running on $rundate")
 spec = "FOC_TEST_RUN"
 spec_fixedEffects=[:Firm_Market_Cat]

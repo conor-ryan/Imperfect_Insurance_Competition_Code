@@ -7,23 +7,27 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 
 ## Estimation Run 
-run = "2019-08-28"
-spec = "FS"
+run = "2019-07-12"
+spec = "FOC_TEST_RUN"
 
 #Load Product Data
 predFile = paste("Simulation_Risk_Output/prodData.rData",sep="")
 load(predFile)
 
 
-eqFile = paste("Estimation_Output/checkMargins_",spec,"-",run,".csv",sep="")
+# eqFile = paste("Estimation_Output/checkMargins_",spec,"-",run,".csv",sep="")
+# eqData = as.data.table(read.csv(eqFile))
+
+eqFile = paste("Estimation_Output/checkMargins_",run,".csv",sep="")
 eqData = as.data.table(read.csv(eqFile))
+eqData[,MR:=P_obs-Mkup]
 
 prod_data = merge(prod_data,eqData,by="Product")
 
 # firms = prod_data[,list(R_avg=sum(share_base*size*R_avg)/sum(share_base*size),
 #                         Revenue=sum(share_base*size*premBase*ageRate)/sum(share_base*size)),
 #                   by=c("ST","Firm")]
-baseData = as.data.table(read.csv("Intermediate_Output/Simulated_BaseData/simchoiceData_discrete.csv"))
+# baseData = as.data.table(read.csv("Intermediate_Output/Simulated_BaseData/simchoiceData_discrete.csv"))
 
 
 
