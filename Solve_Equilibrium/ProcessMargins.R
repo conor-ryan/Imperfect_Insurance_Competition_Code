@@ -7,7 +7,7 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 
 ## Estimation Run 
-run = "2019-07-12"
+run = "2019-09-05"
 spec = "FOC_TEST_RUN"
 
 #Load Product Data
@@ -15,18 +15,18 @@ predFile = paste("Simulation_Risk_Output/prodData.rData",sep="")
 load(predFile)
 
 
-# eqFile = paste("Estimation_Output/checkMargins_",spec,"-",run,".csv",sep="")
-# eqData = as.data.table(read.csv(eqFile))
-
-eqFile = paste("Estimation_Output/checkMargins_",run,".csv",sep="")
+eqFile = paste("Estimation_Output/checkMargins_",spec,"-",run,".csv",sep="")
 eqData = as.data.table(read.csv(eqFile))
-eqData[,MR:=P_obs-Mkup]
+
+# eqFile = paste("Estimation_Output/checkMargins_",run,".csv",sep="")
+# eqData = as.data.table(read.csv(eqFile))
+# eqData[,MR:=P_obs-Mkup]
 
 prod_data = merge(prod_data,eqData,by="Product")
 
-ggplot(prod_data) + aes(y=MR,x=MC_RA) +
-  geom_point(size=1.5,alpha=0.5) + 
-  geom_abline(intercept=0,slope=1) + 
+ggplot(prod_data) + aes(y=MC_RA,x=MR) +
+  geom_point(size=1.5,alpha=0.5) +
+  geom_abline(intercept=0,slope=1) +
   geom_smooth(color="red",method="lm",se=FALSE)
 
 # firms = prod_data[,list(R_avg=sum(share_base*size*R_avg)/sum(share_base*size),
@@ -120,21 +120,21 @@ prod_data[,MR:=P_obs-Mkup]
 # prod_data[Metal_std!="PLATINUM",firmAvgEst:=sum(avgCost*lives)/sum(lives),by=c("Firm","ST")]
 # prod_data[,adj:=prjFirmCost/firmAvgEst]
 
-res_std = prod_data[,glm(MR~MC_std,weights=lives)]
-res_RA = prod_data[,glm(MR~MC_RA,weights=lives)]
+res_std = prod_data[,glm(MC_std~MR,weights=lives)]
+res_RA = prod_data[,glm(MC_RA~MR,weights=lives)]
 summary(res_std)
 summary(res_RA)
-prod_data[,MR_fit_std:=predict(res_std)]
-prod_data[,MR_fit_RA:=predict(res_RA)]
+prod_data[,MC_fit_std:=predict(res_std)]
+prod_data[,MC_fit_RA:=predict(res_RA)]
 
 
 #### Plot Margin Check ####
 # png("Writing/Images/marginCheckBase.png",width=2000,height=1500,res=275)
-plot = ggplot(prod_data[,]) + aes(y=MR,x=MC_std) +
+plot = ggplot(prod_data[,]) + aes(x=MR,y=MC_std) +
   geom_point(size=1.5,alpha=0.5) + 
   geom_abline(intercept=0,slope=1) + 
   geom_smooth(color="red",method="lm",se=FALSE) + 
-  geom_line(aes(y=MR_fit_std),color="blue") +
+  geom_line(aes(y=MC_fit_std),color="blue") +
   # scale_x_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
   # scale_y_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
   # coord_cartesian(ylim=c(-250,500),xlim=c(0,1500)) +
@@ -155,11 +155,11 @@ print(plot)
 # dev.off()
 
 # png("Writing/Images/marginCheckRA.png",width=2000,height=1500,res=275)
-ggplot(prod_data[,]) + aes(y=MR,x=MC_RA) +
+ggplot(prod_data[,]) + aes(x=MR,y=MC_RA) +
   geom_point(size=1.5,alpha=0.5) + 
   geom_abline(intercept=0,slope=1) + 
   geom_smooth(color="red",method="lm",se=FALSE) + 
-  geom_line(aes(y=MR_fit_RA),color="blue") +
+  geom_line(aes(y=MC_fit_RA),color="blue") +
   # scale_x_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
   # scale_y_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
   # coord_cartesian(ylim=c(-250,500),xlim=c(0,1500)) +
