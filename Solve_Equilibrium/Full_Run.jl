@@ -16,14 +16,13 @@ spec_demoRaw = [:AgeFE_31_39,
         :AgeFE_52_64,
         :Family,
         :LowIncome]
-spec_prodchars=[:Price,:constant,:AV,:Big]
-spec_prodchars_0=[:constant,:AV,:Big]
+spec_prodchars=[:Price,:constant,:AV,:HighRisk]
+spec_prodchars_0=[:constant,:AV,:HighRisk]
 
 
 cost_spec = [:AGE,:AV]
 
 rundate = Dates.today()
-rundate = "2019-09-05"
 println("Running on $rundate")
 spec = "FOC_TEST_RUN"
 spec_fixedEffects=[:Firm_Market_Cat]
@@ -51,12 +50,12 @@ include("$codeDir/Demand_Estimation/utility.jl")
 include("$codeDir/Demand_Estimation/Specification_Run.jl")
 
 filename = "GMM_Estimate_$spec"
-# estimate_demand(filename,rundate,
-#                     halton_draws,
-#                     spec_demoRaw,
-#                     spec_prodchars,
-#                     spec_prodchars_0,
-#                     spec_fixedEffects)
+estimate_demand(filename,rundate,
+                    halton_draws,
+                    spec_demoRaw,
+                    spec_prodchars,
+                    spec_prodchars_0,
+                    spec_fixedEffects)
 
 
 println("##### Estimation Marginal Cost #####")
