@@ -59,7 +59,7 @@ println("Running on $rundate")
 
 # #### Run Specification 1 ####
 println("#### Run Specification 2  - Firm-Market-Category Fixed Effects ####")
-filename = "GMM_Estimate_FMC"
+filename = "GMM_FOC_TEST"
 spec1 = run_specification_GMM(filename,rundate,
                 df,df_mkt,df_risk,
                 haltonDim = halton_draws,
