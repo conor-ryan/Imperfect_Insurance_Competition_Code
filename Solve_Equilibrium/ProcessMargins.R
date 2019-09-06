@@ -24,6 +24,11 @@ eqData[,MR:=P_obs-Mkup]
 
 prod_data = merge(prod_data,eqData,by="Product")
 
+ggplot(prod_data) + aes(y=MR,x=MC_RA) +
+  geom_point(size=1.5,alpha=0.5) + 
+  geom_abline(intercept=0,slope=1) + 
+  geom_smooth(color="red",method="lm",se=FALSE)
+
 # firms = prod_data[,list(R_avg=sum(share_base*size*R_avg)/sum(share_base*size),
 #                         Revenue=sum(share_base*size*premBase*ageRate)/sum(share_base*size)),
 #                   by=c("ST","Firm")]
