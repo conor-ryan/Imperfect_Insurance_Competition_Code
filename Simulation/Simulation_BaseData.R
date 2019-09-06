@@ -4,9 +4,6 @@ library(randtoolbox)
 library(data.table)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
 
-## Run
-# run = "2019-03-12"
-
 #### 2015 Subsidy Percentage Function ####
 
 subsPerc <- function(FPL){
@@ -25,94 +22,9 @@ subsPerc <- function(FPL){
   return(HHcont)
 }
 
+#### Load Prepped ACS Data ####
 
-#### Read in  ACS Exchange Elligible Data ####
-acs = read.csv("Data/2015_ACS/exchangePopulation2015.csv")
-acs = as.data.table(acs)
-setkey(acs,STATEFIP,PUMA)
-#Uninsured Rate
-with(acs,sum(uninsured*PERWT)/sum(PERWT))
-acs$person = rownames(acs)
-
-#### Match PUMA to Rating Area ####
-areaMatch = read.csv("Intermediate_Output/Zip_RatingArea/PUMA_to_RatingArea.csv")
-areaMatch = as.data.table(areaMatch)
-acs = merge(acs,areaMatch[,c("PUMA","RatingArea","ST","STATEFIP","alloc")],by=c("STATEFIP","PUMA"),all.x=TRUE,allow.cartesian = TRUE)
-# Distribute weight by population prob that observation is in a given Rating Area
-acs[,PERWT:=PERWT*alloc]
-acs[,household:=as.factor(paste(household,gsub("Rating Area ","",RatingArea),sep="-"))]
-
-acs = acs[,c("household","HHincomeFPL","HH_income","AGE","SEX","PERWT","RatingArea","ST")]
-names(acs) = c("household","HHincomeFPL","HH_income","AGE","SEX","PERWT","AREA","ST")
-
-
-
-
-#### Household Characteristics ####
-rating = read.csv("Data/AgeRating.csv")
-rating = as.data.table(rating)
-# Create truncated Age variable
-acs$AgeMatch = acs$AGE
-acs$AgeMatch[acs$AGE<14] = 14
-acs$AgeMatch[acs$AGE>64] = 64
-
-# Merge in Default and State-Specific Age Rating Curves
-acs = merge(acs,rating[rating$State=="Default",c("Age","Rating")],by.x="AgeMatch",by.y="Age",all.x=TRUE)
-acs = merge(acs,rating[rating$State!="Default",],by.x=c("ST","AgeMatch"),by.y=c("State","Age"),all.x=TRUE)
-acs$ageRate = acs$Rating.x
-acs$ageRate[!is.na(acs$Rating.y)] = acs$Rating.y[!is.na(acs$Rating.y)]
-# Drop redundant rating variables
-acs = acs[,c("Rating.x","Rating.y"):=NULL]
-rm(rating)
-
-
-# Merge in Age-specific HHS-HCC Risk Adjustment Factors
-HCC = read.csv("Risk_Adjustment/2014_HHS_HCC_AgeRA_Coefficients.csv")
-names(HCC) = c("Sex","Age","PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age")
-acs[,AgeMatch:= pmax(floor(AGE/5)*5,21)]
-acs = merge(acs,HCC,by.x=c("AgeMatch","SEX"),by.y=c("Age","Sex"))
-
-#Count Members
-setkey(acs,household)
-acs$MEMBERS=1
-#Age of HoH
-acs[,MaxAge:=max(AGE),by="household"]
-acs[,AvgAge:=AGE*PERWT]
-# Drop heads of household that are under 18 - 2,041
-acs = acs[MaxAge>=18,]
-
-#Count Children
-acs[,childRank:=rank(AGE,ties.method="first"),by="household"]
-acs$childRank[acs$AGE>18] = NA
-acs$ageRate[!is.na(acs$childRank)&acs$childRank>3]=0
-
-acs$catas_cnt = as.numeric(acs$AGE<=30)
-acs$ageRate_avg = acs$ageRate*acs$PERWT
-
-acs[,PlatHCC_Age:=PlatHCC_Age*PERWT]
-acs[,GoldHCC_Age:=GoldHCC_Age*PERWT]
-acs[,SilvHCC_Age:=SilvHCC_Age*PERWT]
-acs[,BronHCC_Age:=BronHCC_Age*PERWT]
-acs[,CataHCC_Age:=CataHCC_Age*PERWT]
-
-acs = acs[,lapply(.SD,sum),by=c("household","HHincomeFPL","HH_income","MaxAge","AREA","ST"),
-          .SDcols = c("MEMBERS","AvgAge","ageRate","ageRate_avg","PERWT","catas_cnt",
-                      "PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age")]
-
-names(acs) = c("household","HHincomeFPL","HH_income","AGE","AREA","ST","MEMBERS","AvgAge","ageRate","ageRate_avg","PERWT","catas_cnt",
-               "PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age")
-acs[,AvgAge:=AvgAge/PERWT]
-acs$ageRate_avg = with(acs,ageRate_avg/PERWT)
-acs[,PlatHCC_Age:=PlatHCC_Age/PERWT]
-acs[,GoldHCC_Age:=GoldHCC_Age/PERWT]
-acs[,SilvHCC_Age:=SilvHCC_Age/PERWT]
-acs[,BronHCC_Age:=BronHCC_Age/PERWT]
-acs[,CataHCC_Age:=CataHCC_Age/PERWT]
-
-
-acs$FAMILY_OR_INDIVIDUAL = "INDIVIDUAL"
-acs$FAMILY_OR_INDIVIDUAL[acs$MEMBERS>1] = "FAMILY"
-acs$catas_elig = acs$catas_cnt==acs$MEMBERS
+load("Intermediate_Output/Simulated_BaseData/acs_prepped.rData")
 
 # acs$count = 1
 # areas = summaryBy(MEMBERS+count~AREA+ST,data=acs,FUN=sum,keep.names=TRUE)
@@ -273,7 +185,7 @@ acs[subsidy==0,IncomeCont:=1e6]
 
 
 # Per Member Premium
-acs[,PremPaid:=PremPaid/MEMBERS]
+# acs[,PremPaid:=PremPaid/MEMBERS]
 # Difference Out the Base Premium
 acs[,PremPaidDiff:=PremPaid-premBase]
 
@@ -324,6 +236,7 @@ acs[METAL%in%c("GOLD","PLATINUM"),prodCat:="High"]
 acs[,Firm_Market:=paste(Firm,Market,sep="_")]
 acs[,Firm_Market_Cat:=paste(Firm,Market,prodCat,sep="_")]
 acs[,Firm_ST:=paste(Firm,ST,sep="_")]
+acs[,Firm_ST_Cat:=paste(Firm,ST,prodCat,sep="_")]
 
 
 #### Merge in Product Map #### 
@@ -332,7 +245,7 @@ prod_map = as.data.table(prod_map)
 
 setkey(acs,Product_Name)
 setkey(prod_map,Product_Name)
-acs = merge(acs,prod_map[,c("Product_Name","Product")],by="Product_Name",all.x=TRUE)
+acs = merge(acs,prod_map[,c("Product_Name","Product","Small")],by="Product_Name",all.x=TRUE)
 # Drop 0 share products
 acs = acs[!is.na(acs$Product),]
 
@@ -341,8 +254,11 @@ load("Simulation_Risk_Output/FirmRiskScores_woSim.rData")
 firm_RA = firm_RA[Firm!="OTHER",c("ST","Firm","HighRisk")]
 acs = merge(acs,firm_RA,by.y=c("ST","Firm"),by.x=c("ST","Firm"))
 
-acs[,Big:=HighRisk]
+# acs[,Big:=HighRisk]
 # acs[,Big:=as.numeric(grepl("UNITED|BLUE|CIGNA|ASSURANT",Firm))]
+
+acs[,High_small:=HighRisk*Small]
+
 
 
 #### Fixed Effects ####
@@ -466,8 +382,8 @@ acs[,c("Age_Cat","Inc_Cat"):=NULL]
 
 
 #### Output Analogous Data ####
-choiceData = acs[,c("Person","Firm","ST","Firm_ST","Firm_Market","Firm_Market_Cat","Market","Product","PERWT","Price",
-                    "MedDeduct","ExcOOP","High","AV","AV_std","AV_diff","Big","Gamma_j",
+choiceData = acs[,c("Person","Firm","ST","Firm_ST","Firm_Market","Firm_Market_Cat","Firm_ST_Cat","Market","Product","PERWT","Price",
+                    "MedDeduct","ExcOOP","High","AV","AV_std","AV_diff","HighRisk","Small","High_small","Gamma_j",
                     "Mandate","subsidy","benchBase","IncomeCont","mkt_density",
                     "Family","Age","LowIncome","AGE","AvgAge",
                     "METAL","premBase","count_hix_prod",
