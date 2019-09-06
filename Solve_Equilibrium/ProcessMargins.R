@@ -21,6 +21,11 @@ eqData[,summary(MR-MC_RA)]
 
 prod_data = merge(prod_data,eqData,by="Product")
 
+ggplot(prod_data) + aes(x=MR,y=MC_RA) +
+  geom_point() + 
+  geom_abline(intercept=0,slope=1) + 
+  geom_smooth(color="red",method="lm",se=FALSE)
+
 # firms = prod_data[,list(R_avg=sum(share_base*size*R_avg)/sum(share_base*size),
 #                         Revenue=sum(share_base*size*premBase*ageRate)/sum(share_base*size)),
 #                   by=c("ST","Firm")]
