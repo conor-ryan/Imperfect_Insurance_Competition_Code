@@ -15,35 +15,7 @@ predFile = paste("Simulation_Risk_Output/prodData.rData",sep="")
 load(predFile)
 
 
-eqFile = paste("Estimation_Output/checkMargins_",spec,"-",run,".csv",sep="")
-eqData = as.data.table(read.csv(eqFile))
-
-
-res_RA = eqData[,lm(MC_RA~MR)]
-summary(res_RA)
-eqData[,MC_fit_RA:=predict(res_RA)]
-eqData[,e_RA:=MC_RA-MC_fit_RA]
-
-res_std = eqData[,lm(MC_std~MR)]
-summary(res_std)
-eqData[,MC_fit_std:=predict(res_std)]
-eqData[,e_std:=MC_std-MC_fit_std]
-
-
-ggplot(eqData) + aes(y=MC_std,x=MR) +
-  geom_point(size=1.5,alpha=0.5) +
-  geom_abline(intercept=0,slope=1) +
-  geom_smooth(color="red",method="lm",se=FALSE)
-
-ggplot(eqData) + aes(y=abs(e_std),x=MC_fit_std) +
-  geom_point(size=1.5,alpha=0.5) +
-  geom_abline(intercept=0,slope=0) +
-  geom_smooth(color="red",method="lm",se=FALSE)
-
-ggplot(eqData) + aes(x=e_RA) +
-  geom_histogram(binwidth=10)
-
-# eqFile = paste("Estimation_Output/checkMargins_",run,".csv",sep="")
+# eqFile = paste("Estimation_Output/checkMargins_",spec,"-",run,".csv",sep="")
 # eqData = as.data.table(read.csv(eqFile))
 
 eqFile = paste("Estimation_Output/checkMargins_",run,".csv",sep="")
