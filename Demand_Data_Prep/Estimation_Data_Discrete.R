@@ -711,7 +711,7 @@ choices = choices[choices$Product%in%shares$Product,]
 
 
 #### Clean and Print ####
-#choices$Price = (choices$PremPaid*12-choices$Mandate)/1000
+choices$Price = (choices$PremPaid*12-choices$Mandate)/1000
 choices$Price = (choices$PremPaid*12)/1000
 choices$PriceDiff = (choices$PremPaidDiff*12)/1000
 choices$MedDeduct = choices$MedDeduct/1000
@@ -728,6 +728,17 @@ firm_RA = firm_RA[Firm!="OTHER",c("ST","Firm","HighRisk")]
 choices = merge(choices,firm_RA,by.y=c("ST","Firm"),by.x=c("STATE","Firm"))
 
 choices[,Big:=HighRisk]
+
+
+firmShares = choices[,list(enroll=sum(S_ij*N*(1-unins_rate))),by=c("Firm","STATE")]
+firmShares[,share:=enroll/sum(enroll),by="STATE"]
+firmShares[,Small:= as.numeric(share<0.05)]
+
+
+choices = merge(choices,firmShares[,c("Firm","STATE","Small")],by=c("Firm","STATE"))
+shares = merge(shares,firmShares[,c("Firm","STATE","Small")],by=c("Firm","STATE"))
+
+choices[,High_small:=Small*HighRisk]
 
 # choices[,Big:=as.numeric(grepl("UNITED|BLUE|CIGNA|ASSURANT",Firm))]
 
@@ -746,7 +757,7 @@ setkey(shares,Product)
 write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price",
                      "Firm_Market","Firm_Market_Cat","Firm_Market_Age","Firm_Market_Cat_Age",
                      "PriceDiff",#"MedDeductDiff","ExcOOPDiff","HighDiff",
-                     "MedDeduct","ExcOOP","High","AV","AV_old","Big",
+                     "MedDeduct","ExcOOP","High","AV","AV_old","Big","HighRisk","Small","High_small",
                      "Family","Age","LowIncome","AGE","HighIncome","IncomeCts",
                      "METAL",
                      "ageRate_avg","HCC_age","SilvHCC_Age",

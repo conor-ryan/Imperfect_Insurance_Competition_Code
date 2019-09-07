@@ -16,15 +16,15 @@ spec_demoRaw = [:AgeFE_31_39,
         :AgeFE_52_64,
         :Family,
         :LowIncome]
-spec_prodchars=[:Price,:constant,:AV,:Big]
-spec_prodchars_0=[:constant,:AV,:Big]
+spec_prodchars=[:Price,:constant,:AV,:HighRisk,:Small,:High_small]
+spec_prodchars_0=[:constant,:AV,:HighRisk,:Small,:High_small]
 
 
 cost_spec = [:AGE,:AV]
 
 rundate = Dates.today()
 println("Running on $rundate")
-spec = "FOC_TEST_RUN_FMC"
+spec = "FOC_TEST_RUN_FMC_HS"
 spec_fixedEffects=[:Firm_Market_Cat]
 
 println("##### Estimate Demand #####")

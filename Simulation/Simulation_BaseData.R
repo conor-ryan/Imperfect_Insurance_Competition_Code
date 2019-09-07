@@ -344,6 +344,7 @@ acs = merge(acs,firm_RA,by.y=c("ST","Firm"),by.x=c("ST","Firm"))
 acs[,Big:=HighRisk]
 # acs[,Big:=as.numeric(grepl("UNITED|BLUE|CIGNA|ASSURANT",Firm))]
 
+acs[,High_small:=HighRisk*Small]
 
 #### Fixed Effects ####
 # Market Product Category Fixed Effects
@@ -467,7 +468,7 @@ acs[,c("Age_Cat","Inc_Cat"):=NULL]
 
 #### Output Analogous Data ####
 choiceData = acs[,c("Person","Firm","ST","Firm_ST","Firm_Market","Firm_Market_Cat","Market","Product","PERWT","Price",
-                    "MedDeduct","ExcOOP","High","AV","AV_std","AV_diff","Big","Gamma_j",
+                    "MedDeduct","ExcOOP","High","AV","AV_std","AV_diff","Big","HighRisk","Small","High_small","Gamma_j",
                     "Mandate","subsidy","benchBase","IncomeCont","mkt_density",
                     "Family","Age","LowIncome","AGE","AvgAge",
                     "METAL","premBase","count_hix_prod",
