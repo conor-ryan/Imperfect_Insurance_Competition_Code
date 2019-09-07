@@ -16,8 +16,8 @@ spec_demoRaw = [:AgeFE_31_39,
         :AgeFE_52_64,
         :Family,
         :LowIncome]
-spec_prodchars=[:Price,:constant,:AV,:HighRisk]
-spec_prodchars_0=[:constant,:AV,:HighRisk]
+spec_prodchars=[:Price,:constant,:AV,:Big]
+spec_prodchars_0=[:constant,:AV,:Big]
 
 
 cost_spec = [:AGE,:AV]
