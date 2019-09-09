@@ -332,7 +332,7 @@ prod_map = as.data.table(prod_map)
 
 setkey(acs,Product_Name)
 setkey(prod_map,Product_Name)
-acs = merge(acs,prod_map[,c("Product_Name","Product")],by="Product_Name",all.x=TRUE)
+acs = merge(acs,prod_map[,c("Product_Name","Product","Small")],by="Product_Name",all.x=TRUE)
 # Drop 0 share products
 acs = acs[!is.na(acs$Product),]
 
