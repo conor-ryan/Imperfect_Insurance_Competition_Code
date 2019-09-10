@@ -195,7 +195,7 @@ function run_specification_GMM(filename::String,
     @save file p_stg1 obj_1 spec_Dict
 
     # println("Load First Stage Result")
-    # file = "GMM_Estimate_FMC-2019-08-11-stg1.jld2"
+    # file = "$filename-$rundate-stg1.jld2"
     # @load file p_stg1 obj_1 spec_Dict
 
 
@@ -205,6 +205,8 @@ function run_specification_GMM(filename::String,
     S = calc_mom_Avar(m_GMM,p_stg1)
     S_mom = S[mom_pars,mom_pars]
     diag_sigma = Diagonal(diag(S_mom))
+    S_mom[mom_ind,:] .= 0.0
+    S_mom[:,mom_ind] .= 0.0
     S_mom[mom_ind,mom_ind] = diag_sigma[mom_ind,mom_ind]
     W2 = inv(S_mom)
     W[mom_pars,mom_pars] = W2[:,:]
