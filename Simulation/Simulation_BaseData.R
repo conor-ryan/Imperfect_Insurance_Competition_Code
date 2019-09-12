@@ -325,14 +325,13 @@ acs[,Firm_Market:=paste(Firm,Market,sep="_")]
 acs[,Firm_Market_Cat:=paste(Firm,Market,prodCat,sep="_")]
 acs[,Firm_ST:=paste(Firm,ST,sep="_")]
 
-
 #### Merge in Product Map #### 
 prod_map = read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv")
 prod_map = as.data.table(prod_map)
 
 setkey(acs,Product_Name)
 setkey(prod_map,Product_Name)
-acs = merge(acs,prod_map[,c("Product_Name","Product")],by="Product_Name",all.x=TRUE)
+acs = merge(acs,prod_map[,c("Product_Name","Product","Small")],by="Product_Name",all.x=TRUE)
 # Drop 0 share products
 acs = acs[!is.na(acs$Product),]
 
@@ -343,6 +342,8 @@ acs = merge(acs,firm_RA,by.y=c("ST","Firm"),by.x=c("ST","Firm"))
 
 acs[,Big:=HighRisk]
 # acs[,Big:=as.numeric(grepl("UNITED|BLUE|CIGNA|ASSURANT",Firm))]
+
+acs[,High_small:=HighRisk*Small]
 
 
 #### Fixed Effects ####
@@ -467,7 +468,8 @@ acs[,c("Age_Cat","Inc_Cat"):=NULL]
 
 #### Output Analogous Data ####
 choiceData = acs[,c("Person","Firm","ST","Firm_ST","Firm_Market","Firm_Market_Cat","Market","Product","PERWT","Price",
-                    "MedDeduct","ExcOOP","High","AV","AV_std","AV_diff","Big","Gamma_j",
+                    "MedDeduct","ExcOOP","High","AV","AV_std","AV_diff",
+                    "Big","HighRisk","Small","High_small","Gamma_j",
                     "Mandate","subsidy","benchBase","IncomeCont","mkt_density",
                     "Family","Age","LowIncome","AGE","AvgAge",
                     "METAL","premBase","count_hix_prod",
