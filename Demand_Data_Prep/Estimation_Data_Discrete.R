@@ -711,8 +711,8 @@ choices = choices[choices$Product%in%shares$Product,]
 
 
 #### Clean and Print ####
-#choices$Price = (choices$PremPaid*12-choices$Mandate)/1000
-choices$Price = (choices$PremPaid*12)/1000
+choices$Price = (choices$PremPaid*12-choices$Mandate)/1000
+# choices$Price = (choices$PremPaid*12)/1000
 choices$PriceDiff = (choices$PremPaidDiff*12)/1000
 choices$MedDeduct = choices$MedDeduct/1000
 choices$MedDeductDiff = choices$MedDeductDiff/1000
@@ -720,16 +720,6 @@ choices$MedOOP = choices$MedOOP/1000
 choices$MedOOPDiff = choices$MedOOPDiff/1000
 choices[,ExcOOP:= (MedOOP - MedDeduct)]
 choices[,ExcOOPDiff:= (MedOOPDiff - MedDeductDiff)]
-
-
-### Circular reference with FirmLevelRisk_woSim.R!!
-load("Simulation_Risk_Output/FirmRiskScores_woSim.rData")
-firm_RA = firm_RA[Firm!="OTHER",c("ST","Firm","HighRisk")]
-choices = merge(choices,firm_RA,by.y=c("ST","Firm"),by.x=c("STATE","Firm"))
-
-choices[,Big:=HighRisk]
-
-# choices[,Big:=as.numeric(grepl("UNITED|BLUE|CIGNA|ASSURANT",Firm))]
 
 choices$Product = as.factor(choices$Product)
 shares$Product_Name = factor(shares$Product,levels=levels(choices$Product))
@@ -741,12 +731,45 @@ choices = choices[with(choices,order(Person,Product)),]
 setkey(choices,Person,Product)
 setkey(shares,Product)
 
+write.csv(shares[,c("Product","Share","lives","Gamma_j","AV")],
+          "Intermediate_Output/Estimation_Data/marketData_discrete.csv",row.names=FALSE)
+write.csv(shares,
+          "Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv",row.names=FALSE)
+
+
+save(choices,file="Intermediate_Output/Estimation_Data/estimationData.rData")
+
+### Run the Firm Risk Score File to get Risk Distribution in the data ###
+source("Code/Risk_Scores/FirmLevelRisk_woSim.R")
+
+shares = as.data.table(read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv"))
+load("Intermediate_Output/Estimation_Data/estimationData.rData")
+
+load("Simulation_Risk_Output/FirmRiskScores_woSim.rData")
+firm_RA = firm_RA[Firm!="OTHER",c("ST","Firm","HighRisk")]
+choices = merge(choices,firm_RA,by.y=c("ST","Firm"),by.x=c("STATE","Firm"))
+
+choices[,Big:=HighRisk]
+
+
+firmShares = choices[,list(enroll=sum(S_ij*N*(1-unins_rate))),by=c("Firm","STATE")]
+firmShares[,share:=enroll/sum(enroll),by="STATE"]
+firmShares[,Small:= as.numeric(share<0.05)]
+
+
+choices = merge(choices,firmShares[,c("Firm","STATE","Small")],by=c("Firm","STATE"))
+shares = merge(shares,firmShares[,c("Firm","STATE","Small")],by=c("Firm","STATE"))
+
+choices[,High_small:=Small*HighRisk]
+
+
 
 
 write.csv(choices[,c("Person","Firm","Market","Product","S_ij","N","Price",
                      "Firm_Market","Firm_Market_Cat","Firm_Market_Age","Firm_Market_Cat_Age",
                      "PriceDiff",#"MedDeductDiff","ExcOOPDiff","HighDiff",
-                     "MedDeduct","ExcOOP","High","AV","AV_old","Big",
+                     "MedDeduct","ExcOOP","High","AV","AV_old",
+                     "Big","HighRisk","Small","High_small",
                      "Family","Age","LowIncome","AGE","HighIncome","IncomeCts",
                      "METAL",
                      "ageRate_avg","HCC_age","SilvHCC_Age",
