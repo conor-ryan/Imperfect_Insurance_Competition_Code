@@ -50,12 +50,12 @@ include("$codeDir/Demand_Estimation/utility.jl")
 include("$codeDir/Demand_Estimation/Specification_Run.jl")
 
 filename = "GMM_Estimate_$spec"
-# estimate_demand(filename,rundate,
-#                     halton_draws,
-#                     spec_demoRaw,
-#                     spec_prodchars,
-#                     spec_prodchars_0,
-#                     spec_fixedEffects)
+estimate_demand(filename,rundate,
+                    halton_draws,
+                    spec_demoRaw,
+                    spec_prodchars,
+                    spec_prodchars_0,
+                    spec_fixedEffects)
 
 
 println("##### Estimation Marginal Cost #####")
