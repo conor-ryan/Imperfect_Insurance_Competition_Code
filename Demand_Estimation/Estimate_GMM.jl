@@ -48,6 +48,7 @@ function GMM_objective!(obj_hess::Matrix{Float64},obj_grad::Vector{Float64},d::I
     thD = Array{Float64,3}(undef,length(p0),length(p0),length(p0))
     par0 = parDict(d,p0)
     ll = log_likelihood!(thD,hess,grad,d,par0,feFlag=feFlag)
+    println("Sigma Choice Gradients: $(grad[17:21])")
 
 
     mom_grad = Matrix{Float64}(undef,length(p0),length(d.data.tMoments))
