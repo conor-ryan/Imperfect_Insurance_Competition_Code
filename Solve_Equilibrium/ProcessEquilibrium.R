@@ -5,8 +5,8 @@ library(ggplot2)
 library(scales)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
-run = "2019-09-07"
-spec = "FOC_TEST_RUN_FMC_HS_MC"
+run = "2019-09-13"
+spec = "FOC_TEST_RUN_FMC"
 
 #### Read in Data ####
 eqFile = paste("Estimation_Output/solvedEquilibrium_",spec,"-",run,".csv",sep="")
@@ -19,6 +19,11 @@ load("Intermediate_Output/Simulated_BaseData/simMarketSize.rData")
 prodData = merge(prodData,marketSize,by="Market")
 
 prod_pred = merge(prodData,eqData,by="Product")
+
+margFile = paste("Estimation_Output/checkMargins_",spec,"-",run,".csv",sep="")
+mData = as.data.table(read.csv(margFile))
+
+prod_pred = merge(prod_pred,mData[,c("Product","P_obs","lives")],by="Product")
 
 #### Compute Shares ####
 for (v in c("base","RA","man","RAman")){
@@ -71,7 +76,8 @@ for (v in c("base","RA","man","RAman")){
 
 #### Premium Results ####
 
-prem = prod_pred[,list(Price_base = sum(Price_base*Lives_base)/sum(Lives_base),
+prem = prod_pred[,list(Price_obs = sum(P_obs*lives)/sum(lives),
+                       Price_base = sum(Price_base*Lives_base)/sum(Lives_base),
                        Price_RA = sum(Price_RA*Lives_base)/sum(Lives_base),
                        Price_man = sum(Price_man*Lives_base)/sum(Lives_base),
                        Price_RAman = sum(Price_RAman*Lives_base)/sum(Lives_base)
