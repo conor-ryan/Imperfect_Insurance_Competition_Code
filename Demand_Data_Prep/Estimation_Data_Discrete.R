@@ -712,6 +712,7 @@ choices = choices[choices$Product%in%shares$Product,]
 
 #### Clean and Print ####
 choices$Price = (choices$PremPaid*12-choices$Mandate)/1000
+choices$Price = ((choices$PremPaid*12-choices$Mandate)/1000)/choices$MEMBERS
 # choices$Price = (choices$PremPaid*12)/1000
 choices$PriceDiff = (choices$PremPaidDiff*12)/1000
 choices$MedDeduct = choices$MedDeduct/1000
