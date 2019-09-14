@@ -401,8 +401,8 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,ST::String;foc_chec
         @inbounds Z = demData[:,idxitr[1]]
         @inbounds a = age_long[idxitr[1]]
         @inbounds m = mem_long[idxitr[1]]
-        # aα = ((12/1000)*(a/m)*(p_dem.β_0 + p_dem.β*Z)[1])#.*(1 .-Ze_prem)
-        aα = ((12/1000)*(a)*(p_dem.β_0 + p_dem.β*Z)[1])#.*(1 .-Ze_prem)
+        aα = ((12/1000)*(a/m)*(p_dem.β_0 + p_dem.β*Z)[1])#.*(1 .-Ze_prem)
+        # aα = ((12/1000)*(a)*(p_dem.β_0 + p_dem.β*Z)[1])#.*(1 .-Ze_prem)
         if foc_check
             aα = aα.*(1 .- Ze_prem)
         end
