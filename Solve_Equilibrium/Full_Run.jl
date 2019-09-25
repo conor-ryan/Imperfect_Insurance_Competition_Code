@@ -10,7 +10,7 @@ using DataFrames
 codeDir = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Code/"
 
 ##### Set Specification ####
-halton_draws = 500
+halton_draws = 1000
 spec_demoRaw = [:AgeFE_31_39,
         :AgeFE_40_51,
         :AgeFE_52_64,
@@ -24,7 +24,7 @@ cost_spec = [:AGE,:AV]
 
 rundate = Dates.today()
 println("Running on $rundate")
-spec = "FOC_TEST_RUN_FMC"
+spec = "FMC"
 spec_fixedEffects=[:Firm_Market_Cat]
 
 println("##### Estimate Demand #####")
