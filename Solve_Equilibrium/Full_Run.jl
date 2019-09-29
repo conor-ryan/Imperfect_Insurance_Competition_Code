@@ -10,7 +10,7 @@ using DataFrames
 codeDir = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Code/"
 
 ##### Set Specification ####
-halton_draws = 1000
+halton_draws = 2000
 spec_demoRaw = [:AgeFE_31_39,
         :AgeFE_40_51,
         :AgeFE_52_64,

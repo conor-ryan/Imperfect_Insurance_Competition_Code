@@ -5,8 +5,8 @@ library(ggplot2)
 library(scales)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
-run = "2019-09-13"
-spec = "FOC_TEST_RUN_FMC"
+run = "2019-09-25"
+spec = "FMC"
 
 #### Read in Data ####
 eqFile = paste("Estimation_Output/solvedEquilibrium_",spec,"-",run,".csv",sep="")
