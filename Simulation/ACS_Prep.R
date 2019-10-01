@@ -79,8 +79,6 @@ acs$MEMBERS=1
 #Age of HoH
 acs[,MaxAge:=max(AGE),by="household"]
 acs[,AvgAge:=AGE*PERWT]
-# Drop heads of household that are under 18 - 2,041
-acs = acs[MaxAge>=18,]
 
 #Count Children
 acs[,childRank:=rank(AGE,ties.method="first"),by="household"]
@@ -116,5 +114,10 @@ acs$FAMILY_OR_INDIVIDUAL = "INDIVIDUAL"
 acs$FAMILY_OR_INDIVIDUAL[acs$MEMBERS>1] = "FAMILY"
 acs$catas_elig = acs$catas_cnt==acs$MEMBERS
 
+
+save(acs,file="Intermediate_Output/Simulated_BaseData/acs_unrest.rData")
+
+# Drop heads of household that are under 18 - 2,041
+acs = acs[AGE>=18,]
 
 save(acs,file="Intermediate_Output/Simulated_BaseData/acs_prepped.rData")
