@@ -7,7 +7,7 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 
 ## Estimation Run 
-run = "2019-09-25"
+run = "2019-09-29"
 spec = "FMC"
 
 #Load Product Data

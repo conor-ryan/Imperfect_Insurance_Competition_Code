@@ -200,4 +200,6 @@ table_prem_all[,Group:="All Other Firms"]
 table_prem = rbind(table_prem[,c("Metal_std","Group","base_effect","noMan_effect","noRA_effect","none_effect")],
                    table_prem_all[,c("Metal_std","Group","base_effect","noMan_effect","noRA_effect","none_effect")])
 
-
+print(table_prem[Metal_std%in%c("BRONZE","SILVER","GOLD")])
+hhi[dhhi_pred>0,summary(dhhi_actual)]
+hhi[dhhi_pred>0,table(mergerLabel)]
