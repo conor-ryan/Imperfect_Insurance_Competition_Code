@@ -6,7 +6,8 @@ function run_specification(df::DataFrame,
                             spec_prodchars_0=[:PriceDiff],
                             spec_demoRaw=[:Age,:Family,:LowIncome],
                             spec_fixedEffects=[],
-                            nested = false)
+                            nested = false,
+                            pre_calc=true)
 
     ## Build Model
     c_data = ChoiceData(df,df_mkt,df_risk;
@@ -31,6 +32,27 @@ function run_specification(df::DataFrame,
     p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
     p0 = zeros(length(p0))
 
+    if pre_calc
+        println("Compute No Heterogeneity Parameters")
+        ## Compute Non_heterogeneity Starting Point
+        ll_res = run_specification(df,df_mkt,df_risk,
+                        haltonDim = 1,
+                            spec_prodchars = spec_prodchars,
+                            spec_prodchars_0= Vector{Symbol}(undef,0),
+                            spec_demoRaw=spec_demoRaw,
+                            spec_fixedEffects=spec_fixedEffects,
+                            nested = nested,
+                            pre_calc=false)
+
+        x_est = ll_res[1]
+        ind1 = 1:(length(p0) - m.parLength[:FE] - m.parLength[:σ])
+        ind2 = (length(p0) - m.parLength[:FE] + 1):m.parLength[:All]
+        p0[ind1] = x_est[ind1]
+        p0[ind2] = x_est[ind2 .- m.parLength[:σ]]
+        # indσ = (maximum(ind1) + 1):(minimum(ind2) - 1)
+        # p0[indσ].= rand(m.parLength[:σ])/10 .+ 1e-4
+    end
+
     println("Begin Estimation")
 
     ## Estimate
@@ -38,22 +60,45 @@ function run_specification(df::DataFrame,
     return p_est, m, fval
 end
 
-
-
-
-function res_process(model::InsuranceLogit,p_est::Vector{Float64},GMM_pars::Union{Vector{Int64},UnitRange{Int64}})
+function res_process_ll(model::InsuranceLogit,p_est::Vector{Float64})
     ## Create Param Dictionary
 
     paramFinal = parDict(model,p_est)
 
     #### Likelihood Errors ####
     AsVar_ll = calc_Avar(model,paramFinal)
-    if any(diag(AsVar.<0))
+    if any(diag(AsVar_ll.<0))
         println("Some negative variances")
-        stdErr = sqrt.(abs.(diag(AsVar)))
+        stdErr = sqrt.(abs.(diag(AsVar_ll)))
     else
-        stdErr = sqrt.(diag(AsVar))
+        stdErr = sqrt.(diag(AsVar_ll))
     end
+
+
+    t_stat = p_est./stdErr
+
+    stars = Vector{String}(undef,length(t_stat))
+    for i in 1:length(stars)
+        if abs(t_stat[i])>2.326
+            stars[i] = "***"
+        elseif abs(t_stat[i])>1.654
+            stars[i] = "**"
+        elseif abs(t_stat[i])>1.282
+            stars[i] = "*"
+        else
+            stars[i] = ""
+        end
+    end
+
+    return AsVar_ll, stdErr, t_stat, stars
+end
+
+
+
+function res_process_GMM(model::InsuranceLogit,p_est::Vector{Float64})
+    ## Create Param Dictionary
+
+    paramFinal = parDict(model,p_est)
 
     #### GMM Errors ####
     S = calc_mom_Avar(model,p_est)
@@ -68,12 +113,12 @@ function res_process(model::InsuranceLogit,p_est::Vector{Float64},GMM_pars::Unio
     G = hcat(mom_grad,hess)
 
     ## Calculate Variance
-    AsVar_GMM = inv(G*inv(S)*G')
-    if any(diag(AsVar_GMM.<0))
+    AsVar = inv(G*inv(S)*G')
+    if any(diag(AsVar.<0))
         println("Some negative variances")
-        stdErr[GMM_pars] = sqrt.(abs.(diag(AsVar)))[GMM_pars]
+        stdErr = sqrt.(abs.(diag(AsVar)))
     else
-        stdErr[GMM_pars] = sqrt.(diag(AsVar))[GMM_pars]
+        stdErr = sqrt.(diag(AsVar))
     end
 
 

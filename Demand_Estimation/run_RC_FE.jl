@@ -62,7 +62,7 @@ c = ChoiceData(df,df_mkt,df_risk;
 
 
 # Fit into model
-m = InsuranceLogit(c,500)
+m = InsuranceLogit(c,1000)
 println("Data Loaded")
 
 

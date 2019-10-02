@@ -220,7 +220,7 @@ end
 
 
 function newton_raphson_ll(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
-    max_itr=2000,strict=true,Hess_Skip_Steps=5)
+    max_itr=2000,strict=true,Hess_Skip_Steps=15)
     ## Initialize Parameter Vector
     p_vec = p0
     N = length(p0)
@@ -320,16 +320,16 @@ function newton_raphson_ll(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         update = -H_k*grad_new
         if any(isnan.(update))
             println("Step contains NaN")
-            println("Algorithm Failed")
-            return p_min,f_min
-
-            # #Check Hessian
-            # eig = sort(abs.(eigvals(hess_new)))
-            # sm_e = eig[1]
-            # println("Smallest Eigenvalue: $sm_e ")
-            # NaN_steps +=1
-            # grad_size = sqrt(dot(grad_new,grad_new))
-            # update = -(1/grad_size).*grad_new
+            NaN_steps+=1
+            if real_hessian==0
+                println("No Advancement")
+                hess_steps = 0
+                update = 0
+                grad_size = 100
+            else
+                println("ALGORITHM FAILED! SINGULAR HESSIAN!")
+                return p_min,f_min
+            end
         else
             NaN_steps = 0
         end
@@ -337,6 +337,7 @@ function newton_raphson_ll(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
 
         if no_progress>5
             no_progress = 0
+            hess_steps = 0
             println("Return: Limit on No Progress")
             p_vec = copy(p_min)
             fval = log_likelihood!(grad_new,d,p_vec)
@@ -348,11 +349,11 @@ function newton_raphson_ll(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
 
         step_size = maximum(abs.(update))
         if step_size>10
-        update = update./step_size
-        ind = findall(abs.(update).==1)
-        val_disp = p_vec[ind]
+            update = update./step_size
+            ind = findall(abs.(update).==1)
+            val_disp = p_vec[ind]
             println("Max Parameter Adjustment: $ind, $val_disp")
-        step_size = 1
+            step_size = 1
         end
 
 
@@ -392,6 +393,7 @@ function newton_raphson_ll(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 p_test, f_test = gradient_ascent_ll(d,p_vec,max_itr=5,strict=true)
             else
                 println("No Advancement")
+                hess_steps = 0
                 p_test = copy(p_vec)
                 break
             end
