@@ -63,7 +63,7 @@ end
 function res_process_ll(model::InsuranceLogit,p_est::Vector{Float64})
     ## Create Param Dictionary
 
-    paramFinal = parDict(model,p_est)
+    paramFinal = parDict(model,p_est,no2Der=true)
 
     #### Likelihood Errors ####
     AsVar_ll = calc_Avar(model,paramFinal)
@@ -98,7 +98,7 @@ end
 function res_process_GMM(model::InsuranceLogit,p_est::Vector{Float64})
     ## Create Param Dictionary
 
-    paramFinal = parDict(model,p_est)
+    paramFinal = parDict(model,p_est,no2Der=true)
 
     #### GMM Errors ####
     S = calc_mom_Avar(model,p_est)
@@ -106,10 +106,9 @@ function res_process_GMM(model::InsuranceLogit,p_est::Vector{Float64})
     ## Derivative of Moments wrt Parameters
     grad = Vector{Float64}(undef,length(p_est))
     hess = Matrix{Float64}(undef,length(p_est),length(p_est))
-    par0 = parDict(d,p_est)
-    ll = log_likelihood!(hess,grad,model,par0)
+    ll = log_likelihood!(hess,grad,model,paramFinal)
     mom_grad = Matrix{Float64}(undef,length(p_est),length(model.data.tMoments))
-    mom = calc_risk_moments!(mom_grad,model,par0)
+    mom = calc_risk_moments!(mom_grad,model,paramFinal)
     G = hcat(mom_grad,hess)
 
     ## Calculate Variance
@@ -137,7 +136,7 @@ function res_process_GMM(model::InsuranceLogit,p_est::Vector{Float64})
         end
     end
 
-    return AsVar, stdErr, t_stat, stars
+    return S,G,AsVar, stdErr, t_stat, stars
 end
 
 
@@ -275,8 +274,9 @@ function run_specification_GMM(filename::String,
     file = "$filename-$rundate-stg2.jld2"
     @save file p_stg2 obj_2 spec_Dict
 
-    # println("#### Calculate Standard Errors and Save Results ####")
-    # AsVar, stdErr,t_stat, stars = res_process(m_GMM,p_stg2,σ_ind)
+    println("#### Calculate Standard Errors and Save Results ####")
+    AsVar, stdErr,t_stat, stars = GMM_var(m_GMM,p_stg2)
+    AsVar, stdErr,t_stat, stars = res_process_ll(m_GMM,p_stg2)
 
     out1 = DataFrame(pars=p_stg2)#,se=stdErr,ts=t_stat,sig=stars)
     file1 = "$filename-$rundate.csv"
