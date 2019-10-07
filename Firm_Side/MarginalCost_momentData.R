@@ -83,7 +83,11 @@ metalAvg[METAL=="BRONZE",bronzeCost:=expAvgCost]
 metalAvg[,bronzeCost:=max(bronzeCost,na.rm=TRUE),by=c("STATE","MARKET","COMPANY","Year")]
 metalAvg[bronzeCost<=0,bronzeCost:=NA]
 metalAvg[!is.na(bronzeCost),costRatio:=expAvgCost/bronzeCost]
-metalAvg = metalAvg[!is.na(costRatio),list(costIndex=sum(costRatio*EXP_MM)/sum(EXP_MM)),by=c("METAL","Year")]
+metalAvg[,firmSize:=sum(EXP_MM),by=c("STATE","MARKET","COMPANY","Year")]
+# metalAvg = metalAvg[!is.na(costRatio),list(costIndex=sum(costRatio*EXP_MM)/sum(EXP_MM)),by=c("METAL","Year")]
+metalAvg = metalAvg[!is.na(costRatio)&costRatio!=0.0,list(costIndex=sum(costRatio*firmSize)/sum(firmSize)),by=c("METAL","Year")]
+
+# Should this weighting be by firm size? 
 
 # metalAvg[,max_ratio:=max(costRatio),by=c("STATE","MARKET","COMPANY","Year")]
 # metalAvg = metalAvg[max_ratio>1.05,]

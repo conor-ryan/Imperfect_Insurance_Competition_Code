@@ -8,45 +8,40 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 #### Read in MEPS Data ####
 mepsFull = read.csv("Data/2015_MEPS/MEPS_Full_2015.csv")
 
-# #### Age - Cost Moments ####
-# ins = as.data.table(mepsFull[mepsFull$UNINS15==2,c("HIEUIDX","PID","AGELAST","SEX","TTLP15X","OFFER31X","OFFER42X","OFFER53X",
-#                                           "TRIEV15","MCREV15","MCDEV15","OPAEV15","OPBEV15","ADSMOK42",
-#                                           "INSCOV15","INSURC15","TOTPRV15","PERWT15F")])
-# 
-# ins[,Age_Bin:= floor(AGELAST/5)*5]
-# ins[AGELAST>=18&Age_Bin==15,Age_Bin:=20]
-# ageMoments = ins[Age_Bin>=20&Age_Bin<65,list(avgCost=sum(PERWT15F*TOTPRV15)/sum(PERWT15F)),by=c("Age_Bin")]
-# ageMoments[,costIndex:=avgCost/min(avgCost)]
-# setkey(ageMoments,Age_Bin)
-# write.csv(ageMoments,file="Intermediate_Output/MEPS_Moments/ageMoments.csv",row.names=FALSE)
-
-
 
 #### Distribution of Risk Scores  ####
-meps = mepsFull[,c("HIEUIDX","DUPERSID","PID","PANEL","AGELAST","AGE15X","TTLP15X","POVLEV15","OFFER31X","OFFER42X","OFFER53X",
-                   "TRIEV15","MCREV15","MCDEV15","OPAEV15","OPBEV15","ADSMOK42",
+meps = mepsFull[mepsFull$UNINS15==2,c("HIEUIDX","DUPERSID","PID","PANEL","AGELAST","AGE15X","TTLP15X","POVLEV15","OFFER31X","OFFER42X","OFFER53X",
+                   "TRIEV15","MCREV15","MCDEV15","OPAEV15","OPBEV15","ADSMOK42","REGION15",
                    "INSCOV15","INSURC15","PERWT15F")]
 
 meps_risk = read.csv("Intermediate_Output/MEPS_Moments/meps_risk_scores.csv")
-mepsPers = read.csv("Data/2015_MEPS/MEPS_Person_2015.csv")
-## Non Group Coverage
-mepsPers = mepsPers[mepsPers$PRIVCAT%in%c(2,3,5,6,99),]
-# #Not Through Employer or Association 
-mepsPers = mepsPers[mepsPers$CMJINS!=1,]
-mepsPers = mepsPers[mepsPers$TYPEFLAG%in%c(5,6,7,11,12,13,21),]
 
-mepsPers = mepsPers[mepsPers$STEXCH!=-1,]
+meps = merge(meps,meps_risk,by=c("DUPERSID","PANEL"))#,all.x=TRUE)
+# Subset on Region
+# meps = meps[meps$REGION15!=1,]
+# meps = as.data.table(meps)
 
-mepsPers = summaryBy(STEXCH~DUPERSID+PANEL,data=mepsPers,FUN=min,keep.names=TRUE)
 
-meps = merge(meps,mepsPers,by=c("DUPERSID","PANEL"),all.x=TRUE)
-meps = merge(meps,meps_risk,by=c("DUPERSID","PANEL"),all.x=TRUE)
-
-## Keep Non-Group Only
+# 
+# mepsPers = read.csv("Data/2015_MEPS/MEPS_Person_2015.csv")
+# ## Non Group Coverage
+# mepsPers = mepsPers[mepsPers$PRIVCAT%in%c(2,3,5,6,99),]
+# # #Not Through Employer or Association 
+# mepsPers = mepsPers[mepsPers$CMJINS!=1,]
+# mepsPers = mepsPers[mepsPers$TYPEFLAG%in%c(5,6,7,11,12,13,21),]
+# 
+# mepsPers = mepsPers[mepsPers$STEXCH!=-1,]
+# 
+# mepsPers = summaryBy(STEXCH~DUPERSID+PANEL,data=mepsPers,FUN=min,keep.names=TRUE)
+# 
+# meps = merge(meps,mepsPers,by=c("DUPERSID","PANEL"),all.x=TRUE)
+# meps = merge(meps,meps_risk,by=c("DUPERSID","PANEL"),all.x=TRUE)
+# 
+# ## Keep Non-Group Only
 meps = meps[meps$AGE15X<66,]
-meps = meps[!is.na(meps$STEXCH),]
-
-## Age of HoH
+# meps = meps[!is.na(meps$STEXCH),]
+# 
+# ## Age of HoH
 meps$HoH_Age = ave(meps$AGE15X,meps$HIEUIDX,FUN=max)
 meps$Count = 1
 meps$HoH_Count = ave(meps$Count,meps$HIEUIDX,FUN=sum)
@@ -149,7 +144,7 @@ meps = merge(meps,meps_risk,by=c("DUPERSID","PANEL"))#,all.x=TRUE)
 # Subset on 0 - 65, Insured
 meps = meps[meps$AGE15X>=0,]
 meps = meps[meps$AGE15X<66,]
-meps = meps[meps$REGION15!=1,]
+# meps = meps[meps$REGION15!=1,]
 meps = as.data.table(meps)
 
 meps$HoH_Age = ave(meps$AGE15X,meps$HIEUIDX,FUN=max)
