@@ -5,7 +5,7 @@ function GMM_objective!(obj_grad::Vector{Float64},d::InsuranceLogit,p0::Array{T}
                         W::Matrix{Float64};feFlag::Int64=-1) where T
     grad = Vector{Float64}(undef,length(p0))
     hess = Matrix{Float64}(undef,length(p0),length(p0))
-    par0 = parDict(d,p0)
+    par0 = parDict(d,p0,no2Der=true)
     ll = log_likelihood!(hess,grad,d,par0,feFlag=feFlag)
 
     mom_grad = Matrix{Float64}(undef,length(p0),length(d.data.tMoments))

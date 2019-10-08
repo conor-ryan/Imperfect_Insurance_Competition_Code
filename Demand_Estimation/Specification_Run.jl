@@ -244,7 +244,7 @@ function run_specification_GMM(filename::String,
 
 
     println("#### Estimate GMM Second Stage ####")
-    mom_pars = vcat(1:length(m_GMM.data.tMoments),(length(m_GMM.data.tMoments)+1).+σ_ind)
+    mom_pars = vcat(1:length(m_GMM.data.tMoments),(length(m_GMM.data.tMoments)).+σ_ind)
     mom_ind = 1:length(m_GMM.data.tMoments)
     S = calc_mom_Avar(m_GMM,p_stg1)
     S_mom = S[mom_pars,mom_pars]
@@ -273,6 +273,7 @@ function run_specification_GMM(filename::String,
     println("Save Second Stage Result")
     file = "$filename-$rundate-stg2.jld2"
     @save file p_stg2 obj_2 spec_Dict
+    # @load file p_stg2 obj_2 spec_Dict
 
     println("#### Calculate Standard Errors and Save Results ####")
     AsVar, stdErr,t_stat, stars = GMM_var(m_GMM,p_stg2)
