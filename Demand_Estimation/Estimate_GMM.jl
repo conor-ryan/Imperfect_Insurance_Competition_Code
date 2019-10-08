@@ -71,7 +71,7 @@ end
 
 function GMM_objective(d::InsuranceLogit,p0::Array{T},W::Matrix{Float64};feFlag::Int64=-1) where T
 
-    par0 = parDict(d,p0)
+    par0 = parDict(d,p0,no2Der=true)
     grad = Vector{T}(undef,length(p0))
     ll = log_likelihood!(grad,d,par0,feFlag=feFlag)
     # individual_values!(d,par0)
