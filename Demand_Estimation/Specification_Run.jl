@@ -248,10 +248,10 @@ function run_specification_GMM(filename::String,
     mom_ind = 1:length(m_GMM.data.tMoments)
     S = calc_mom_Avar(m_GMM,p_stg1)
     S_mom = S[mom_pars,mom_pars]
-    diag_sigma = Diagonal(diag(S_mom))
-    S_mom[mom_ind,:] .= 0.0
-    S_mom[:,mom_ind] .= 0.0
-    S_mom[mom_ind,mom_ind] = diag_sigma[mom_ind,mom_ind]
+    # diag_sigma = Diagonal(diag(S_mom))
+    # S_mom[mom_ind,:] .= 0.0
+    # S_mom[:,mom_ind] .= 0.0
+    # S_mom[mom_ind,mom_ind] = diag_sigma[mom_ind,mom_ind]
     W2 = inv(S_mom)
     W[mom_pars,mom_pars] = W2[:,:]
 
