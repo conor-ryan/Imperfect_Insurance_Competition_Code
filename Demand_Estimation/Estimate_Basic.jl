@@ -130,21 +130,7 @@ function gradient_ascent_ll(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=200
 
         # Compute Gradient, holding δ fixed
         fval = log_likelihood!(grad_new,d,p_vec)
-        if (cnt==1) | (fval>f_min)
-            if abs(fval-f_min)<f_tol
-                f_tol_cnt += 1
-            end
-            if maximum(abs.(p_vec - p_min))<x_tol
-                x_tol_cnt += 1
-            end
 
-            f_min = copy(fval)
-            p_min[:] = p_vec[:]
-
-            no_progress=0
-        else
-            no_progress+=1
-        end
 
 
         grad_size = maximum(abs.(grad_new))
@@ -199,6 +185,21 @@ function gradient_ascent_ll(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=200
             p_test = p_vec .+ step.*grad_new
             f_test = log_likelihood(d,p_test)
             trial_cnt+=1
+        end
+
+        if (cnt==1) | (f_test>f_min)
+            if abs(f_test-f_min)<f_tol
+                f_tol_cnt += 1
+            end
+            if maximum(abs.(p_test - p_min))<x_tol
+                x_tol_cnt += 1
+            end
+            f_min = copy(f_test)
+            p_min[:] = p_test[:]
+
+            no_progress=0
+        else
+            no_progress+=1
         end
 
         p_last = copy(p_vec)
@@ -270,6 +271,7 @@ function newton_raphson_ll(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         if hess_steps==0
             println("Compute Hessian")
             fval = log_likelihood!(hess_new,grad_new,d,p_vec)
+            hess_new = enforceNegDef(hess_new)
             H_k = inv(hess_new)
             real_hessian=1
         else
@@ -390,7 +392,7 @@ function newton_raphson_ll(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 hess_steps = 0
                 trial_max = 1
                 println("RUN ROUND OF GRADIENT ASCENT")
-                p_test, f_test = gradient_ascent_ll(d,p_vec,max_itr=5,strict=true)
+                p_test, f_test = gradient_ascent_ll(d,p_vec,max_itr=10,strict=true)
             else
                 println("No Advancement")
                 hess_steps = 0
