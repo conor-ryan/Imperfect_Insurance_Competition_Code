@@ -16,6 +16,8 @@ function run_specification(df::DataFrame,
         prodchars_0=spec_prodchars_0,
         fixedEffects=spec_fixedEffects)
 
+    param_labels = vcat(String.(spec_demoRaw),String.(spec_prodchars),"Price:" .* String.(spec_demoRaw),"Variance:".*String.(spec_prodchars_0),c_data.feNames)
+
     m = InsuranceLogit(c_data,haltonDim,nested=nested)
 
     println("Data Loaded")
@@ -57,16 +59,20 @@ function run_specification(df::DataFrame,
 
     ## Estimate
     p_est, fval = newton_raphson_ll(m,p0)
-    return p_est, m, fval
+    return p_est, m, fval,param_labels
 end
 
 function res_process_ll(model::InsuranceLogit,p_est::Vector{Float64})
     ## Create Param Dictionary
 
     paramFinal = parDict(model,p_est,no2Der=true)
-
+    Pop =sum(weight(model.data).*choice(model.data))
     #### Likelihood Errors ####
-    AsVar_ll = calc_Avar(model,paramFinal)
+    # AsVar_ll = calc_Avar(model,paramFinal)
+    hess = Matrix{Float64}(undef,length(p_est),length(p_est))
+    grad = Vector{Float64}(undef,length(p_est))
+    res = log_likelihood!(hess,grad,model,p_est)
+    AsVar_ll = -inv(hess)./Pop
     if any(diag(AsVar_ll.<0))
         println("Some negative variances")
         stdErr = sqrt.(abs.(diag(AsVar_ll)))
@@ -201,6 +207,8 @@ function run_specification_GMM(filename::String,
         prodchars_0=spec_prodchars_0,
         fixedEffects=spec_fixedEffects)
 
+    param_labels = vcat(String.(spec_demoRaw),String.(spec_prodchars),"Price:" .* String.(spec_demoRaw),"Variance:".*String.(spec_prodchars_0),c_data.feNames)
+
     m_GMM = InsuranceLogit(c_data,haltonDim,nested=nested)
 
     ## Initialize Starting Parameters
@@ -279,7 +287,7 @@ function run_specification_GMM(filename::String,
     AsVar, stdErr,t_stat, stars = GMM_var(m_GMM,p_stg2)
     AsVar, stdErr,t_stat, stars = res_process_ll(m_GMM,p_stg2)
 
-    out1 = DataFrame(pars=p_stg2,se=stdErr,ts=t_stat,sig=stars)
+    out1 = DataFrame(labels=param_labels,pars=p_stg2,se=stdErr,ts=t_stat,sig=stars)
     file1 = "$filename-$rundate.csv"
     CSV.write(file1,out1)
 

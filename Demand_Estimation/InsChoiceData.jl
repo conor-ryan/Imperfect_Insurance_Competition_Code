@@ -27,6 +27,7 @@ struct ChoiceData <: ModelData
     demoRaw    # Household Demographics - raw
     wgt     # Number of People in each type
     unins     # Outside Option Share
+    feNames   # Fixed Effect Names
 
     # Precomputed Indices
     _person::Array{Int,1}
@@ -287,7 +288,8 @@ function ChoiceData(data_choice::DataFrame,
     # Make the data object
     m = ChoiceData(dmat,data_market,rmat,tMoments,st_share,
             F, index, prodchars,prodchars_0,
-            choice, demoRaw,wgt, unins, _person,_product, _prodchars,_prodchars_0,
+            choice, demoRaw,wgt, unins,feNames,
+             _person,_product, _prodchars,_prodchars_0,
             _choice, _demoRaw, _wgt,_ageRate,_ageHCC,
              _unins,_rInd,_rIndS,
              _randCoeffs,
@@ -513,6 +515,7 @@ function subset(d::T, idx) where T<:ModelData
     d.demoRaw,    # Household Demographics - raw
     d.wgt,     # Demographic Fixed Effects
     d.unins,    # Outside Option Share
+    d.feNames, #fixed effect names
     # Precomputed Indices
     d._person,
     d._product,
