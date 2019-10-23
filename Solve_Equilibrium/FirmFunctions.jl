@@ -528,6 +528,13 @@ function solve_equilibrium(rundate,spec)
 
     par_cost = parMC(mc_est,par_dem,model,costdf)
 
+    #### Print Costs Moments
+    println("Print Cost Moments...")
+    moments,targets = costMoments(costdf,model,mc_est,par_dem,print_moments=true)
+    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/costMoments_$spec-$rundate.csv"
+    output =  DataFrame(estimated_moments=moments,
+                        targeted_moments = targets)
+    CSV.write(file,output)
 
     #### Solve Equilibrium ####
     firm = firmData(model,df,eq_mkt,par_dem,par_cost)

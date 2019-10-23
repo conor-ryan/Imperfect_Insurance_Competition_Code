@@ -5,7 +5,7 @@ library(ggplot2)
 library(scales)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
-run = "2019-10-10"
+run = "2019-10-19"
 spec = "FMC"
 
 #### Read in Data ####
@@ -51,9 +51,11 @@ Firms[,share:=Lives_base/insured]
 
 Mkt = Firms[,list(HHI=sum((share*100)^2)),by="Market"]
 Mkt[,HHI_flag:=0]
-Mkt[HHI>4000,HHI_flag:=1]
-Mkt[HHI>5500,HHI_flag:=2]
+Mkt[HHI>3350,HHI_flag:=1]
+Mkt[HHI>5200,HHI_flag:=2]
 table(Mkt$HHI_flag)
+file = paste("Estimation_Output/MktHHI_",spec,"-",run,".rData",sep="")
+save(Mkt,file=file)
 
 prod_pred = merge(prod_pred,Mkt,by="Market")
 
@@ -76,22 +78,46 @@ for (v in c("base","RA","man","RAman")){
 
 #### Premium Results ####
 
-prem = prod_pred[,list(Price_obs = sum(P_obs*lives)/sum(lives),
-                       Price_base = sum(Price_base*Lives_base)/sum(Lives_base),
-                       Price_RA = sum(Price_RA*Lives_base)/sum(Lives_base),
-                       Price_man = sum(Price_man*Lives_base)/sum(Lives_base),
-                       Price_RAman = sum(Price_RAman*Lives_base)/sum(Lives_base)
+prem = prod_pred[,list(Price_obs = round(12/1000*sum(P_obs*lives)/sum(lives),2),
+                       Price_base = round(12/1000*sum(Price_base*Lives_base)/sum(Lives_base),2),
+                       Price_RA = round(12/1000*sum(Price_RA*Lives_base)/sum(Lives_base),2),
+                       Price_man = round(12/1000*sum(Price_man*Lives_base)/sum(Lives_base),2),
+                       Price_RAman = round(12/1000*sum(Price_RAman*Lives_base)/sum(Lives_base),2)
 ),
 by=c("Metal_std","HHI_flag")]
 setkey(prem,HHI_flag,Price_base)
+print(prem[Metal_std%in%c("BRONZE","SILVER","GOLD")])
 
+prem_Monopoly = prod_pred[HHI>=8000,list(Price_obs = round(12/1000*sum(P_obs*lives)/sum(lives),2),
+                       Price_base = round(12/1000*sum(Price_base*Lives_base)/sum(Lives_base),2),
+                       Price_RA = round(12/1000*sum(Price_RA*Lives_base)/sum(Lives_base),2),
+                       Price_man = round(12/1000*sum(Price_man*Lives_base)/sum(Lives_base),2),
+                       Price_RAman = round(12/1000*sum(Price_RAman*Lives_base)/sum(Lives_base),2)
+),
+by=c("Metal_std","HHI_flag")]
+setkey(prem_Monopoly,HHI_flag,Price_base)
+print(prem_Monopoly[Metal_std%in%c("BRONZE","SILVER","GOLD")])
+
+prem_Competitive = prod_pred[HHI<=2800,list(Price_obs = round(12/1000*sum(P_obs*lives)/sum(lives),2),
+                                         Price_base = round(12/1000*sum(Price_base*Lives_base)/sum(Lives_base),2),
+                                         Price_RA = round(12/1000*sum(Price_RA*Lives_base)/sum(Lives_base),2),
+                                         Price_man = round(12/1000*sum(Price_man*Lives_base)/sum(Lives_base),2),
+                                         Price_RAman = round(12/1000*sum(Price_RAman*Lives_base)/sum(Lives_base),2)
+),
+by=c("Metal_std","HHI_flag")]
+setkey(prem_Competitive,HHI_flag,Price_base)
+print(prem_Competitive[Metal_std%in%c("BRONZE","SILVER","GOLD")])
 
 #### Merger Results ####
+firms = prod_pred[,list(s_base = sum(Lives_base),
+                        s_noRA   = sum(Lives_RA),
+                        s_noMan  = sum(Lives_man),
+                        s_none   = sum(Lives_RAman)),by=c("Market","Firm")]
 
-firms = prod_pred[,list(s_base = sum(Share_base),
-                        s_noRA   = sum(Share_RA),
-                        s_noMan  = sum(Share_man),
-                        s_none   = sum(Share_RAman)),by=c("Market","Firm")]
+firms[,s_base:=s_base/sum(s_base),by=c("Market")]
+firms[,s_noRA :=s_noRA/sum(s_noRA),by=c("Market")]
+firms[,s_noMan:=s_noMan/sum(s_noMan),by=c("Market")]
+firms[,s_none :=s_none/sum(s_none),by=c("Market")]
 
 firms[,merger:="None"]
 firms[Firm%in%c("AETNA","HUMANA"),merger:= "Aetna-Humana"]
@@ -129,10 +155,16 @@ hhi = firms[,list(hhi_base = sum((s_base*100)^2),
 prod_pred[Firm%in%c("AETNA","HUMANA"),Firm:= "AETNA"]
 prod_pred[Firm%in%c("ANTHEM_BLUE_CROSS_AND_BLUE_SHIELD","BLUE_CROSS_BLUE_SHIELD_OF_GEORGIA","CIGNA_HEALTH_AND_LIFE_INSURANCE_COMPANY"),Firm:="ANTHEM"]
 
-firms_m = prod_pred[,list(s_base_m = sum(Share_base_m),
-                          s_noRA_m   = sum(Share_RA_m),
-                          s_noMan_m  = sum(Share_man_m),
-                          s_none_m   = sum(Share_RAman_m)),by=c("Market","Firm")]
+firms_m = prod_pred[,list(s_base_m = sum(Lives_base_m),
+                        s_noRA_m   = sum(Lives_RA_m),
+                        s_noMan_m  = sum(Lives_man_m),
+                        s_none_m   = sum(Lives_RAman_m)),by=c("Market","Firm")]
+
+firms_m[,s_base_m :=s_base_m/sum(s_base_m),by=c("Market")]
+firms_m[,s_noRA_m :=s_noRA_m/sum(s_noRA_m),by=c("Market")]
+firms_m[,s_noMan_m:=s_noMan_m/sum(s_noMan_m),by=c("Market")]
+firms_m[,s_none_m :=s_none_m/sum(s_none_m),by=c("Market")]
+
 hhi_m = firms_m[,list(hhi_base_m = sum((s_base_m*100)^2),
                       hhi_noRA_m   = sum((s_noRA_m*100)^2),
                       hhi_noMan_m  = sum((s_noMan_m*100)^2),
@@ -197,8 +229,8 @@ table_prem_all[,none_effect:= round(100*(prem_none_m-prem_none)/prem_none,1)]
 
 table_prem_all[,Group:="All Other Firms"]
 
-table_prem = rbind(table_prem[,c("Metal_std","Group","base_effect","noMan_effect","noRA_effect","none_effect")],
-                   table_prem_all[,c("Metal_std","Group","base_effect","noMan_effect","noRA_effect","none_effect")])
+table_prem = rbind(table_prem[,c("Metal_std","Group","base_effect","noRA_effect","noMan_effect","none_effect")],
+                   table_prem_all[,c("Metal_std","Group","base_effect","noRA_effect","noMan_effect","none_effect")])
 
 print(table_prem[Metal_std%in%c("BRONZE","SILVER","GOLD")])
 hhi[dhhi_pred>0,summary(dhhi_actual)]

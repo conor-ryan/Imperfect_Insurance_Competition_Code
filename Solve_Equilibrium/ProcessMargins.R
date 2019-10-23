@@ -7,7 +7,7 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 
 ## Estimation Run 
-run = "2019-10-10"
+run = "2019-10-19"
 spec = "FMC"
 
 #Load Product Data
@@ -24,10 +24,17 @@ eqData = as.data.table(read.csv(eqFile))
 
 prod_data = merge(prod_data,eqData,by="Product")
 
-ggplot(prod_data) + aes(y=MC_RA,x=MR) +
+file = paste("Estimation_Output/MktHHI_",spec,"-",run,".rData",sep="")
+load(file=file)
+
+prod_data = merge(prod_data,Mkt,by="Market")
+
+ggplot(prod_data[HHI_flag==2]) + aes(y=MC_RA,x=MR) +
   geom_point(size=1.5,alpha=0.5) +
   geom_abline(intercept=0,slope=1) +
   geom_smooth(color="red",method="lm",se=FALSE)
+
+prod_data[HHI_flag==2,summary(MC_RA-MR)]
 
 # firms = prod_data[,list(R_avg=sum(share_base*size*R_avg)/sum(share_base*size),
 #                         Revenue=sum(share_base*size*premBase*ageRate)/sum(share_base*size)),
@@ -154,29 +161,30 @@ plot = ggplot(prod_data[,]) + aes(x=MR,y=MC_std) +
 print(plot)
 # dev.off()
 
-# png("Writing/Images/marginCheckRA.png",width=2000,height=1500,res=275)
-ggplot(prod_data[,]) + aes(x=MR,y=MC_RA) +
-  geom_point(size=1.5,alpha=0.5) + 
-  geom_abline(intercept=0,slope=1) + 
-  geom_smooth(color="red",method="lm",se=FALSE) + 
-  geom_line(aes(y=MC_fit_RA),color="blue") +
-  # scale_x_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
-  # scale_y_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
-  # coord_cartesian(ylim=c(-250,500),xlim=c(0,1500)) +
-  xlab("Marginal Cost") + 
-  ylab("Marginal Revenue") + 
-  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
-    strip.background = element_blank(),
-    #panel.grid.major = element_line(color=grey(.8)),
-    legend.background = element_rect(color=grey(.5)),
-    legend.title=element_blank(),
-    legend.text = element_text(size=14),
-    legend.key.width = unit(.05,units="npc"),
-    legend.key = element_rect(color="transparent",fill="transparent"),
-    legend.position = "none",
-    axis.title=element_text(size=14),
-    axis.text = element_text(size=16))
-# dev.off()
+png("Writing/Images/marginCheckRA.png",width=2000,height=1500,res=275)
+plot = ggplot(prod_data[,]) + aes(x=MR,y=MC_RA) +
+    geom_point(size=1.5,alpha=0.25) + 
+    geom_abline(intercept=0,slope=1) + 
+    geom_smooth(color="red",method="lm",se=FALSE,linetype=2) + 
+    # scale_x_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
+    # scale_y_continuous(labels = dollar,breaks = c(2,4,6,8,10)) +
+    coord_cartesian(ylim=c(-250,750),xlim=c(-250,750)) +
+    ylab("Marginal Cost") + 
+    xlab("Marginal Revenue") + 
+    theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+      strip.background = element_blank(),
+      #panel.grid.major = element_line(color=grey(.8)),
+      legend.background = element_rect(color=grey(.5)),
+      legend.title=element_blank(),
+      legend.text = element_text(size=14),
+      legend.key.width = unit(.05,units="npc"),
+      legend.key = element_rect(color="transparent",fill="transparent"),
+      legend.position = "none",
+      axis.title=element_text(size=14),
+      axis.text = element_text(size=16))
+print(plot)
+dev.off()
+print(plot)
 
 ggplot(prod_data[,]) + aes(y=MC_std,x=MC_RA) +
   geom_point(size=1.5,alpha=0.5) + 

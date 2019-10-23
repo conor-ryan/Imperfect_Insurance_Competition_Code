@@ -433,7 +433,7 @@ end
 
 
 
-function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
+function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T};print_moments::Bool=false) where T
     s_hat = p.pars.s_hat
     s_hat_nonrisk = p.s_hat_nonrisk
     s_hat_risk = p.s_hat_risk
@@ -545,8 +545,11 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     est_moments = vcat(fmom,mmom,nmom,rmom)
     targ_moments = vcat(c.firmMoments,c.metalMoments[2:length(c.metalMoments)],
                     c.agenoMoments[2:length(c.agenoMoments)],c.riskMoment)
-    return est_moments .- targ_moments
-
+    if print_moments
+        return est_moments, targ_moments
+    else
+        return est_moments .- targ_moments
+    end
     # est_moments = vcat(fmom,mmom,nmom,rmom,tmom)
     # targ_moments = vcat(c.firmMoments,c.metalMoments[2:length(c.metalMoments)],
     #                 c.agenoMoments[2:length(c.agenoMoments)],c.riskMoment,c.raMoments)
@@ -555,10 +558,10 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
 end
 
 
-function costMoments(c::MC_Data,d::InsuranceLogit,p::Array{T},p_est::parDict{Float64}) where T
+function costMoments(c::MC_Data,d::InsuranceLogit,p::Array{T},p_est::parDict{Float64};print_moments::Bool=false) where T
     par = parMC(p,p_est,d,c) # Fix p0
     individual_costs(d,par)
-    mom = costMoments(c,d,par)
+    mom = costMoments(c,d,par,print_moments=print_moments)
     return mom
 end
 
