@@ -339,8 +339,26 @@ function calc_der(s_hat::Vector{Float64},c_hat::Vector{Float64},
     return dsdp, dcdp, dcdp_pl
 end
 
-
 function update_derivatives(d::InsuranceLogit,firm::firmData,ST::String;foc_check=false)
+    if ST=="All"
+        pers = Int.(d.data._personIDs)
+        prod_ind = firm.prods
+    else
+        pers = firm._perSTDict[ST]
+        prod_ind = firm._prodSTDict[ST]
+    end
+    update_derivatives(d,firm,pers,prod_ind,foc_check=foc_check)
+    return nothing
+end
+function update_derivatives(d::InsuranceLogit,firm::firmData,mkt::Int;foc_check=false)
+    pers = firm._perMktDict[mkt]
+    prod_ind = firm.mkt_index[mkt]
+    update_derivatives(d,firm,pers,prod_ind,foc_check=foc_check)
+    return nothing
+end
+
+function update_derivatives(d::InsuranceLogit,firm::firmData,
+    pers::Vector{Int},prod_ind::Vector{Int};foc_check=false)
     # Store Parameters
     p_dem = firm.par_dem
     p_cost = firm.par_cost
@@ -357,13 +375,6 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,ST::String;foc_chec
     mem_long = firm[:MEMBERS]
 
     N = size(d.draws,1)
-    if ST=="All"
-        pers = d.data._personIDs
-        prod_ind = firm.prods
-    else
-        pers = firm._perSTDict[ST]
-        prod_ind = firm._prodSTDict[ST]
-    end
 # for idxitr in values(d.data._personDict)
     for p in pers
         idxitr = d.data._personDict[p]

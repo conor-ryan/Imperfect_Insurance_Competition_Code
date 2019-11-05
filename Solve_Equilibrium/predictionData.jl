@@ -60,6 +60,7 @@ mutable struct firmData
 
     _perSTDict::Dict{String, Array{Int,1}}
     _prodSTDict::Dict{String, Array{Int,1}}
+    _perMktDict::Dict{Int,Array{Int,1}}
 end
 
 function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
@@ -141,10 +142,14 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     markets = mkt[:,:Market]
     metals = mkt[:,:Metal_std]
     uniq_mkts = sort(unique(markets))
+    _perMktDict = Dict{Int,Array{Int64,1}}()
+    mkt_per = unique(df[:,[:Person,:Market]])
     for (n,mt) in enumerate(uniq_mkts)
         m_ind = findall(markets.==mt)
         mkt_index[n] = mkt[:,:Product][m_ind]
         silv_index[n] = mkt[:,:Product][findall(metals[m_ind].=="SILVER")]
+
+        _perMktDict[n]  = mkt_per[:,:Person][mkt_per[:,:Market].==mt]
     end
 
     mkt_map = Dict{Real,Int64}()
@@ -230,7 +235,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     prodMap,prod_std,catas_prods,_productDict,
     mkt_index,silv_index,mkt_index_long,
     ownMat,ownMat_merge,poolMat,
-    _perSTDict,_prodSTDict)
+    _perSTDict,_prodSTDict,_perMktDict)
 
     println("Initialize Shares/Derivatives")
 
@@ -295,6 +300,34 @@ function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;foc_check=fals
 
     compute_price!(m,f)
     update_derivatives(m,f,ST,foc_check=foc_check)
+    return nothing
+end
+
+function evaluate_model!(m::InsuranceLogit,f::firmData,mkt::Int;foc_check=false)
+    #Clear Derivative Values
+    f.dSdp_j[:].=0.0
+    f.dSAdp_j[:].=0.0
+    f.dMdp_j[:].=0.0
+    f.dRdp_j[:].=0.0
+    f.dCdp_j[:].=0.0
+    f.dCdp_pl_j[:].=0.0
+    f.PC_j[:].=0.0
+    f.S_j[:].=0.0
+    f.C_j[:].=0.0
+    f.SA_j[:].=0.0
+    f.Adj_j[:].=0.0
+    f.Mkt_j[:].=0.0
+
+    if foc_check==false
+        premPaid!(f)
+    else
+        f.Rev_ij = f[:Rev_foc]
+        f.P_ij   = price(m.data)
+        f.zero_ij = Float64.((f.P_ij .+ f[:Mandate]/1000 .- 1e-6).<0.0)
+    end
+
+    compute_price!(m,f)
+    update_derivatives(m,f,mkt,foc_check=foc_check)
     return nothing
 end
 

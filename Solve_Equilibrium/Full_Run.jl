@@ -24,8 +24,8 @@ cost_spec = [:AGE,:AV]
 
 rundate = Dates.today()
 println("Running on $rundate")
-spec = "FMCA"
-spec_fixedEffects=[:Firm_Market_Cat_Age]
+spec = "FMC"
+spec_fixedEffects=[:Firm_Market_Cat]
 
 println("##### Estimate Demand #####")
 println("Load Demand Estimation Code...")
@@ -74,6 +74,9 @@ println("##### Solve Equilibrium #####")
 println("Load Equilibrium Code...")
 include("predictionData.jl")
 include("FirmFunctions.jl")
+include("SolveModel.jl")
 include("EvaluateModel.jl")
 include("PriceUpdate.jl")
+include("ConsumerWelfare.jl")
+include("PlannerProblem.jl")
 solve_equilibrium(rundate,spec)

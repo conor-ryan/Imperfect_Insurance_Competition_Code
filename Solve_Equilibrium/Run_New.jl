@@ -28,7 +28,7 @@ include("FirmFunctions.jl")
 include("EQ_load.jl")
 
 
-rundate = "2019-08-25"
+rundate = "2019-10-19"
 spec = "FMC"
 mark_the_output_date = Dates.today()
 println("Running spec $rundate on $mark_the_output_date")
@@ -44,7 +44,7 @@ chdf = ChoiceData(df,df_mkt,df_risk;
             :LowIncome],
     prodchars=[:Price,:constant,:AV,:HighRisk,:Small,:High_small],
     prodchars_0=[:constant,:AV,:HighRisk,:Small,:High_small],
-    fixedEffects=[:Firm],
+    fixedEffects=[:Firm_Market_Cat],
     wgt=[:PERWT])
 
 model = InsuranceLogit(chdf,500)
@@ -57,7 +57,7 @@ costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk,mom_ra;
 
 
 ## Load Demand Estimation
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_Firm-$rundate-stg2.jld2"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_$spec-$rundate-stg2.jld2"
 @load file p_stg2
 p_est = copy(p_stg2)
 
@@ -82,7 +82,7 @@ individual_shares(model,par_dem)
 # println("Risk Moments are $r")
 
 ### Load Marginal Cost Estimation
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$rundate.jld2"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$spec-$rundate.jld2"
 @load file p_stg2
 # p_stg2 = est_stg1[3]
 # p_stg2[3]/=2

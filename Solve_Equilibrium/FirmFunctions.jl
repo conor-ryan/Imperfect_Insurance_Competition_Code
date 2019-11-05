@@ -165,10 +165,14 @@ end
 function evaluate_FOC(f::firmData,std_ind::Vector{Int64},merg::String="Base")
     P_std = zeros(length(f.P_j))
     P_RA = zeros(length(f.P_j))
+    MC = zeros(length(f.P_j))
+    Mkup = zeros(length(f.P_j))
 
     ownershipMatrix = f.ownMat
     if merg=="Merger"
         ownershipMatrix = f.ownMat_merge
+    elseif merg=="SP"
+        ownershipMatrix = ones(size(f.ownMat))
     end
 
 
@@ -180,43 +184,54 @@ function evaluate_FOC(f::firmData,std_ind::Vector{Int64},merg::String="Base")
     P_std[std_ind]= inv(dSdp)*(-SA + cost_std)
     P_RA[std_ind] = inv(dSdp)*(-SA + cost_pl)
 
-    MR = inv(dSdp)*(-SA)
-    MC = inv(dSdp)*(cost_pl)
+    Mkup[std_ind] = inv(dSdp)*(-SA)
+    MC[std_ind] = inv(dSdp)*(cost_std)
 
-    return P_std, P_RA, MR, MC
+    return P_std, P_RA, Mkup, MC
 end
 
 
-function evaluate_FOC(f::firmData,ST::String,merg::String="Base")
-    std_ind = f._prodSTDict[ST]
-    P_std, P_RA, MR, MC = evaluate_FOC(f,std_ind,merg)
-    return P_std, P_RA, MR, MC
-end
+# function evaluate_FOC(f::firmData,std_ind::Vector{Int},merg::String="Base")
+#     P_std, P_RA, MR, MC = evaluate_FOC(f,std_ind,merg)
+#     return P_std, P_RA, MR, MC
+# end
 
 function evaluate_FOC(f::firmData,merg::String="Base")
     std_ind = f.prods
-    P_std, P_RA, MR, MC = evaluate_FOC(f,std_ind,merg)
-    return P_std, P_RA, MR, MC
+    P_std, P_RA, Mkup, MC = evaluate_FOC(f,std_ind,merg)
+    return P_std, P_RA, Mkup, MC
 end
 
-function predict_price(f::firmData,ST::String;sim="Base",merg::String="Base")
+function predict_price(f::firmData,prod_ind::Vector{Int};sim="Base",merg::String="Base",λ::Float64=0.0)
 
-    P_std, P_RA = evaluate_FOC(f,ST,merg)
+    P_std, P_RA, Mkup, MC = evaluate_FOC(f,prod_ind,merg)
     # println(P_std[f._prodSTDict[ST]])
 
     if sim=="Base"
         P_new = copy(P_std)
     elseif sim=="RA"
         P_new = copy(P_RA)
+    elseif sim=="SP"
+        P_new = copy(MC)
+    elseif sim=="SPλ"
+        P_new = MC + λ.*Mkup
     end
     return P_new
 end
 
-
-function foc_error(f::firmData,ST::String,stp::Float64;sim="Base",merg::String="Base")
-
-    P_new = predict_price(f,ST,sim=sim,merg=merg)
+function foc_error(f::firmData,ST::String,stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base")
     prod_ind = f._prodSTDict[ST]
+    return foc_error(f,prod_ind,stp,λ=λ,sim=sim,merg=merg)
+end
+
+function foc_error(f::firmData,mkt::Int,stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base")
+    prod_ind = f.mkt_index[mkt]
+    return foc_error(f,prod_ind,stp,λ=λ,sim=sim,merg=merg)
+end
+
+function foc_error(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base")
+
+    P_new = predict_price(f,prod_ind,sim=sim,merg=merg,λ=λ)
     tot_err = (P_new[prod_ind] - f.P_j[prod_ind])./100
     # println(prod_ind)
     # println(tot_err)
@@ -244,8 +259,8 @@ function foc_error(f::firmData,ST::String,stp::Float64;sim="Base",merg::String="
     P_new[P_new.<0] = 0.5.*f.P_j[P_new.<0]
 
     ## Error in Prices
-    prod_ind = prod_ind[f.S_j[prod_ind].>exit_thresh]
-    foc_err = (P_new[prod_ind] - f.P_j[prod_ind])./100
+    prod_ind_ne = prod_ind[f.S_j[prod_ind].>exit_thresh]
+    foc_err = (P_new[prod_ind_ne] - f.P_j[prod_ind_ne])./100
 
 
     # ### MLR Constraint
@@ -261,8 +276,8 @@ function foc_error(f::firmData,ST::String,stp::Float64;sim="Base",merg::String="
     #P_new = min.(P_new,MLR_const)
 
 
-    err_new = sum(foc_err.^2)/length(prod_ind)
-    tot_err = sum(tot_err.^2)/length(f._prodSTDict[ST])
+    err_new = sum(foc_err.^2)/length(prod_ind_ne)
+    tot_err = sum(tot_err.^2)/length(prod_ind)
 
     ### New Prices
 
@@ -276,276 +291,4 @@ function foc_error(f::firmData,ST::String,stp::Float64;sim="Base",merg::String="
     # f.P_j[:] = P_update[:]
 
     return foc_err, err_new, tot_err, P_new
-end
-
-function solve_model!(m::InsuranceLogit,f::firmData;sim="Base",merg::String="Base")
-    P_res = zeros(length(f.P_j))
-    states = sort(String.(keys(f._prodSTDict)))#[1:6]
-    # states = ["AK","NE","IA"]
-    for s in states
-        println("Solving for $s")
-        solve_model_st!(m,f,s,sim=sim,merg=merg)
-        P_res[f._prodSTDict[s]] = f.P_j[f._prodSTDict[s]]
-    end
-    f.P_j[:] = P_res[:]
-    return nothing
-end
-
-function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;sim="Base",merg::String="Base")
-    err_new = 1
-    err_last = 1
-    itr_cnt = 0
-    stp = 0.05
-    no_prog_cnt = 0
-    no_prog = 0
-    P_last = zeros(length(f.P_j[:]))
-    P_new_last = zeros(length(f.P_j[:]))
-    while err_new>1e-12
-        itr_cnt+=1
-        # println("Evaluate Model")
-        evaluate_model!(m,f,ST)
-        # println("Update Price")
-
-
-        foc_err, err_new, tot_err,P_new = foc_error(f,ST,stp,sim=sim,merg=merg)
-
-
-        P_last[:] = copy(f.P_j[:])
-        P_new_last[:] = copy(P_new[:])
-        f.P_j[:] = (1-stp).*f.P_j[:] + stp.*P_new[:]
-        # println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
-        # println(foc_err)
-        # println(P_new[f._prodSTDict[ST]])
-        # println(f.P_j[f._prodSTDict[ST]])
-
-        if stp==1.0
-            stp = .001
-        end
-        stp = max(stp,1e-6)
-        if stp<.05
-            if err_new>1e-3
-                stp = stp*2
-            else
-                stp = stp*1.1
-            end
-        elseif stp<.25
-            stp = stp*(1.1)
-        elseif stp<.75
-            stp=stp*(1.1)
-        end
-
-        if ((err_new>err_last) & (no_prog==0)) | ((err_new<err_last) & (no_prog==1))
-            stp = .05
-            # if (itr_cnt>100) & (rand()<.2)
-            #     stp = 1.0
-            # end
-        end
-        if err_new>err_last
-            no_prog = 1
-        else
-            no_prog=0
-        end
-
-        err_last = copy(err_new)
-        # println(P_last)
-    end
-    println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
-    return nothing
-end
-
-
-function solveMain(m::InsuranceLogit,f::firmData,file::String)
-    P_Obs = Vector{Float64}(undef,length(m.prods))
-    P_Base = Vector{Float64}(undef,length(m.prods))
-    P_RA = Vector{Float64}(undef,length(m.prods))
-    P_man = Vector{Float64}(undef,length(m.prods))
-    P_RAman = Vector{Float64}(undef,length(m.prods))
-    P_Base_m = Vector{Float64}(undef,length(m.prods))
-    P_RA_m = Vector{Float64}(undef,length(m.prods))
-    P_man_m = Vector{Float64}(undef,length(m.prods))
-    P_RAman_m = Vector{Float64}(undef,length(m.prods))
-
-    S_Base = Vector{Float64}(undef,length(m.prods))
-    S_RA = Vector{Float64}(undef,length(m.prods))
-    S_man = Vector{Float64}(undef,length(m.prods))
-    S_RAman = Vector{Float64}(undef,length(m.prods))
-    S_Base_m = Vector{Float64}(undef,length(m.prods))
-    S_RA_m = Vector{Float64}(undef,length(m.prods))
-    S_man_m = Vector{Float64}(undef,length(m.prods))
-    S_RAman_m = Vector{Float64}(undef,length(m.prods))
-
-    P_Obs[:] = f.P_j[:]
-
-    #### Solve Baseline - With Risk Adjustment and Mandate ####
-    println("####################################")
-    println("#### Solve Baseline - With Risk Adjustment and Mandate ####")
-    println("####################################")
-    solve_model!(m,f,sim="RA")
-    P_Base[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
-    S_Base[:] = f.S_j[:]
-
-
-    println("###### Solve Merger Scenario ######")
-    solve_model!(m,f,sim="RA",merg="Merger")
-    P_Base_m[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
-    S_Base_m[:] = f.S_j[:]
-
-    #### Solve without Risk Adjustment ####
-    println("####################################")
-    println("#### Solve without Risk Adjustment ####")
-    println("####################################")
-    f.P_j[:] = P_Obs[:]
-    solve_model!(m,f,sim="Base")
-    P_RA[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
-    S_RA[:] = f.S_j[:]
-
-    println("###### Solve Merger Scenario ######")
-    solve_model!(m,f,sim="Base",merg="Merger")
-    P_RA_m[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
-    S_RA_m[:] = f.S_j[:]
-
-
-    ### Solve without mandate ####
-    println("####################################")
-    println("#### Solve without mandate ####")
-    println("####################################")
-    f.P_j[:] = P_Obs[:]
-    f.data[:,f.index[:Mandate]].=0.0
-    solve_model!(m,f,sim="RA")
-    P_man[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
-    S_man[:] = f.S_j[:]
-
-    # println(median(f[:Mandate]))
-    # println(median(f.P_j[findall(f.P_j.>0)]))
-
-    println("###### Solve Merger Scenario ######")
-    solve_model!(m,f,sim="RA",merg="Merger")
-    P_man_m[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
-    S_man_m[:] = f.S_j[:]
-
-
-    ### Solve without mandate NOR risk adjustment  ####
-    println("####################################")
-    println("#### Solve without mandate NOR risk adjustment  ####")
-    println("####################################")
-    f.P_j[:] = P_Obs[:]
-    f.data[:,f.index[:Mandate]].=0.0
-    solve_model!(m,f,sim="Base")
-    P_RAman[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
-    S_RAman[:] = f.S_j[:]
-
-
-    println("###### Solve Merger Scenario ######")
-    solve_model!(m,f,sim="Base",merg="Merger")
-    P_RAman_m[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
-    S_RAman_m[:] = f.S_j[:]
-
-
-
-
-
-    output =  DataFrame(Product=sort(m.prods),
-                        Price_data=P_Obs,
-                        Price_base=P_Base,
-                        Price_RA =P_RA,
-                        Price_man=P_man,
-                        Price_RAman=P_RAman,
-                        Price_base_m=P_Base_m,
-                        Price_RA_m =P_RA_m,
-                        Price_man_m=P_man_m,
-                        Price_RAman_m=P_RAman_m,
-                        Lives_base=S_Base,
-                        Lives_RA =S_RA,
-                        Lives_man=S_man,
-                        Lives_RAman=S_RAman,
-                        Lives_base_m=S_Base_m,
-                        Lives_RA_m =S_RA_m,
-                        Lives_man_m=S_man_m,
-                        Lives_RAman_m=S_RAman_m)
-
-    CSV.write(file,output)
-
-    return nothing
-end
-
-function solve_equilibrium(rundate,spec)
-    #Load Data
-    println("Loading Data...")
-    include("EQ_load.jl")
-
-    # df[:High_small] = df[:HighRisk].*df[:Small]
-
-    mark_the_output_date = Dates.today()
-    println("Running spec $rundate on $mark_the_output_date")
-
-    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$spec-$rundate.jld2"
-    @load file p_stg2 p_dem_est cost_spec spec_Dict
-    mc_est = copy(p_stg2)
-    #### Load Estimation Results ####
-
-
-    #### Build Model ####
-    println("Rebuild Demand Model...")
-    # Structre the data
-    chdf = ChoiceData(df,df_mkt,df_risk;
-        demoRaw=spec_Dict["demoRaw"],
-        prodchars=spec_Dict["prodchars"],
-        prodchars_0=spec_Dict["prodchars_0"],
-        fixedEffects=spec_Dict["fixedEffects"],
-        wgt=[:PERWT])
-
-    # Fit into model
-    model = InsuranceLogit(chdf,spec_Dict["haltonDim"])
-
-
-    if length(p_dem_est)!=model.parLength[:All]
-        println(length(p_dem_est))
-        println(model.parLength[:All])
-        error("Parameter Vector Not Quite Right")
-    end
-
-    println("Rebuild Cost Data...")
-
-    costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk,mom_ra;
-                    baseSpec=cost_spec,
-                    fixedEffects=[:Firm_ST],
-                    constMoments=true)
-
-
-    #### Compute Parameter Objects ####
-    println("Compute Parameters...")
-    par_dem = parDict(model,p_dem_est,no2Der=true)
-    individual_values!(model,par_dem)
-    individual_shares(model,par_dem)
-
-    par_cost = parMC(mc_est,par_dem,model,costdf)
-
-    #### Print Costs Moments
-    println("Print Cost Moments...")
-    moments,targets = costMoments(costdf,model,mc_est,par_dem,print_moments=true)
-    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/costMoments_$spec-$rundate.csv"
-    output =  DataFrame(estimated_moments=moments,
-                        targeted_moments = targets)
-    CSV.write(file,output)
-
-    #### Solve Equilibrium ####
-    firm = firmData(model,df,eq_mkt,par_dem,par_cost)
-    # evaluate_model!(model,firm,"All",foc_check=true)
-    println("Check Margins...")
-    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/checkMargins_$spec-$rundate.csv"
-    checkMargin(model,firm,file)
-
-    println("Solve Equilibrium...")
-    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_$spec-$rundate.csv"
-    solveMain(model,firm,file)
-
-    return nothing
 end
