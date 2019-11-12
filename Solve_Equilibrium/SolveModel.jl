@@ -136,24 +136,24 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
 
     consumer_welfare(m,f,"SP")
 
-    # println("#### ZERO PROFIT PROBLEM ####")
-    # markets_zp, λ_vec_zp = solve_SP_λ!(m,f,zeros(length(base_profits)))
-    # P_SP_zp[:] = f.P_j[:]
-    # evaluate_model!(m,f,"All")
-    # S_SP_zp[:] = f.S_j[:]
-    # # output =  DataFrame(Markets=markets,
-    # #                     lambdas = λ_vec)
-    # #
-    # # CSV.write(file,output)
-    # consumer_welfare(m,f,"SP_zp")
+    println("#### ZERO PROFIT PROBLEM ####")
+    markets_zp, λ_vec_zp = solve_SP_λ!(m,f,zeros(length(base_profits)))
+    P_SP_zp[:] = f.P_j[:]
+    evaluate_model!(m,f,"All")
+    S_SP_zp[:] = f.S_j[:]
+    # output =  DataFrame(Markets=markets,
+    #                     lambdas = λ_vec)
     #
-    # println("#### CURRENT PROFIT PROBLEM ####")
-    # markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits)
-    # P_SP_cp[:] = f.P_j[:]
-    # evaluate_model!(m,f,"All")
-    # S_SP_cp[:] = f.S_j[:]
-    #
-    # consumer_welfare(m,f,"SP_cp")
+    # CSV.write(file,output)
+    consumer_welfare(m,f,"SP_zp")
+
+    println("#### CURRENT PROFIT PROBLEM ####")
+    markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits)
+    P_SP_cp[:] = f.P_j[:]
+    evaluate_model!(m,f,"All")
+    S_SP_cp[:] = f.S_j[:]
+
+    consumer_welfare(m,f,"SP_cp")
 
     #### Solve without Risk Adjustment ####
     println("####################################")
