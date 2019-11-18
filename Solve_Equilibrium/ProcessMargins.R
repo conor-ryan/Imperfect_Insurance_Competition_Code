@@ -7,8 +7,8 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 
 ## Estimation Run 
-run = "2019-10-19"
-spec = "FMC"
+run = "2019-11-06"
+spec = "FMCA"
 
 #Load Product Data
 predFile = paste("Simulation_Risk_Output/prodData.rData",sep="")
@@ -24,17 +24,17 @@ eqData = as.data.table(read.csv(eqFile))
 
 prod_data = merge(prod_data,eqData,by="Product")
 
-file = paste("Estimation_Output/MktHHI_",spec,"-",run,".rData",sep="")
-load(file=file)
-
-prod_data = merge(prod_data,Mkt,by="Market")
-
-ggplot(prod_data[HHI_flag==2]) + aes(y=MC_RA,x=MR) +
-  geom_point(size=1.5,alpha=0.5) +
-  geom_abline(intercept=0,slope=1) +
-  geom_smooth(color="red",method="lm",se=FALSE)
-
-prod_data[HHI_flag==2,summary(MC_RA-MR)]
+# file = paste("Estimation_Output/MktHHI_",spec,"-",run,".rData",sep="")
+# load(file=file)
+# 
+# prod_data = merge(prod_data,Mkt,by="Market")
+# 
+# ggplot(prod_data[HHI_flag==2]) + aes(y=MC_RA,x=MR) +
+#   geom_point(size=1.5,alpha=0.5) +
+#   geom_abline(intercept=0,slope=1) +
+#   geom_smooth(color="red",method="lm",se=FALSE)
+# 
+prod_data[,summary(MC_std-MR)]
 
 # firms = prod_data[,list(R_avg=sum(share_base*size*R_avg)/sum(share_base*size),
 #                         Revenue=sum(share_base*size*premBase*ageRate)/sum(share_base*size)),

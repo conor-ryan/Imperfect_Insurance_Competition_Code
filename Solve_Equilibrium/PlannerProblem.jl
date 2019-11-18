@@ -85,7 +85,7 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
         else
             tol = 1e-12
         end
-        solve_model_mkt!(m,f,mkt,λ=λ_new,sim="SPλ",merg="SP",tol=tol)
+        solve_model_mkt!(m,f,mkt,λ=λ_new,sim="SPλ",merg="SP",tol=tol,voucher=true)
         # println(f.P_j[f.mkt_index[mkt]])
         profits = market_profits(m,f)
         Π_new = profits[mkt]
@@ -109,7 +109,7 @@ end
 
 
 function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
-    λ::Float64=0.0,sim="Base",merg::String="Base",tol::Float64=1e-12)
+        λ::Float64=0.0,sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=true)
     err_new = 1
     err_last = 1
     itr_cnt = 0
@@ -121,7 +121,7 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
     while err_new>tol
         itr_cnt+=1
         # println("Evaluate Model")
-        evaluate_model!(m,f,mkt)
+        evaluate_model!(m,f,mkt,voucher=voucher)
         # println("Update Price")
 
 

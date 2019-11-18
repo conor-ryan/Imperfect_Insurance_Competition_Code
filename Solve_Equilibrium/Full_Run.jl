@@ -23,9 +23,9 @@ spec_prodchars_0=[:constant,:AV,:HighRisk,:Small,:High_small]
 cost_spec = [:AGE,:AV]
 
 # rundate = Dates.today()
-rundate = "2019-11-06"
+rundate = "2019-11-04"
 println("Running on $rundate")
-spec = "FMCA"
+spec = "FMC"
 spec_fixedEffects=[:Firm_Market_Cat_Age]
 
 println("##### Estimate Demand #####")
@@ -68,7 +68,7 @@ include("$codeDir/Firm_Side/MC_derivatives.jl")
 include("$codeDir/Firm_Side/MC_optimization.jl")
 include("$codeDir/Firm_Side/Firm_Inner_Loop.jl")
 include("$codeDir/Firm_Side/SpecRunMC.jl")
-estimate_marginal_cost(rundate,spec,cost_spec)
+# estimate_marginal_cost(rundate,spec,cost_spec)
 
 
 println("##### Solve Equilibrium #####")

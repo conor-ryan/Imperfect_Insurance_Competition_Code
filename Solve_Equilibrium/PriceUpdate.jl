@@ -62,10 +62,15 @@ function calcSubsidy!(firm::firmData;foc_check=false)
     return nothing
 end
 
-function premPaid!(firm::firmData;foc_check=false)
+function premPaid!(firm::firmData;foc_check=false,voucher=false)
     unpack_P!(firm::firmData)
-    calcSubsidy!(firm,foc_check=foc_check)
-    subsidy = firm.subsidy_ij
+
+    if voucher
+        subsidy = firm.subsidy_ij_voucher
+    else
+        calcSubsidy!(firm,foc_check=foc_check)
+        subsidy = firm.subsidy_ij
+    end
 
     Mandate = firm[:Mandate]
     age = firm[:ageRate]
@@ -78,5 +83,11 @@ function premPaid!(firm::firmData;foc_check=false)
         price = ((price*12/Mems[n]) - Mandate[n])/1000
         firm.P_ij[n] = price
     end
+    return nothing
+end
+
+
+function set_voucher!(firm::firmData)
+    firm.subsidy_ij_voucher[:] = firm.subsidy_ij[:]
     return nothing
 end

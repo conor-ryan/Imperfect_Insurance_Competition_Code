@@ -13,6 +13,7 @@ mutable struct firmData
     P_ij::Vector{Float64} # Individual Level Product Prices, paid by enrollees
     Rev_ij::Vector{Float64} # Individual-Product level revenue - monthly premium to firms.
     subsidy_ij::Vector{Float64} # Individual Level Subsidies
+    subsidy_ij_voucher::Vector{Float64} # Individual Level Subsidies - Saved for Vouchers
     zero_ij::Vector{Float64} # Does this individual/product have 0 premium?
 
     δ_nonprice::Vector{Float64} # Fixed non-price product chars
@@ -102,6 +103,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     P_ij= price(m.data) # Individual Level Product Prices
     Rev_ij=Vector{Float64}(undef,M)
     subsidy_ij=Vector{Float64}(undef,M) # Updated Subsidies
+    subsidy_ij_voucher=Vector{Float64}(undef,M) # Voucher Subsidies
     zero_ij=Vector{Float64}(undef,M)
 
     δ_nonprice=Vector{Float64}(undef,M) # Fixed non-price product chars
@@ -227,7 +229,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
 
     firm = firmData(par_dem,par_cost,
     data,index,
-    P_ij,Rev_ij,subsidy_ij,zero_ij,
+    P_ij,Rev_ij,subsidy_ij,subsidy_ij_voucher,zero_ij,
     δ_nonprice,δ_price,s_pred,c_pred,c_pool,
     P_j,SA_j,S_j,Mkt_j,C_j,PC_j,Adj_j,
     hix_cnt,bench_base,
@@ -275,7 +277,7 @@ end
 # end
 
 
-function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;foc_check=false)
+function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;foc_check=false,voucher=false)
     #Clear Derivative Values
     f.dSdp_j[:].=0.0
     f.dSAdp_j[:].=0.0
@@ -291,7 +293,7 @@ function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;foc_check=fals
     f.Mkt_j[:].=0.0
 
     if foc_check==false
-        premPaid!(f)
+        premPaid!(f,voucher=voucher)
     else
         f.Rev_ij = f[:Rev_foc]
         f.P_ij   = price(m.data)
@@ -303,7 +305,7 @@ function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;foc_check=fals
     return nothing
 end
 
-function evaluate_model!(m::InsuranceLogit,f::firmData,mkt::Int;foc_check=false)
+function evaluate_model!(m::InsuranceLogit,f::firmData,mkt::Int;foc_check=false,voucher=false)
     #Clear Derivative Values
     f.dSdp_j[:].=0.0
     f.dSAdp_j[:].=0.0
@@ -319,7 +321,7 @@ function evaluate_model!(m::InsuranceLogit,f::firmData,mkt::Int;foc_check=false)
     f.Mkt_j[:].=0.0
 
     if foc_check==false
-        premPaid!(f)
+        premPaid!(f,voucher=voucher)
     else
         f.Rev_ij = f[:Rev_foc]
         f.P_ij   = price(m.data)

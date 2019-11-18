@@ -1,17 +1,19 @@
-function solve_model!(m::InsuranceLogit,f::firmData;sim="Base",merg::String="Base",tol::Float64=1e-12)
+function solve_model!(m::InsuranceLogit,f::firmData;
+                sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=false)
     P_res = zeros(length(f.P_j))
     states = sort(String.(keys(f._prodSTDict)))#[1:6]
     # states = ["AK","NE","IA"]
     for s in states
         println("Solving for $s")
-        solve_model_st!(m,f,s,sim=sim,merg=merg,tol=tol)
+        solve_model_st!(m,f,s,sim=sim,merg=merg,tol=tol,voucher=voucher)
         P_res[f._prodSTDict[s]] = f.P_j[f._prodSTDict[s]]
     end
     f.P_j[:] = P_res[:]
     return nothing
 end
 
-function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;sim="Base",merg::String="Base",tol::Float64=1e-12)
+function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
+                sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=false)
     err_new = 1
     err_last = 1
     itr_cnt = 0
@@ -23,7 +25,7 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;sim="Base",mer
     while err_new>tol
         itr_cnt+=1
         # println("Evaluate Model")
-        evaluate_model!(m,f,ST)
+        evaluate_model!(m,f,ST,voucher=voucher)
         # println("Update Price")
 
 
@@ -108,28 +110,29 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     println("#### Solve Baseline - With Risk Adjustment and Mandate ####")
     println("####################################")
     f.P_j[:] = P_Obs[:]
-    solve_model!(m,f,sim="RA",tol=1e-4)
+    solve_model!(m,f,sim="RA",tol=1e-8)
     P_Base[:] = f.P_j[:]
     evaluate_model!(m,f,"All")
     S_Base[:] = f.S_j[:]
 
+    set_voucher!(f)
     base_profits = market_profits(m,f)
 
     consumer_welfare(m,f,"Base")
 
-    # println("###### Solve Merger Scenario ######")
-    # solve_model!(m,f,sim="RA",merg="Merger")
-    # P_Base_m[:] = f.P_j[:]
-    # evaluate_model!(m,f,"All")
-    # S_Base_m[:] = f.S_j[:]
-    #
-    # consumer_welfare(m,f,"Base_m")
+    println("###### Solve Merger Scenario ######")
+    solve_model!(m,f,sim="RA",merg="Merger")
+    P_Base_m[:] = f.P_j[:]
+    evaluate_model!(m,f,"All")
+    S_Base_m[:] = f.S_j[:]
+
+    consumer_welfare(m,f,"Base_m")
 
     #### Solve Planner Problem ####
     println("####################################")
     println("#### Solve Social Planner Problem ####")
     println("####################################")
-    solve_model!(m,f,sim="SP",merg="SP")
+    solve_model!(m,f,sim="SP",merg="SP",voucher=true)
     P_SP[:] = f.P_j[:]
     evaluate_model!(m,f,"All")
     S_SP[:] = f.S_j[:]
