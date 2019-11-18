@@ -82,6 +82,7 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     P_SP = Vector{Float64}(undef,length(m.prods))
     P_SP_zp = Vector{Float64}(undef,length(m.prods))
     P_SP_cp = Vector{Float64}(undef,length(m.prods))
+    P_SP_cpm = Vector{Float64}(undef,length(m.prods))
     P_Base = Vector{Float64}(undef,length(m.prods))
     P_RA = Vector{Float64}(undef,length(m.prods))
     P_man = Vector{Float64}(undef,length(m.prods))
@@ -94,6 +95,7 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     S_SP = Vector{Float64}(undef,length(m.prods))
     S_SP_zp = Vector{Float64}(undef,length(m.prods))
     S_SP_cp = Vector{Float64}(undef,length(m.prods))
+    S_SP_cpm = Vector{Float64}(undef,length(m.prods))
     S_Base = Vector{Float64}(undef,length(m.prods))
     S_RA = Vector{Float64}(undef,length(m.prods))
     S_man = Vector{Float64}(undef,length(m.prods))
@@ -126,6 +128,8 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All")
     S_Base_m[:] = f.S_j[:]
 
+    merger_profits = market_profits(m,f)
+
     consumer_welfare(m,f,"Base_m")
 
     #### Solve Planner Problem ####
@@ -157,6 +161,14 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     S_SP_cp[:] = f.S_j[:]
 
     consumer_welfare(m,f,"SP_cp")
+
+    println("#### MERGER PROFIT PROBLEM ####")
+    markets_cpm, λ_vec_cpm = solve_SP_λ!(m,f,merger_profits)
+    P_SP_cpm[:] = f.P_j[:]
+    evaluate_model!(m,f,"All")
+    S_SP_cpm[:] = f.S_j[:]
+
+    consumer_welfare(m,f,"SP_cpm")
 
     #### Solve without Risk Adjustment ####
     println("####################################")
