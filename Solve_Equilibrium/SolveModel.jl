@@ -119,6 +119,7 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
 
     set_voucher!(f)
     base_profits = market_profits(m,f)
+    base_welfare = consumer_welfare_bymkt(m,f,"Base")
 
     consumer_welfare(m,f,"Base")
 
@@ -155,7 +156,7 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     consumer_welfare(m,f,"SP_zp")
 
     println("#### CURRENT PROFIT PROBLEM ####")
-    markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits)
+    markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits,CW_target=base_welfare)
     P_SP_cp[:] = f.P_j[:]
     evaluate_model!(m,f,"All")
     S_SP_cp[:] = f.S_j[:]

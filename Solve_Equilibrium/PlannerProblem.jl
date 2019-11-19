@@ -37,7 +37,8 @@ end
 
 
 
-function solve_SP_λ!(m::InsuranceLogit,f::firmData,Π_target::Vector{Float64};sim="SPλ",merg::String="SP")
+function solve_SP_λ!(m::InsuranceLogit,f::firmData,Π_target::Vector{Float64};
+    sim="SPλ",merg::String="SP",CW_target::Vector{Float64}=Vector{Float64}(undef,0))
     P_res = zeros(length(f.P_j))
     markets = sort(Int.(keys(f.mkt_index)))
     λ_vec = zeros(length(markets))
@@ -52,6 +53,13 @@ function solve_SP_λ!(m::InsuranceLogit,f::firmData,Π_target::Vector{Float64};s
             # profits = market_profits(m,f)
             # mkt_prof = profits[mkt]
             # println("Profits are $mkt_prof")
+
+            # Output Consumer Welfare
+            if length(CW_target)>0
+                cw = calc_cw_mkt(m,f,mkt)
+                dcw = cw-CW_target[mkt]
+                println("Improvement in Mean Consumer Welfare: $dcw")
+            end
     end
     return markets, λ_vec
 end
@@ -72,14 +80,14 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
         cnt+=1
         sec_step = -intcpt/slope
         if (sec_step>λ_min) & (sec_step<λ_max)
-            println("Secant Step")
+            # println("Secant Step")
             λ_new = sec_step
         else
-            println("Bisection Step")
+            # println("Bisection Step")
             λ_new = (λ_max-λ_min)/2 + λ_min
         end
 
-        println("Trying λ: $λ_new, $λ_err")
+        # println("Trying λ: $λ_new, $λ_err")
         if λ_err >.1
             tol = 1e-12
         else
@@ -102,8 +110,10 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
         Π_old = copy(Π_new)
         err = abs(Π_new - Π_target)
         λ_err = λ_max - λ_min
-        println("Got Profit $Π_new at iteration $cnt, error $err")
+        # println("Got Profit $Π_new at iteration $cnt, error $err")
     end
+
+    println("Iteration $cnt, Π error: $err, λ error: $λ_err")
     return λ_new
 end
 
@@ -167,6 +177,6 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         err_last = copy(err_new)
         # println(P_last)
     end
-    println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
+    # println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
     return nothing
 end
