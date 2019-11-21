@@ -4,6 +4,9 @@ function solve_model!(m::InsuranceLogit,f::firmData;
     states = sort(String.(keys(f._prodSTDict)))#[1:6]
     # states = ["AK","NE","IA"]
     for s in states
+        if s!="AK"
+            continue
+        end
         println("Solving for $s")
         solve_model_st!(m,f,s,sim=sim,merg=merg,tol=tol,voucher=voucher)
         P_res[f._prodSTDict[s]] = f.P_j[f._prodSTDict[s]]
@@ -112,7 +115,7 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     println("#### Solve Baseline - With Risk Adjustment and Mandate ####")
     println("####################################")
     f.P_j[:] = P_Obs[:]
-    solve_model!(m,f,sim="RA",tol=1e-8)
+    solve_model!(m,f,sim="RA",tol=1e-12)
     P_Base[:] = f.P_j[:]
     evaluate_model!(m,f,"All")
     S_Base[:] = f.S_j[:]
@@ -139,16 +142,19 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     println("####################################")
     solve_model!(m,f,sim="SP",merg="SP",voucher=true)
     P_SP[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
+    evaluate_model!(m,f,"All",voucher=true)
     S_SP[:] = f.S_j[:]
+
+    sp = consumer_welfare_bymkt(m,f,"SP")
 
     consumer_welfare(m,f,"SP")
 
     println("#### ZERO PROFIT PROBLEM ####")
     markets_zp, λ_vec_zp = solve_SP_λ!(m,f,zeros(length(base_profits)))
     P_SP_zp[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
+    evaluate_model!(m,f,"All",voucher=true)
     S_SP_zp[:] = f.S_j[:]
+    sp = consumer_welfare_bymkt(m,f,"SP_zp")
     # output =  DataFrame(Markets=markets,
     #                     lambdas = λ_vec)
     #
@@ -158,15 +164,17 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     println("#### CURRENT PROFIT PROBLEM ####")
     markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits,CW_target=base_welfare)
     P_SP_cp[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
+    evaluate_model!(m,f,"All",voucher=true)
     S_SP_cp[:] = f.S_j[:]
+
+    sp_cp_welfare = consumer_welfare_bymkt(m,f,"SP_cp")
 
     consumer_welfare(m,f,"SP_cp")
 
     println("#### MERGER PROFIT PROBLEM ####")
     markets_cpm, λ_vec_cpm = solve_SP_λ!(m,f,merger_profits)
     P_SP_cpm[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
+    evaluate_model!(m,f,"All",voucher=true)
     S_SP_cpm[:] = f.S_j[:]
 
     consumer_welfare(m,f,"SP_cpm")

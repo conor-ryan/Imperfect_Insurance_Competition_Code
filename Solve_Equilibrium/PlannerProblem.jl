@@ -42,8 +42,9 @@ function solve_SP_λ!(m::InsuranceLogit,f::firmData,Π_target::Vector{Float64};
     P_res = zeros(length(f.P_j))
     markets = sort(Int.(keys(f.mkt_index)))
     λ_vec = zeros(length(markets))
-    for mkt in markets
+    for mkt in markets[1:3]
             println("Solving for $mkt")
+            println("Profit Target: $(Π_target[mkt])")
             λ = find_λ(m,f,mkt,Π_target[mkt])
             println("Got λ = $λ for market $mkt")
             λ_vec[mkt] = λ
@@ -76,7 +77,7 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
     intcpt = 1.0
     slope = 1.0
     λ_new = 0.0
-    while (λ_err>1e-6) & (err>1)
+    while (λ_err>1e-3) & (err>1)
         cnt+=1
         sec_step = -intcpt/slope
         if (sec_step>λ_min) & (sec_step<λ_max)
@@ -111,6 +112,10 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
         err = abs(Π_new - Π_target)
         λ_err = λ_max - λ_min
         # println("Got Profit $Π_new at iteration $cnt, error $err")
+
+        cw = calc_cw_mkt(m,f,1)
+        # println(" Mean CW in Mkt 1: $cw")
+
     end
 
     println("Iteration $cnt, Π error: $err, λ error: $λ_err")

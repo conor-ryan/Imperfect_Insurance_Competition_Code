@@ -10,7 +10,7 @@ function calc_consumer(d::InsuranceLogit,firm::firmData)
 
 
     N = size(d.draws,1)
-    pers = d.data._personIDs
+    pers = sort(d.data._personIDs)
     prod_ind = firm.prods
 
     CW_long = Vector{Float64}(undef,length(pers))
@@ -19,7 +19,6 @@ function calc_consumer(d::InsuranceLogit,firm::firmData)
 
     for (i,p) in enumerate(pers)
         idxitr = d.data._personDict[p]
-
         δ = δ_long[idxitr]
         @inbounds u = μ_ij_large[:,idxitr]
         @inbounds u_nr = μnr_ij_large[idxitr]
@@ -82,9 +81,11 @@ function consumer_welfare_bymkt(d::InsuranceLogit,firm::firmData,type::String)
     markets = sort(Int.(keys(firm.mkt_index)))
     cw_mkt = Vector{Float64}(undef,length(markets))
     for mkt in markets
-        cw_mkt[mkt] = calc_cw_mkt(d,firm,mkt)
+        cw = calc_cw_mkt(d,firm,mkt)
+        cw_mkt[mkt] = cw
+        # println("CW in Market $mkt: $(cw)")
     end
-    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/consumerWelfare_$type-$spec-$rundate.csv"
+    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/consumerWelfare_bymkt_$type-$spec-$rundate.csv"
     output =  DataFrame(markets=markets,CW=cw_mkt)
     CSV.write(file,output)
 
