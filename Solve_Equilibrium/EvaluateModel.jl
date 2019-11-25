@@ -509,3 +509,204 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
 
     return nothing
 end
+
+
+function update_shares(d::InsuranceLogit,firm::firmData,mkt::Int;foc_check=false)
+    pers = firm._perMktDict[mkt]
+    prod_ind = firm.mkt_index[mkt]
+    update_shares(d,firm,pers,prod_ind,foc_check=foc_check)
+    return nothing
+end
+
+
+function update_shares(d::InsuranceLogit,firm::firmData,
+    pers::Vector{Int},prod_ind::Vector{Int};foc_check=false)
+    # Store Parameters
+    p_dem = firm.par_dem
+    p_cost = firm.par_cost
+    δ_long = (firm.δ_nonprice).*(firm.δ_price)
+    μ_ij_large = p_dem.μ_ij
+    μnr_ij_large = p_dem.μ_ij_nonRisk
+    risk_long = rIndS(d.data)
+    cost_nonRisk = p_cost.C_nonrisk
+    any_long = anyHCC(d.data)
+    wgt_long = weight(d.data)
+    prod_long = Int.(product(d.data))
+    demData = demoRaw(d.data)
+    age_long = firm[:ageRate]
+    mem_long = firm[:MEMBERS]
+
+    N = size(d.draws,1)
+# for idxitr in values(d.data._personDict)
+    for p in pers
+        idxitr = d.data._personDict[p]
+        prod_ids = firm.stdMap[prod_long[idxitr]]
+        catas = findall(inlist(prod_ids,firm.catas_prods))
+
+
+        δ = δ_long[idxitr]
+        @inbounds u = μ_ij_large[:,idxitr]
+        @inbounds u_nr = μnr_ij_large[idxitr]
+        r_ind = Int.(risk_long[idxitr])
+        @inbounds r_cost = p_cost.risks[:,r_ind]
+        @inbounds any_r = any_long[idxitr[1]]
+        wgt = wgt_long[idxitr]
+        c_nr = cost_nonRisk[idxitr]
+        c_nr = capped_cost(c_nr)
+        Ze_prem = firm.zero_ij[idxitr]
+
+        s_r,c_r,c_r_pl,s_mat,c_mat = update_cost(u,δ,r_cost,c_nr,catas,returnMat=true)
+        s_nr = calc_shares(u_nr,δ)
+        s_r_ins = sum(s_r) - sum(s_r[catas])
+        s_nr_ins = sum(s_nr) - sum(s_nr[catas])
+
+        s_hat = (any_r.*s_r + (1-any_r).*s_nr)
+        c_hat = (any_r.*s_r.*c_r + (1-any_r).*s_nr.*c_nr)./s_hat
+
+        s_ins_hat = (any_r.*s_r_ins + (1-any_r).*s_nr_ins)
+        c_pool = (any_r.*s_r_ins.*c_r_pl + (1-any_r).*s_nr_ins.*c_nr)./s_ins_hat
+
+        firm.c_pred[idxitr] = c_hat[:]
+        firm.c_pool[idxitr] = c_pool[:]
+        firm.s_pred[idxitr] = s_hat[:]
+
+
+        @inbounds Z = demData[:,idxitr[1]]
+        @inbounds a = age_long[idxitr[1]]
+        @inbounds m = mem_long[idxitr[1]]
+        aα = ((12/1000)*(a/m)*(p_dem.β_0 + p_dem.β*Z)[1])#.*(1 .-Ze_prem)
+        # aα = ((12/1000)*(a)*(p_dem.β_0 + p_dem.β*Z)[1])#.*(1 .-Ze_prem)
+        if foc_check
+            aα = aα.*(1 .- Ze_prem)
+        end
+
+
+        rev = firm.Rev_ij[idxitr]
+
+        for k in 1:length(prod_ids)
+            j = prod_ids[k]
+
+            firm.C_j[j] += wgt[k]*s_hat[k]*c_hat[k]
+            firm.PC_j[j] += wgt[k]*s_ins_hat*c_pool[k]
+            firm.SA_j[j] += wgt[k]*s_hat[k]*(a/m)
+            firm.S_j[j] += wgt[k]*s_hat[k]
+            firm.Mkt_j[j] += wgt[k]*s_ins_hat
+        end
+    end
+
+    non_catas = firm.prods[.!(inlist(firm.prods,firm.catas_prods))]
+
+
+    firm.PC_j[prod_ind] = firm.PC_j[prod_ind]./firm.Mkt_j[prod_ind]#.*firm.S_j
+
+    # firm.Mkt_j = firm.poolMat*firm.S_j
+    TotalCosts = firm.C_j[:]
+    TotalCosts[firm.catas_prods].=0.0
+    PooledCosts = (firm.PC_j[:].*firm.S_j[:])
+    PooledCosts[firm.catas_prods].=0.0
+
+    TotalCosts = firm.poolMat*TotalCosts
+    PooledCosts = firm.poolMat*PooledCosts
+    firm.Adj_j = zeros(length(firm.PC_j))
+    # firm.Adj_j[non_catas] = (TotalCosts./PooledCosts)[non_catas]
+    firm.Adj_j[firm.prods] = (TotalCosts./PooledCosts)[firm.prods]
+
+
+    firm.PC_j[firm.prods] = firm.PC_j[firm.prods].*firm.S_j[firm.prods]
+    firm.PC_j[firm.prods] = firm.PC_j[firm.prods].*firm.Adj_j[firm.prods]
+    firm.PC_j[firm.catas_prods] = firm.C_j[firm.catas_prods]#./firm.S_j[firm.catas_prods]
+    firm.C_j = firm.C_j./firm.S_j
+    firm.PC_j = firm.PC_j./firm.S_j
+
+    return nothing
+end
+
+
+# function evaluate_model!(m::InsuranceLogit,f::firmData;foc_check=false)
+#     #Clear Derivative Values
+#     f.dSdp_j[:].=0.0
+#     f.dSAdp_j[:].=0.0
+#     f.dMdp_j[:].=0.0
+#     f.dRdp_j[:].=0.0
+#     f.dCdp_j[:].=0.0
+#     f.dCdp_pl_j[:].=0.0
+#     f.PC_j[:].=0.0
+#     f.S_j[:].=0.0
+#     f.C_j[:].=0.0
+#     f.SA_j[:].=0.0
+#     f.Adj_j[:].=0.0
+#     f.Mkt_j[:].=0.0
+#
+#     if foc_check==false
+#         premPaid!(firm)
+#     else
+#         f.Rev_ij = f[:Rev_foc]
+#         f.P_ij   = price(m.data)
+#         f.zero_ij = Float64.((f.P_ij .+ f[:Mandate]/1000 .- 1e-6).<0.0)
+#     end
+#
+#     compute_price!(m,f)
+#     update_derivatives(m,f)
+#     return nothing
+# end
+
+
+function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;foc_check=false,voucher=false)
+    #Clear Derivative Values
+    f.dSdp_j[:].=0.0
+    f.dSAdp_j[:].=0.0
+    f.dMdp_j[:].=0.0
+    f.dRdp_j[:].=0.0
+    f.dCdp_j[:].=0.0
+    f.dCdp_pl_j[:].=0.0
+    f.PC_j[:].=0.0
+    f.S_j[:].=0.0
+    f.C_j[:].=0.0
+    f.SA_j[:].=0.0
+    f.Adj_j[:].=0.0
+    f.Mkt_j[:].=0.0
+
+    if foc_check==false
+        premPaid!(f,voucher=voucher)
+    else
+        f.Rev_ij = f[:Rev_foc]
+        f.P_ij   = price(m.data)
+        f.zero_ij = Float64.((f.P_ij .+ f[:Mandate]/1000 .- 1e-6).<0.0)
+    end
+
+    compute_price!(m,f)
+    update_derivatives(m,f,ST,foc_check=foc_check)
+    return nothing
+end
+
+function evaluate_model!(m::InsuranceLogit,f::firmData,mkt::Int;foc_check=false,voucher=false,deriv=true)
+    #Clear Derivative Values
+    f.dSdp_j[:].=0.0
+    f.dSAdp_j[:].=0.0
+    f.dMdp_j[:].=0.0
+    f.dRdp_j[:].=0.0
+    f.dCdp_j[:].=0.0
+    f.dCdp_pl_j[:].=0.0
+    f.PC_j[:].=0.0
+    f.S_j[:].=0.0
+    f.C_j[:].=0.0
+    f.SA_j[:].=0.0
+    f.Adj_j[:].=0.0
+    f.Mkt_j[:].=0.0
+
+    if foc_check==false
+        premPaid!(f,voucher=voucher)
+    else
+        f.Rev_ij = f[:Rev_foc]
+        f.P_ij   = price(m.data)
+        f.zero_ij = Float64.((f.P_ij .+ f[:Mandate]/1000 .- 1e-6).<0.0)
+    end
+
+    compute_price!(m,f)
+    if deriv
+        update_derivatives(m,f,mkt,foc_check=foc_check)
+    else
+        update_shares(m,f,mkt,foc_check=foc_check)
+    end
+    return nothing
+end

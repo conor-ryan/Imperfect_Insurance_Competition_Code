@@ -36,11 +36,11 @@ function compute_profit(d::InsuranceLogit,f::firmData)
             Cost[j] += wgt[k]*s_pred[k]*cost[k]
             Pooled_Cost[j] += wgt[k]*s_ins*cost_pl[k]
             Market_Total[j] += wgt[k]*s_ins
-            Share[j] += wgt[k]*s_pred[k]#*age[k]/mem[k]
-            if isnan(Cost[j])
-                println(idxitr)
-                return
-            end
+            Share[j] += wgt[k]*s_pred[k]*age[k]/mem[k]
+            # if isnan(Cost[j])
+            #     println(idxitr)
+            #     return
+            # end
         end
     end
 
@@ -67,22 +67,27 @@ function compute_profit(d::InsuranceLogit,f::firmData)
     return Revenue, Cost, Share, Pooled_Cost, Adj
 end
 
-function test_MR(m::InsuranceLogit,f::firmData)
+function test_MR(m::InsuranceLogit,f::firmData,prod_int::Int,mkt::Int)
     ϵ = 1e-6
     println("First Evaluation")
-    evaluate_model!(model,f,"GA",foc_check=false)
+    evaluate_model!(model,f,mkt,foc_check=false,voucher=true,deriv=false)
     Rev1, Cost1, Share1, PC1, Adj1 = compute_profit(m,f)
-    f.P_j[1]+=ϵ
+    all_profits = market_profits(m,f)
+    prof1 = all_profits[mkt]
+    f.P_j[prod_int]+=ϵ
     println("Deviation Evaluation")
-    evaluate_model!(model,f,"GA",foc_check=false)
+    evaluate_model!(model,f,mkt,foc_check=false,voucher=true,deriv=false)
     Rev2, Cost2, Share2, PC2, Adj2 = compute_profit(m,f)
+    all_profits = market_profits(m,f)
+    prof2 = all_profits[mkt]
 
+    dProf = (prof2-prof1)/ϵ
     dR = (Rev2 - Rev1)./ϵ
     dC = (Cost2 - Cost1)./ϵ
     dS = (Share2 - Share1)./ϵ
     dPC = (PC2 - PC1)./ϵ
     dAdj = (Adj2 - Adj1)./ϵ
-    return dR, dC, dS, dPC, dAdj, (Cost1,PC1,Cost2,PC2)
+    return dProf, dC, dS, dPC, dAdj
 end
 
 function prof_margin(f::firmData,std_ind::Union{Vector{Int64},Missing}=missing)

@@ -30,7 +30,7 @@ for (cw in c("Base","SP_cp","SP_zp","SP")){
 baseData[,dCW_SP_Base:=CW_Base-CW_SP]
 baseData[,dCW_SP_SPcp:=CW_SP_cp-CW_SP]
 baseData[,dCW_SP_SPzp:=CW_SP_zp-CW_SP]
-baseData[,dCW_SPcp_Base:=CW_Base-CW_SP_cp]
+baseData[,dCW_SPcp_Base:=CW_SP_cp-CW_Base]
 
 ggplot(baseData) + aes(x=dCW_SP_SPzp) + 
   geom_histogram(binwidth=0.1) + 
@@ -44,8 +44,7 @@ ggplot(baseData) + aes(x=dCW_SP_Base) +
   geom_histogram(binwidth=0.1) + 
   coord_cartesian(xlim=c(-4,0.5))
 
-ggplot(baseData[ST=="AK"]) + aes(x=dCW_SPcp_Base) + 
- facet_wrap(~LowIncome) +
+ggplot(baseData) + aes(x=dCW_SPcp_Base) + 
   geom_histogram(binwidth=0.1) + 
   coord_cartesian(xlim=c(-4,0.5))
 

@@ -3,7 +3,7 @@ function solve_model!(m::InsuranceLogit,f::firmData;
     P_res = zeros(length(f.P_j))
     states = sort(String.(keys(f._prodSTDict)))#[1:6]
     # states = ["AK","NE","IA"]
-    for s in states
+    for s in states[1:2]
         # if s!="AK"
         #     continue
         # end
@@ -115,26 +115,52 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     println("#### Solve Baseline - With Risk Adjustment and Mandate ####")
     println("####################################")
     f.P_j[:] = P_Obs[:]
-    solve_model!(m,f,sim="RA",tol=1e-12)
-    P_Base[:] = f.P_j[:]
     evaluate_model!(m,f,"All")
+    set_voucher!(f)
+
+    solve_model!(m,f,sim="RA",voucher=true)
+    P_Base[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=true)
     S_Base[:] = f.S_j[:]
 
-    set_voucher!(f)
+
     base_profits = market_profits(m,f)
     base_welfare = consumer_welfare_bymkt(m,f,"Base")
 
     consumer_welfare(m,f,"Base")
 
     println("###### Solve Merger Scenario ######")
-    solve_model!(m,f,sim="RA",merg="Merger")
+    # f.P_j[:] = P_Obs[:]
+    solve_model!(m,f,sim="RA",merg="Merger",voucher=true)
     P_Base_m[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
+    evaluate_model!(m,f,"All",voucher=true)
     S_Base_m[:] = f.S_j[:]
 
     merger_profits = market_profits(m,f)
 
     consumer_welfare(m,f,"Base_m")
+
+    # ## Monopolist...
+    # # f.P_j[:] = P_Obs[:]
+    solve_model!(m,f,sim="RA",merg="SP",voucher=true)
+    evaluate_model!(m,f,"All",voucher=true)
+    monopoly_profits = market_profits(m,f)
+    P_mon = Vector{Float64}(undef,length(m.prods))
+    P_mon = f.P_j[:]
+    S_mon = Vector{Float64}(undef,length(m.prods))
+    S_mon = f.S_j[:]
+    #
+    # P_max = [195.368, 198.353, 439.458, 320.481, 1232.89, 382.198, 215.248, 206.039, 512.504, 387.248, 334.986, 166.323, 186.568, 239.776, 879.183, 223.494, 238.865, 233.276, 414.424, 462.758, 217.09, 357.553, 263.843, 226.534, 381.22, 777.601, 397.313]
+    # flag, prof_ng, P_max = prof_max(P_max,m,f,5)
+    #
+    #
+    # # f.P_j[:] = P_Obs[:]
+    # solve_model!(m,f,sim="Base",merg="SP")
+    # evaluate_model!(m,f,"All")
+    # monopoly_profits2 = market_profits(m,f)
+    #
+    #
+    # markets_cpm, λ_vec_cpm = solve_SP_λ!(m,f,monopoly_profits)
 
     #### Solve Planner Problem ####
     println("####################################")
@@ -184,17 +210,17 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     println("#### Solve without Risk Adjustment ####")
     println("####################################")
     f.P_j[:] = P_Obs[:]
-    solve_model!(m,f,sim="Base")
+    solve_model!(m,f,sim="Base",voucher=true)
     P_RA[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
+    evaluate_model!(m,f,"All",voucher=true)
     S_RA[:] = f.S_j[:]
 
     consumer_welfare(m,f,"RA")
 
     println("###### Solve Merger Scenario ######")
-    solve_model!(m,f,sim="Base",merg="Merger")
+    solve_model!(m,f,sim="Base",merg="Merger",voucher=true)
     P_RA_m[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
+    evaluate_model!(m,f,"All",voucher=true)
     S_RA_m[:] = f.S_j[:]
 
     consumer_welfare(m,f,"RA_m")
@@ -206,9 +232,9 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     println("####################################")
     f.P_j[:] = P_Obs[:]
     f.data[:,f.index[:Mandate]].=0.0
-    solve_model!(m,f,sim="RA")
+    solve_model!(m,f,sim="RA",voucher=true)
     P_man[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
+    evaluate_model!(m,f,"All",voucher=true)
     S_man[:] = f.S_j[:]
 
     consumer_welfare(m,f,"man")
@@ -217,9 +243,9 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     # println(median(f.P_j[findall(f.P_j.>0)]))
 
     println("###### Solve Merger Scenario ######")
-    solve_model!(m,f,sim="RA",merg="Merger")
+    solve_model!(m,f,sim="RA",merg="Merger",voucher=true)
     P_man_m[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
+    evaluate_model!(m,f,"All",voucher=true)
     S_man_m[:] = f.S_j[:]
 
     consumer_welfare(m,f,"man_m")
@@ -231,18 +257,18 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     println("####################################")
     f.P_j[:] = P_Obs[:]
     f.data[:,f.index[:Mandate]].=0.0
-    solve_model!(m,f,sim="Base")
+    solve_model!(m,f,sim="Base",voucher=true)
     P_RAman[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
+    evaluate_model!(m,f,"All",voucher=true)
     S_RAman[:] = f.S_j[:]
 
     consumer_welfare(m,f,"RAman")
 
 
     println("###### Solve Merger Scenario ######")
-    solve_model!(m,f,sim="Base",merg="Merger")
+    solve_model!(m,f,sim="Base",merg="Merger",voucher=true)
     P_RAman_m[:] = f.P_j[:]
-    evaluate_model!(m,f,"All")
+    evaluate_model!(m,f,"All",voucher=true)
     S_RAman_m[:] = f.S_j[:]
 
     consumer_welfare(m,f,"RAman_m")
@@ -341,7 +367,7 @@ function solve_equilibrium(rundate,spec)
 
     #### Solve Equilibrium ####
     firm = firmData(model,df,eq_mkt,par_dem,par_cost)
-    # evaluate_model!(model,firm,"All",foc_check=true)
+    evaluate_model!(model,firm,"All",foc_check=true)
     println("Check Margins...")
     file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/checkMargins_$spec-$rundate.csv"
     checkMargin(model,firm,file)
