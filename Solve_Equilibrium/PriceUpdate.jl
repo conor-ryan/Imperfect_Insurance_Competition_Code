@@ -15,6 +15,7 @@ end
 function calcBenchmark(firm::firmData)
     mkts = keys(firm.mkt_index)
     benchmarkPrem = Vector{Float64}(undef,length(mkts))
+    firm.bench_prods[:].=0.0
     for m in mkts
         prems = firm.P_j[firm.mkt_index[m]][firm.silver_index[m]]
         hix_cnts = firm.hix_cnt[firm.mkt_index[m]][firm.silver_index[m]]
@@ -25,6 +26,8 @@ function calcBenchmark(firm::firmData)
             bench_index = 2
         end
         benchmarkPrem[m] = prems[ind][bench_index]
+        # confusing way to pick the becnhmark product index...
+        firm.bench_prods[firm.mkt_index[m][firm.silver_index[m]][ind][bench_index]]=1.0
     end
     benchLong = benchmarkPrem[firm.mkt_index_long]
     return benchLong
@@ -55,6 +58,8 @@ function calcSubsidy!(firm::firmData;foc_check=false)
     for n in 1:N
         subs = max(benchmarks[n]*ageRate[n]-incCont[n]*1000/12,0)*(1-catas[n])
         firm.subsidy_ij[n] = min(firm.Rev_ij[n]*Mems[n],subs)
+        ### TEMPORARY REFUNDABLE SUBSIDIES
+        # firm.subsidy_ij[n] = subs
         if (subs>(firm.Rev_ij[n]*Mems[n]))
             firm.zero_ij[n]=1.0
         end

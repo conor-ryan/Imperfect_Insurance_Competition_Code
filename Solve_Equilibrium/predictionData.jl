@@ -48,6 +48,7 @@ mutable struct firmData
     stdMap::Vector{Int64}
     prods::Vector{Int64}
     catas_prods::Vector{Int64}
+    bench_prods::Vector{Float64}
     _productDict::Dict{Int, Array{Int,1}}
 
     mkt_index::Dict{Real,Array{Int64,1}}
@@ -83,6 +84,8 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     prod_std = unique(prodMap)
 
     catas_prods = Int.(mkt[:,:Product][mkt[:,:Metal_std].=="CATASTROPHIC"])
+    bench_prods = Vector{Float64}(undef,J)
+    bench_prods[:].=0.0
 
     prod_vec = convert(Vector{Float64},df[:,:Product_std])
     _productDict = build_ProdDict(prod_vec)
@@ -199,7 +202,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
 
     ### Pooled Cost Areas
     states = Vector{Union{Missing,String}}(missing,J)
-    states[prod_std] = mkt[:,:Market]
+    states[prod_std] = mkt[:,:ST]
     poolMat = zeros(J,J)
     for j in prod_std
         st = states[j]
@@ -234,7 +237,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     P_j,SA_j,S_j,Mkt_j,C_j,PC_j,Adj_j,
     hix_cnt,bench_base,
     dSdp_j,dSAdp_j,dRdp_j,dCdp_j,dMdp_j,dCdp_pl_j,
-    prodMap,prod_std,catas_prods,_productDict,
+    prodMap,prod_std,catas_prods,bench_prods,_productDict,
     mkt_index,silv_index,mkt_index_long,
     ownMat,ownMat_merge,poolMat,
     _perSTDict,_prodSTDict,_perMktDict)
@@ -248,89 +251,5 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     return firm
 end
 
-# function evaluate_model!(m::InsuranceLogit,f::firmData;foc_check=false)
-#     #Clear Derivative Values
-#     f.dSdp_j[:].=0.0
-#     f.dSAdp_j[:].=0.0
-#     f.dMdp_j[:].=0.0
-#     f.dRdp_j[:].=0.0
-#     f.dCdp_j[:].=0.0
-#     f.dCdp_pl_j[:].=0.0
-#     f.PC_j[:].=0.0
-#     f.S_j[:].=0.0
-#     f.C_j[:].=0.0
-#     f.SA_j[:].=0.0
-#     f.Adj_j[:].=0.0
-#     f.Mkt_j[:].=0.0
-#
-#     if foc_check==false
-#         premPaid!(firm)
-#     else
-#         f.Rev_ij = f[:Rev_foc]
-#         f.P_ij   = price(m.data)
-#         f.zero_ij = Float64.((f.P_ij .+ f[:Mandate]/1000 .- 1e-6).<0.0)
-#     end
-#
-#     compute_price!(m,f)
-#     update_derivatives(m,f)
-#     return nothing
-# end
-
-
-function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;foc_check=false,voucher=false)
-    #Clear Derivative Values
-    f.dSdp_j[:].=0.0
-    f.dSAdp_j[:].=0.0
-    f.dMdp_j[:].=0.0
-    f.dRdp_j[:].=0.0
-    f.dCdp_j[:].=0.0
-    f.dCdp_pl_j[:].=0.0
-    f.PC_j[:].=0.0
-    f.S_j[:].=0.0
-    f.C_j[:].=0.0
-    f.SA_j[:].=0.0
-    f.Adj_j[:].=0.0
-    f.Mkt_j[:].=0.0
-
-    if foc_check==false
-        premPaid!(f,voucher=voucher)
-    else
-        f.Rev_ij = f[:Rev_foc]
-        f.P_ij   = price(m.data)
-        f.zero_ij = Float64.((f.P_ij .+ f[:Mandate]/1000 .- 1e-6).<0.0)
-    end
-
-    compute_price!(m,f)
-    update_derivatives(m,f,ST,foc_check=foc_check)
-    return nothing
-end
-
-function evaluate_model!(m::InsuranceLogit,f::firmData,mkt::Int;foc_check=false,voucher=false)
-    #Clear Derivative Values
-    f.dSdp_j[:].=0.0
-    f.dSAdp_j[:].=0.0
-    f.dMdp_j[:].=0.0
-    f.dRdp_j[:].=0.0
-    f.dCdp_j[:].=0.0
-    f.dCdp_pl_j[:].=0.0
-    f.PC_j[:].=0.0
-    f.S_j[:].=0.0
-    f.C_j[:].=0.0
-    f.SA_j[:].=0.0
-    f.Adj_j[:].=0.0
-    f.Mkt_j[:].=0.0
-
-    if foc_check==false
-        premPaid!(f,voucher=voucher)
-    else
-        f.Rev_ij = f[:Rev_foc]
-        f.P_ij   = price(m.data)
-        f.zero_ij = Float64.((f.P_ij .+ f[:Mandate]/1000 .- 1e-6).<0.0)
-    end
-
-    compute_price!(m,f)
-    update_derivatives(m,f,mkt,foc_check=foc_check)
-    return nothing
-end
 
 getindex(f::firmData, idx::Symbol) = f.data[:,f.index[idx]]
