@@ -260,7 +260,7 @@ function ChoiceData(data_choice::DataFrame,
     _tMomentDict = Dict{Int,Array{Int64,1}}()
     moments = sort(unique(data_risk[:,:momentID]))
     tMoments = Vector{Float64}(undef,length(moments))
-    st_share = zeros(length(keys(_productDict)))
+    st_share = zeros(Int(maximum(keys(_productDict))))
     _stDict = Dict{Int,Array{Int64,1}}()
     if constMoments
 

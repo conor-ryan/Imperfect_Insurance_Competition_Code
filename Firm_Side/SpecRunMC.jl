@@ -18,6 +18,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
     #### Build Model ####
     # Structre the data
     chdf = ChoiceData(df,df_mkt,df_risk;
+        product = [:Product_std],
         demoRaw=spec_Dict["demoRaw"],
         prodchars=spec_Dict["prodchars"],
         prodchars_0=spec_Dict["prodchars_0"],

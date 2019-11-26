@@ -160,7 +160,7 @@ function MC_Data(data_choice::DataFrame,
             m_index = mom_firm[:,:index][m_df_index]
             _firmMomentDict[m] = m_index
             _firmMomentBit[m] = inlist(all_idx,m_index)
-            _firmMomentProdDict[m] = sort(unique(mom_firm[:,:Product][m_df_index]))
+            _firmMomentProdDict[m] = sort(unique(mom_firm[:,:Product_std][m_df_index]))
             firmMoments[m] = mom_firm[:,:logAvgCost][m_df_index][1]
         end
     end
@@ -182,7 +182,7 @@ function MC_Data(data_choice::DataFrame,
                 m_index = mom_metal[:,:index][m_f_df_index]
                 _subDict[m] = m_index
                 _metalMomentBit[m] = inlist(all_idx,m_index)
-                _subProdDict[m] = sort(unique(mom_metal[:,:Product][m_f_df_index]))
+                _subProdDict[m] = sort(unique(mom_metal[:,:Product_std][m_f_df_index]))
                 metalMoments[m] = mom_metal[:,:costIndex][m_df_index][1]
             end
             _metalMomentDict[f] = _subDict
@@ -225,7 +225,7 @@ function MC_Data(data_choice::DataFrame,
     raMoments = Vector{Float64}(undef,length(moments))
     if constMoments
         for m in moments
-            m_index = sort(unique(mom_ra[:,:Product][findall(mom_ra[:,:M_num].==m)]))
+            m_index = sort(unique(mom_ra[:,:Product_std][findall(mom_ra[:,:M_num].==m)]))
             _raMomentDict[m] = m_index
             # _agenoMomentBit[m] = inlist(all_idx,m_index)
             raMoments[m] = mom_ra[:,:avgTransfer][findall(mom_ra[:,:M_num].==m)][1]

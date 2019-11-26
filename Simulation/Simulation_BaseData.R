@@ -231,7 +231,8 @@ acs[,Person:=as.factor(paste(Market,FPL_bucket,AGE_bucket,Mem_bucket))]
 acs[,Person:=as.numeric(Person)]
 
 acs[,prodCat:="Low"]
-acs[METAL%in%c("SILVER 87","SILVER 94","GOLD","PLATINUM"),prodCat:="High"]
+acs[METAL%in%c("GOLD","PLATINUM"),prodCat:="High"]
+# acs[METAL%in%c("SILVER 87","SILVER 94","GOLD","PLATINUM"),prodCat:="High"]
 acs[,Firm_Market:=paste(Firm,Market,sep="_")]
 acs[,Firm_Market_Cat:=paste(Firm,Market,prodCat,sep="_")]
 acs[,Firm_Market_Cat_Age:=paste(Firm,Market,prodCat,Age,sep="_")]
@@ -241,12 +242,18 @@ acs[,Firm_ST:=paste(Firm,ST,sep="_")]
 #### Merge in Product Map #### 
 prod_map = read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv")
 prod_map = as.data.table(prod_map)
+prod_map = unique(prod_map[,c("Firm","Metal_std","Market","Product_std","Small")])
 
-setkey(acs,Product_Name)
-setkey(prod_map,Product_Name)
-acs = merge(acs,prod_map[,c("Product_Name","Product","Small")],by="Product_Name",all.x=TRUE)
+
+## Standardized Silver Plans
+acs[,Metal_std:=gsub(" .*","",METAL)]
+acs[,premBase_std:=median(premBase),by=c("Firm","Metal_std","Market")]
+
+setkey(acs,Firm,Metal_std,Market)
+setkey(prod_map,Firm,Metal_std,Market)
+acs = merge(acs,prod_map,by=c("Firm","Metal_std","Market"),all.x=TRUE)
 # Drop 0 share products
-acs = acs[!is.na(acs$Product),]
+acs = acs[!is.na(acs$Product_std),]
 
 #### Merge in High Risk ####
 load("Simulation_Risk_Output/FirmRiskScores_woSim.rData")
@@ -347,11 +354,6 @@ acs[METAL=="BRONZE",HCC_age:=BronHCC_Age]
 acs[METAL=="CATASTROPHIC",HCC_age:=CataHCC_Age]
 
 
-## Standardized Silver Plans
-acs[,Metal_std:=gsub(" .*","",METAL)]
-acs[,Product_std:=min(Product),by=c("Firm","Metal_std","Market")]
-acs[,premBase_std:=median(premBase),by=c("Firm","Metal_std","Market")]
-
 rm(gcf)
 
 #### Density Weights ####
@@ -381,7 +383,7 @@ acs[,c("Age_Cat","Inc_Cat"):=NULL]
 
 
 #### Output Analogous Data ####
-choiceData = acs[,c("Person","Firm","ST","Firm_ST","Firm_Market","Firm_Market_Cat","Firm_Market_Cat_Age","Market","Product","PERWT","Price",
+choiceData = acs[,c("Person","Firm","ST","Firm_ST","Firm_Market","Firm_Market_Cat","Firm_Market_Cat_Age","Market","PERWT","Price",
                     "MedDeduct","ExcOOP","High","AV","AV_std","AV_diff","HighRisk","Small","High_small","Gamma_j",
                     "Mandate","subsidy","benchBase","IncomeCont","mkt_density",
                     "Family","Age","LowIncome","AGE","AvgAge",
@@ -399,7 +401,7 @@ choiceData[,S_ij:=0]
 choiceData[,unins_rate:=0]
 choiceData[,AGE:=AGE/10]
 choiceData[,AvgAge:=AvgAge/10]
-setkey(choiceData,Person,Product)
+setkey(choiceData,Person,Product_std)
 
 
 write.csv(choiceData,"Intermediate_Output/Simulated_BaseData/simchoiceData_discrete.csv",row.names=FALSE)

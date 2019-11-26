@@ -7,15 +7,14 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 #### Load Data####
 choiceData = read.csv("Intermediate_Output/Simulated_BaseData/simchoiceData_discrete.csv")
 choiceData = as.data.table(choiceData)
-choiceData[,Metal_std:=gsub(" [0-9]+","",METAL)]
 # n_draws = nrow(draws)
 
 #### Firm-Share Adjustments ####
 ## Merge in Sample Market Shares
 prod_data = as.data.table(read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv"))
-prod_data[,Metal_std:=gsub(" .*","",METAL)]
 prod_adj = prod_data[,list(lives=sum(lives),
                            AV=sum(lives*AV)/sum(lives)),by=c("STATE","Firm","Metal_std")]
+prod_data = unique(prod_data[,c("Firm","STATE","Metal_std","Market","Product_std","Small")])
 # firm_adj = prod_data[,list(lives=sum(lives),
 #                             AV=sum(lives*AV)/sum(lives)),by=c("STATE","Firm")]
 
@@ -108,7 +107,7 @@ metalAvg[,M_num:=1:nrow(metalAvg)]
 prod_data[,Metal_merge:=Metal_std]
 # prod_data[Metal_std=="PLATINUM",Metal_merge:="GOLD"]
 
-metalMoments = merge(metalAvg,prod_data[,c("Product","Metal_merge")],by.x="METAL",by.y="Metal_merge")
+metalMoments = merge(metalAvg,prod_data[,c("Product_std","Metal_merge")],by.x="METAL",by.y="Metal_merge")
 metalMoments[,c("METAL"):=NULL]
 
 save(firmClaims,metalAvg,file="Intermediate_Output/Average_Claims/AvgCostMoments.rData")
@@ -157,22 +156,22 @@ ageMoments_noHCC$M_num = 1:nrow(ageMoments_noHCC)
 riskMoments$M_num = 1:nrow(riskMoments)
 
 #### Create Moment Index DF ####
-setkey(choiceData,Person,Product)
+setkey(choiceData,Person,Product_std)
 choiceData[,index:=1:nrow(choiceData)]
 firmMoments = merge(firmClaims,choiceData,by=c("ST","Firm"))
-firmMoments = firmMoments[,c("logAvgCost","M_num","Product","index")]
+firmMoments = firmMoments[,c("logAvgCost","M_num","Product_std","index")]
 
 raMoments = merge(choiceData,RAmom,by=c("ST","Firm"))
-raMoments = raMoments[,c("avgTransfer","M_num","Product","index")]
+raMoments = raMoments[,c("avgTransfer","M_num","Product_std","index")]
 
 
-metalMoments = merge(metalMoments,choiceData[,c("Product","index","Firm","ST")],by="Product")
+metalMoments = merge(metalMoments,choiceData[,c("Product_std","index","Firm","ST")],by="Product_std")
 f_merge = unique(choiceData[,c("Firm","ST")])
 setkey(f_merge,ST,Firm)
 f_merge[,F_M_num:=1:nrow(f_merge)]
 
 metalMoments = merge(metalMoments,f_merge,by=c("Firm","ST"))
-metalMoments = metalMoments[,c("M_num","Product","index","F_M_num","costIndex")]
+metalMoments = metalMoments[,c("M_num","Product_std","index","F_M_num","costIndex")]
 # metalDict = merge(metalClaims,choiceData,by=c("ST","Firm","Metal_std"))
 # avgMoments = rbind(firmDict[,c("logAvgCost","M_num","Product","index")],metalDict[,c("logAvgCost","M_num","Product","index")])
 # avgMoments = avgMoments[!is.na(M_num),]

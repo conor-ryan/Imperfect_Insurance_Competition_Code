@@ -740,7 +740,8 @@ rm(gcf)
 
 #### Categorical Variables for Later Dummy Creation
 choices[,prodCat:="Low"]
-choices[METAL%in%c("SILVER 87","SILVER 94","GOLD","PLATINUM"),prodCat:="High"]
+choices[METAL%in%c("GOLD","PLATINUM"),prodCat:="High"]
+# choices[METAL%in%c("SILVER 87","SILVER 94","GOLD","PLATINUM"),prodCat:="High"]
 choices[,Firm_Market_Cat:=paste(Firm,Market,prodCat,sep="_")]
 choices[,Firm_Market:=paste(Firm,Market,sep="_")]
 choices[,Firm_Market_Age:=paste(Firm,Market,Age,sep="_")]
@@ -943,6 +944,8 @@ write.csv(choices[,c("Person","Firm","Market","Product","S_ij","S_raw_ij","N","P
           "Intermediate_Output/Estimation_Data/estimationData_discrete.csv",row.names=FALSE)
 write.csv(choices,"Intermediate_Output/Estimation_Data/descriptiveData_discrete.csv",row.names=FALSE)
 
+shares[,Metal_std:=gsub(" .*","",METAL)]
+shares[,Product_std:=min(Product),by=c("Firm","Metal_std","Market")]
 
 write.csv(shares[,c("Product","Share","lives","Gamma_j","AV")],
           "Intermediate_Output/Estimation_Data/marketData_discrete.csv",row.names=FALSE)
