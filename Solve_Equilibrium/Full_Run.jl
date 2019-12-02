@@ -22,8 +22,8 @@ spec_prodchars_0=[:constant,:AV,:HighRisk,:Small,:High_small]
 
 cost_spec = [:AGE,:AV]
 
-rundate = Dates.today()
-# rundate = "2019-11-04"
+# rundate = Dates.today()
+rundate = "2019-11-25"
 println("Running on $rundate")
 spec = "FMC"
 spec_fixedEffects=[:Firm_Market_Cat]
@@ -51,12 +51,12 @@ include("$codeDir/Demand_Estimation/utility.jl")
 include("$codeDir/Demand_Estimation/Specification_Run.jl")
 
 filename = "GMM_Estimate_$spec"
-estimate_demand(filename,rundate,
-                    halton_draws,
-                    spec_demoRaw,
-                    spec_prodchars,
-                    spec_prodchars_0,
-                    spec_fixedEffects)
+# estimate_demand(filename,rundate,
+#                     halton_draws,
+#                     spec_demoRaw,
+#                     spec_prodchars,
+#                     spec_prodchars_0,
+#                     spec_fixedEffects)
 
 
 println("##### Estimation Marginal Cost #####")

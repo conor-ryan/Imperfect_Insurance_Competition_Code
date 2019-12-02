@@ -684,10 +684,12 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
     pmat[:delta] = 1.0
     # sort!(pmat)
 
+    prods = sort(Int.(unique(c_data.data[c_data._product,:])))
+
     d = InsuranceLogit(parLength,
                         c_data,
                         risk_draws,
-                        pmat[:,:Product],pmat[:,:Share],pmat[:,:lives],
+                        prods,pmat[:,:Share],pmat[:,:lives],
                         pmat[:,:Gamma_j],pmat[:,:AV],pmat[:,:delta])
     return d
 end

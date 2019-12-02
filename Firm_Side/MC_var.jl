@@ -19,7 +19,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
         idx_prod = d.data._productDict[j]
         productIDs[idx_prod] .= j
     end
-    num_prods = length(d.prods)
+    num_prods = maximum(d.prods)
 
 
 
@@ -101,7 +101,7 @@ function cost_obs_moments!(mom_obs::Vector{Float64},productIDs::Vector{Int64},
     mom_obs[:] .= 0.0
     wgts = weight(app)[1,:]
     ind = person(app)[1]
-    num_prods = length(d.prods)
+    num_prods = maximum(d.prods)
 
 
     idxitr = app._personDict[ind]
@@ -189,7 +189,7 @@ end
 
 function moments_Avar(c::MC_Data,d::InsuranceLogit,cost_moments::Vector{T}) where T
 
-    num_prods = length(d.prods)
+    num_prods = maximum(d.prods)
     f_moments_p1= Vector{T}(undef,length(c.firmMoments))
     f_moments_p2= Vector{T}(undef,length(c.firmMoments))
 
