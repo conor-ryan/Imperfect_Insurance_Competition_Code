@@ -1,9 +1,10 @@
 function market_profits(d::InsuranceLogit,f::firmData)
-    Revenue = zeros(length(d.prods))
-    Cost = zeros(length(d.prods))
-    Share = zeros(length(d.prods))
+    J = maximum(d.prods)
+    Revenue = zeros(J)
+    Cost = zeros(J)
+    Share = zeros(J)
 
-    Market_Total = zeros(length(d.prods))
+    Market_Total = zeros(J)
 
     wgts_long = weight(d.data)[:]
     prod_long = Int.(product(d.data))
