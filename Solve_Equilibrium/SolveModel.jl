@@ -104,18 +104,23 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     P_man_m = Vector{Float64}(undef,J)
     P_RAman_m = Vector{Float64}(undef,J)
 
-    S_SP = Vector{Float64}(undef,J)
-    S_SP_zp = Vector{Float64}(undef,J)
-    S_SP_cp = Vector{Float64}(undef,J)
-    S_SP_cpm = Vector{Float64}(undef,J)
-    S_Base = Vector{Float64}(undef,J)
-    S_RA = Vector{Float64}(undef,J)
-    S_man = Vector{Float64}(undef,J)
-    S_RAman = Vector{Float64}(undef,J)
-    S_Base_m = Vector{Float64}(undef,J)
-    S_RA_m = Vector{Float64}(undef,J)
-    S_man_m = Vector{Float64}(undef,J)
-    S_RAman_m = Vector{Float64}(undef,J)
+    P_Base_pl = Vector{Float64}(undef,J)
+    P_RA_pl = Vector{Float64}(undef,J)
+    P_man_pl = Vector{Float64}(undef,J)
+    P_RAman_pl = Vector{Float64}(undef,J)
+    P_Base_m_pl = Vector{Float64}(undef,J)
+    P_RA_m_pl = Vector{Float64}(undef,J)
+    P_man_m_pl = Vector{Float64}(undef,J)
+    P_RAman_m_pl = Vector{Float64}(undef,J)
+
+    S_Base_pl = Vector{Float64}(undef,J)
+    S_RA_pl = Vector{Float64}(undef,J)
+    S_man_pl = Vector{Float64}(undef,J)
+    S_RAman_pl = Vector{Float64}(undef,J)
+    S_Base_m_pl = Vector{Float64}(undef,J)
+    S_RA_m_pl = Vector{Float64}(undef,J)
+    S_man_m_pl = Vector{Float64}(undef,J)
+    S_RAman_m_pl = Vector{Float64}(undef,J)
 
     P_Obs[:] = f.P_j[:]
 
@@ -127,9 +132,9 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All")
     set_voucher!(f)
 
-    solve_model!(m,f,sim="RA",voucher=false)
+    solve_model!(m,f,sim="RA",voucher=true)
     P_Base[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=false)
+    evaluate_model!(m,f,"All",voucher=true)
     S_Base[:] = f.S_j[:]
     # solve_model!(m,f,sim="RA",voucher=false)
 
@@ -151,13 +156,13 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
 
     # ## Monopolist...
     # # f.P_j[:] = P_Obs[:]
-    solve_model!(m,f,sim="RA",merg="SP",voucher=true)
-    evaluate_model!(m,f,"All",voucher=true)
-    monopoly_profits = market_profits(m,f)
-    P_mon = Vector{Float64}(undef,J)
-    P_mon = f.P_j[:]
-    S_mon = Vector{Float64}(undef,J)
-    S_mon = f.S_j[:]
+    # solve_model!(m,f,sim="RA",merg="SP",voucher=true)
+    # evaluate_model!(m,f,"All",voucher=true)
+    # monopoly_profits = market_profits(m,f)
+    # P_mon = Vector{Float64}(undef,J)
+    # P_mon = f.P_j[:]
+    # S_mon = Vector{Float64}(undef,J)
+    # S_mon = f.S_j[:]
     #
     # P_max = [195.368, 198.353, 439.458, 320.481, 1232.89, 382.198, 215.248, 206.039, 512.504, 387.248, 334.986, 166.323, 186.568, 239.776, 879.183, 223.494, 238.865, 233.276, 414.424, 462.758, 217.09, 357.553, 263.843, 226.534, 381.22, 777.601, 397.313]
     # flag, prof_ng, P_max = prof_max(P_max,m,f,5)
@@ -172,47 +177,47 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     # markets_cpm, λ_vec_cpm = solve_SP_λ!(m,f,monopoly_profits)
 
     #### Solve Planner Problem ####
-    println("####################################")
-    println("#### Solve Social Planner Problem ####")
-    println("####################################")
-    solve_model!(m,f,sim="SP",merg="SP",voucher=true)
-    P_SP[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=true)
-    S_SP[:] = f.S_j[:]
-
-    sp = consumer_welfare_bymkt(m,f,"SP")
-
-    consumer_welfare(m,f,"SP")
-
-    println("#### ZERO PROFIT PROBLEM ####")
-    markets_zp, λ_vec_zp = solve_SP_λ!(m,f,zeros(length(base_profits)))
-    P_SP_zp[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=true)
-    S_SP_zp[:] = f.S_j[:]
-    sp = consumer_welfare_bymkt(m,f,"SP_zp")
-    # output =  DataFrame(Markets=markets,
-    #                     lambdas = λ_vec)
+    # println("####################################")
+    # println("#### Solve Social Planner Problem ####")
+    # println("####################################")
+    # solve_model!(m,f,sim="SP",merg="SP",voucher=true)
+    # P_SP[:] = f.P_j[:]
+    # evaluate_model!(m,f,"All",voucher=true)
+    # S_SP[:] = f.S_j[:]
     #
-    # CSV.write(file,output)
-    consumer_welfare(m,f,"SP_zp")
-
-    println("#### CURRENT PROFIT PROBLEM ####")
-    markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits,CW_target=base_welfare)
-    P_SP_cp[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=true)
-    S_SP_cp[:] = f.S_j[:]
-
-    sp_cp_welfare = consumer_welfare_bymkt(m,f,"SP_cp")
-
-    consumer_welfare(m,f,"SP_cp")
-
-    println("#### MERGER PROFIT PROBLEM ####")
-    markets_cpm, λ_vec_cpm = solve_SP_λ!(m,f,merger_profits)
-    P_SP_cpm[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=true)
-    S_SP_cpm[:] = f.S_j[:]
-
-    consumer_welfare(m,f,"SP_cpm")
+    # sp = consumer_welfare_bymkt(m,f,"SP")
+    #
+    # consumer_welfare(m,f,"SP")
+    #
+    # println("#### ZERO PROFIT PROBLEM ####")
+    # markets_zp, λ_vec_zp = solve_SP_λ!(m,f,zeros(length(base_profits)))
+    # P_SP_zp[:] = f.P_j[:]
+    # evaluate_model!(m,f,"All",voucher=true)
+    # S_SP_zp[:] = f.S_j[:]
+    # sp = consumer_welfare_bymkt(m,f,"SP_zp")
+    # # output =  DataFrame(Markets=markets,
+    # #                     lambdas = λ_vec)
+    # #
+    # # CSV.write(file,output)
+    # consumer_welfare(m,f,"SP_zp")
+    #
+    # println("#### CURRENT PROFIT PROBLEM ####")
+    # markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits,CW_target=base_welfare)
+    # P_SP_cp[:] = f.P_j[:]
+    # evaluate_model!(m,f,"All",voucher=true)
+    # S_SP_cp[:] = f.S_j[:]
+    #
+    # sp_cp_welfare = consumer_welfare_bymkt(m,f,"SP_cp")
+    #
+    # consumer_welfare(m,f,"SP_cp")
+    #
+    # println("#### MERGER PROFIT PROBLEM ####")
+    # markets_cpm, λ_vec_cpm = solve_SP_λ!(m,f,merger_profits)
+    # P_SP_cpm[:] = f.P_j[:]
+    # evaluate_model!(m,f,"All",voucher=true)
+    # S_SP_cpm[:] = f.S_j[:]
+    #
+    # consumer_welfare(m,f,"SP_cpm")
 
     #### Solve without Risk Adjustment ####
     println("####################################")
@@ -282,6 +287,95 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
 
     consumer_welfare(m,f,"RAman_m")
 
+    println("####################################")
+    println("#### Solve Baseline - With Risk Adjustment and Mandate - Price Linked ####")
+    println("####################################")
+    solve_model!(m,f,sim="RA",voucher=false)
+    P_Base_pl[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=false)
+    S_Base_pl[:] = f.S_j[:]
+
+    base_welfare = consumer_welfare_bymkt(m,f,"Base_pl")
+
+    consumer_welfare(m,f,"Base")
+
+    println("###### Solve Merger Scenario ######")
+    # f.P_j[:] = P_Obs[:]
+    solve_model!(m,f,sim="RA",merg="Merger",voucher=false)
+    P_Base_m_pl[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=false)
+    S_Base_m_pl[:] = f.S_j[:]
+
+    consumer_welfare(m,f,"Base_m_pl")
+
+    #### Solve without Risk Adjustment ####
+    println("####################################")
+    println("#### Solve without Risk Adjustment - Price Linked  ####")
+    println("####################################")
+    f.P_j[:] = P_Obs[:]
+    solve_model!(m,f,sim="Base",voucher=false)
+    P_RA_pl[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=false)
+    S_RA_pl[:] = f.S_j[:]
+
+    consumer_welfare(m,f,"RA_pl")
+
+    println("###### Solve Merger Scenario ######")
+    solve_model!(m,f,sim="Base",merg="Merger",voucher=false)
+    P_RA_m_pl[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=false)
+    S_RA_m_pl[:] = f.S_j[:]
+
+    consumer_welfare(m,f,"RA_m_pl")
+
+
+    ### Solve without mandate ####
+    println("####################################")
+    println("#### Solve without mandate - Price Linked  ####")
+    println("####################################")
+    f.P_j[:] = P_Obs[:]
+    f.data[:,f.index[:Mandate]].=0.0
+    solve_model!(m,f,sim="RA",voucher=false)
+    P_man[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=false)
+    S_man[:] = f.S_j[:]
+
+    consumer_welfare(m,f,"man_pl")
+
+    # println(median(f[:Mandate]))
+    # println(median(f.P_j[findall(f.P_j.>0)]))
+
+    println("###### Solve Merger Scenario - Price Linked  ######")
+    solve_model!(m,f,sim="RA",merg="Merger",voucher=false)
+    P_man_m_pl[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=false)
+    S_man_m_pl[:] = f.S_j[:]
+
+    consumer_welfare(m,f,"man_m_pl")
+
+
+    ### Solve without mandate NOR risk adjustment  ####
+    println("####################################")
+    println("#### Solve without mandate NOR risk adjustment - Price Linked   ####")
+    println("####################################")
+    f.P_j[:] = P_Obs[:]
+    f.data[:,f.index[:Mandate]].=0.0
+    solve_model!(m,f,sim="Base",voucher=false)
+    P_RAman_pl[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=false)
+    S_RAman_pl[:] = f.S_j[:]
+
+    consumer_welfare(m,f,"RAman_pl")
+
+
+    println("###### Solve Merger Scenario ######")
+    solve_model!(m,f,sim="Base",merg="Merger",voucher=true)
+    P_RAman_m_pl[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=false)
+    S_RAman_m_pl[:] = f.S_j[:]
+
+    consumer_welfare(m,f,"RAman_m_pl")
+
 
 
     output =  DataFrame(Product=sort(m.prods),
@@ -307,7 +401,24 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
                         Lives_base_m=S_Base_m,
                         Lives_RA_m =S_RA_m,
                         Lives_man_m=S_man_m,
-                        Lives_RAman_m=S_RAman_m)
+                        Lives_RAman_m=S_RAman_m,
+
+                        Price_base_pl=P_Base_pl,
+                        Price_RA_pl =P_RA_pl,
+                        Price_man_pl=P_man_pl,
+                        Price_RAman_pl=P_RAman_pl,
+                        Price_base_m_pl=P_Base_m_pl,
+                        Price_RA_m_pl =P_RA_m_pl,
+                        Price_man_m_pl=P_man_m_pl,
+                        Price_RAman_m_pl=P_RAman_m_pl,
+                        Lives_base_pl=S_Base_pl,
+                        Lives_RA_pl =S_RA_pl,
+                        Lives_man_pl=S_man_pl,
+                        Lives_RAman_pl=S_RAman_pl,
+                        Lives_base_m_pl=S_Base_m_pl,
+                        Lives_RA_m_pl =S_RA_m_pl,
+                        Lives_man_m_pl=S_man_m_pl,
+                        Lives_RAman_m_pl=S_RAman_m_pl)
 
     CSV.write(file,output)
 
