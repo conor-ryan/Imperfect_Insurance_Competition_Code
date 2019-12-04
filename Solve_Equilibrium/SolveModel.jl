@@ -80,7 +80,7 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
     benchmarks = benchmarks[benchmarks.>0]
     println("Benchmark Products: $benchmarks")
     benchmarks = f.bench_prods[f._prodSTDict[ST]]
-    silver = f.P_jf._prodSTDict[ST]]
+    silver = f.P_j[f._prodSTDict[ST]]
     silver = silver[benchmarks.>0]
     println("Silver Premiums: $silver")
     return nothing
