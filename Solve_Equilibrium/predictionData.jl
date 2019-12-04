@@ -42,10 +42,11 @@ mutable struct firmData
     dRdp_j::Matrix{Float64} # Demand Derivative
     dCdp_j::Matrix{Float64} # Cost Derivative
     dMdp_j::Matrix{Float64} # Market Lives Derivatives
+    dMAdp_j::Matrix{Float64} # Market Lives Derivatives
     dCdp_pl_j::Matrix{Float64} # Pooled Cost Derivative
 
     ## Market Organization
-    stdMap::Vector{Int64}
+    # stdMap::Vector{Int64}
     prods::Vector{Int64}
     catas_prods::Vector{Int64}
     bench_prods::Vector{Float64}
@@ -73,17 +74,19 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     individual_shares(m,par_dem)
     individual_costs(m,par_cost)
 
-    J = length(m.prods)
+    J = maximum(m.prods)
     M = size(m.data.data,2)
 
     println("Product Map/Dict")
     ### Standard Products
-    prodMap = unique(df[:,[:Product,:Product_std]])
-    sort!(prodMap,:Product)
-    prodMap = convert(Vector{Int64},prodMap[:,:Product_std])
-    prod_std = unique(prodMap)
+    # prodMap = unique(df[:,[:Product,:Product_std]])
+    # sort!(prodMap,:Product)
+    # prodMap = convert(Vector{Int64},prodMap[:,:Product_std])
+    # prod_std = unique(prodMap)
+    prodMap = convert(Vector{Int64},unique(df[:,:Product_std]))
+    prod_std = sort(unique(prodMap))
 
-    catas_prods = Int.(mkt[:,:Product][mkt[:,:Metal_std].=="CATASTROPHIC"])
+    catas_prods = Int.(mkt[:,:Product_std][mkt[:,:Metal_std].=="CATASTROPHIC"])
     bench_prods = Vector{Float64}(undef,J)
     bench_prods[:].=0.0
 
@@ -137,6 +140,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     dRdp_j = Matrix{Float64}(undef,J,J)
     dCdp_j = Matrix{Float64}(undef,J,J)
     dMdp_j = Matrix{Float64}(undef,J,J)
+    dMAdp_j = Matrix{Float64}(undef,J,J)
     dCdp_pl_j = Matrix{Float64}(undef,J,J)
 
 
@@ -151,8 +155,8 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     mkt_per = unique(df[:,[:Person,:Market]])
     for (n,mt) in enumerate(uniq_mkts)
         m_ind = findall(markets.==mt)
-        mkt_index[n] = mkt[:,:Product][m_ind]
-        silv_index[n] = mkt[:,:Product][findall(metals[m_ind].=="SILVER")]
+        mkt_index[n] = mkt[:,:Product_std][m_ind]
+        silv_index[n] = mkt[:,:Product_std][findall(metals[m_ind].=="SILVER")]
 
         _perMktDict[n]  = mkt_per[:,:Person][mkt_per[:,:Market].==mt]
     end
@@ -224,7 +228,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
 
     _prodSTDict = Dict{String,Array{Int64,1}}()
     for s in states
-        _prodSTDict[s] = mkt[:,:Product][mkt[:,:ST].==s]
+        _prodSTDict[s] = mkt[:,:Product_std][mkt[:,:ST].==s]
     end
 
 
@@ -236,8 +240,8 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     δ_nonprice,δ_price,s_pred,c_pred,c_pool,
     P_j,SA_j,S_j,Mkt_j,C_j,PC_j,Adj_j,
     hix_cnt,bench_base,
-    dSdp_j,dSAdp_j,dRdp_j,dCdp_j,dMdp_j,dCdp_pl_j,
-    prodMap,prod_std,catas_prods,bench_prods,_productDict,
+    dSdp_j,dSAdp_j,dRdp_j,dCdp_j,dMdp_j,dMAdp_j,dCdp_pl_j,
+    prod_std,catas_prods,bench_prods,_productDict,
     mkt_index,silv_index,mkt_index_long,
     ownMat,ownMat_merge,poolMat,
     _perSTDict,_prodSTDict,_perMktDict)

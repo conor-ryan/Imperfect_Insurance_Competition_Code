@@ -22,16 +22,16 @@ prod_data = simData[,list(count_hix_prod= max(count_hix_prod)),
                     by=c("Product_std","Metal_std","ST","Market","Firm",
                          "premBase_std","AV_std","benchBase")]
 
-names(prod_data) = c("Product","Metal_std","ST","Market","Firm",
+names(prod_data) = c("Product_std","Metal_std","ST","Market","Firm",
                      "premBase","AV_std","benchBase","count_hix_prod")
 
 prod_data = merge(prod_data,firm_RA[,c("ST","Firm","RA_share","HighRisk")],by=c("ST","Firm"),all=TRUE)
-names(prod_data) = c("ST","Firm","Product","Metal_std","Market","premBase","AV_std","benchBase","count_hix_prod","RA_share","HighRisk")
+names(prod_data) = c("ST","Firm","Product_std","Metal_std","Market","premBase","AV_std","benchBase","count_hix_prod","RA_share","HighRisk")
 
 
 
 ##### Consolidate Data for Simulation ####
-setkey(prod_data,Product)
+setkey(prod_data,Product_std)
 
 ### Fill out OTHER Missings
 prod_data[Firm=="OTHER",Product:=0]

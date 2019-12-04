@@ -373,14 +373,16 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
     demData = demoRaw(d.data)
     age_long = firm[:ageRate]
     mem_long = firm[:MEMBERS]
+    sub_long = firm.subsidy_ij
 
     N = size(d.draws,1)
 # for idxitr in values(d.data._personDict)
     for p in pers
         idxitr = d.data._personDict[p]
-        prod_ids = firm.stdMap[prod_long[idxitr]]
+        # prod_ids = firm.stdMap[prod_long[idxitr]]
+        prod_ids =prod_long[idxitr]
         catas = findall(inlist(prod_ids,firm.catas_prods))
-
+        subs_pos = Float64.(any(sub_long[idxitr].>0))
 
         δ = δ_long[idxitr]
         @inbounds u = μ_ij_large[:,idxitr]
@@ -453,6 +455,7 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
                 @inbounds @fastmath firm.dCdp_j[j,prod_ids[l]]+= wgt[l]*dcdp[l]
                 @inbounds @fastmath firm.dCdp_pl_j[j,prod_ids[l]]+= wgt[l]*dcdp_pl[l]
                 @inbounds @fastmath firm.dMdp_j[j,prod_ids[l]]+= wgt[l]*dsdp_pl
+                @inbounds @fastmath firm.dMAdp_j[j,prod_ids[l]]+= wgt[l]*dsdp_pl*(a/m)*(1-subs_pos)
                 if l==k
                     firm.dRdp_j[j,prod_ids[l]]+= wgt[l]*(s_hat[l]*a/m)
                 end
@@ -540,7 +543,8 @@ function update_shares(d::InsuranceLogit,firm::firmData,
 # for idxitr in values(d.data._personDict)
     for p in pers
         idxitr = d.data._personDict[p]
-        prod_ids = firm.stdMap[prod_long[idxitr]]
+        # prod_ids = firm.stdMap[prod_long[idxitr]]
+        prod_ids =prod_long[idxitr]
         catas = findall(inlist(prod_ids,firm.catas_prods))
 
 
@@ -656,6 +660,7 @@ function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;foc_check=fals
     f.dSdp_j[:].=0.0
     f.dSAdp_j[:].=0.0
     f.dMdp_j[:].=0.0
+    f.dMAdp_j[:].=0.0
     f.dRdp_j[:].=0.0
     f.dCdp_j[:].=0.0
     f.dCdp_pl_j[:].=0.0
@@ -684,6 +689,7 @@ function evaluate_model!(m::InsuranceLogit,f::firmData,mkt::Int;foc_check=false,
     f.dSdp_j[:].=0.0
     f.dSAdp_j[:].=0.0
     f.dMdp_j[:].=0.0
+    f.dMAdp_j[:].=0.0
     f.dRdp_j[:].=0.0
     f.dCdp_j[:].=0.0
     f.dCdp_pl_j[:].=0.0

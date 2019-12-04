@@ -13,7 +13,8 @@ function compute_profit(d::InsuranceLogit,f::firmData)
     mem_long = f[:MEMBERS]
 
     for idxitr in values(d.data._personDict)
-        prod_ids = f.stdMap[prod_long[idxitr]]
+        # prod_ids = f.stdMap[prod_long[idxitr]]
+        prod_ids =prod_long[idxitr]
         catas = findall(inlist(prod_ids,f.catas_prods))
 
         s_pred = f.s_pred[idxitr]
@@ -154,7 +155,7 @@ function checkMargin(m::InsuranceLogit,f::firmData,file::String)
 end
 
 function calc_avgR(m::InsuranceLogit,f::firmData)
-    R_j = zeros(length(m.prods))
+    R_j = zeros(maximum(m.prods))
     wgts = weight(m.data)[:]
     s_hat = f.par_dem.s_hat
     wgt_share = wgts.*s_hat
@@ -167,7 +168,7 @@ function calc_avgR(m::InsuranceLogit,f::firmData)
 end
 
 
-function evaluate_FOC(f::firmData,std_ind::Vector{Int64},merg::String="Base")
+function evaluate_FOC(f::firmData,std_ind::Vector{Int64},merg::String="Base",voucher::Bool=false)
     P_std = zeros(length(f.P_j))
     P_RA = zeros(length(f.P_j))
     MC = zeros(length(f.P_j))
@@ -180,8 +181,12 @@ function evaluate_FOC(f::firmData,std_ind::Vector{Int64},merg::String="Base")
         ownershipMatrix = ones(size(f.ownMat))
     end
 
+    if voucher
+        dSdp = (f.dSAdp_j.*ownershipMatrix)[std_ind,std_ind]
+    else
+        dSdp = ((f.dSAdp_j - f.bench_prods.*f.dMAdp_j).*ownershipMatrix)[std_ind,std_ind]
+    end
 
-    dSdp = (f.dSAdp_j.*ownershipMatrix)[std_ind,std_ind]
     cost_std = sum(f.dCdp_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
     cost_pl = sum(f.dCdp_pl_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
     SA = f.SA_j[std_ind]
@@ -207,9 +212,9 @@ function evaluate_FOC(f::firmData,merg::String="Base")
     return P_std, P_RA, Mkup, MC
 end
 
-function predict_price(f::firmData,prod_ind::Vector{Int};sim="Base",merg::String="Base",λ::Float64=0.0)
+function predict_price(f::firmData,prod_ind::Vector{Int};sim="Base",merg::String="Base",λ::Float64=0.0,voucher::Bool=false)
 
-    P_std, P_RA, Mkup, MC = evaluate_FOC(f,prod_ind,merg)
+    P_std, P_RA, Mkup, MC = evaluate_FOC(f,prod_ind,merg,voucher)
     # println(P_std[f._prodSTDict[ST]])
 
     if sim=="Base"
@@ -224,19 +229,19 @@ function predict_price(f::firmData,prod_ind::Vector{Int};sim="Base",merg::String
     return P_new
 end
 
-function foc_error(f::firmData,ST::String,stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base")
+function foc_error(f::firmData,ST::String,stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base",voucher::Bool=false)
     prod_ind = f._prodSTDict[ST]
-    return foc_error(f,prod_ind,stp,λ=λ,sim=sim,merg=merg)
+    return foc_error(f,prod_ind,stp,λ=λ,sim=sim,merg=merg,voucher=voucher)
 end
 
-function foc_error(f::firmData,mkt::Int,stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base")
+function foc_error(f::firmData,mkt::Int,stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base",voucher::Bool=false)
     prod_ind = f.mkt_index[mkt]
-    return foc_error(f,prod_ind,stp,λ=λ,sim=sim,merg=merg)
+    return foc_error(f,prod_ind,stp,λ=λ,sim=sim,merg=merg,voucher=voucher)
 end
 
-function foc_error(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base")
+function foc_error(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base",voucher::Bool=false)
 
-    P_new = predict_price(f,prod_ind,sim=sim,merg=merg,λ=λ)
+    P_new = predict_price(f,prod_ind,sim=sim,merg=merg,λ=λ,voucher=voucher)
     tot_err = (P_new[prod_ind] - f.P_j[prod_ind])./100
     # println(prod_ind)
     # println(tot_err)

@@ -3,7 +3,7 @@ function solve_model!(m::InsuranceLogit,f::firmData;
     P_res = zeros(length(f.P_j))
     states = sort(String.(keys(f._prodSTDict)))#[1:6]
     # states = ["AK","NE","IA"]
-    for s in states[1:2]
+    for s in states #[1:2]
         # if s!="AK"
         #     continue
         # end
@@ -32,13 +32,14 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
         # println("Update Price")
 
 
-        foc_err, err_new, tot_err,P_new = foc_error(f,ST,stp,sim=sim,merg=merg)
+
+        foc_err, err_new, tot_err,P_new = foc_error(f,ST,stp,sim=sim,merg=merg,voucher=voucher)
 
 
         P_last[:] = copy(f.P_j[:])
         P_new_last[:] = copy(P_new[:])
         f.P_j[:] = (1-stp).*f.P_j[:] + stp.*P_new[:]
-        # println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
+        println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
         # println(foc_err)
         # println(P_new[f._prodSTDict[ST]])
         # println(f.P_j[f._prodSTDict[ST]])
@@ -75,38 +76,42 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
         # println(P_last)
     end
     println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
+    benchmarks = f.bench_prods[f._prodSTDict[ST]]
+    benchmarks = benchmarks[benchmarks.>0]
+    println("Benchmark Products: $benchmarks")
     return nothing
 end
 
 
 function solveMain(m::InsuranceLogit,f::firmData,file::String)
-    P_Obs = Vector{Float64}(undef,length(m.prods))
+    J = maximum(m.prods)
+    P_Obs = Vector{Float64}(undef,J)
 
-    P_SP = Vector{Float64}(undef,length(m.prods))
-    P_SP_zp = Vector{Float64}(undef,length(m.prods))
-    P_SP_cp = Vector{Float64}(undef,length(m.prods))
-    P_SP_cpm = Vector{Float64}(undef,length(m.prods))
-    P_Base = Vector{Float64}(undef,length(m.prods))
-    P_RA = Vector{Float64}(undef,length(m.prods))
-    P_man = Vector{Float64}(undef,length(m.prods))
-    P_RAman = Vector{Float64}(undef,length(m.prods))
-    P_Base_m = Vector{Float64}(undef,length(m.prods))
-    P_RA_m = Vector{Float64}(undef,length(m.prods))
-    P_man_m = Vector{Float64}(undef,length(m.prods))
-    P_RAman_m = Vector{Float64}(undef,length(m.prods))
+    P_SP = Vector{Float64}(undef,J)
+    P_SP_zp = Vector{Float64}(undef,J)
+    P_SP_cp = Vector{Float64}(undef,J)
+    P_SP_cpm = Vector{Float64}(undef,J)
+    P_Base = Vector{Float64}(undef,J)
+    P_RA = Vector{Float64}(undef,J)
+    P_man = Vector{Float64}(undef,J)
+    P_RAman = Vector{Float64}(undef,J)
+    P_Base_m = Vector{Float64}(undef,J)
+    P_RA_m = Vector{Float64}(undef,J)
+    P_man_m = Vector{Float64}(undef,J)
+    P_RAman_m = Vector{Float64}(undef,J)
 
-    S_SP = Vector{Float64}(undef,length(m.prods))
-    S_SP_zp = Vector{Float64}(undef,length(m.prods))
-    S_SP_cp = Vector{Float64}(undef,length(m.prods))
-    S_SP_cpm = Vector{Float64}(undef,length(m.prods))
-    S_Base = Vector{Float64}(undef,length(m.prods))
-    S_RA = Vector{Float64}(undef,length(m.prods))
-    S_man = Vector{Float64}(undef,length(m.prods))
-    S_RAman = Vector{Float64}(undef,length(m.prods))
-    S_Base_m = Vector{Float64}(undef,length(m.prods))
-    S_RA_m = Vector{Float64}(undef,length(m.prods))
-    S_man_m = Vector{Float64}(undef,length(m.prods))
-    S_RAman_m = Vector{Float64}(undef,length(m.prods))
+    S_SP = Vector{Float64}(undef,J)
+    S_SP_zp = Vector{Float64}(undef,J)
+    S_SP_cp = Vector{Float64}(undef,J)
+    S_SP_cpm = Vector{Float64}(undef,J)
+    S_Base = Vector{Float64}(undef,J)
+    S_RA = Vector{Float64}(undef,J)
+    S_man = Vector{Float64}(undef,J)
+    S_RAman = Vector{Float64}(undef,J)
+    S_Base_m = Vector{Float64}(undef,J)
+    S_RA_m = Vector{Float64}(undef,J)
+    S_man_m = Vector{Float64}(undef,J)
+    S_RAman_m = Vector{Float64}(undef,J)
 
     P_Obs[:] = f.P_j[:]
 
@@ -118,11 +123,11 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All")
     set_voucher!(f)
 
-    solve_model!(m,f,sim="RA",voucher=true)
+    solve_model!(m,f,sim="RA",voucher=false)
     P_Base[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=true)
+    evaluate_model!(m,f,"All",voucher=false)
     S_Base[:] = f.S_j[:]
-
+    # solve_model!(m,f,sim="RA",voucher=false)
 
     base_profits = market_profits(m,f)
     base_welfare = consumer_welfare_bymkt(m,f,"Base")
@@ -145,9 +150,9 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     solve_model!(m,f,sim="RA",merg="SP",voucher=true)
     evaluate_model!(m,f,"All",voucher=true)
     monopoly_profits = market_profits(m,f)
-    P_mon = Vector{Float64}(undef,length(m.prods))
+    P_mon = Vector{Float64}(undef,J)
     P_mon = f.P_j[:]
-    S_mon = Vector{Float64}(undef,length(m.prods))
+    S_mon = Vector{Float64}(undef,J)
     S_mon = f.S_j[:]
     #
     # P_max = [195.368, 198.353, 439.458, 320.481, 1232.89, 382.198, 215.248, 206.039, 512.504, 387.248, 334.986, 166.323, 186.568, 239.776, 879.183, 223.494, 238.865, 233.276, 414.424, 462.758, 217.09, 357.553, 263.843, 226.534, 381.22, 777.601, 397.313]
@@ -325,6 +330,7 @@ function solve_equilibrium(rundate,spec)
     println("Rebuild Demand Model...")
     # Structre the data
     chdf = ChoiceData(df,df_mkt,df_risk;
+        product =[:Product_std],
         demoRaw=spec_Dict["demoRaw"],
         prodchars=spec_Dict["prodchars"],
         prodchars_0=spec_Dict["prodchars_0"],

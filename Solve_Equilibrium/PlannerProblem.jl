@@ -9,7 +9,8 @@ function market_profits(d::InsuranceLogit,f::firmData)
     prod_long = Int.(product(d.data))
 
     for idxitr in values(d.data._personDict)
-        prod_ids = f.stdMap[prod_long[idxitr]]
+        # prod_ids = f.stdMap[prod_long[idxitr]]
+        prod_ids =prod_long[idxitr]
         catas = findall(inlist(prod_ids,f.catas_prods))
 
         s_pred = f.s_pred[idxitr]

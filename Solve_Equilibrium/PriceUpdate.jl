@@ -27,7 +27,10 @@ function calcBenchmark(firm::firmData)
         end
         benchmarkPrem[m] = prems[ind][bench_index]
         # confusing way to pick the becnhmark product index...
-        firm.bench_prods[firm.mkt_index[m][firm.silver_index[m]][ind][bench_index]]=1.0
+        temp_par = 0.05
+        prob_wgts = exp.(-temp_par.*abs.(firm.P_j[firm.mkt_index[m][firm.silver_index[m]][ind]] .- benchmarkPrem[m]))
+        firm.bench_prods[firm.mkt_index[m][firm.silver_index[m]][ind]]=prob_wgts/sum(prob_wgts)
+        # firm.bench_prods[firm.mkt_index[m][firm.silver_index[m]][ind][bench_index]]=1.0
     end
     benchLong = benchmarkPrem[firm.mkt_index_long]
     return benchLong
