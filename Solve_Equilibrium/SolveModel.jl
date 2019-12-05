@@ -90,6 +90,11 @@ end
 function solveMain(m::InsuranceLogit,f::firmData,file::String)
     J = maximum(m.prods)
     P_Obs = Vector{Float64}(undef,J)
+    prod_vec = zeros(J)
+    prod_vec[sort(m.prods)] = sort(m.prods)
+    println(length(prod_vec))
+    println(length(prod_vec[prod_vec.>0]))
+    println(maximum(prod_vec))
 
     P_SP = Vector{Float64}(undef,J)
     P_SP_zp = Vector{Float64}(undef,J)
@@ -382,7 +387,7 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
 
 
     println("###### Solve Merger Scenario ######")
-    solve_model!(m,f,sim="Base",merg="Merger",voucher=true)
+    solve_model!(m,f,sim="Base",merg="Merger",voucher=false)
     P_RAman_m_pl[:] = f.P_j[:]
     evaluate_model!(m,f,"All",voucher=false)
     S_RAman_m_pl[:] = f.S_j[:]
@@ -391,7 +396,7 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
 
 
 
-    output =  DataFrame(Product=sort(m.prods),
+    output =  DataFrame(Product=prod_vec,
                         Price_data=P_Obs,
                         Price_sp=P_SP,
                         Price_sp_zp=P_SP_zp,
