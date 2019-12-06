@@ -655,7 +655,7 @@ end
 # end
 
 
-function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;foc_check=false,voucher=false)
+function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;foc_check=false,voucher=false,update_voucher=true)
     #Clear Derivative Values
     f.dSdp_j[:].=0.0
     f.dSAdp_j[:].=0.0
@@ -672,7 +672,7 @@ function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;foc_check=fals
     f.Mkt_j[:].=0.0
 
     if foc_check==false
-        premPaid!(f,voucher=voucher)
+        premPaid!(f,update_voucher=update_voucher)
     else
         f.Rev_ij = f[:Rev_foc]
         f.P_ij   = price(m.data)
@@ -684,7 +684,8 @@ function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;foc_check=fals
     return nothing
 end
 
-function evaluate_model!(m::InsuranceLogit,f::firmData,mkt::Int;foc_check=false,voucher=false,deriv=true)
+function evaluate_model!(m::InsuranceLogit,f::firmData,mkt::Int;
+                        foc_check=false,voucher=false,update_voucher=true,deriv=true)
     #Clear Derivative Values
     f.dSdp_j[:].=0.0
     f.dSAdp_j[:].=0.0
@@ -701,7 +702,7 @@ function evaluate_model!(m::InsuranceLogit,f::firmData,mkt::Int;foc_check=false,
     f.Mkt_j[:].=0.0
 
     if foc_check==false
-        premPaid!(f,voucher=voucher)
+        premPaid!(f,update_voucher=update_voucher)
     else
         f.Rev_ij = f[:Rev_foc]
         f.P_ij   = price(m.data)

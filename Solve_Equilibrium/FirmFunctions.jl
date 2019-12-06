@@ -217,9 +217,9 @@ function predict_price(f::firmData,prod_ind::Vector{Int};sim="Base",merg::String
     P_std, P_RA, Mkup, MC = evaluate_FOC(f,prod_ind,merg,voucher)
     # println(P_std[f._prodSTDict[ST]])
 
-    if sim=="Base"
+    if sim=="RA"
         P_new = copy(P_std)
-    elseif sim=="RA"
+    elseif sim=="Base"
         P_new = copy(P_RA)
     elseif sim=="SP"
         P_new = copy(MC)

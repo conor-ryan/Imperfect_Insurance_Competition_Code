@@ -70,14 +70,14 @@ function calcSubsidy!(firm::firmData;foc_check=false)
     return nothing
 end
 
-function premPaid!(firm::firmData;foc_check=false,voucher=false)
+function premPaid!(firm::firmData;foc_check=false,update_voucher=false)
     unpack_P!(firm::firmData)
 
-    if voucher
-        subsidy = firm.subsidy_ij_voucher
-    else
+    if update_voucher
         calcSubsidy!(firm,foc_check=foc_check)
         subsidy = firm.subsidy_ij
+    else
+        subsidy = firm.subsidy_ij_voucher
     end
 
     Mandate = firm[:Mandate]
