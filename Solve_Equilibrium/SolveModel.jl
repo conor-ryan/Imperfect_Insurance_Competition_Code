@@ -3,7 +3,7 @@ function solve_model!(m::InsuranceLogit,f::firmData;
     P_res = zeros(length(f.P_j))
     states = sort(String.(keys(f._prodSTDict)))#[1:6]
     # states = ["AK","NE","IA"]
-    for s in states[1:3]
+    for s in states#[1:3]
         # if s!="AK"
         #     continue
         # end
