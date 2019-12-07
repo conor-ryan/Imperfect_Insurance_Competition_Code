@@ -372,6 +372,7 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};
         if (!(:constant in fe_list))  & (!constInProds) & (fe==fe_list[1])
             st_ind = 1
         else
+            println("Skip: $(factor_list[1])")
             st_ind = 2
         end
 
@@ -390,7 +391,7 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};
                 println("HighRisk skip")
                 continue
             end
-            if riskFirm & (fac=="PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA_AK_1")
+            if riskFirm & (fac=="AK_1_PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA")
                 println("HighRisk skip")
                 continue
             end
@@ -411,7 +412,7 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};
                 println("Small skip")
                 continue
             end
-            if smallFirm & (fac=="AETNA_IL_1")
+            if smallFirm & (fac=="IL_1_AETNA")
                 println("Small skip")
                 continue
             end
@@ -432,7 +433,7 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};
                 println("Small risk skip")
                 continue
             end
-            if risksmall & (fac=="AETNA_MI_1")
+            if risksmall & (fac=="MI_1_AETNA")
                 println("Small risk skip")
                 continue
             end
@@ -449,7 +450,11 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};
                 continue
             end
 
-            # println(fac)
+            if (fe==:Market_Cat) & occursin("Low",fac)
+                continue
+            end
+
+            # println("Factor $ind: $fac")
             F[fac_variables.==fac,ind] .= 1
             ind+= 1
 

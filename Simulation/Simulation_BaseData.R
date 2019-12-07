@@ -231,9 +231,10 @@ acs[,Person:=as.factor(paste(Market,FPL_bucket,AGE_bucket,Mem_bucket))]
 acs[,Person:=as.numeric(Person)]
 
 acs[,prodCat:="Low"]
-acs[METAL%in%c("GOLD","PLATINUM"),prodCat:="High"]
-# acs[METAL%in%c("SILVER 87","SILVER 94","GOLD","PLATINUM"),prodCat:="High"]
-acs[,Firm_Market:=paste(Firm,Market,sep="_")]
+# acs[METAL%in%c("GOLD","PLATINUM"),prodCat:="High"]
+acs[METAL%in%c("SILVER 87","SILVER 94","GOLD","PLATINUM"),prodCat:="High"]
+acs[,Market_Cat:=paste(Market,prodCat,sep="_")]
+acs[,Market_Firm:=paste(Market,Firm,sep="_")]
 acs[,Firm_Market_Cat:=paste(Firm,Market,prodCat,sep="_")]
 acs[,Firm_Market_Cat_Age:=paste(Firm,Market,prodCat,Age,sep="_")]
 acs[,Firm_ST:=paste(Firm,ST,sep="_")]
@@ -383,7 +384,7 @@ acs[,c("Age_Cat","Inc_Cat"):=NULL]
 
 
 #### Output Analogous Data ####
-choiceData = acs[,c("Person","Firm","ST","Firm_ST","Firm_Market","Firm_Market_Cat","Firm_Market_Cat_Age","Market","PERWT","Price",
+choiceData = acs[,c("Person","Firm","ST","Firm_ST","Market_Firm","Market_Cat","Firm_Market_Cat","Firm_Market_Cat_Age","Market","PERWT","Price",
                     "MedDeduct","ExcOOP","High","AV","AV_std","AV_diff","HighRisk","Small","High_small","Gamma_j",
                     "Mandate","subsidy","benchBase","IncomeCont","mkt_density",
                     "Family","Age","LowIncome","AGE","AvgAge",

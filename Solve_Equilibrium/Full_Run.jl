@@ -16,17 +16,17 @@ spec_demoRaw = [:AgeFE_31_39,
         :AgeFE_52_64,
         :Family,
         :LowIncome]
-spec_prodchars=[:Price,:constant,:AV,:HighRisk,:Small,:High_small]
-spec_prodchars_0=[:constant,:AV,:HighRisk,:Small,:High_small]
+spec_prodchars=[:Price,:AV,:constant,:HighRisk,:Small,:High_small]
+spec_prodchars_0=[:AV,:constant,:HighRisk,:Small,:High_small]
 
 
 cost_spec = [:AGE,:AV]
 
-# rundate = Dates.today()
-rundate = "2019-11-25"
+rundate = Dates.today()
+# rundate = "2019-11-25"
 println("Running on $rundate")
 spec = "FMC"
-spec_fixedEffects=[:Firm_Market_Cat]
+spec_fixedEffects=[:Market_Firm,:Market_Cat]
 
 println("##### Estimate Demand #####")
 println("Load Demand Estimation Code...")
@@ -51,12 +51,12 @@ include("$codeDir/Demand_Estimation/utility.jl")
 include("$codeDir/Demand_Estimation/Specification_Run.jl")
 
 filename = "GMM_Estimate_$spec"
-# estimate_demand(filename,rundate,
-#                     halton_draws,
-#                     spec_demoRaw,
-#                     spec_prodchars,
-#                     spec_prodchars_0,
-#                     spec_fixedEffects)
+estimate_demand(filename,rundate,
+                    halton_draws,
+                    spec_demoRaw,
+                    spec_prodchars,
+                    spec_prodchars_0,
+                    spec_fixedEffects)
 
 
 println("##### Estimation Marginal Cost #####")
@@ -68,7 +68,7 @@ include("$codeDir/Firm_Side/MC_derivatives.jl")
 include("$codeDir/Firm_Side/MC_optimization.jl")
 include("$codeDir/Firm_Side/Firm_Inner_Loop.jl")
 include("$codeDir/Firm_Side/SpecRunMC.jl")
-# estimate_marginal_cost(rundate,spec,cost_spec)
+estimate_marginal_cost(rundate,spec,cost_spec)
 
 
 println("##### Solve Equilibrium #####")

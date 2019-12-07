@@ -740,10 +740,11 @@ rm(gcf)
 
 #### Categorical Variables for Later Dummy Creation
 choices[,prodCat:="Low"]
-choices[METAL%in%c("GOLD","PLATINUM"),prodCat:="High"]
-# choices[METAL%in%c("SILVER 87","SILVER 94","GOLD","PLATINUM"),prodCat:="High"]
+# choices[METAL%in%c("GOLD","PLATINUM"),prodCat:="High"]
+choices[METAL%in%c("SILVER 87","SILVER 94","GOLD","PLATINUM"),prodCat:="High"]
 choices[,Firm_Market_Cat:=paste(Firm,Market,prodCat,sep="_")]
-choices[,Firm_Market:=paste(Firm,Market,sep="_")]
+choices[,Market_Cat:=paste(Market,prodCat,sep="_")]
+choices[,Market_Firm:=paste(Market,Firm,sep="_")]
 choices[,Firm_Market_Age:=paste(Firm,Market,Age,sep="_")]
 choices[,Firm_Market_Cat_Age:=paste(Firm,Market,prodCat,Age,sep="_")]
 
@@ -928,7 +929,7 @@ setkey(choices,Person,Product)
 setkey(shares,Product)
 
 write.csv(choices[,c("Person","Firm","Market","Product","S_ij","S_raw_ij","N","Price",
-                     "Firm_Market","Firm_Market_Cat","Firm_Market_Age","Firm_Market_Cat_Age",
+                     "Market_Firm","Market_Cat","Firm_Market_Cat","Firm_Market_Age","Firm_Market_Cat_Age",
                      "PriceDiff",#"MedDeductDiff","ExcOOPDiff","HighDiff",
                      "MedDeduct","ExcOOP","High","AV","AV_old","HighRisk","Small","High_small",
                      "Family","Age","LowIncome","AGE","HighIncome","IncomeCts",
