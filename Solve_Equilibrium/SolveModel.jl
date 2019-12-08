@@ -305,94 +305,94 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
 
     consumer_welfare(m,f,"RAman_m")
 
-    # println("####################################")
-    # println("#### Solve Baseline - With Risk Adjustment and Mandate - Price Linked ####")
-    # println("####################################")
-    # solve_model!(m,f,sim="Base",voucher=false)
-    # P_Base_pl[:] = f.P_j[:]
-    # evaluate_model!(m,f,"All",voucher=false)
-    # S_Base_pl[:] = f.S_j[:]
-    #
-    # base_welfare = consumer_welfare_bymkt(m,f,"Base_pl")
-    #
-    # consumer_welfare(m,f,"Base")
-    #
-    # println("###### Solve Merger Scenario ######")
-    # # f.P_j[:] = P_Obs[:]
-    # solve_model!(m,f,sim="Base",merg="Merger",voucher=false)
-    # P_Base_m_pl[:] = f.P_j[:]
-    # evaluate_model!(m,f,"All",voucher=false)
-    # S_Base_m_pl[:] = f.S_j[:]
-    #
-    # consumer_welfare(m,f,"Base_m_pl")
-    #
-    # #### Solve without Risk Adjustment ####
-    # println("####################################")
-    # println("#### Solve without Risk Adjustment - Price Linked  ####")
-    # println("####################################")
+    println("####################################")
+    println("#### Solve Baseline - With Risk Adjustment and Mandate - Price Linked ####")
+    println("####################################")
+    solve_model!(m,f,sim="Base",voucher=false)
+    P_Base_pl[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=false)
+    S_Base_pl[:] = f.S_j[:]
+
+    base_welfare = consumer_welfare_bymkt(m,f,"Base_pl")
+
+    consumer_welfare(m,f,"Base")
+
+    println("###### Solve Merger Scenario ######")
     # f.P_j[:] = P_Obs[:]
-    # solve_model!(m,f,sim="RA",voucher=false)
-    # P_RA_pl[:] = f.P_j[:]
-    # evaluate_model!(m,f,"All",voucher=false)
-    # S_RA_pl[:] = f.S_j[:]
-    #
-    # consumer_welfare(m,f,"RA_pl")
-    #
-    # println("###### Solve Merger Scenario ######")
-    # solve_model!(m,f,sim="RA",merg="Merger",voucher=false)
-    # P_RA_m_pl[:] = f.P_j[:]
-    # evaluate_model!(m,f,"All",voucher=false)
-    # S_RA_m_pl[:] = f.S_j[:]
-    #
-    # consumer_welfare(m,f,"RA_m_pl")
-    #
-    #
-    # ### Solve without mandate ####
-    # println("####################################")
-    # println("#### Solve without mandate - Price Linked  ####")
-    # println("####################################")
-    # f.P_j[:] = P_Obs[:]
-    # f.data[:,f.index[:Mandate]].=0.0
-    # solve_model!(m,f,sim="Base",voucher=false)
-    # P_man_pl[:] = f.P_j[:]
-    # evaluate_model!(m,f,"All",voucher=false)
-    # S_man_pl[:] = f.S_j[:]
-    #
-    # consumer_welfare(m,f,"man_pl")
-    #
-    # # println(median(f[:Mandate]))
-    # # println(median(f.P_j[findall(f.P_j.>0)]))
-    #
-    # println("###### Solve Merger Scenario - Price Linked  ######")
-    # solve_model!(m,f,sim="Base",merg="Merger",voucher=false)
-    # P_man_m_pl[:] = f.P_j[:]
-    # evaluate_model!(m,f,"All",voucher=false)
-    # S_man_m_pl[:] = f.S_j[:]
-    #
-    # consumer_welfare(m,f,"man_m_pl")
-    #
-    #
-    # ### Solve without mandate NOR risk adjustment  ####
-    # println("####################################")
-    # println("#### Solve without mandate NOR risk adjustment - Price Linked   ####")
-    # println("####################################")
-    # f.P_j[:] = P_Obs[:]
-    # f.data[:,f.index[:Mandate]].=0.0
-    # solve_model!(m,f,sim="RA",voucher=false)
-    # P_RAman_pl[:] = f.P_j[:]
-    # evaluate_model!(m,f,"All",voucher=false)
-    # S_RAman_pl[:] = f.S_j[:]
-    #
-    # consumer_welfare(m,f,"RAman_pl")
-    #
-    #
-    # println("###### Solve Merger Scenario ######")
-    # solve_model!(m,f,sim="RA",merg="Merger",voucher=false)
-    # P_RAman_m_pl[:] = f.P_j[:]
-    # evaluate_model!(m,f,"All",voucher=false)
-    # S_RAman_m_pl[:] = f.S_j[:]
-    #
-    # consumer_welfare(m,f,"RAman_m_pl")
+    solve_model!(m,f,sim="Base",merg="Merger",voucher=false)
+    P_Base_m_pl[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=false)
+    S_Base_m_pl[:] = f.S_j[:]
+
+    consumer_welfare(m,f,"Base_m_pl")
+
+    #### Solve without Risk Adjustment ####
+    println("####################################")
+    println("#### Solve without Risk Adjustment - Price Linked  ####")
+    println("####################################")
+    f.P_j[:] = P_Obs[:]
+    solve_model!(m,f,sim="RA",voucher=false)
+    P_RA_pl[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=false)
+    S_RA_pl[:] = f.S_j[:]
+
+    consumer_welfare(m,f,"RA_pl")
+
+    println("###### Solve Merger Scenario ######")
+    solve_model!(m,f,sim="RA",merg="Merger",voucher=false)
+    P_RA_m_pl[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=false)
+    S_RA_m_pl[:] = f.S_j[:]
+
+    consumer_welfare(m,f,"RA_m_pl")
+
+
+    ### Solve without mandate ####
+    println("####################################")
+    println("#### Solve without mandate - Price Linked  ####")
+    println("####################################")
+    f.P_j[:] = P_Obs[:]
+    f.data[:,f.index[:Mandate]].=0.0
+    solve_model!(m,f,sim="Base",voucher=false)
+    P_man_pl[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=false)
+    S_man_pl[:] = f.S_j[:]
+
+    consumer_welfare(m,f,"man_pl")
+
+    # println(median(f[:Mandate]))
+    # println(median(f.P_j[findall(f.P_j.>0)]))
+
+    println("###### Solve Merger Scenario - Price Linked  ######")
+    solve_model!(m,f,sim="Base",merg="Merger",voucher=false)
+    P_man_m_pl[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=false)
+    S_man_m_pl[:] = f.S_j[:]
+
+    consumer_welfare(m,f,"man_m_pl")
+
+
+    ### Solve without mandate NOR risk adjustment  ####
+    println("####################################")
+    println("#### Solve without mandate NOR risk adjustment - Price Linked   ####")
+    println("####################################")
+    f.P_j[:] = P_Obs[:]
+    f.data[:,f.index[:Mandate]].=0.0
+    solve_model!(m,f,sim="RA",voucher=false)
+    P_RAman_pl[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=false)
+    S_RAman_pl[:] = f.S_j[:]
+
+    consumer_welfare(m,f,"RAman_pl")
+
+
+    println("###### Solve Merger Scenario ######")
+    solve_model!(m,f,sim="RA",merg="Merger",voucher=false)
+    P_RAman_m_pl[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=false)
+    S_RAman_m_pl[:] = f.S_j[:]
+
+    consumer_welfare(m,f,"RAman_m_pl")
 
 
 

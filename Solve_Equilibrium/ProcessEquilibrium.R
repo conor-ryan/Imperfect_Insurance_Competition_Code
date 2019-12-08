@@ -5,7 +5,7 @@ library(ggplot2)
 library(scales)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
-run = "2019-11-25"
+run = "2019-12-07"
 spec = "FMC"
 
 #### Read in Data ####
@@ -78,16 +78,6 @@ for (v in c("base","RA","man","RAman")){
 }
 
 #### Premium Results ####
-
-prem = prod_pred[,list(Price_obs = round(12/1000*sum(P_obs*lives)/sum(lives),2),
-                       Price_base = round(12/1000*sum(Price_base*Lives_base)/sum(Lives_base),2),
-                       Price_RA = round(12/1000*sum(Price_RA*Lives_base)/sum(Lives_base),2),
-                       Price_man = round(12/1000*sum(Price_man*Lives_base)/sum(Lives_base),2),
-                       Price_RAman = round(12/1000*sum(Price_RAman*Lives_base)/sum(Lives_base),2)
-),
-by=c("Metal_std","HHI_flag")]
-setkey(prem,HHI_flag,Price_base)
-print(prem[Metal_std%in%c("BRONZE","SILVER","GOLD")])
 
 prem = prod_pred[,list(Price_obs = round(12/1000*sum(P_obs*lives)/sum(lives),2),
                        Price_base = round(12/1000*sum(Price_base*Lives_base)/sum(Lives_base),2),
