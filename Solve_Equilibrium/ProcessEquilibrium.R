@@ -89,15 +89,15 @@ by=c("Metal_std","HHI_flag")]
 setkey(prem,HHI_flag,Price_base)
 print(prem[Metal_std%in%c("BRONZE","SILVER","GOLD")])
 
-prem = prod_pred[,list(Price_obs = round(12/1000*sum(P_obs*lives)/sum(lives),2),
+prem_pl = prod_pred[,list(Price_obs = round(12/1000*sum(P_obs*lives)/sum(lives),2),
                        Price_base = round(12/1000*sum(Price_base_pl*Lives_base_pl)/sum(Lives_base_pl),2),
                        Price_RA = round(12/1000*sum(Price_RA_pl*Lives_base_pl)/sum(Lives_base_pl),2),
                        Price_man = round(12/1000*sum(Price_man_pl*Lives_base_pl)/sum(Lives_base_pl),2),
                        Price_RAman = round(12/1000*sum(Price_RAman_pl*Lives_base_pl)/sum(Lives_base_pl),2)
 ),
 by=c("Metal_std","HHI_flag")]
-setkey(prem,HHI_flag,Price_base)
-print(prem[Metal_std%in%c("BRONZE","SILVER","GOLD")])
+setkey(prem_pl,HHI_flag,Price_base)
+print(prem_pl[Metal_std%in%c("BRONZE","SILVER","GOLD")])
 
 
 #### Merger Results ####

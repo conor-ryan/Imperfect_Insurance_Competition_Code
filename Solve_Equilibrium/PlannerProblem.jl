@@ -98,7 +98,7 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
         else
             tol = 1e-12
         end
-        solve_model_mkt!(m,f,mkt,λ=λ_new,sim="SPλ",merg="SP",tol=tol,voucher=true)
+        solve_model_mkt!(m,f,mkt,λ=λ_new,sim="SPλ",merg="SP",tol=tol,voucher=true,update_voucher=false)
         # println(f.P_j[f.mkt_index[mkt]])
         profits = market_profits(m,f)
         Π_new = profits[mkt]
@@ -128,7 +128,7 @@ end
 
 
 function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
-        λ::Float64=0.0,sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=true)
+        λ::Float64=0.0,sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=true,update_voucher=false)
     err_new = 1
     err_last = 1
     itr_cnt = 0
@@ -140,11 +140,11 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
     while err_new>tol
         itr_cnt+=1
         # println("Evaluate Model")
-        evaluate_model!(m,f,mkt,voucher=voucher)
+        evaluate_model!(m,f,mkt,voucher=voucher,update_voucher=update_voucher)
         # println("Update Price")
 
 
-        foc_err, err_new, tot_err,P_new = foc_error(f,mkt,stp,λ=λ,sim=sim,merg=merg)
+        foc_err, err_new, tot_err,P_new = foc_error(f,mkt,stp,λ=λ,sim=sim,merg=merg,voucher=voucher)
 
 
         P_last[:] = copy(f.P_j[:])

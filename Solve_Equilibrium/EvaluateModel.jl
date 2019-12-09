@@ -670,6 +670,9 @@ function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;foc_check=fals
     f.SA_j[:].=0.0
     f.Adj_j[:].=0.0
     f.Mkt_j[:].=0.0
+    if !voucher
+        update_voucher = true
+    end
 
     if foc_check==false
         premPaid!(f,update_voucher=update_voucher)
@@ -700,6 +703,9 @@ function evaluate_model!(m::InsuranceLogit,f::firmData,mkt::Int;
     f.SA_j[:].=0.0
     f.Adj_j[:].=0.0
     f.Mkt_j[:].=0.0
+    if !voucher
+        update_voucher = true
+    end
 
     if foc_check==false
         premPaid!(f,update_voucher=update_voucher)
