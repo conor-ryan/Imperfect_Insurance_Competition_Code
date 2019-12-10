@@ -3,7 +3,7 @@ function solve_model!(m::InsuranceLogit,f::firmData;
     P_res = zeros(length(f.P_j))
     states = sort(String.(keys(f._prodSTDict)))#[1:6]
     # states = ["AK","NE","IA"]
-    for s in states#[1:3]
+    for s in states[1:2]
         # if s!="AK"
         #     continue
         # end
@@ -194,7 +194,7 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     #
     # markets_cpm, λ_vec_cpm = solve_SP_λ!(m,f,monopoly_profits)
 
-    ### Solve Planner Problem ####
+    ## Solve Planner Problem ####
     println("####################################")
     println("#### Solve Social Planner Problem ####")
     println("####################################")
@@ -210,7 +210,7 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     println("#### ZERO PROFIT PROBLEM ####")
     markets_zp, λ_vec_zp = solve_SP_λ!(m,f,zeros(length(base_profits)))
     P_SP_zp[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=true)
+    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
     S_SP_zp[:] = f.S_j[:]
     sp = consumer_welfare_bymkt(m,f,"SP_zp")
     # output =  DataFrame(Markets=markets,
@@ -222,7 +222,7 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     println("#### CURRENT PROFIT PROBLEM ####")
     markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits,CW_target=base_welfare)
     P_SP_cp[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=true)
+    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
     S_SP_cp[:] = f.S_j[:]
 
     sp_cp_welfare = consumer_welfare_bymkt(m,f,"SP_cp")
@@ -232,7 +232,7 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     println("#### MERGER PROFIT PROBLEM ####")
     markets_cpm, λ_vec_cpm = solve_SP_λ!(m,f,merger_profits)
     P_SP_cpm[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=true)
+    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
     S_SP_cpm[:] = f.S_j[:]
 
     consumer_welfare(m,f,"SP_cpm")
