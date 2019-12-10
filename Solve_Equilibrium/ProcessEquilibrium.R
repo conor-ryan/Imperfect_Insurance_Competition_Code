@@ -227,3 +227,58 @@ table_prem = rbind(table_prem[,c("Metal_std","Group","base_effect","noRA_effect"
 print(table_prem[Metal_std%in%c("BRONZE","SILVER","GOLD")])
 hhi[dhhi_pred>0,summary(dhhi_actual)]
 hhi[dhhi_pred>0,table(mergerLabel)]
+
+#### Price Linked Merger Table ####
+
+table_prem_pl = prod_pred[mergerLabel!="No Merger"&merger!="None",
+                       list(prem_base = sum(Price_base_pl*Lives_base_pl)/sum(Lives_base_pl),
+                            prem_noRA = sum(Price_RA_pl*Lives_RA_pl)/sum(Lives_RA_pl),
+                            prem_noMan = sum(Price_man_pl*Lives_man_pl)/sum(Lives_man_pl),
+                            prem_none = sum(Price_RAman_pl*Lives_RAman_pl)/sum(Lives_RAman_pl),
+                            prem_base_m = sum(Price_base_m_pl*Lives_base_pl)/sum(Lives_base_pl),
+                            prem_noRA_m = sum(Price_RA_m_pl*Lives_RA_pl)/sum(Lives_RA_pl),
+                            prem_noMan_m = sum(Price_man_m_pl*Lives_man_pl)/sum(Lives_man_pl),
+                            prem_none_m = sum(Price_RAman_m_pl*Lives_RAman_pl)/sum(Lives_RAman_pl)),by=c("Metal_std")]
+
+
+table_prem_pl[,Metal_std:=factor(Metal_std,levels=c("CATASTROPHIC","BRONZE","SILVER","GOLD","PLATINUM"))]
+# table_prem = table_prem[!Metal_std%in%c("CATASTROPHIC","PLATINUM"),]
+setkey(table_prem_pl,Metal_std)
+
+
+table_prem_pl[,base_effect:=round(100*(prem_base_m-prem_base)/prem_base,1)]
+table_prem_pl[,noRA_effect:=  round(100*(prem_noRA_m-prem_noRA)/prem_noRA,1)]
+table_prem_pl[,noMan_effect:= round(100*(prem_noMan_m-prem_noMan)/prem_noMan,1)]
+table_prem_pl[,none_effect:= round(100*(prem_none_m-prem_none)/prem_none,1)]
+
+table_prem_pl[,Group:="Merging Parties"]
+
+table_prem_all_pl = prod_pred[mergerLabel!="No Merger"&merger=="None",
+                           list(prem_base = sum(Price_base_pl*Lives_base_pl)/sum(Lives_base_pl),
+                                prem_noRA = sum(Price_RA_pl*Lives_RA_pl)/sum(Lives_RA_pl),
+                                prem_noMan = sum(Price_man_pl*Lives_man_pl)/sum(Lives_man_pl),
+                                prem_none = sum(Price_RAman_pl*Lives_RAman_pl)/sum(Lives_RAman_pl),
+                                prem_base_m = sum(Price_base_m_pl*Lives_base_pl)/sum(Lives_base_pl),
+                                prem_noRA_m = sum(Price_RA_m_pl*Lives_RA_pl)/sum(Lives_RA_pl),
+                                prem_noMan_m = sum(Price_man_m_pl*Lives_man_pl)/sum(Lives_man_pl),
+                                prem_none_m = sum(Price_RAman_m_pl*Lives_RAman_pl)/sum(Lives_RAman_pl)),by=c("Metal_std")]
+
+
+table_prem_all_pl[,Metal_std:=factor(Metal_std,levels=c("CATASTROPHIC","BRONZE","SILVER","GOLD","PLATINUM"))]
+# table_prem_all = table_prem_all[!Metal_std%in%c("CATASTROPHIC","PLATINUM"),]
+setkey(table_prem_all_pl,Metal_std)
+
+
+table_prem_all_pl[,base_effect:=round(100*(prem_base_m-prem_base)/prem_base,1)]
+table_prem_all_pl[,noRA_effect:=  round(100*(prem_noRA_m-prem_noRA)/prem_noRA,1)]
+table_prem_all_pl[,noMan_effect:= round(100*(prem_noMan_m-prem_noMan)/prem_noMan,1)]
+table_prem_all_pl[,none_effect:= round(100*(prem_none_m-prem_none)/prem_none,1)]
+
+
+table_prem_all_pl[,Group:="All Other Firms"]
+
+table_prem_pl = rbind(table_prem_pl[,c("Metal_std","Group","base_effect","noRA_effect","noMan_effect","none_effect")],
+                   table_prem_all_pl[,c("Metal_std","Group","base_effect","noRA_effect","noMan_effect","none_effect")])
+
+print(table_prem_pl[Metal_std%in%c("BRONZE","SILVER","GOLD")])
+

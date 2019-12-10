@@ -5,7 +5,7 @@ library(ggplot2)
 library(scales)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
-run = "2019-11-04"
+run = "2019-12-07"
 spec = "FMC"
 
 #### Read in Base Data ####
