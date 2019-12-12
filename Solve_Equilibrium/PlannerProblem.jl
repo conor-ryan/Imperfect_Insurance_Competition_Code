@@ -37,14 +37,51 @@ function market_profits(d::InsuranceLogit,f::firmData)
     return market_profits
 end
 
+function market_transfers(d::InsuranceLogit,f::firmData)
+    J = maximum(d.prods)
+    Cost_pl = zeros(J)
+    Cost = zeros(J)
+    Share = zeros(J)
 
+    Market_Total = zeros(J)
+
+    wgts_long = weight(d.data)[:]
+    prod_long = Int.(product(d.data))
+
+    for idxitr in values(d.data._personDict)
+        # prod_ids = f.stdMap[prod_long[idxitr]]
+        prod_ids =prod_long[idxitr]
+        catas = findall(inlist(prod_ids,f.catas_prods))
+
+        s_pred = f.s_pred[idxitr]
+        cost = f.c_pred[idxitr]
+        cost_pl = f.c_pool[idxitr]
+        wgt = wgts_long[idxitr]
+
+
+        for k in 1:length(prod_ids)
+            j = prod_ids[k]
+            Cost_pl[j] += wgt[k]*s_pred[k]*cost_pl[k]
+            Cost[j] += wgt[k]*s_pred[k]*cost[k]
+        end
+    end
+
+    Profit =  Cost - Cost_pl
+
+    market_profits = Vector{Float64}(undef,length(keys(f.mkt_index)))
+    for (m,m_idx) in f.mkt_index
+        market_profits[m] = sum(Profit[m_idx])
+    end
+
+    return market_profits
+end
 
 function solve_SP_λ!(m::InsuranceLogit,f::firmData,Π_target::Vector{Float64};
     sim="SPλ",merg::String="SP",CW_target::Vector{Float64}=Vector{Float64}(undef,0))
     P_res = zeros(length(f.P_j))
     markets = sort(Int.(keys(f.mkt_index)))
     λ_vec = zeros(length(markets))
-    for mkt in markets
+    for mkt in markets[38:49]
             println("Solving for $mkt")
             println("Profit Target: $(Π_target[mkt])")
             λ = find_λ(m,f,mkt,Π_target[mkt])
