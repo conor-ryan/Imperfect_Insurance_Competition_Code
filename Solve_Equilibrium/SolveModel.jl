@@ -4,9 +4,9 @@ function solve_model!(m::InsuranceLogit,f::firmData;
     states = sort(String.(keys(f._prodSTDict)))#[1:6]
     # states = ["AK","NE","IA"]
     for s in states #[1:2]
-        if s!="MI"
-            continue
-        end
+        # if s!="MI"
+        #     continue
+        # end
         println("Solving for $s")
         solve_model_st!(m,f,s,sim=sim,merg=merg,tol=tol,voucher=voucher,update_voucher=update_voucher)
         P_res[f._prodSTDict[s]] = f.P_j[f._prodSTDict[s]]
