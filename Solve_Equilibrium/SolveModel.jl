@@ -247,7 +247,7 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     trash = total_welfare_bymkt(m,f,"SP_cpm",update_voucher=false)
 
     println("#### CURRENT PROFIT PROBLEM ####")
-    markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits,CW_target)
+    markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits)
     P_SP_cp[:] = f.P_j[:]
     evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
     S_SP_cp[:] = f.S_j[:]
