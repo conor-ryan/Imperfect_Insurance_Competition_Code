@@ -77,9 +77,12 @@ function market_transfers(d::InsuranceLogit,f::firmData)
 end
 
 function solve_SP_λ!(m::InsuranceLogit,f::firmData,Π_target::Vector{Float64};
-    sim="SPλ",merg::String="SP",CW_target::Vector{Float64}=Vector{Float64}(undef,0))
+    sim="SPλ",merg::String="SP",CW_target::Vector{Float64}=Vector{Float64}(undef,0),
+    markets=Vector{Int}(undef,0))
     P_res = zeros(length(f.P_j))
-    markets = sort(Int.(keys(f.mkt_index)))
+    if length(markets) == 0
+        markets = sort(Int.(keys(f.mkt_index)))
+    end
     λ_vec = zeros(length(markets))
     for mkt in markets
             println("Solving for $mkt")

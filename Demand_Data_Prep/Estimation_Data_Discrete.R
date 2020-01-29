@@ -953,4 +953,13 @@ write.csv(shares[,c("Product","Share","lives","Gamma_j","AV")],
 write.csv(shares,
           "Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv",row.names=FALSE)
 
-
+wgt_test = unique(choices[,c("Person","N","Market","unins_rate")])
+ins = wgt_test[,list(Pop = sum((1-unins_rate)*N),
+                     ins_rate = sum((1-unins_rate)*N)/sum(N)),by=c("Market")]
+# ins[,insured:=TRUE]
+# unins = wgt_test[,list(Pop = sum((unins_rate)*N)),by=c("STATE","AREA")]
+# unins[,insured:=FALSE]
+# wgt_test = rbind(ins,unins)
+# wgt_test = merge(wgts,wgt_test,by.x=c("ST","AREA","insured"),by.y=c("STATE","AREA","insured"))
+# wgt_test[,wgt_adj:=totalWeight/Pop]
+# 

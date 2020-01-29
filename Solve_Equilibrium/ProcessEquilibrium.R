@@ -169,6 +169,10 @@ hhi[,mergerLabel:="No Merger"]
 hhi[dhhi_pred>0,mergerLabel:="Weak"]
 hhi[dhhi_pred>200,mergerLabel:="Strong"]
 
+Mkt = merge(Mkt,hhi[,c("Market","mergerLabel","dhhi_actual")],by="Market")
+file = paste("Estimation_Output/MktHHI_",spec,"-",run,".rData",sep="")
+save(Mkt,file=file)
+
 ## Label Categories
 prod_pred = merge(prod_pred,hhi[,c("Market","dhhi_pred","mergerLabel")],by="Market")
 prod_pred = merge(prod_pred,firms[,c("Market","Firm","merger")],by=c("Market","Firm"))

@@ -7,8 +7,8 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 
 ## Estimation Run 
-run = "2019-11-06"
-spec = "FMCA"
+run = "2019-12-07"
+spec = "FMC"
 
 #Load Product Data
 predFile = paste("Simulation_Risk_Output/prodData.rData",sep="")
@@ -22,7 +22,7 @@ eqData = as.data.table(read.csv(eqFile))
 # eqData = as.data.table(read.csv(eqFile))
 # eqData[,MR:=P_obs-Mkup]
 
-prod_data = merge(prod_data,eqData,by="Product")
+prod_data = merge(prod_data,eqData,by.y="Product",by.x="Product_std")
 
 # file = paste("Estimation_Output/MktHHI_",spec,"-",run,".rData",sep="")
 # load(file=file)

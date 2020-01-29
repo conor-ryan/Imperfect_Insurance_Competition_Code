@@ -90,7 +90,6 @@ function consumer_welfare_bymkt(d::InsuranceLogit,firm::firmData,type::String)
     CSV.write(file,output)
 
     return cw_mkt
-
 end
 
 function consumer_welfare(d::InsuranceLogit,firm::firmData,type::String)
@@ -102,4 +101,56 @@ function consumer_welfare(d::InsuranceLogit,firm::firmData,type::String)
                         CW_risk = CW_r_long,
                         CW_nonrisk = CW_nr_long)
     CSV.write(file,output)
+end
+
+function total_welfare_bymkt(d::InsuranceLogit,firm::firmData,type::String;update_voucher=update_voucher)
+    markets = sort(Int.(keys(firm.mkt_index)))
+    cw_mkt = Vector{Float64}(undef,length(markets))
+    gov_mkt = Vector{Float64}(undef,length(markets))
+    for mkt in markets
+        cw = calc_cw_mkt(d,firm,mkt)
+        cw_mkt[mkt] = cw
+        # println("CW in Market $mkt: $(cw)")
+    end
+
+    prof_mkt = market_profits(d,firm)
+    spend_mkt, pop_mkt = calc_gov_spending(d,firm,update_voucher=update_voucher)
+    prof_mkt = prof_mkt./pop_mkt
+    spend_mkt = spend_mkt./pop_mkt
+    trans_mkt = market_transfers(d,firm)
+
+    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/totalWelfare_bymkt_$type-$spec-$rundate.csv"
+    output =  DataFrame(markets=markets,CW=cw_mkt,Profit=prof_mkt,Spending=spend_mkt,RA_transfers=trans_mkt,Population=pop_mkt)
+    CSV.write(file,output)
+
+    return cw_mkt
+end
+
+function calc_gov_spending(d::InsuranceLogit,firm::firmData;update_voucher=false)
+    if update_voucher
+        subsidy = firm.subsidy_ij
+    else
+        subsidy = firm.subsidy_ij_voucher
+    end
+
+    wgts_long = weight(d.data)[:]
+    Mems   = firm[:MEMBERS]
+
+    markets = sort(Int.(keys(firm.mkt_index)))
+    market_subsidy = zeros(length(markets))
+    market_population = zeros(length(markets))
+    for mkt in markets
+        for (i,p) in enumerate(firm._perMktDict[mkt])
+            idxitr = d.data._personDict[p]
+            s_pred = firm.s_pred[idxitr]
+            wgt = wgts_long[idxitr]
+
+            for k in 1:length(idxitr)
+                market_subsidy[mkt] += wgt[k]*s_pred[k]*subsidy[k]/Mems[k]*(12/1000)
+            end
+            market_population[mkt]+=wgt[1]
+        end
+    end
+
+    return market_subsidy, market_population
 end
