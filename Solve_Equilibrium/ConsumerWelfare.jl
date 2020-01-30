@@ -7,7 +7,7 @@ function calc_consumer(d::InsuranceLogit,firm::firmData)
     μnr_ij_large = p_dem.μ_ij_nonRisk
 
     any_long = anyHCC(d.data)
-
+    demData = demoRaw(d.data)
 
     N = size(d.draws,1)
     pers = sort(d.data._personIDs)
@@ -17,14 +17,19 @@ function calc_consumer(d::InsuranceLogit,firm::firmData)
     CW_r_long = Vector{Float64}(undef,length(pers))
     CW_nr_long = Vector{Float64}(undef,length(pers))
 
+
+
     for (i,p) in enumerate(pers)
         idxitr = d.data._personDict[p]
         δ = δ_long[idxitr]
         @inbounds u = μ_ij_large[:,idxitr]
         @inbounds u_nr = μnr_ij_large[idxitr]
 
-        CW_r = mean(log.(1 .+ u*δ))
-        CW_nr = mean(log.(1 .+ sum(u_nr.*δ)))
+        @inbounds Z = demData[:,idxitr[1]]
+        α = ((12/1000)*(p_dem.β_0 + p_dem.β*Z)[1])
+
+        CW_r = -mean(log.(1 .+ u*δ))/α
+        CW_nr = -mean(log.(1 .+ sum(u_nr.*δ)))/α
 
         CW_r_long[i] = CW_r
         CW_nr_long[i] = CW_nr
@@ -45,6 +50,7 @@ function calc_cw_mkt(d::InsuranceLogit,firm::firmData,mkt::Int)
     μnr_ij_large = p_dem.μ_ij_nonRisk
 
     any_long = anyHCC(d.data)
+    demData = demoRaw(d.data)
 
 
     N = size(d.draws,1)
@@ -63,8 +69,11 @@ function calc_cw_mkt(d::InsuranceLogit,firm::firmData,mkt::Int)
         @inbounds u = μ_ij_large[:,idxitr]
         @inbounds u_nr = μnr_ij_large[idxitr]
 
-        CW_r = mean(log.(1 .+ u*δ))
-        CW_nr = mean(log.(1 .+ sum(u_nr.*δ)))
+        @inbounds Z = demData[:,idxitr[1]]
+        α = ((12/1000)*(p_dem.β_0 + p_dem.β*Z)[1])
+
+        CW_r = -mean(log.(1 .+ u*δ))/α
+        CW_nr = -mean(log.(1 .+ sum(u_nr.*δ)))/α
 
 
         @inbounds any_r = any_long[idxitr[1]]
@@ -114,13 +123,14 @@ function total_welfare_bymkt(d::InsuranceLogit,firm::firmData,type::String;updat
     end
 
     prof_mkt = market_profits(d,firm)
-    spend_mkt, pop_mkt = calc_gov_spending(d,firm,update_voucher=update_voucher)
+    spend_mkt, pop_mkt, ins_mkt = calc_gov_spending(d,firm,update_voucher=update_voucher)
     prof_mkt = prof_mkt./pop_mkt
     spend_mkt = spend_mkt./pop_mkt
     trans_mkt = market_transfers(d,firm)
 
     file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/totalWelfare_bymkt_$type-$spec-$rundate.csv"
-    output =  DataFrame(markets=markets,CW=cw_mkt,Profit=prof_mkt,Spending=spend_mkt,RA_transfers=trans_mkt,Population=pop_mkt)
+    output =  DataFrame(markets=markets,CW=cw_mkt,Profit=prof_mkt,Spending=spend_mkt,RA_transfers=trans_mkt,
+                        Population=pop_mkt,Insured=ins_mkt)
     CSV.write(file,output)
 
     return cw_mkt
@@ -128,9 +138,9 @@ end
 
 function calc_gov_spending(d::InsuranceLogit,firm::firmData;update_voucher=false)
     if update_voucher
-        subsidy = firm.subsidy_ij
+        subsidy_long = firm.subsidy_ij
     else
-        subsidy = firm.subsidy_ij_voucher
+        subsidy_long = firm.subsidy_ij_voucher
     end
 
     wgts_long = weight(d.data)[:]
@@ -139,18 +149,21 @@ function calc_gov_spending(d::InsuranceLogit,firm::firmData;update_voucher=false
     markets = sort(Int.(keys(firm.mkt_index)))
     market_subsidy = zeros(length(markets))
     market_population = zeros(length(markets))
+    insured_population = zeros(length(markets))
     for mkt in markets
-        for (i,p) in enumerate(firm._perMktDict[mkt])
+        for p in firm._perMktDict[mkt]
             idxitr = d.data._personDict[p]
             s_pred = firm.s_pred[idxitr]
+            subsidy = subsidy_long[idxitr]
             wgt = wgts_long[idxitr]
 
             for k in 1:length(idxitr)
-                market_subsidy[mkt] += wgt[k]*s_pred[k]*subsidy[k]/Mems[k]*(12/1000)
+                market_subsidy[mkt] += wgt[k]*s_pred[k]*subsidy[k]/Mems[k]
+                insured_population[mkt] += wgt[k]*s_pred[k]
             end
             market_population[mkt]+=wgt[1]
         end
     end
 
-    return market_subsidy, market_population
+    return market_subsidy, market_population, insured_population
 end

@@ -1,6 +1,6 @@
 function solve_model!(m::InsuranceLogit,f::firmData;
                 sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=false,update_voucher=true)
-    P_res = zeros(length(f.P_j))
+    # P_res = zeros(length(f.P_j))
     states = sort(String.(keys(f._prodSTDict)))#[1:6]
     # states = ["AK"]
     for s in states
@@ -9,9 +9,9 @@ function solve_model!(m::InsuranceLogit,f::firmData;
         # end
         println("Solving for $s")
         solve_model_st!(m,f,s,sim=sim,merg=merg,tol=tol,voucher=voucher,update_voucher=update_voucher)
-        P_res[f._prodSTDict[s]] = f.P_j[f._prodSTDict[s]]
+        # P_res[f._prodSTDict[s]] = f.P_j[f._prodSTDict[s]]
     end
-    f.P_j[:] = P_res[:]
+    # f.P_j[:] = P_res[:]
     return nothing
 end
 
@@ -148,7 +148,7 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     println("#### Solve Baseline - With Risk Adjustment and Mandate ####")
     println("####################################")
     f.P_j[:] = P_Obs[:]
-    # evaluate_model!(m,f,"All",voucher=false)
+
 
 
     solve_model!(m,f,sim="Base",voucher=true)
@@ -587,6 +587,11 @@ function solve_equilibrium(rundate,spec)
     println("Check Margins...")
     file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/checkMargins_$spec-$rundate.csv"
     checkMargin(model,firm,file)
+
+    println("Consumer Welfare at Observed Prices")
+    evaluate_model!(model,firm,"All",voucher=true)
+    consumer_welfare(model,firm,"obs")
+    trash = total_welfare_bymkt(model,firm,"obs",update_voucher=true)
 
     println("Solve Equilibrium...")
     file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_$spec-$rundate.csv"
