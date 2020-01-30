@@ -173,6 +173,7 @@ function evaluate_FOC(f::firmData,std_ind::Vector{Int64},merg::String="Base",vou
     P_RA = zeros(length(f.P_j))
     MC = zeros(length(f.P_j))
     Mkup = zeros(length(f.P_j))
+    # dSubs = zeros(length(f.P_j))
 
     ownershipMatrix = f.ownMat
     if merg=="Merger"
@@ -196,6 +197,7 @@ function evaluate_FOC(f::firmData,std_ind::Vector{Int64},merg::String="Base",vou
 
     Mkup[std_ind] = inv(dSdp)*(-SA)
     MC[std_ind] = inv(dSdp)*(cost_std)
+    # dSubs[std_ind] = inv(dSdp)*sum(f.dSubdp_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
 
     return P_std, P_RA, Mkup, MC
 end
@@ -222,9 +224,9 @@ function predict_price(f::firmData,prod_ind::Vector{Int};sim="Base",merg::String
     elseif sim=="Base"
         P_new = copy(P_RA)
     elseif sim=="SP"
-        P_new = copy(MC)
+        P_new = copy(MC) #+ dSubs
     elseif sim=="SPλ"
-        P_new = MC + λ.*Mkup
+        P_new = MC + λ.*Mkup #+ (1-λ).*dSubs
     end
     return P_new
 end
@@ -256,6 +258,8 @@ function foc_error(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.
     ChokePrice = f.S_j.< choke_point
     P_new[ChokePrice] = min.(f.P_j[ChokePrice],P_new[ChokePrice])
 
+    #Price Cap
+    P_new[P_new.>5e4] .= 5e4
 
     if any(ProdExit[prod_ind])
         exited = length(findall(ProdExit[prod_ind]))

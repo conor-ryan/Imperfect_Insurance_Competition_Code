@@ -44,6 +44,7 @@ mutable struct firmData
     dMdp_j::Matrix{Float64} # Market Lives Derivatives
     dMAdp_j::Matrix{Float64} # Market Lives Derivatives
     dCdp_pl_j::Matrix{Float64} # Pooled Cost Derivative
+    dSubdp_j::Matrix{Float64} # Subsidy Takeup Derivative
 
     ## Market Organization
     # stdMap::Vector{Int64}
@@ -142,6 +143,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     dMdp_j = Matrix{Float64}(undef,J,J)
     dMAdp_j = Matrix{Float64}(undef,J,J)
     dCdp_pl_j = Matrix{Float64}(undef,J,J)
+    dSubdp_j = Matrix{Float64}(undef,J,J)
 
 
     println("Compute Market Organzation Maps")
@@ -240,7 +242,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     δ_nonprice,δ_price,s_pred,c_pred,c_pool,
     P_j,SA_j,S_j,Mkt_j,C_j,PC_j,Adj_j,
     hix_cnt,bench_base,
-    dSdp_j,dSAdp_j,dRdp_j,dCdp_j,dMdp_j,dMAdp_j,dCdp_pl_j,
+    dSdp_j,dSAdp_j,dRdp_j,dCdp_j,dMdp_j,dMAdp_j,dCdp_pl_j,dSubdp_j,
     prod_std,catas_prods,bench_prods,_productDict,
     mkt_index,silv_index,mkt_index_long,
     ownMat,ownMat_merge,poolMat,
