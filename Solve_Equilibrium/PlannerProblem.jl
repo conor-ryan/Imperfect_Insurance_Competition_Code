@@ -54,7 +54,7 @@ function solve_SP_λ!(m::InsuranceLogit,f::firmData,Π_target::Vector{Float64};
     if length(markets) == 0
         markets = sort(Int.(keys(f.mkt_index)))
     end
-    λ_vec = zeros(keys(f.mkt_index))
+    λ_vec = zeros(length(Int.(keys(f.mkt_index))))
     for mkt in markets
             println("Solving for $mkt")
             println("Profit Target: $(Π_target[mkt])")
