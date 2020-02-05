@@ -46,7 +46,7 @@ function origBenchmark(firm::firmData)
     return benchLong
 end
 
-function calcSubsidy!(firm::firmData;foc_check=false)
+function calcSubsidy!(firm::firmData;foc_check=false,refund=false)
     if foc_check
         benchmarks = origBenchmark(firm)
     else
@@ -61,8 +61,9 @@ function calcSubsidy!(firm::firmData;foc_check=false)
     for n in 1:N
         subs = max(benchmarks[n]*ageRate[n]-incCont[n]*1000/12,0)*(1-catas[n])
         firm.subsidy_ij[n] = min(firm.Rev_ij[n]*Mems[n],subs)
-        ### TEMPORARY REFUNDABLE SUBSIDIES
-        # firm.subsidy_ij[n] = subs
+        if refund
+            firm.subsidy_ij[n] = subs
+        end
         if (subs>(firm.Rev_ij[n]*Mems[n]))
             firm.zero_ij[n]=1.0
         end
@@ -70,7 +71,7 @@ function calcSubsidy!(firm::firmData;foc_check=false)
     return nothing
 end
 
-function premPaid!(firm::firmData;foc_check=false,update_voucher=false)
+function premPaid!(firm::firmData;foc_check=false,update_voucher=false,no_policy=false)
     unpack_P!(firm::firmData)
 
     if update_voucher
@@ -87,15 +88,20 @@ function premPaid!(firm::firmData;foc_check=false,update_voucher=false)
 
     for n in 1:N
         # price = max(firm.Rev_ij[n]*Mems[n]-subsidy[n],0)
-        price = firm.Rev_ij[n]*Mems[n]-subsidy[n]
-        price = ((price*12/Mems[n]) - Mandate[n])/1000
+        if no_policy
+            price = (firm.Rev_ij[n]*12)/1000
+        else
+            price = firm.Rev_ij[n]*Mems[n]-subsidy[n]
+            price = ((price*12/Mems[n]) - Mandate[n])/1000
+        end
         firm.P_ij[n] = price
     end
     return nothing
 end
 
 
-function set_voucher!(firm::firmData)
+function set_voucher!(firm::firmData;refund=true)
+    calcSubsidy!(firm,foc_check=false,refund=refund)
     firm.subsidy_ij_voucher[:] = firm.subsidy_ij[:]
     return nothing
 end

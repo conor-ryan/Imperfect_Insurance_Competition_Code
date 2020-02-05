@@ -1,14 +1,14 @@
 function solve_model!(m::InsuranceLogit,f::firmData;
-                sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=false,update_voucher=true)
+                sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=false,update_voucher=true,no_policy=false)
     # P_res = zeros(length(f.P_j))
     states = sort(String.(keys(f._prodSTDict)))#[1:6]
-    # states = ["AK"]
+    # states = ["GA"]
     for s in states
         # if s!="MI"
         #     continue
         # end
         println("Solving for $s")
-        solve_model_st!(m,f,s,sim=sim,merg=merg,tol=tol,voucher=voucher,update_voucher=update_voucher)
+        solve_model_st!(m,f,s,sim=sim,merg=merg,tol=tol,voucher=voucher,update_voucher=update_voucher,no_policy=no_policy)
         # P_res[f._prodSTDict[s]] = f.P_j[f._prodSTDict[s]]
     end
     # f.P_j[:] = P_res[:]
@@ -16,7 +16,7 @@ function solve_model!(m::InsuranceLogit,f::firmData;
 end
 
 function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
-                sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=false,update_voucher=true)
+                sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=false,update_voucher=true,no_policy=false)
     err_new = 1
     err_last = 1
     itr_cnt = 0
@@ -29,7 +29,7 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
     while err_new>tol
         itr_cnt+=1
         # println("Evaluate Model")
-        evaluate_model!(m,f,ST,voucher=voucher,update_voucher=update_voucher)
+        evaluate_model!(m,f,ST,voucher=voucher,update_voucher=update_voucher,no_policy=no_policy)
         # println("Update Price")
 
 
@@ -148,20 +148,17 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     println("#### Solve Baseline - With Risk Adjustment and Mandate ####")
     println("####################################")
     f.P_j[:] = P_Obs[:]
-
-
-
     solve_model!(m,f,sim="Base",voucher=true)
-    P_Base[:] = f.P_j[:]
     evaluate_model!(m,f,"All",voucher=true)
-    S_Base[:] = f.S_j[:]
-    set_voucher!(f)
+    set_voucher!(f,refund=true)
 
-    println("Compute Welfare Step 1")
+    solve_model!(m,f,sim="Base",voucher=true,update_voucher=false)
+    P_Base[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
+    S_Base[:] = f.S_j[:]
+
     base_profits = market_profits(m,f)
-    println("Compute Welfare Step 2")
     base_welfare = total_welfare_bymkt(m,f,"Base",update_voucher=false)
-    println("Compute Welfare Step 3")
     consumer_welfare(m,f,"Base")
 
     println("###### Solve Merger Scenario ######")
@@ -202,68 +199,70 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     trash = total_welfare_bymkt(m,f,"RA_m",update_voucher=false)
 
 
-    ## Solve Planner Problem ####
-    println("####################################")
-    println("#### Solve Social Planner Problem ####")
-    println("####################################")
-    solve_model!(m,f,sim="SP",merg="SP",voucher=true,update_voucher=false)
-    P_SP[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
-    S_SP[:] = f.S_j[:]
-
-    consumer_welfare(m,f,"SP")
-    trash = total_welfare_bymkt(m,f,"SP",update_voucher=false)
-
-    println("#### ZERO PROFIT PROBLEM ####")
-    markets_zp, λ_vec_zp = solve_SP_λ!(m,f,zeros(length(base_profits)))
-    P_SP_zp[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
-    S_SP_zp[:] = f.S_j[:]
-
-    # output =  DataFrame(Markets=markets,
-    #                     lambdas = λ_vec)
+    # ## Solve Planner Problem ####
+    # println("####################################")
+    # println("#### Solve Social Planner Problem ####")
+    # println("####################################")
+    # f.P_j[:] .= P_Obs[:]
+    # solve_SP!(m,f,sim="SP",merg="SP",voucher=true,update_voucher=false)
+    # P_SP[:] = f.P_j[:]
+    # evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
+    # S_SP[:] = f.S_j[:]
     #
-    # CSV.write(file,output)
-    consumer_welfare(m,f,"SP_zp")
-    trash = total_welfare_bymkt(m,f,"SP_zp",update_voucher=false)
-
-    println("#### CURRENT PROFIT PROBLEM ####")
-    markets_cp, λ_vec_cp = solve_SP_λ!(m,f,RA_profits,CW_target=RA_welfare)
-    P_SP_cp[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
-    S_SP_cp[:] = f.S_j[:]
-
-
-    consumer_welfare(m,f,"SP_cp")
-    trash = total_welfare_bymkt(m,f,"SP_cp",update_voucher=false)
-
-    println("#### MERGER PROFIT PROBLEM ####")
-    markets_cpm, λ_vec_cpm = solve_SP_λ!(m,f,merger_RA_profits,markets=[4;5;6;7;8;9;10;11;12;13;14])
-    P_SP_cpm[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
-    S_SP_cpm[:] = f.S_j[:]
-
-    consumer_welfare(m,f,"SP_cpm")
-    trash = total_welfare_bymkt(m,f,"SP_cpm",update_voucher=false)
-
-    println("#### CURRENT PROFIT PROBLEM ####")
-    markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits)
-    P_SP_cp[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
-    S_SP_cp[:] = f.S_j[:]
-
-
-    consumer_welfare(m,f,"SP_cp_base")
-    trash = total_welfare_bymkt(m,f,"SP_cp_base",update_voucher=false)
-
-    println("#### MERGER PROFIT PROBLEM ####")
-    markets_cpm, λ_vec_cpm = solve_SP_λ!(m,f,merger_base_profits,markets=[4;5;6;7;8;9;10;11;12;13;14])
-    P_SP_cpm[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
-    S_SP_cpm[:] = f.S_j[:]
-
-    consumer_welfare(m,f,"SP_cpm_base")
-    trash = total_welfare_bymkt(m,f,"SP_cpm_base",update_voucher=false)
+    # consumer_welfare(m,f,"SP")
+    # trash = total_welfare_bymkt(m,f,"SP",update_voucher=false)
+    #
+    # println("#### ZERO PROFIT PROBLEM ####")
+    # f.P_j[:] = P_SP[:]
+    # markets_zp, λ_vec_zp = solve_SP_λ!(m,f,zeros(length(base_profits)),sim="SPλ")
+    # P_SP_zp[:] = f.P_j[:]
+    # evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
+    # S_SP_zp[:] = f.S_j[:]
+    #
+    # consumer_welfare(m,f,"SP_zp")
+    # trash = total_welfare_bymkt(m,f,"SP_zp",update_voucher=false)
+    #
+    # println("#### CURRENT PROFIT PROBLEM ####")
+    # f.P_j[:] = P_SP[:]
+    # markets_cp, λ_vec_cp = solve_SP_λ!(m,f,RA_profits,CW_target=RA_welfare)
+    # P_SP_cp[:] = f.P_j[:]
+    # evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
+    # S_SP_cp[:] = f.S_j[:]
+    #
+    #
+    # consumer_welfare(m,f,"SP_cp")
+    # trash = total_welfare_bymkt(m,f,"SP_cp",update_voucher=false)
+    #
+    # println("#### MERGER PROFIT PROBLEM ####")
+    # f.P_j[:] = P_SP[:]
+    # markets_cpm, λ_vec_cpm = solve_SP_λ!(m,f,merger_RA_profits,markets=[4;5;6;7;8;9;10;11;12;13;14])
+    # P_SP_cpm[:] = f.P_j[:]
+    # evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
+    # S_SP_cpm[:] = f.S_j[:]
+    #
+    # consumer_welfare(m,f,"SP_cpm")
+    # trash = total_welfare_bymkt(m,f,"SP_cpm",update_voucher=false)
+    #
+    # println("#### CURRENT PROFIT PROBLEM ####")
+    # f.P_j[:] = P_SP[:]
+    # markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits)
+    # P_SP_cp[:] = f.P_j[:]
+    # evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
+    # S_SP_cp[:] = f.S_j[:]
+    #
+    #
+    # consumer_welfare(m,f,"SP_cp_base")
+    # trash = total_welfare_bymkt(m,f,"SP_cp_base",update_voucher=false)
+    #
+    # println("#### MERGER PROFIT PROBLEM ####")
+    # f.P_j[:] = P_SP[:]
+    # markets_cpm, λ_vec_cpm = solve_SP_λ!(m,f,merger_base_profits,markets=[4;5;6;7;8;9;10;11;12;13;14])
+    # P_SP_cpm[:] = f.P_j[:]
+    # evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
+    # S_SP_cpm[:] = f.S_j[:]
+    #
+    # consumer_welfare(m,f,"SP_cpm_base")
+    # trash = total_welfare_bymkt(m,f,"SP_cpm_base",update_voucher=false)
 
 
     # println("####################################")
@@ -369,107 +368,56 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     trash = total_welfare_bymkt(m,f,"RAman_m",update_voucher=false)
 
 
-    println("#### ZERO PROFIT PROBLEM ####")
-    markets_zp, λ_vec_zp = solve_SP_λ!(m,f,zeros(length(base_profits)))
-    P_SP_zp[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
-    S_SP_zp[:] = f.S_j[:]
-
-    # output =  DataFrame(Markets=markets,
-    #                     lambdas = λ_vec)
+    # ### Solve without mandate ####
+    # println("####################################")
+    # println("#### Solve without mandate - Price Linked  ####")
+    # println("####################################")
+    # f.P_j[:] = P_Obs[:]
+    # f.data[:,f.index[:Mandate]].=0.0
+    # solve_model!(m,f,sim="Base",voucher=false)
+    # P_man_pl[:] = f.P_j[:]
+    # evaluate_model!(m,f,"All",voucher=false)
+    # S_man_pl[:] = f.S_j[:]
     #
-    # CSV.write(file,output)
-    consumer_welfare(m,f,"SP_zp_man")
-    trash = total_welfare_bymkt(m,f,"SP_zp_man",update_voucher=false)
-
-    println("#### CURRENT PROFIT PROBLEM ####")
-    markets_cp, λ_vec_cp = solve_SP_λ!(m,f,RA_profits)
-    P_SP_cp[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
-    S_SP_cp[:] = f.S_j[:]
-
-
-    consumer_welfare(m,f,"SP_cp_RAman")
-    trash = total_welfare_bymkt(m,f,"SP_cp_RAman",update_voucher=false)
-
-    println("#### MERGER PROFIT PROBLEM ####")
-    markets_cpm, λ_vec_cpm = solve_SP_λ!(m,f,merger_RA_profits,markets=[4;5;6;7;8;9;10;11;12;13;14])
-    P_SP_cpm[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
-    S_SP_cpm[:] = f.S_j[:]
-
-    consumer_welfare(m,f,"SP_cpm_RAman")
-    trash = total_welfare_bymkt(m,f,"SP_cpm_RAman",update_voucher=false)
-
-    println("#### CURRENT PROFIT PROBLEM ####")
-    markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits)
-    P_SP_cp[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
-    S_SP_cp[:] = f.S_j[:]
-
-
-    consumer_welfare(m,f,"SP_base_cp_man")
-    trash = total_welfare_bymkt(m,f,"SP_base_cp_man",update_voucher=false)
-
-    println("#### MERGER PROFIT PROBLEM ####")
-    markets_cpm, λ_vec_cpm = solve_SP_λ!(m,f,merger_base_profits,markets=[4;5;6;7;8;9;10;11;12;13;14])
-    P_SP_cpm[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
-    S_SP_cpm[:] = f.S_j[:]
-
-    consumer_welfare(m,f,"SP_base_cpm_man")
-    trash = total_welfare_bymkt(m,f,"SP_base_cpm_man",update_voucher=false)
-
-    ### Solve without mandate ####
-    println("####################################")
-    println("#### Solve without mandate - Price Linked  ####")
-    println("####################################")
-    f.P_j[:] = P_Obs[:]
-    f.data[:,f.index[:Mandate]].=0.0
-    solve_model!(m,f,sim="Base",voucher=false)
-    P_man_pl[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=false)
-    S_man_pl[:] = f.S_j[:]
-
-    consumer_welfare(m,f,"man_pl")
-    trash = total_welfare_bymkt(m,f,"man_pl",update_voucher=true)
-
-    # println(median(f[:Mandate]))
-    # println(median(f.P_j[findall(f.P_j.>0)]))
-
-    println("###### Solve Merger Scenario - Price Linked  ######")
-    solve_model!(m,f,sim="Base",merg="Merger",voucher=false)
-    P_man_m_pl[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=false)
-    S_man_m_pl[:] = f.S_j[:]
-
-    consumer_welfare(m,f,"man_m_pl")
-    trash = total_welfare_bymkt(m,f,"man_m_pl",update_voucher=true)
-
-
-    ### Solve without mandate NOR risk adjustment  ####
-    println("####################################")
-    println("#### Solve without mandate NOR risk adjustment - Price Linked   ####")
-    println("####################################")
-    f.P_j[:] = P_Obs[:]
-    f.data[:,f.index[:Mandate]].=0.0
-    solve_model!(m,f,sim="RA",voucher=false)
-    P_RAman_pl[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=false)
-    S_RAman_pl[:] = f.S_j[:]
-
-    consumer_welfare(m,f,"RAman_pl")
-    trash = total_welfare_bymkt(m,f,"RAman_pl",update_voucher=true)
-
-
-    println("###### Solve Merger Scenario ######")
-    solve_model!(m,f,sim="RA",merg="Merger",voucher=false)
-    P_RAman_m_pl[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=false)
-    S_RAman_m_pl[:] = f.S_j[:]
-
-    consumer_welfare(m,f,"RAman_m_pl")
-    trash = total_welfare_bymkt(m,f,"RAman_m_pl",update_voucher=true)
+    # consumer_welfare(m,f,"man_pl")
+    # trash = total_welfare_bymkt(m,f,"man_pl",update_voucher=true)
+    #
+    # # println(median(f[:Mandate]))
+    # # println(median(f.P_j[findall(f.P_j.>0)]))
+    #
+    # println("###### Solve Merger Scenario - Price Linked  ######")
+    # solve_model!(m,f,sim="Base",merg="Merger",voucher=false)
+    # P_man_m_pl[:] = f.P_j[:]
+    # evaluate_model!(m,f,"All",voucher=false)
+    # S_man_m_pl[:] = f.S_j[:]
+    #
+    # consumer_welfare(m,f,"man_m_pl")
+    # trash = total_welfare_bymkt(m,f,"man_m_pl",update_voucher=true)
+    #
+    #
+    # ### Solve without mandate NOR risk adjustment  ####
+    # println("####################################")
+    # println("#### Solve without mandate NOR risk adjustment - Price Linked   ####")
+    # println("####################################")
+    # f.P_j[:] = P_Obs[:]
+    # f.data[:,f.index[:Mandate]].=0.0
+    # solve_model!(m,f,sim="RA",voucher=false)
+    # P_RAman_pl[:] = f.P_j[:]
+    # evaluate_model!(m,f,"All",voucher=false)
+    # S_RAman_pl[:] = f.S_j[:]
+    #
+    # consumer_welfare(m,f,"RAman_pl")
+    # trash = total_welfare_bymkt(m,f,"RAman_pl",update_voucher=true)
+    #
+    #
+    # println("###### Solve Merger Scenario ######")
+    # solve_model!(m,f,sim="RA",merg="Merger",voucher=false)
+    # P_RAman_m_pl[:] = f.P_j[:]
+    # evaluate_model!(m,f,"All",voucher=false)
+    # S_RAman_m_pl[:] = f.S_j[:]
+    #
+    # consumer_welfare(m,f,"RAman_m_pl")
+    # trash = total_welfare_bymkt(m,f,"RAman_m_pl",update_voucher=true)
 
 
 

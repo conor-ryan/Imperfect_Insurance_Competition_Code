@@ -374,6 +374,7 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
     age_long = firm[:ageRate]
     mem_long = firm[:MEMBERS]
     sub_long = firm.subsidy_ij
+    mandate_long = firm[:Mandate]
 
     N = size(d.draws,1)
 # for idxitr in values(d.data._personDict)
@@ -382,7 +383,9 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
         # prod_ids = firm.stdMap[prod_long[idxitr]]
         prod_ids =prod_long[idxitr]
         catas = findall(inlist(prod_ids,firm.catas_prods))
-        subs_pos = Float64.(any(sub_long[idxitr].>0))
+        subs = sub_long[idxitr]
+        mand = mandate_long[idxitr]
+        subs_pos = Float64.(any(subs.>0))
 
         δ = δ_long[idxitr]
         @inbounds u = μ_ij_large[:,idxitr]
@@ -456,6 +459,7 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
                 @inbounds @fastmath firm.dCdp_pl_j[j,prod_ids[l]]+= wgt[l]*dcdp_pl[l]
                 @inbounds @fastmath firm.dMdp_j[j,prod_ids[l]]+= wgt[l]*dsdp_pl
                 @inbounds @fastmath firm.dMAdp_j[j,prod_ids[l]]+= wgt[l]*dsdp_pl*(a/m)*(1-subs_pos)
+                @inbounds @fastmath firm.dSubdp_j[j,prod_ids[l]]+= wgt[l]*dsdp[l]*(subs[l]/m + mand[l]/12)
                 if l==k
                     firm.dRdp_j[j,prod_ids[l]]+= wgt[l]*(s_hat[l]*a/m)
                 end
@@ -655,7 +659,8 @@ end
 # end
 
 
-function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;foc_check=false,voucher=false,update_voucher=true)
+function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;
+    foc_check=false,voucher=false,update_voucher=true,no_policy=false)
     #Clear Derivative Values
     f.dSdp_j[:].=0.0
     f.dSAdp_j[:].=0.0
@@ -664,6 +669,7 @@ function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;foc_check=fals
     f.dRdp_j[:].=0.0
     f.dCdp_j[:].=0.0
     f.dCdp_pl_j[:].=0.0
+    f.dSubdp_j[:].=0.0
     f.PC_j[:].=0.0
     f.S_j[:].=0.0
     f.C_j[:].=0.0
@@ -675,7 +681,7 @@ function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;foc_check=fals
     end
 
     if foc_check==false
-        premPaid!(f,update_voucher=update_voucher)
+        premPaid!(f,update_voucher=update_voucher,no_policy=no_policy)
     else
         f.Rev_ij = f[:Rev_foc]
         f.P_ij   = price(m.data)
@@ -688,7 +694,7 @@ function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;foc_check=fals
 end
 
 function evaluate_model!(m::InsuranceLogit,f::firmData,mkt::Int;
-                        foc_check=false,voucher=false,update_voucher=true,deriv=true)
+                        foc_check=false,voucher=false,update_voucher=true,no_policy=false,deriv=true)
     #Clear Derivative Values
     f.dSdp_j[:].=0.0
     f.dSAdp_j[:].=0.0
@@ -697,6 +703,7 @@ function evaluate_model!(m::InsuranceLogit,f::firmData,mkt::Int;
     f.dRdp_j[:].=0.0
     f.dCdp_j[:].=0.0
     f.dCdp_pl_j[:].=0.0
+    f.dSubdp_j[:].=0.0
     f.PC_j[:].=0.0
     f.S_j[:].=0.0
     f.C_j[:].=0.0
@@ -708,7 +715,7 @@ function evaluate_model!(m::InsuranceLogit,f::firmData,mkt::Int;
     end
 
     if foc_check==false
-        premPaid!(f,update_voucher=update_voucher)
+        premPaid!(f,update_voucher=update_voucher,no_policy=no_policy)
     else
         f.Rev_ij = f[:Rev_foc]
         f.P_ij   = price(m.data)

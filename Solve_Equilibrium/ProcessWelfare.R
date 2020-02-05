@@ -12,12 +12,141 @@ spec = "FMC"
 baseDataFull = read.csv("Intermediate_Output/Simulated_BaseData/simchoiceData_discrete.csv")
 baseData = as.data.table(unique(baseDataFull[,c("Person","ST","Market","PERWT","Age","AGE","ageRate","MEMBERS","Family","LowIncome")]))
 
+
 #### Merge in Market Info ####
 file = paste("Estimation_Output/MktHHI_",spec,"-",run,".rData",sep="")
 load(file)
 
 baseData = merge(baseData,Mkt,by="Market")
 baseData[,Market_num:=as.numeric(as.factor(Market))]
+
+#### Welfare By Market Cross-Section ####
+
+mktWelfare = unique(baseData[,c("Market","ST","HHI","Market_num")])
+
+## Merge in Welfare Info 
+for (cw in c("Base","RA","SP_cp_base","SP_cp","SP_zp","SP")){
+  file = paste("Estimation_Output/totalWelfare_bymkt_",cw,"-",spec,"-",run,".csv",sep="")
+  data_cw = as.data.table(read.csv(file))
+  data_cw[,totalWelfare:=CW+Profit]
+  if (cw=="Base"){
+    data_cw[,RA_transfers:=RA_transfers/Population]
+    data_cw = data_cw[,c("markets","totalWelfare","Spending","RA_transfers","Population")]
+  }else{
+    data_cw[,RA_transfers:=0]
+    data_cw = data_cw[,c("markets","totalWelfare","Spending")]
+  }
+  
+  names(data_cw) = paste(names(data_cw),cw,sep="_")
+  mktWelfare = merge(mktWelfare,data_cw,by.x="Market_num",by.y=paste("markets",cw,sep="_"))
+}
+
+mktWelfare[,ExtSel:=totalWelfare_SP-totalWelfare_SP_zp]
+mktWelfare[,Markup:=totalWelfare_SP_zp-totalWelfare_SP_cp_base]
+mktWelfare[,IntSel:=totalWelfare_SP_cp_base-totalWelfare_Base]
+
+mktWelfare[,Markup_noRA:=totalWelfare_SP_zp-totalWelfare_SP_cp]
+mktWelfare[,IntSel_noRA:=totalWelfare_SP_cp-totalWelfare_RA]
+# mktWelfare[,RiskAdj:=totalWelfare_RA-(totalWelfare_Base-RA_transfers_Base)]
+
+mktWelfare[,HHI_cat:=ceiling(HHI/500)*500]
+mktWelfare[HHI<2500,HHI_cat:=3000]
+mktWelfare[HHI>4500,HHI_cat:=ceiling((HHI-500)/1000)*1000+500]
+mktWelfare[HHI>7500,HHI_cat:=7500]
+mktWelfare[,count:=1]
+cross_section = mktWelfare[,list(ExtSel=sum(Population_Base*ExtSel)/sum(Population_Base),
+                                 Markup=sum(Population_Base*Markup)/sum(Population_Base),
+                                 IntSel=sum(Population_Base*IntSel)/sum(Population_Base),
+                                 Markup_noRA=sum(Population_Base*Markup_noRA)/sum(Population_Base),
+                                 IntSel_noRA=sum(Population_Base*IntSel_noRA)/sum(Population_Base),
+                                 # RiskAdj=sum(Population_Base*RiskAdj)/sum(Population_Base),
+                                 count = sum(count),
+                                 pop = sum(Population_Base)),
+                           by=c("HHI_cat")]
+setkey(cross_section,HHI_cat)
+
+round(cross_section,2)
+
+all_mean = mktWelfare[,list(ExtSel=sum(Population_Base*ExtSel)/sum(Population_Base),
+                                 Markup=sum(Population_Base*Markup)/sum(Population_Base),
+                                 IntSel=sum(Population_Base*IntSel)/sum(Population_Base),
+                                 Markup_noRA=sum(Population_Base*Markup_noRA)/sum(Population_Base),
+                                 IntSel_noRA=sum(Population_Base*IntSel_noRA)/sum(Population_Base),
+                                 # RiskAdj=sum(Population_Base*RiskAdj)/sum(Population_Base),
+                                 count = sum(count),
+                                 pop = sum(Population_Base))]
+
+round(all_mean,2)
+
+#### Welfare By Market Merger #### 
+mktWelfare = unique(baseData[,c("Market","ST","HHI","Market_num")])
+
+## Merge in Welfare Info 
+for (cw in c("SP_zp","SP_cp_base","Base","SP_cpm_base","Base_m","SP_cp","RA","SP_cpm","RA_m")){
+  file = paste("Estimation_Output/totalWelfare_bymkt_",cw,"-",spec,"-",run,".csv",sep="")
+  data_cw = as.data.table(read.csv(file))
+  
+  if (cw%in%c("Base","Base_m")){
+    # data_cw[,Profit:=Profit-RA_transfers/Population]
+    data_cw[,totalWelfare:=CW+Profit]
+    
+    data_cw = data_cw[,c("markets","CW","Profit","totalWelfare","Population")]
+  }else{
+    data_cw[,totalWelfare:=CW+Profit]
+    data_cw = data_cw[,c("markets","CW","Profit","totalWelfare")]
+  }
+  # data_cw = data_cw[,c("markets","Profit")]
+
+  
+  names(data_cw) = paste(names(data_cw),cw,sep="_")
+  mktWelfare = merge(mktWelfare,data_cw,by.x="Market_num",by.y=paste("markets",cw,sep="_"))
+}
+mktWelfare = mktWelfare[ST=="GA",]
+
+
+mktWelfare[,Markup_RA:=totalWelfare_SP_zp-totalWelfare_SP_cp]
+mktWelfare[,IntSel_RA:=totalWelfare_SP_cp-totalWelfare_RA]
+
+mktWelfare[,Markup_RA_m:=totalWelfare_SP_zp-totalWelfare_SP_cpm]
+mktWelfare[,IntSel_RA_m:=totalWelfare_SP_cpm-totalWelfare_RA_m]
+
+mktWelfare[,Markup_base:=totalWelfare_SP_zp-totalWelfare_SP_cp_base]
+mktWelfare[,IntSel_base:=totalWelfare_SP_cp_base-totalWelfare_Base]
+
+mktWelfare[,Markup_base_m:=totalWelfare_SP_zp-totalWelfare_SP_cpm_base]
+mktWelfare[,IntSel_base_m:=totalWelfare_SP_cpm_base-totalWelfare_Base_m]
+
+
+mktWelfare[,dCW_base:=CW_Base_m - CW_Base]
+mktWelfare[,dPS_base:=Profit_Base_m - Profit_Base]
+
+mktWelfare[,dMkup_base:= Markup_base_m - Markup_base]
+mktWelfare[,dInt_base:= IntSel_base_m - IntSel_base]
+
+mktWelfare[,dCW_RA:=CW_RA_m - CW_RA]
+mktWelfare[,dPS_RA:=Profit_RA_m - Profit_RA]
+
+mktWelfare[,dMkup_RA:= Markup_RA_m - Markup_RA]
+mktWelfare[,dInt_RA:= IntSel_RA_m - IntSel_RA]
+
+mktWelfare[,netchg_RA:=dCW_RA+dPS_RA]
+mktWelfare[,netchg_base:=dCW_base+dPS_base]
+setkey(mktWelfare,HHI)
+
+mktWelfare[,HHI_cat:=as.numeric(HHI<3900)]
+mktWelfare[,count:=1]
+
+merger = mktWelfare[,list(dCW_base=sum(dCW_base*Population_Base)/sum(Population_Base),
+                          dPS_base=sum(dPS_base*Population_Base)/sum(Population_Base),
+                          dMkup_base=sum(dMkup_base*Population_Base)/sum(Population_Base),
+                          dInt_base=sum(dInt_base*Population_Base)/sum(Population_Base),
+                          dCW_RA=sum(dCW_RA*Population_Base)/sum(Population_Base),
+                          dPS_RA=sum(dPS_RA*Population_Base)/sum(Population_Base),
+                          dMkup_RA=sum(dMkup_RA*Population_Base)/sum(Population_Base),
+                          dInt_RA=sum(dInt_RA*Population_Base)/sum(Population_Base),
+                          count = sum(count),
+                          pop= sum(Population_Base)),
+                    by=c("HHI_cat")]
 
 #### Merge in Welfare Info ####
 for (cw in c("Base","RA","RA_m","SP_cp","SP_cpm","SP_zp","SP")){
@@ -28,11 +157,18 @@ for (cw in c("Base","RA","RA_m","SP_cp","SP_cpm","SP_zp","SP")){
 }
 
 
-baseData[,dCW_SP_Base:=CW_Base-CW_SP]
-baseData[,dCW_SP_SPzp:=CW_SP-CW_SP_zp]
-baseData[,dCW_SP_SPcp:=CW_SP_zp-CW_SP_cp]
-baseData[,dCW_SPcp_Base:=CW_SP_cp-CW_RA]
-baseData[,dCW_RA_Base:=CW_Base-CW_RA]
+baseData[,ExtSel:=CW_SP-CW_SP_zp]
+baseData[,Markup:=CW_SP_zp-CW_SP_cp]
+baseData[,IntSel:=CW_SP_cp-CW_RA]
+baseData[,RiskAdj:=CW_RA-CW_Base]
+
+mktWelfare = baseData[,list(CW=sum(CW_Base*PERWT)/sum(PERWT),
+                            ExtSel=sum(PERWT*ExtSel)/sum(PERWT),
+                            Markup=sum(PERWT*Markup)/sum(PERWT),
+                            IntSel=sum(PERWT*IntSel)/sum(PERWT),
+                            RiskAdj=sum(PERWT*RiskAdj)/sum(PERWT),by=)]
+
+
 
 baseData[,dCW_RA:=(CW_RA_m-CW_RA)]
 # CW_RA = CW_SP_cp + (CW_RA-CW_SP_cp)

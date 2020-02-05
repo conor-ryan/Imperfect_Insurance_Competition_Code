@@ -173,7 +173,7 @@ function evaluate_FOC(f::firmData,std_ind::Vector{Int64},merg::String="Base",vou
     P_RA = zeros(length(f.P_j))
     MC = zeros(length(f.P_j))
     Mkup = zeros(length(f.P_j))
-    # dSubs = zeros(length(f.P_j))
+    dSubs = zeros(length(f.P_j))
 
     ownershipMatrix = f.ownMat
     if merg=="Merger"
@@ -197,9 +197,9 @@ function evaluate_FOC(f::firmData,std_ind::Vector{Int64},merg::String="Base",vou
 
     Mkup[std_ind] = inv(dSdp)*(-SA)
     MC[std_ind] = inv(dSdp)*(cost_std)
-    # dSubs[std_ind] = inv(dSdp)*sum(f.dSubdp_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
+    dSubs[std_ind] = inv(dSdp)*sum(f.dSubdp_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
 
-    return P_std, P_RA, Mkup, MC
+    return P_std, P_RA, Mkup, MC, dSubs
 end
 
 
@@ -210,13 +210,13 @@ end
 
 function evaluate_FOC(f::firmData,merg::String="Base")
     std_ind = f.prods
-    P_std, P_RA, Mkup, MC = evaluate_FOC(f,std_ind,merg)
-    return P_std, P_RA, Mkup, MC
+    P_std, P_RA, Mkup, MC, dSubs = evaluate_FOC(f,std_ind,merg)
+    return P_std, P_RA, Mkup, MC, dSubs
 end
 
 function predict_price(f::firmData,prod_ind::Vector{Int};sim="Base",merg::String="Base",λ::Float64=0.0,voucher::Bool=false)
 
-    P_std, P_RA, Mkup, MC = evaluate_FOC(f,prod_ind,merg,voucher)
+    P_std, P_RA, Mkup, MC, dSubs = evaluate_FOC(f,prod_ind,merg,voucher)
     # println(P_std[f._prodSTDict[ST]])
 
     if sim=="RA"
@@ -224,9 +224,13 @@ function predict_price(f::firmData,prod_ind::Vector{Int};sim="Base",merg::String
     elseif sim=="Base"
         P_new = copy(P_RA)
     elseif sim=="SP"
-        P_new = copy(MC) #+ dSubs
+        P_new = copy(MC)
+    elseif sim=="SP_full"
+        P_new = copy(MC) + copy(dSubs)
     elseif sim=="SPλ"
-        P_new = MC + λ.*Mkup #+ (1-λ).*dSubs
+        P_new = MC + λ.*Mkup
+    elseif sim=="SPλ_gov"
+        P_new = MC + λ.*Mkup + (1-λ).*dSubs
     end
     return P_new
 end
