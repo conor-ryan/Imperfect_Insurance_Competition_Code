@@ -2,7 +2,7 @@ function calc_consumer(d::InsuranceLogit,firm::firmData)
     # Store Parameters
     p_dem = firm.par_dem
     p_cost = firm.par_cost
-    δ_long = (firm.δ_nonprice).*(firm.δ_price)
+    # δ_long = (firm.δ_nonprice).*(firm.δ_price)
     μ_ij_large = p_dem.μ_ij
     μnr_ij_large = p_dem.μ_ij_nonRisk
 
@@ -22,21 +22,23 @@ function calc_consumer(d::InsuranceLogit,firm::firmData)
 
     for (i,p) in enumerate(pers)
         idxitr = d.data._personDict[p]
-        δ = δ_long[idxitr]
+        # δ = δ_long[idxitr]
         man = mandate_long[idxitr][1]/1000
         @inbounds u = μ_ij_large[:,idxitr]
         @inbounds u_nr = μnr_ij_large[idxitr]
 
         @inbounds Z = demData[:,idxitr[1]]
-        α = ((12/1000)*(p_dem.β_0 + p_dem.β*Z)[1])
+        α = (p_dem.β_0 + p_dem.β*Z)[1]
+        α_wf = (12/1000)*α
+        tax = exp(α*man)
 
         #Adjust mandate as a tax rather than a subsidy
-        tax = exp(α*man)
-        u = u.*tax
-        u_nr = u_nr.*tax
+        δ_np = firm.δ_nonprice[idxitr]
+        δ_p = firm.δ_price[idxitr].*tax
+        δ = δ_np.*δ_p
 
-        CW_r = -mean(log.(tax .+ u*δ))/α
-        CW_nr = -mean(log.(tax .+ sum(u_nr.*δ)))/α
+        CW_r = -mean(log.(tax .+ u*δ))/α_wf
+        CW_nr = -mean(log.(tax .+ sum(u_nr.*δ)))/α_wf
 
         CW_r_long[i] = CW_r
         CW_nr_long[i] = CW_nr
@@ -52,7 +54,7 @@ function calc_cw_mkt(d::InsuranceLogit,firm::firmData,mkt::Int)
     # Store Parameters
     p_dem = firm.par_dem
     p_cost = firm.par_cost
-    δ_long = (firm.δ_nonprice).*(firm.δ_price)
+    # δ_long = (firm.δ_nonprice).*(firm.δ_price)
     μ_ij_large = p_dem.μ_ij
     μnr_ij_large = p_dem.μ_ij_nonRisk
 
@@ -73,21 +75,23 @@ function calc_cw_mkt(d::InsuranceLogit,firm::firmData,mkt::Int)
         idxitr = d.data._personDict[p]
         wgt = weight(d.data)[idxitr[1]]
         man = mandate_long[idxitr][1]/1000
-
-        δ = δ_long[idxitr]
+        # δ = δ_long[idxitr]
         @inbounds u = μ_ij_large[:,idxitr]
         @inbounds u_nr = μnr_ij_large[idxitr]
 
         @inbounds Z = demData[:,idxitr[1]]
-        α = ((12/1000)*(p_dem.β_0 + p_dem.β*Z)[1])
+        α = (p_dem.β_0 + p_dem.β*Z)[1]
+        α_wf = (12/1000)*α
+        tax = exp(α*man)
 
         #Adjust mandate as a tax rather than a subsidy
-        tax = exp(α*man)
-        u = u.*tax
-        u_nr = u_nr.*tax
+        δ_np = firm.δ_nonprice[idxitr]
+        δ_p = firm.δ_price[idxitr].*tax
+        δ = δ_np.*δ_p
 
-        CW_r = -mean(log.(tax .+ u*δ))/α
-        CW_nr = -mean(log.(tax .+ sum(u_nr.*δ)))/α
+
+        CW_r = -mean(log.(tax .+ u*δ))/α_wf
+        CW_nr = -mean(log.(tax .+ sum(u_nr.*δ)))/α_wf
 
 
         @inbounds any_r = any_long[idxitr[1]]

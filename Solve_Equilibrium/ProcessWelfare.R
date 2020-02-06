@@ -148,19 +148,48 @@ merger = mktWelfare[,list(dCW_base=sum(dCW_base*Population_Base)/sum(Population_
                           pop= sum(Population_Base)),
                     by=c("HHI_cat")]
 
+
+
+#### Welfare Policy Analysis - By Market ####
+mktWelfare = unique(baseData[,c("Market","ST","HHI","Market_num","HHI_flag")])
+
+
 #### Merge in Welfare Info ####
-for (cw in c("Base","RA","RA_m","SP_cp","SP_cpm","SP_zp","SP")){
-  file = paste("Estimation_Output/consumerWelfare_",cw,"-",spec,"-",run,".csv",sep="")
-  data_cw = read.csv(file)
-  names(data_cw)[2:4] = paste(names(data_cw)[2:4],cw,sep="_")
-  baseData = merge(baseData,data_cw[1:2],by.x="Person",by.y="pers")
+for (cw in c("Base","RA","man","RAman")){
+  file = paste("Estimation_Output/totalWelfare_bymkt_",cw,"-",spec,"-",run,".csv",sep="")
+  data_cw = as.data.table(read.csv(file))
+  
+  if (cw%in%c("Base","Base_m","man","man_m")){
+    data_cw[,Profit:=Profit-RA_transfers/Population]
+    # data_cw[,totalWelfare:=CW+Profit-RA_transfers/Population]
+    
+    data_cw = data_cw[,c("markets","CW","Profit","Population")]
+  }else{
+    # data_cw[,totalWelfare:=CW+Profit]
+    data_cw = data_cw[,c("markets","CW","Profit")]
+  }
+  # data_cw = data_cw[,c("markets","Profit")]
+  
+  
+  names(data_cw) = paste(names(data_cw),cw,sep="_")
+  mktWelfare = merge(mktWelfare,data_cw,by.x="Market_num",by.y=paste("markets",cw,sep="_"))
 }
+mktWelfare[,count:=1]
+policy = mktWelfare[,list(CW_base=sum(CW_Base*Population_Base)/sum(Population_Base),
+                          CW_RA=sum(CW_RA*Population_Base)/sum(Population_Base),
+                          CW_man=sum(CW_man*Population_Base)/sum(Population_Base),
+                          CW_RAman=sum(CW_RAman*Population_Base)/sum(Population_Base),
+                          PS_base=sum(Profit_Base*Population_Base)/sum(Population_Base),
+                          PS_RA=sum(Profit_RA*Population_Base)/sum(Population_Base),
+                          PS_man=sum(Profit_man*Population_Base)/sum(Population_Base),
+                          PS_RAman=sum(Profit_RAman*Population_Base)/sum(Population_Base),
+                          count = sum(count),
+                          pop= sum(Population_Base)),
+                    by=c("HHI_flag")]
 
 
-baseData[,ExtSel:=CW_SP-CW_SP_zp]
-baseData[,Markup:=CW_SP_zp-CW_SP_cp]
-baseData[,IntSel:=CW_SP_cp-CW_RA]
-baseData[,RiskAdj:=CW_RA-CW_Base]
+
+
 
 mktWelfare = baseData[,list(CW=sum(CW_Base*PERWT)/sum(PERWT),
                             ExtSel=sum(PERWT*ExtSel)/sum(PERWT),
