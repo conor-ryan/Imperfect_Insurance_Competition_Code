@@ -149,7 +149,9 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     println("####################################")
     f.P_j[:] = P_Obs[:]
     solve_model!(m,f,sim="Base",voucher=true)
+    P_Base[:] = f.P_j[:]
     evaluate_model!(m,f,"All",voucher=true)
+    S_Base[:] = f.S_j[:]
     set_voucher!(f,refund=false)
 
     base_profits = market_profits(m,f)
