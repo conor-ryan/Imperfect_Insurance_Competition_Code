@@ -150,7 +150,7 @@ function solveMain(m::InsuranceLogit,f::firmData,file::String)
     f.P_j[:] = P_Obs[:]
     solve_model!(m,f,sim="Base",voucher=true)
     evaluate_model!(m,f,"All",voucher=true)
-    set_voucher!(f,refund=true)
+    set_voucher!(f,refund=false)
 
     solve_model!(m,f,sim="Base",voucher=true,update_voucher=false)
     P_Base[:] = f.P_j[:]
