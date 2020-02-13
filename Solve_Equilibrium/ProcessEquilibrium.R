@@ -79,17 +79,19 @@ for (v in c("base","RA","man","RAman")){
 
 #### Premium Results ####
 
-prem = prod_pred[,list(Price_obs = round(12/1000*sum(P_obs*lives)/sum(lives),2),
-                       Price_base = round(12/1000*sum(Price_base*Lives_base)/sum(Lives_base),2),
-                       Price_RA = round(12/1000*sum(Price_RA*Lives_base)/sum(Lives_base),2),
-                       Price_man = round(12/1000*sum(Price_man*Lives_base)/sum(Lives_base),2),
-                       Price_RAman = round(12/1000*sum(Price_RAman*Lives_base)/sum(Lives_base),2)
+prem = prod_pred[,list(Price_obs = round(sum(P_obs*lives)/sum(lives),0),
+                       Price_base = round(sum(Price_base*Lives_base)/sum(Lives_base),0),
+                       Price_RA = round(sum(Price_RA*Lives_base)/sum(Lives_base),0),
+                       Price_man = round(sum(Price_man*Lives_base)/sum(Lives_base),0),
+                       Price_RAman = round(sum(Price_RAman*Lives_base)/sum(Lives_base),0)
 ),
 by=c("Metal_std","HHI_flag")]
 setkey(prem,HHI_flag,Price_base)
 print(prem[Metal_std%in%c("BRONZE","SILVER","GOLD")])
 
-
+ggplot(prod_pred[HHI_flag==2,]) + aes(x=Price_base,y=Price_man) + 
+  geom_point() + 
+  geom_abline(intercept=0,slope=1)
 
 #### Merger Results ####
 firms = prod_pred[,list(s_base = sum(Lives_base),
@@ -169,7 +171,7 @@ prod_pred = merge(prod_pred,hhi[,c("Market","dhhi_pred","mergerLabel")],by="Mark
 prod_pred = merge(prod_pred,firms[,c("Market","Firm","merger")],by=c("Market","Firm"))
 
 
-table_prem = prod_pred[mergerLabel!="No Merger"&merger!="None",
+table_prem = prod_pred[mergerLabel!="No Merger"&ST=="GA"&merger!="None",
                        list(prem_base = sum(Price_base*Lives_base)/sum(Lives_base),
                             prem_noRA = sum(Price_RA*Lives_RA)/sum(Lives_RA),
                             prem_noMan = sum(Price_man*Lives_man)/sum(Lives_man),
@@ -192,7 +194,7 @@ table_prem[,none_effect:= round(100*(prem_none_m-prem_none)/prem_none,1)]
 
 table_prem[,Group:="Merging Parties"]
 
-table_prem_all = prod_pred[mergerLabel!="No Merger"&merger=="None",
+table_prem_all = prod_pred[mergerLabel!="No Merger"&ST=="GA"&merger=="None",
                            list(prem_base = sum(Price_base*Lives_base)/sum(Lives_base),
                                 prem_noRA = sum(Price_RA*Lives_RA)/sum(Lives_RA),
                                 prem_noMan = sum(Price_man*Lives_man)/sum(Lives_man),
