@@ -160,16 +160,16 @@ function solve_equilibrium(rundate,spec)
     consumer_welfare(model,firm,"obs")
     trash = total_welfare_bymkt(model,firm,"obs",update_voucher=true)
 
-    println("Solve Equilibrium...")
-    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_$spec-$rundate.csv"
-    solveMain(model,firm,file)
-
-
-    println("Solve Social Welfare Decomposition...")
-    firm = firmData(model,df,eq_mkt,par_dem,par_cost)
-    evaluate_model!(model,firm,"All",foc_check=true)
-    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_Welfare_$spec-$rundate.csv"
-    solveMain_SP(model,firm,file)
+    # println("Solve Equilibrium...")
+    # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_$spec-$rundate.csv"
+    # solveMain(model,firm,file)
+    #
+    #
+    # println("Solve Social Welfare Decomposition...")
+    # firm = firmData(model,df,eq_mkt,par_dem,par_cost)
+    # evaluate_model!(model,firm,"All",foc_check=true)
+    # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_Welfare_$spec-$rundate.csv"
+    # solveMain_SP(model,firm,file)
 
     println("Solve Social Welfare Decomposition, Robustness Check...")
     firm = firmData(model,df,eq_mkt,par_dem,par_cost)
