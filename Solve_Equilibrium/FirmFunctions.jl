@@ -225,7 +225,7 @@ function predict_price(f::firmData,prod_ind::Vector{Int};sim="Base",merg::String
         P_new = copy(P_RA)
     elseif sim=="SP"
         P_new = copy(MC)
-    elseif sim=="SP_full"
+    elseif sim=="SP_gov"
         P_new = copy(MC) + copy(dSubs)
     elseif sim=="SPλ"
         P_new = MC + λ.*Mkup
