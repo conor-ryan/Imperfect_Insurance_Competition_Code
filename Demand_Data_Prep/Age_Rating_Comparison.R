@@ -115,11 +115,11 @@ rm(rating)
 # Modify Age Rate for Family and Smoker
 # Straight Forward rating assumption. 
 eHealth$ageRate_base = eHealth$ageRate
-eHealth$ageRate[eHealth$MEMBERS==1] = with(eHealth[eHealth$MEMBERS==1,],ageRate+.5*ageRate*(SMOKER=="Y"))
-eHealth$ageRate[eHealth$MEMBERS==2] = with(eHealth[eHealth$MEMBERS==2,],ageRate*1.9+.5*ageRate*(SMOKER=="Y"))
-eHealth$ageRate[eHealth$MEMBERS==3] = with(eHealth[eHealth$MEMBERS==3,],ageRate*2+.5+.5*ageRate*(SMOKER=="Y"))
-eHealth$ageRate[eHealth$MEMBERS>3] = with(eHealth[eHealth$MEMBERS>3,],ageRate*2+.6*(MEMBERS-2)+.5*ageRate*(SMOKER=="Y"))
-eHealth$ageRate[eHealth$MEMBERS>5] = with(eHealth[eHealth$MEMBERS>5,],ageRate*2+.5*3+.5*ageRate*(SMOKER=="Y"))
+eHealth$ageRate[eHealth$MEMBERS==1] = with(eHealth[eHealth$MEMBERS==1,],ageRate)
+eHealth$ageRate[eHealth$MEMBERS==2] = with(eHealth[eHealth$MEMBERS==2,],ageRate*2)
+eHealth$ageRate[eHealth$MEMBERS==3] = with(eHealth[eHealth$MEMBERS==3,],ageRate*2+.765)
+eHealth$ageRate[eHealth$MEMBERS>3] = with(eHealth[eHealth$MEMBERS>3,],ageRate*2+.765*(MEMBERS-2))
+eHealth$ageRate[eHealth$MEMBERS>5] = with(eHealth[eHealth$MEMBERS>5,],ageRate*2+.765*3)
 
 eHealth$ageRate[eHealth$STATE%in%c("AK")] = with(eHealth[eHealth$STATE%in%c("AK"),],ageRate+.2*ageRate_base*(SMOKER=="Y"))
 eHealth$ageRate[!eHealth$STATE%in%c("AK","NJ","NY","RI","VT","CA","CT")] = with(eHealth[!eHealth$STATE%in%c("AK","NJ","NY","RI","VT","CA","CT"),],ageRate+.5*ageRate_base*(SMOKER=="Y"))
