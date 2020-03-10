@@ -83,7 +83,7 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
             constrained = 0
         end
 
-        if (re_opt_cnt==25) | (flag=="converged")
+        if (re_opt_cnt==25) | (flag=="converged") | (flag=="NRstuck")
             re_opt_cnt=0
             p_vec,fe_itrs,H_save = reOpt_FE(d,p_vec,max_itr=50,H=H_save)
             if (flag=="converged") & (fe_itrs<2)
@@ -216,22 +216,26 @@ function two_stage_est(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
                 println("Trial (NR): Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
                 trial_cnt+=1
-            elseif real_hessian==1
-                hess_steps = 0
-                trial_max = 1
-                println("RUN ROUND OF GRADIENT ASCENT")
-                if ga_cnt<=2
-                    p_test, f_test,ga_conv = ga_twostage(d,p_vec,W,par_ind,max_itr=10,strict=true,Grad_Skip_Steps=2)
-                    ga_cnt+=1
-                else
-                    p_test, f_test,ga_conv = ga_twostage(d,p_vec,W,par_ind,max_itr=50,strict=false,Grad_Skip_Steps=10)
-                end
-                if ga_conv==1
-                    ga_conv_cnt+=1
-                end
+            # elseif real_hessian==1
+            #     hess_steps = 0
+            #     trial_max = 1
+            #     println("RUN ROUND OF GRADIENT ASCENT")
+            #     if ga_cnt<=2
+            #         p_test, f_test,ga_conv = ga_twostage(d,p_vec,W,par_ind,max_itr=10,strict=true,Grad_Skip_Steps=2)
+            #         ga_cnt+=1
+            #     else
+            #         p_test, f_test,ga_conv = ga_twostage(d,p_vec,W,par_ind,max_itr=50,strict=false,Grad_Skip_Steps=10)
+            #     end
+            #     if ga_conv==1
+            #         ga_conv_cnt+=1
+            #     end
             else
                 hess_steps = 0
                 println("No Update")
+                if real_hessian==1
+                    flag = "NRstuck"
+                end
+
                 p_test = copy(p_vec)
                 break
             end
@@ -281,7 +285,7 @@ function reOpt_FE(d::InsuranceLogit,p_vec::Vector{Float64};max_itr=30,H=missing)
     return p_min,cnt,H_k
 end
 
-function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
+function NR_fixedEffects(d,p0;grad_tol=1e-8,f_tol=1e-11,x_tol=1e-11,
     max_itr=30,strict=true,Hess_Skip_Steps=5,H_init::Union{Missing,Array{Float64}}=missing)
 
     # Initialize Gradient
