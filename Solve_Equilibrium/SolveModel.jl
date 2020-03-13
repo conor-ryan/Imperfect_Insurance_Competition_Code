@@ -162,7 +162,7 @@ function solve_equilibrium(rundate,spec)
 
     println("Solve Equilibrium...")
     file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_$spec-$rundate.csv"
-    solveMain(model,firm,file)
+    # solveMain(model,firm,file)
 
 
     println("Solve Social Welfare Decomposition...")
