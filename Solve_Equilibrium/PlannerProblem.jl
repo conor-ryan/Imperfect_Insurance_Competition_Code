@@ -101,6 +101,8 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
             λ_new = 0.0
         elseif cnt==2
             λ_new = 1.0
+        elseif cnt<4
+            λ_new = (λ_max-λ_min)/2 + λ_min
         elseif (sec_step>λ_min) & (sec_step<λ_max)
             # println("Secant Step")
             λ_new = sec_step
