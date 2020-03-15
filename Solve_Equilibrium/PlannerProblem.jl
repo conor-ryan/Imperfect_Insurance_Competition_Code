@@ -94,7 +94,7 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
     Π_min = -1e8
     Π_max = 1e8
     p_init = copy(f.P_j[:])
-    while (λ_err>1e-3) & (err>1)
+    while (λ_err>1e-4) & (err>1)
         cnt+=1
         sec_step = (Π_target-intcpt)/slope
         if cnt==1
@@ -131,15 +131,18 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
         end
         ## Secant Step
         if cnt>=2
-            slope = (Π_new - Π_old)/(λ_new-λ_old)
+            if (cnt%2 == 0)
+                slope = (Π_new - Π_max)/(λ_new-λ_max)
+            else
+                slope = (Π_new - Π_min)/(λ_new - λ_min)
+            end
             intcpt = Π_new - slope*λ_new
         end
 
-
         if cnt>2
-            λ_err = abs(λ_new - λ_old)
-        else
             λ_err = λ_max - λ_min
+        else
+            λ_err = 1.0
         end
         λ_old = copy(λ_new)
         Π_old = copy(Π_new)
