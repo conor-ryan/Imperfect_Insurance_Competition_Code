@@ -466,16 +466,10 @@ function solveMain_SP(m::InsuranceLogit,f::firmData,file::String)
     println("#### Solve without Risk Adjustment ####")
     println("####################################")
     f.P_j[:] = P_Obs[:]
-    solve_model!(m,f,sim="RA",voucher=true,update_voucher=true)
-    P_RA[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=true,update_voucher=true)
-    S_RA[:] = f.S_j[:]
-    set_voucher!(f,refund=true)
-
     solve_model!(m,f,sim="RA",voucher=true,update_voucher=false)
-    P_Base[:] = f.P_j[:]
+    P_RA[:] = f.P_j[:]
     evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
-    S_Base[:] = f.S_j[:]
+    S_RA[:] = f.S_j[:]
 
     RA_profits = market_profits(m,f)
 
