@@ -160,28 +160,28 @@ function solve_equilibrium(rundate,spec)
     consumer_welfare(model,firm,"obs")
     trash = total_welfare_bymkt(model,firm,"obs",update_voucher=true)
 
-    println("Solve Equilibrium...")
-    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_$spec-$rundate.csv"
-    solveMain(model,firm,file)
-
-
-    println("Solve Social Welfare Decomposition...")
-    firm = firmData(model,df,eq_mkt,par_dem,par_cost)
-    evaluate_model!(model,firm,"All",foc_check=true)
-    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_Welfare_$spec-$rundate.csv"
-    solveMain_SP(model,firm,file)
-
-    println("Solve Social Welfare Decomposition, Robustness Check...")
-    firm = firmData(model,df,eq_mkt,par_dem,par_cost)
-    evaluate_model!(model,firm,"All",foc_check=true)
-    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_WelfareGov_$spec-$rundate.csv"
-    solveMain_SP_Gov(model,firm,file)
+    # println("Solve Equilibrium...")
+    # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_$spec-$rundate.csv"
+    # solveMain(model,firm,file)
+    #
+    #
+    # println("Solve Social Welfare Decomposition...")
+    # firm = firmData(model,df,eq_mkt,par_dem,par_cost)
+    # evaluate_model!(model,firm,"All",foc_check=true)
+    # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_Welfare_$spec-$rundate.csv"
+    # solveMain_SP(model,firm,file)
+    #
+    # println("Solve Social Welfare Decomposition, Robustness Check...")
+    # firm = firmData(model,df,eq_mkt,par_dem,par_cost)
+    # evaluate_model!(model,firm,"All",foc_check=true)
+    # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_WelfareGov_$spec-$rundate.csv"
+    # solveMain_SP_Gov(model,firm,file)
 
     println("Solve Price-Linked Equilibrium, Robustness...")
     firm = firmData(model,df,eq_mkt,par_dem,par_cost)
     evaluate_model!(model,firm,"All",foc_check=true)
     file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_PL_$spec-$rundate.csv"
-    solveMain(model,firm,file)
+    solveMain_PL(model,firm,file)
 
     return nothing
 end
@@ -747,7 +747,7 @@ function solveMain_PL(m::InsuranceLogit,f::firmData,file::String)
     S_Base_pl[:] = f.S_j[:]
 
 
-    consumer_welfare(m,f,"Base")
+    consumer_welfare(m,f,"Base_pl")
     trash = total_welfare_bymkt(m,f,"Base_pl",update_voucher=true)
 
     println("###### Solve Merger Scenario ######")
@@ -837,22 +837,22 @@ function solveMain_PL(m::InsuranceLogit,f::firmData,file::String)
 
     output =  DataFrame(Product=prod_vec,
                         Price_data=P_Obs,
-                        Price_base_pl=P_Base_pl,
-                        Price_RA_pl =P_RA_pl,
-                        Price_man_pl=P_man_pl,
-                        Price_RAman_pl=P_RAman_pl,
-                        Price_base_m_pl=P_Base_m_pl,
-                        Price_RA_m_pl =P_RA_m_pl,
-                        Price_man_m_pl=P_man_m_pl,
-                        Price_RAman_m_pl=P_RAman_m_pl,
-                        Lives_base_pl=S_Base_pl,
-                        Lives_RA_pl =S_RA_pl,
-                        Lives_man_pl=S_man_pl,
-                        Lives_RAman_pl=S_RAman_pl,
-                        Lives_base_m_pl=S_Base_m_pl,
-                        Lives_RA_m_pl =S_RA_m_pl,
-                        Lives_man_m_pl=S_man_m_pl,
-                        Lives_RAman_m_pl=S_RAman_m_pl)
+                        Price_base=P_Base_pl,
+                        Price_RA =P_RA_pl,
+                        Price_man=P_man_pl,
+                        Price_RAman=P_RAman_pl,
+                        Price_base_m=P_Base_m_pl,
+                        Price_RA_m =P_RA_m_pl,
+                        Price_man_m=P_man_m_pl,
+                        Price_RAman_m=P_RAman_m_pl,
+                        Lives_base=S_Base_pl,
+                        Lives_RA =S_RA_pl,
+                        Lives_man=S_man_pl,
+                        Lives_RAman=S_RAman_pl,
+                        Lives_base_m=S_Base_m_pl,
+                        Lives_RA_m =S_RA_m_pl,
+                        Lives_man_m=S_man_m_pl,
+                        Lives_RAman_m=S_RAman_m_pl)
 
     CSV.write(file,output)
 
