@@ -7,7 +7,7 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
 
 ## Estimation Run 
-run = "2019-12-07"
+run = "2020-03-10"
 spec = "FMC"
 
 #Load Product Data
@@ -57,7 +57,7 @@ share_moment[,unins_rate:=1-sum(Share),by="Market"]
 
 
 
-prod_data = merge(prod_data,share_moment[,c("Product_std","unins_rate","Share")],by.x=c("Product"),by.y="Product_std",all=TRUE)
+prod_data = merge(prod_data,share_moment[,c("Product_std","unins_rate","Share")],by.x=c("Product_std"),by.y="Product_std",all=TRUE)
 
 prod_data[,unins_base:=1-sum(share_base),by="Market"]
 unins_test = prod_data[,list(unins_base=1-sum(share_base)),by=c("Market","size","unins_rate")]
@@ -106,10 +106,10 @@ firmClaims = firmClaims[,c("ST","Firm","AvgCost","prjAvgCost","expAvgCost")]
 names(firmClaims) = c("ST","Firm","FirmAvgCost","prjFirmCost","expFirmCost")
 
 fMom = read.csv("Intermediate_Output/MC_Moments/firmMoments.csv")
-fMom = unique(fMom[,c("logAvgCost","M_num","Product")])
+fMom = unique(fMom[,c("logAvgCost","M_num","Product_std")])
 
 prod_data = merge(prod_data,firmClaims,by=c("ST","Firm"),all.x=TRUE)
-prod_data = merge(prod_data,fMom,by="Product",all.x=TRUE)
+prod_data = merge(prod_data,fMom,by="Product_std",all.x=TRUE)
 setkey(prod_data,Market,Firm,AV_std)
 
 

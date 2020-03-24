@@ -9,7 +9,7 @@ run = "2020-03-10"
 spec = "FMC"
 
 #### Read in Data ####
-eqFile = paste("Estimation_Output/solvedEquilibrium_",spec,"-",run,".csv",sep="")
+eqFile = paste("Estimation_Output/solvedEquilibrium_PL_",spec,"-",run,".csv",sep="")
 eqData = as.data.table(read.csv(eqFile))
 
 prodData = as.data.table(read.csv("Intermediate_Output/Equilibrium_Data/estimated_prodData_full.csv"))
@@ -25,6 +25,16 @@ margFile = paste("Estimation_Output/checkMargins_",spec,"-",run,".csv",sep="")
 mData = as.data.table(read.csv(margFile))
 
 prod_pred = merge(prod_pred,mData[,c("Product","P_obs","lives")],by="Product")
+
+#### Benchmark Probabilities ####
+prod_pred[Metal_std=="SILVER",premium_rank:=rank(Price_base),by=c("Market","Metal_std")]
+prod_pred[,max_rank:=max(premium_rank),by=c("Market","Metal_std")]
+prod_pred[premium_rank==2|(max_rank==1&premium_rank==1),bench_prem:=Price_base]
+prod_pred[,bench_prem:=max(bench_prem,na.rm=TRUE),by=c("Market")]
+prod_pred[Metal_std=="SILVER",bench_wgt:=exp(-0.1*abs(Price_base-bench_prem))]
+prod_pred[,bench_prob:=bench_wgt/sum(bench_wgt),by=c("Market","Metal_std")]
+
+benchmarks = prod_pred[bench_prem==Price_base,c("Market","Price_base","bench_wgt","bench_prob")]
 
 #### Compute Shares ####
 for (v in c("base","RA","man","RAman")){
