@@ -240,6 +240,19 @@ acs[,Firm_Market_Cat_Age:=paste(Firm,Market,prodCat,Age,sep="_")]
 acs[,Firm_ST:=paste(Firm,ST,sep="_")]
 
 
+#### Simulation Drop Flags ####
+est_data = as.data.table(read.csv("Intermediate_Output/Estimation_Data/estimationData_discrete.csv"))
+est_FMC_obs = est_data[,unique(Firm_Market_Cat)]
+est_FMCA_obs = est_data[,unique(Firm_Market_Cat_Age)]
+
+acs[,drop_FMC:=0]
+acs[!Firm_Market_Cat%in%est_FMC_obs,drop_FMC:=1]
+
+acs[,drop_FMCA:=0]
+acs[!Firm_Market_Cat_Age%in%est_FMCA_obs,drop_FMCA:=1]
+
+rm(est_data)
+
 #### Merge in Product Map #### 
 prod_map = read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv")
 prod_map = as.data.table(prod_map)
@@ -384,7 +397,8 @@ acs[,c("Age_Cat","Inc_Cat"):=NULL]
 
 
 #### Output Analogous Data ####
-choiceData = acs[,c("Person","Firm","ST","Firm_ST","Market_Firm","Market_Cat","Firm_Market_Cat","Firm_Market_Cat_Age","Market","PERWT","Price",
+choiceData = acs[,c("Person","Firm","ST","Firm_ST","Market_Firm","Market_Cat","Firm_Market_Cat","Firm_Market_Cat_Age","drop_FMC","drop_FMCA",
+                    "Market","PERWT","Price",
                     "MedDeduct","ExcOOP","High","AV","AV_std","AV_diff","HighRisk","Small","High_small","Gamma_j",
                     "Mandate","subsidy","benchBase","IncomeCont","mkt_density",
                     "Family","Age","LowIncome","AGE","AvgAge",

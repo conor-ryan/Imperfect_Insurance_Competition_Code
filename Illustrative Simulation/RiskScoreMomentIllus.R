@@ -7,7 +7,7 @@ library(ggplot2)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
 
 ## Run
-run = "2019-03-07"
+run = "2020-03-10"
 
 #### 2015 Subsidy Percentage Function ####
 
@@ -29,82 +29,7 @@ subsPerc <- function(FPL){
 
 
 #### Read in  ACS Exchange Elligible Data ####
-acs = read.csv("Data/2015_ACS/exchangePopulation2015.csv")
-acs = as.data.table(acs)
-setkey(acs,STATEFIP,PUMA)
-#Uninsured Rate
-with(acs,sum(uninsured*PERWT)/sum(PERWT))
-acs$person = rownames(acs)
-
-#### Match PUMA to Rating Area ####
-acs = acs[,c("household","HHincomeFPL","HH_income","AGE","SEX","PERWT")]
-names(acs) = c("household","HHincomeFPL","HH_income","AGE","SEX","PERWT")
-
-#### Rating Curves ####
-rating = read.csv("Data/AgeRating.csv")
-rating = as.data.table(rating)
-# Create truncated Age variable
-acs$AgeMatch = acs$AGE
-acs$AgeMatch[acs$AGE<14] = 14
-acs$AgeMatch[acs$AGE>64] = 64
-
-# Merge in Default Age Rating Curves - Ignore State Specific Effects For Now
-acs = merge(acs,rating[rating$State=="Default",c("Age","Rating")],by.x="AgeMatch",by.y="Age",all.x=TRUE)
-#acs = merge(acs,rating[rating$State!="Default",],by.x=c("ST","AgeMatch"),by.y=c("State","Age"),all.x=TRUE)
-acs$ageRate = acs$Rating
-#acs$ageRate[!is.na(acs$Rating.y)] = acs$Rating.y[!is.na(acs$Rating.y)]
-# Drop redundant rating variables
-acs = acs[,c("Rating"):=NULL]
-rm(rating)
-
-# Merge in Age-specific HHS-HCC Risk Adjustment Factors
-HCC = read.csv("Risk_Adjustment/2014_HHS_HCC_AgeRA_Coefficients.csv")
-names(HCC) = c("Sex","Age","PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age")
-acs[,AgeMatch:= pmax(floor(AGE/5)*5,21)]
-acs = merge(acs,HCC,by.x=c("AgeMatch","SEX"),by.y=c("Age","Sex"))
-
-#### Household Characteristics ####
-
-#Count Members
-setkey(acs,household)
-acs$MEMBERS=1
-#Age of HoH
-acs[,MaxAge:=max(AGE),by="household"]
-# Drop heads of household that are under 18 - 2,041
-acs = acs[MaxAge>=18,]
-
-#Count Children
-acs[,childRank:=rank(AGE,ties.method="first"),by="household"]
-acs$childRank[acs$AGE>18] = NA
-acs$ageRate[!is.na(acs$childRank)&acs$childRank>3]=0
-
-acs$catas_cnt = as.numeric(acs$AGE<=30)
-acs$ageRate_avg = acs$ageRate*acs$PERWT
-
-acs[,PlatHCC_Age:=PlatHCC_Age*PERWT]
-acs[,GoldHCC_Age:=GoldHCC_Age*PERWT]
-acs[,SilvHCC_Age:=SilvHCC_Age*PERWT]
-acs[,BronHCC_Age:=BronHCC_Age*PERWT]
-acs[,CataHCC_Age:=CataHCC_Age*PERWT]
-
-
-acs = acs[,lapply(.SD,sum),by=c("household","HHincomeFPL","HH_income","MaxAge"),
-          .SDcols = c("MEMBERS","ageRate","ageRate_avg","PERWT","catas_cnt",
-                      "PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age")]
-
-names(acs) = c("household","HHincomeFPL","HH_income","AGE","MEMBERS","ageRate","ageRate_avg","PERWT","catas_cnt",
-               "PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age")
-acs$ageRate_avg = with(acs,ageRate_avg/PERWT)
-acs[,PlatHCC_Age:=PlatHCC_Age/PERWT]
-acs[,GoldHCC_Age:=GoldHCC_Age/PERWT]
-acs[,SilvHCC_Age:=SilvHCC_Age/PERWT]
-acs[,BronHCC_Age:=BronHCC_Age/PERWT]
-acs[,CataHCC_Age:=CataHCC_Age/PERWT]
-
-
-acs$FAMILY_OR_INDIVIDUAL = "INDIVIDUAL"
-acs$FAMILY_OR_INDIVIDUAL[acs$MEMBERS>1] = "FAMILY"
-acs$catas_elig = acs$catas_cnt==acs$MEMBERS
+load("Intermediate_Output/Simulated_BaseData/acs_prepped.rData")
 
 
 #### Match to a Risk Draw ####
@@ -132,6 +57,10 @@ acs[draws_Any<0,draws_Any:=0]
 acs[,HCC_Silver:=exp(qnorm(draws_Any)*sqrt(var_HCC_Silver) + mean_HCC_Silver)]
 
 acs[,names(acs)[grepl("(_HCC_|Any_HCC|riskDraw|Rtype|draws_Any)",names(acs))]:=NULL]
+
+
+acs[,risk_positive:="Zero"]
+acs[HCC_Silver>0,risk_positive:="Non-Zero"]
 
 
 #### MEPS COMPARE ####
@@ -165,8 +94,33 @@ meps = meps[!is.na(meps$STEXCH),]
 meps$risk_positive="Zero"
 meps$risk_positive[meps$HCC_Score_Silver>0]="Non-Zero"
 
-acs[,risk_positive:="Zero"]
-acs[HCC_Silver>0,risk_positive:="Non-Zero"]
+
+#### Random Draw in MEPS Data ####
+meps = as.data.table(meps)
+meps[,riskDraw:= runif(nrow(meps))]
+
+## Risk Moments
+meps[,Age_Cat:= 0]
+meps[AGE15X>45,Age_Cat:= 1]
+
+meps[,Inc_Cat:= 0]
+meps[POVLEV15>400,Inc_Cat:= 1]
+
+meps = merge(meps,r_mom,by=c("Age_Cat","Inc_Cat"),all.x=TRUE)
+
+acs[,c("Age_Cat","Inc_Cat"):=NULL]
+
+## Calculate HCC Score
+meps[,draws_Any:=(riskDraw-(1-Any_HCC))/(Any_HCC)]
+meps[draws_Any<0,draws_Any:=0]
+
+meps[,HCC_pred_Silver:=exp(qnorm(draws_Any)*sqrt(var_HCC_Silver) + mean_HCC_Silver)]
+
+meps[,names(meps)[grepl("(_HCC_|Any_HCC|riskDraw|Rtype|draws_Any)",names(meps))]:=NULL]
+
+
+meps[,risk_pred_positive:="Zero"]
+meps[HCC_pred_Silver>0,risk_pred_positive:="Non-Zero"]
 
 
 bar_plot1 = summaryBy(PERWT15F~risk_positive,data=meps,FUN=sum,keep.names=TRUE)
@@ -177,6 +131,12 @@ bar_plot1$dist = with(bar_plot1,PERWT15F/sum(PERWT15F))
 bar_plot2 = summaryBy(PERWT~risk_positive,data=acs,FUN=sum,keep.names=TRUE)
 bar_plot2$model="Model"
 bar_plot2[,dist:=PERWT/sum(PERWT)]
+
+bar_plot3 = summaryBy(PERWT15F~risk_pred_positive,data=meps,FUN=sum,keep.names=TRUE)
+bar_plot3$model="Data"
+bar_plot3$dist = with(bar_plot1,PERWT15F/sum(PERWT15F))
+
+
 barplot = rbind(bar_plot1[,c("risk_positive","model","dist")],
                 bar_plot2[,c("risk_positive","model","dist")])
 barplot$risk_positive = factor(barplot$risk_positive,levels=c("Zero","Non-Zero"))
@@ -199,6 +159,23 @@ ggplot() +
     axis.title=element_text(size=14),
     axis.text = element_text(size=14))
 dev.off()
+
+ggplot() +
+  geom_histogram(data=meps,aes(x=log(HCC_pred_Silver),weights=PERWT15F,y=..density..,fill="Model"),binwidth=.3,alpha=0.6)+
+  geom_histogram(data=meps,aes(x=log(HCC_Score_Silver),weights=PERWT15F,y=..density..,fill="Data"),binwidth=.3,alpha=0.6)+
+  ylab("Density") +
+  xlab("Log Risk Score") +
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    #panel.grid.major = element_line(color=grey(.8)),
+    legend.background = element_blank(),
+    legend.title=element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "right",
+    axis.title=element_text(size=14),
+    axis.text = element_text(size=14))
 
 png("Writing/Images/RiskDist_Fit_Any.png",width=2500,height=1500,res=275)
 ggplot(barplot) + aes(x=risk_positive,y=dist,fill=model) +
@@ -224,7 +201,7 @@ ggplot() +
   geom_histogram(data=meps[meps$HCC_Score_Silver>0,],aes(x=HCC_Score_Silver,weights=PERWT15F,y=..density..,fill="Data"),binwidth=.3,alpha=0.6)+
   ylab("Density") +
   xlab("Risk Score") +
-  # coord_cartesian(xlim=c(0,20)) +
+  coord_cartesian(xlim=c(0,20)) +
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
     strip.background = element_blank(),
     #panel.grid.major = element_line(color=grey(.8)),

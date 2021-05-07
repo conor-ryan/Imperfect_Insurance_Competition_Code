@@ -52,7 +52,7 @@ Firms[,share:=Lives_base/insured]
 
 Mkt = Firms[,list(HHI=sum((share*100)^2)),by="Market"]
 Mkt[,HHI_flag:=0]
-Mkt[HHI>3350,HHI_flag:=1]
+Mkt[HHI>3300,HHI_flag:=1]
 Mkt[HHI>5200,HHI_flag:=2]
 table(Mkt$HHI_flag)
 file = paste("Estimation_Output/MktHHI_",spec,"-",run,".rData",sep="")
