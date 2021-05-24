@@ -79,17 +79,17 @@ function ChoiceData(data_choice::DataFrame,
     n, k = size(data_choice)
 
     # Convert everything to an array once for performance
-    i = convert(Matrix{Float64},data_choice[:,person])
-    j = convert(Matrix{Float64},data_choice[:,product])
-    X = convert(Matrix{Float64},data_choice[:,prodchars])
-    # X_0 = convert(Array{Float64},data_choice[prodchars_0])
-    y = convert(Matrix{Float64},data_choice[:,choice])
-    Z = convert(Matrix{Float64},data_choice[:,demoRaw])
-    w = convert(Matrix{Float64},data_choice[:,wgt])
-    s0= convert(Matrix{Float64},data_choice[:,unins])
+    i = Array(data_choice[!,person])
+    j = Array(data_choice[!,product])
+    X = Array(data_choice[!,prodchars])
+    # X_0 = Array(Array{Float64},data_choice[prodchars_0])
+    y = Array(data_choice[!,choice])
+    Z = Array(data_choice[!,demoRaw])
+    w = Array(data_choice[!,wgt])
+    s0= Array(data_choice[!,unins])
 
     riskChars=[:ageRate_avg,:HCC_age]
-    rm = convert(Matrix{Float64},data_choice[:,riskChars])
+    rm = Array(data_choice[!,riskChars])
 
     println("Create Fixed Effects")
     riskFirm = (:HighRisk in prodchars) | (:Big in prodchars)
@@ -108,16 +108,16 @@ function ChoiceData(data_choice::DataFrame,
 
     #### Risk Score Moments ####
     if riskscores
-        r_df = unique(data_choice[:,[:Rtype,:Any_HCC,
+        r_df = unique(data_choice[!,[:Rtype,:Any_HCC,
                                 :mean_HCC_Catastrophic,:var_HCC_Catastrophic,
                                 :mean_HCC_Bronze,:var_HCC_Bronze,
                                 :mean_HCC_Silver,:var_HCC_Silver,
                                 :mean_HCC_Gold,:var_HCC_Gold,
                                 :mean_HCC_Platinum,:var_HCC_Platinum]])
-        r_types = sort(unique(data_choice[:,:Rtype]))
+        r_types = sort(unique(data_choice[!,:Rtype]))
         rmat = Matrix{Float64}(undef,length(r_types)*5,4)
         for r in r_types
-            row_ind = findall(r_df[:,:Rtype].==r)[1]
+            row_ind = findall(r_df[!,:Rtype].==r)[1]
             r_temp = r_df[row_ind:row_ind,:]
             for m in 1:5
                 rmat[(r-1)*5+m,1] = (r-1)*5+m
@@ -149,7 +149,7 @@ function ChoiceData(data_choice::DataFrame,
         r_silv_var = [:riskIndex_Silver]
         r_var = [:riskIndex]
         r_any = [:Any_HCC]
-        any_vec = convert(Matrix{Float64},data_choice[:,r_any])
+        any_vec = Array(data_choice[!,r_any])
     else
         r_silv_var = [:riskIndex_Silver]
         r_var = [:riskIndex]
@@ -258,29 +258,29 @@ function ChoiceData(data_choice::DataFrame,
     # Construct Risk Moments
     println("Construct Risk Moments")
     _tMomentDict = Dict{Int,Array{Int64,1}}()
-    moments = sort(unique(data_risk[:,:momentID]))
+    moments = sort(unique(data_risk[!,:momentID]))
     tMoments = Vector{Float64}(undef,length(moments))
     st_share = zeros(Int(maximum(keys(_productDict))))
     _stDict = Dict{Int,Array{Int64,1}}()
     if constMoments
 
         for m in moments
-            _tMomentDict[m] = data_risk[:,:Product][findall(data_risk[:,:momentID].==m)]
-            tMoments[m] = data_risk[:,:T_moment][findall(data_risk[:,:momentID].==m)][1]
+            _tMomentDict[m] = data_risk[!,:Product][findall(data_risk[!,:momentID].==m)]
+            tMoments[m] = data_risk[!,:T_moment][findall(data_risk[!,:momentID].==m)][1]
         end
 
 
 
-        states = unique(data_risk[:,:ST])
+        states = unique(data_risk[!,:ST])
         for s in states
-            _stDict[s] = unique(data_risk[:,:Product][findall(data_risk[:,:ST].==s)])
+            _stDict[s] = unique(data_risk[!,:Product][findall(data_risk[!,:ST].==s)])
         end
 
         for prod in keys(_productDict)
             ind = Int(prod)
-            idx = findall(data_risk[:,:Product].==prod)
+            idx = findall(data_risk[!,:Product].==prod)
             if length(idx)>0
-                st_share[ind] = data_risk[:,:st_share][idx[1]]
+                st_share[ind] = data_risk[!,:st_share][idx[1]]
             end
         end
     end
@@ -331,7 +331,7 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};
     end
 
     for fe in fe_list
-        fac_variables = data_choice[:,fe]
+        fac_variables = data_choice[!,fe]
         factor_list = sort(unique(fac_variables))
         if fe==:constant
             num_effects=1
@@ -367,7 +367,7 @@ function build_FE(data_choice::DataFrame,fe_list::Vector{T};
             ind+=1
             continue
         end
-        fac_variables = data_choice[:,fe]
+        fac_variables = data_choice[!,fe]
         factor_list = sort(unique(fac_variables))
         if (!(:constant in fe_list))  & (!constInProds) & (fe==fe_list[1])
             st_ind = 1
@@ -686,7 +686,7 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
     n, k = size(c_data.data)
     # Copy Firm Level Data for Changing in Estimation
     pmat = c_data.pdata
-    pmat[:delta] = 1.0
+    pmat[!,:delta] .= 1.0
     # sort!(pmat)
 
     prods = sort(Int.(unique(c_data.data[c_data._product,:])))
@@ -694,7 +694,7 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
     d = InsuranceLogit(parLength,
                         c_data,
                         risk_draws,
-                        prods,pmat[:,:Share],pmat[:,:lives],
-                        pmat[:,:Gamma_j],pmat[:,:AV],pmat[:,:delta])
+                        prods,pmat[!,:Share],pmat[!,:lives],
+                        pmat[!,:Gamma_j],pmat[!,:AV],pmat[!,:delta])
     return d
 end
