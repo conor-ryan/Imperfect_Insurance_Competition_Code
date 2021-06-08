@@ -83,6 +83,18 @@ function GMM_objective(d::InsuranceLogit,p0::Array{T},W::Matrix{Float64};feFlag:
     return obj
 end
 
+function GMM_moments(d::InsuranceLogit,p0::Array{T};feFlag::Int64=-1) where T
+
+    par0 = parDict(d,p0,no2Der=true)
+    grad = Vector{T}(undef,length(p0))
+    ll = log_likelihood!(grad,d,par0,feFlag=feFlag)
+    # individual_values!(d,par0)
+    mom = calc_risk_moments(d,par0)
+
+    moments = vcat(mom,grad)
+    return moments
+end
+
 function GMM_objective(d::InsuranceLogit,
                     p_small::Array{T,1},p0::Array{Float64},
                     W::Matrix{Float64}) where T

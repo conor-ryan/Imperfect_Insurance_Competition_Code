@@ -107,7 +107,8 @@ function res_process_GMM(model::InsuranceLogit,p_est::Vector{Float64})
     paramFinal = parDict(model,p_est,no2Der=true)
 
     #### GMM Errors ####
-    S = calc_mom_Avar(model,p_est)
+    V1 = calc_mom_Avar(model,p_est)
+    V2 = integration_var_bootstrap(model,p_est;n=100)
 
     ## Derivative of Moments wrt Parameters
     grad = Vector{Float64}(undef,length(p_est))
@@ -118,7 +119,7 @@ function res_process_GMM(model::InsuranceLogit,p_est::Vector{Float64})
     G = hcat(mom_grad,hess)
 
     ## Calculate Variance
-    AsVar = inv(G*inv(S)*G')
+    AsVar = inv(G*inv(V1 + V2)*G')
     N = length(d.data._personIDs)
     V = Avar./N
 

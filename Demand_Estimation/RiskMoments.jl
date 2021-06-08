@@ -687,3 +687,33 @@ function findinlist(list1::Vector{T},list2::Vector{T}) where T
     end
     return sort(out[out.>0])
 end
+
+
+function integration_var_bootstrap(d::InsuranceLogit,p0::Array{T};feFlag::Int64=-1,n=100) where T
+    num_halton_draws,R = size(d.draws)
+    draws = MVHalton(num_halton_draws*n,1;scrambled=true)
+    risk_draws = Matrix{Float64}(undef,num_halton_draws*n,R)
+    for mom in 1:R
+        any = 1 - d.data.rMoments[mom,2]
+        μ_risk = d.data.rMoments[mom,3]
+        std_risk = sqrt(d.data.rMoments[mom,4])
+        for ind in 1:(num_halton_draws*n)
+            x = draws[ind]
+            log_r = norminvcdf(x)*std_risk + μ_risk
+            risk_draws[ind,mom] = exp(log_r)
+        end
+    end
+    gmm_moments = Matrix{Float64}(undef,length(p0) + length(d.data.tMoments),n)
+    for i in 1:n
+        println(i)
+        index = ((i-1)*1000 + 1):(i*1000)
+        println("From $(minimum(index)) to $(maximum(index))")
+        d.draws[:,:] = risk_draws[index,:]
+        println("Draw mean of $(mean(d.draws)) with size $(size(d.draws))")
+        mom = GMM_moments(d,p0)
+        println("Moment mean: $(mean(mom))")
+        gmm_moments[:,i] = mom[:]
+    end
+    V = cov(gmm_moments,dims=2)
+    return V
+end
