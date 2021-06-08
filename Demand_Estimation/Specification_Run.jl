@@ -150,7 +150,7 @@ end
 
 
 function run_specification_GMM(filename::String,
-                            rundate::Date,
+                            rundate::Union(String,Date),
                             df::DataFrame,
                             df_mkt::DataFrame,
                             df_risk::DataFrame;
