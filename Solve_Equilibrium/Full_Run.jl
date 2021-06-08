@@ -26,7 +26,7 @@ rundate = Dates.today()
 rundate = "2020-03-10"
 println("Running on $rundate")
 spec = "FMC"
-spec_fixedEffects=[:Firm_Market,:Firm_Category]
+spec_fixedEffects=[:Market_Firm,:Market_Cat]
 
 println("##### Estimate Demand #####")
 println("Load Demand Estimation Code...")
