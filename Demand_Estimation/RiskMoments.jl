@@ -582,15 +582,15 @@ function calc_mom_Avar(d::InsuranceLogit,p0::Vector{Float64})
     end
 
     # Σ = Σ./(Pop) Currently normalizing all weights in computing COV matrix
-    Σ = Σ./(1-w_cov_sumsq[1])
-    Σ = Σ./N
+    # Σ = Σ./(1-w_cov_sumsq[1])
+    # Σ = Σ./N
     (N,M) = size(Σ)
     aVar = zeros(d.parLength[:All] + length(d.data.tMoments),M)
     (Q,R) = size(aVar)
     aVar[1:length(d.data.tMoments),1:(num_prods*2)] = risk_Δavar(mean_moments[1:(num_prods*2)],d)
     aVar[(length(d.data.tMoments)+1):Q,(num_prods*2 + 1):R] = Matrix{Float64}(I,d.parLength[:All],d.parLength[:All])
 
-    S_est = N.*(aVar*Σ*aVar')
+    S_est = (aVar*Σ*aVar')
 
     return S_est
 end
