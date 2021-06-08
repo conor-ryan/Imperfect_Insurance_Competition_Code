@@ -39,16 +39,16 @@ for i in 1:4
     println("Risk type $i: $perc")
 end
 
-df[:unins_test] = 0.0
+df[!,:unins_test] .= 0.0
 
 #Structure the data
 c = ChoiceData(df,df_mkt,df_risk;
-    # demoRaw=[:AgeFE_31_39,
-    #         :AgeFE_40_51,
-    #         :AgeFE_52_64,
-    #         :Family,
-    #         :LowIncome],
-    demoRaw=Vector{Symbol}(undef,0),
+    demoRaw=[:AgeFE_31_39,
+            :AgeFE_40_51,
+            :AgeFE_52_64,
+            :Family,
+            :LowIncome],
+    # demoRaw=Vector{Symbol}(undef,0),
     prodchars=[:Price,:constant,:AV,:HighRisk,:Small,:High_small],
     prodchars_0=[:AV,:HighRisk,:Small,:High_small],
     unins = [:unins_test],

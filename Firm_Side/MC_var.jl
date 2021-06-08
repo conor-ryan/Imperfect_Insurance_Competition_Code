@@ -1,6 +1,7 @@
 using StatsBase
+using FiniteDiff
 
-function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Float64})
+function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Float64},p_dem_vec::Vector{Float64})
 
     par = parMC(p,p_est,d,c) # Fix p0
     individual_costs(d,par)
@@ -20,6 +21,20 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
         productIDs[idx_prod] .= j
     end
     num_prods = maximum(d.prods)
+
+    #### Stage 1 #### Newey McFadden  1994
+    ## Derivative of Cost Moments wrt Demand Parameters
+    G_γ = stage1_gradient(p_dem_vec,p,d,c)
+    println("Computed")
+    ## Derivative of Demand Moments wrt Demand Parameters
+    grad = Vector{Float64}(undef,length(p_dem_vec))
+    hess = Matrix{Float64}(undef,length(p_dem_vec),length(p_dem_vec))
+    ll = log_likelihood!(hess,grad,d,p_est)
+
+    mom_grad = Matrix{Float64}(undef,length(p_dem_vec),length(d.data.tMoments))
+    mom = calc_risk_moments!(mom_grad,d,par)
+
+    M = hcat(mom_grad,hess)
 
 
 
@@ -60,8 +75,8 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     for app in eachperson(d.data)
         g_n[:].= 0.0
         w_i = weight(app)[1]
-        # w_cov = w_i/Pop
-        w_cov = 1.0/8300
+        w_cov = w_i/Pop
+        # w_cov = 1.0/8300
         w_cov_sumsq[:] += [w_cov^2]
 
         idx_prod, wgt_obs = cost_obs_moments!(g_n,productIDs,app,d,c,par)
@@ -77,8 +92,8 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     # Σ = Σ./8300
 
 
-    Σ = Σ./(1-w_cov_sumsq[1])
-    Σ = Σ./N
+    # Σ = Σ./(1-w_cov_sumsq[1])
+    # Σ = Σ./N
     # Σ = Σ.*Pop
     # println(Pop)
     Δ = Δavar(c,d,mean_moments)
@@ -89,7 +104,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     # aVar[1:length(d.data.tMoments),(1:num_prods*2)] = risk_moments_Avar(d,p)
     # aVar[(length(d.data.tMoments)+1):Q,(num_prods*2 + 1):R] = Matrix{Float64}(I,d.parLength[:All],d.parLength[:All])
     #
-    S_est = N.*(Δ*Σ*Δ')
+    S_est = (Δ*Σ*Δ')
     # S_est = S_est.*(sqrt_n^2)
 
     return S_est, Σ, Δ, mean_moments
@@ -571,11 +586,11 @@ function calc_pop_sq(df::ChoiceData)
     return Pop
 end
 
-function GMM_var(c::MC_Data,d::InsuranceLogit,p::Array{Float64},par_est::parDict{Float64};draw_num=1000)
+function GMM_var(c::MC_Data,d::InsuranceLogit,p::Array{Float64},par_est::parDict{Float64},p_dem_vec::Vector{Float64},W::Matrix{Float64};draw_num=1000)
     ## Moment Variance
     println("Moment Variance")
     # S,mom_est = var_bootstrap(c,d,p,par_est,draw_num=draw_num)
-    S,Σ,Δ,mom_long = aVar(c,d,p,par_est)
+    S,Σ,Δ,mom_long = aVar(c,d,p,par_est,p_dem_vec)
 
     ## Derivative of Moments wrt Parameters
     println("Moment Gradient")
@@ -584,10 +599,13 @@ function GMM_var(c::MC_Data,d::InsuranceLogit,p::Array{Float64},par_est::parDict
     G = mom_gradient(p,par_est,d,c)
 
     ## Calculate Variance
-    Avar = inv(G'*inv(S)*G)
-    Pop = calc_pop(d.data)
+    term1 = G'*W*G
+    Avar =  inv(term1)*inv(G'*W*inv(S)*W*G)*inv(term1)
 
-    V = (1/sqrt(Pop)).*Avar
+    Pop = calc_pop(d.data)
+    N = length(unique(person(d.data)))
+
+    V = Avar./N
 
     ## Calculate Standard Error
     if any(diag(V.<0))
@@ -625,4 +643,27 @@ function mom_gradient(p::Vector{T},p_est::parDict{Float64},
     ForwardDiff.jacobian!(mom_grad,f_obj,p)
 
     return mom_grad
+end
+
+function stage1_gradient(p_dem::Vector{T},p_cost::Vector{Float64},
+                d::InsuranceLogit,c::MC_Data) where T
+    Mlen = c.mom_length
+    mom_grad = Matrix{Float64}(undef,Mlen,length(p_dem))
+
+    f_obj(x) = stage1_der_function(x,p_cost,d,c)
+    return f_obj(p_dem)
+
+    FiniteDiff.finite_difference_jacobian!(mom_grad,f_obj,p_dem)
+
+    return mom_grad
+end
+
+function stage1_der_function(p_dem::Vector{T},p_cost::Vector{Float64},
+                d::InsuranceLogit,c::MC_Data) where T
+    par_est = parDict(d,p_dem,no2Der=true)
+    individual_values!(d,par_est)
+    individual_shares(d,par_est)
+
+    moments = costMoments(c,d,p_cost,par_est)
+    return moments
 end

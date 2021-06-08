@@ -83,8 +83,7 @@ function calc_Avar(d::InsuranceLogit,p::parDict{T}) where T
     end
 
     Σ = Σ./Pop
-    # This last line is correct
-    AsVar = inv(Σ)./Pop
+    AsVar = inv(Σ)
     return AsVar
 end
 

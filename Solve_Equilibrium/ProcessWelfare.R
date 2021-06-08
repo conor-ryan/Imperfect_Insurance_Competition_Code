@@ -161,7 +161,7 @@ round(merger,1)
 
 
 #### Welfare Policy Analysis - By Market ####
-mktWelfare = unique(baseData[,c("Market","ST","HHI","Market_num","HHI_flag","dhhi_actual")])
+mktWelfare = unique(baseData[,c("Market","ST","HHI","Market_num","HHI_flag")])
 
 
 ## Merge in Welfare Info 
@@ -270,22 +270,39 @@ mktWelfare[,dIns_RAman:=Insured_RAman_m - Insured_RAman]
 
 
 
-merger = mktWelfare[Market!="GA_1",list(dCW_base=sum(dCW_base*Population_Base)/sum(CW_Base*Population_Base),
-                                   dCW_RA=sum(dCW_RA*Population_Base)/sum(CW_RA*Population_Base),
-                                   dCW_man=sum(dCW_man*Population_Base)/sum(CW_man*Population_Base),
-                                   dCW_RAman=sum(dCW_RAman*Population_Base)/sum(CW_RAman*Population_Base),
-                                   dPS_base=sum(dPS_base*Population_Base)/sum(Profit_Base*Population_Base),
-                                   dPS_RA=sum(dPS_RA*Population_Base)/sum(Profit_RA*Population_Base),
-                                   dPS_man=sum(dPS_man*Population_Base)/sum(Profit_man*Population_Base),
-                                   dPS_RAman=sum(dPS_RAman*Population_Base)/sum(Profit_RAman*Population_Base),
-                                   dGov_base=sum(dGov_base*Population_Base)/sum(Spending_Base*Population_Base),
-                                   dGov_RA=sum(dGov_RA*Population_Base)/sum(Spending_RA*Population_Base),
-                                   dGov_man=sum(dGov_man*Population_Base)/sum(Spending_man*Population_Base),
-                                   dGov_RAman=sum(dGov_RAman*Population_Base)/sum(Spending_RAman*Population_Base),
-                                   dIns_base=sum(dIns_base*Population_Base)/sum(Insured_Base*Population_Base),
-                                   dIns_RA=sum(dIns_RA*Population_Base)/sum(Insured_RA*Population_Base),
-                                   dIns_man=sum(dIns_man*Population_Base)/sum(Insured_man*Population_Base),
-                                   dIns_RAman=sum(dIns_RAman*Population_Base)/sum(Insured_RAman*Population_Base))]
+# merger = mktWelfare[Market!="GA_1",list(dCW_base=sum(dCW_base*Population_Base)/sum(CW_Base*Population_Base),
+#                                    dCW_RA=sum(dCW_RA*Population_Base)/sum(CW_RA*Population_Base),
+#                                    dCW_man=sum(dCW_man*Population_Base)/sum(CW_man*Population_Base),
+#                                    dCW_RAman=sum(dCW_RAman*Population_Base)/sum(CW_RAman*Population_Base),
+#                                    dPS_base=sum(dPS_base*Population_Base)/sum(Profit_Base*Population_Base),
+#                                    dPS_RA=sum(dPS_RA*Population_Base)/sum(Profit_RA*Population_Base),
+#                                    dPS_man=sum(dPS_man*Population_Base)/sum(Profit_man*Population_Base),
+#                                    dPS_RAman=sum(dPS_RAman*Population_Base)/sum(Profit_RAman*Population_Base),
+#                                    dGov_base=sum(dGov_base*Population_Base)/sum(Spending_Base*Population_Base),
+#                                    dGov_RA=sum(dGov_RA*Population_Base)/sum(Spending_RA*Population_Base),
+#                                    dGov_man=sum(dGov_man*Population_Base)/sum(Spending_man*Population_Base),
+#                                    dGov_RAman=sum(dGov_RAman*Population_Base)/sum(Spending_RAman*Population_Base),
+#                                    dIns_base=sum(dIns_base*Population_Base)/sum(Insured_Base*Population_Base),
+#                                    dIns_RA=sum(dIns_RA*Population_Base)/sum(Insured_RA*Population_Base),
+#                                    dIns_man=sum(dIns_man*Population_Base)/sum(Insured_man*Population_Base),
+#                                    dIns_RAman=sum(dIns_RAman*Population_Base)/sum(Insured_RAman*Population_Base))]
+
+merger = mktWelfare[Market!="GA_1",list(dCW_base=sum(dCW_base*Population_Base)/sum(Population_Base),
+                                        dCW_RA=sum(dCW_RA*Population_Base)/sum(Population_Base),
+                                        dCW_man=sum(dCW_man*Population_Base)/sum(Population_Base),
+                                        dCW_RAman=sum(dCW_RAman*Population_Base)/sum(Population_Base),
+                                        dPS_base=sum(dPS_base*Population_Base)/sum(Population_Base),
+                                        dPS_RA=sum(dPS_RA*Population_Base)/sum(Population_Base),
+                                        dPS_man=sum(dPS_man*Population_Base)/sum(Population_Base),
+                                        dPS_RAman=sum(dPS_RAman*Population_Base)/sum(Population_Base),
+                                        dGov_base=sum(dGov_base*Population_Base)/sum(Population_Base),
+                                        dGov_RA=sum(dGov_RA*Population_Base)/sum(Population_Base),
+                                        dGov_man=sum(dGov_man*Population_Base)/sum(Population_Base),
+                                        dGov_RAman=sum(dGov_RAman*Population_Base)/sum(Population_Base),
+                                        dIns_base=sum(dIns_base*Population_Base)/sum(Population_Base),
+                                        dIns_RA=sum(dIns_RA*Population_Base)/sum(Population_Base),
+                                        dIns_man=sum(dIns_man*Population_Base)/sum(Population_Base),
+                                        dIns_RAman=sum(dIns_RAman*Population_Base)/sum(Population_Base))]
 
 
 round(merger*100,1)

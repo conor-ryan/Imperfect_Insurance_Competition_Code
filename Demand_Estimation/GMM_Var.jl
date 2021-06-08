@@ -18,7 +18,8 @@ function GMM_var(d::InsuranceLogit,p_est::Vector{Float64})
     Avar = inv(G*inv(S)*G')
     Pop =sum(weight(d.data).*choice(d.data))
 
-    V = (1/sqrt(Pop)).*Avar
+    N = length(d.data._personIDs)
+    V = Avar./N
 
     ## Calculate Standard Error
     if any(diag(V.<0))

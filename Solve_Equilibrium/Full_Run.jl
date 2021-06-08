@@ -1,5 +1,5 @@
 using BenchmarkTools
-using JLD2
+using JLD
 using CSV
 using Random
 using Dates
@@ -68,7 +68,7 @@ include("$codeDir/Firm_Side/MC_derivatives.jl")
 include("$codeDir/Firm_Side/MC_optimization.jl")
 include("$codeDir/Firm_Side/Firm_Inner_Loop.jl")
 include("$codeDir/Firm_Side/SpecRunMC.jl")
-# estimate_marginal_cost(rundate,spec,cost_spec)
+estimate_marginal_cost(rundate,spec,cost_spec)
 
 include("ProcessDemResults.jl")
 
