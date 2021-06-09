@@ -671,7 +671,8 @@ function ll_obs_hessian!(hess::Matrix{Float64},grad::Vector{Float64},
             X = returnParameterX!(q,X_mat,
                             Z,X_0_t,X_t,draws,F_t,r_ind,
                             γlen,β0len,βlen,σlen)
-            @inbounds Y_list[q_i] = copy(X)
+            # @inbounds Y_list[q_i] = copy(X)
+            Y_list[q_i] = copy(X)
 
             dS_x_all = grad_calc!(dS_x,s_n,anyR,
                         dR_x,risk,r_age,
