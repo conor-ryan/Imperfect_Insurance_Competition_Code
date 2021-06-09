@@ -32,6 +32,6 @@ mom_ra = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competiti
 df_dem = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Data/estimationData_discrete.csv",DataFrame,
 types=Dict("unins_rate"=>Float64,"S_ij"=>Float64,"var_HCC_Silver"=>Float64))
 
-df_dem[!,:Firm] = String.(df[!,:Firm])
+df_dem[!,:Firm] = String.(df_dem[!,:Firm])
 # No constant
-df_dem[!,:constant] = ones(size(df, 1))
+df_dem[!,:constant] = ones(size(df_dem, 1))
