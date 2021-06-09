@@ -130,9 +130,9 @@ function ChoiceData(data_choice::DataFrame,
         R_index = Vector{Float64}(undef,n)
         R_metal_index = Vector{Float64}(undef,n)
         for ind in eachindex(R_index)
-            r =  findall((in)(df[ind,:Rtype]),rmat[:,1])[1]
+            r =  findall((in)(data_choice[ind,:Rtype]),rmat[:,1])[1]
             R_index[ind] = (r-1)*5 + 3
-            AV = df[ind,:AV]
+            AV = data_choice[ind,:AV]
             if AV==.57
                 R_metal_index[ind] = (r-1)*5 + 1
             elseif AV==0.6
