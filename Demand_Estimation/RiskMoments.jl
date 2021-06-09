@@ -5,7 +5,7 @@ function calc_risk_moments!(hess::Array{Float64,3},grad::Matrix{Float64},d::Insu
     hess[:].=0.0
     wgts = weight(d.data)[1,:]
     wgts_share = wgts.*p.s_hat
-    num_prods = length(d.prods)
+    num_prods = maximum(d.prods)
     s_hat_j = Vector{Float64}(undef,num_prods)
     r_hat_j = Vector{Float64}(undef,num_prods)
 
@@ -34,7 +34,7 @@ function calc_risk_moments!(grad::Matrix{Float64},d::InsuranceLogit,p::parDict{T
     grad[:].=0.0
     wgts = weight(d.data)[1,:]
     wgts_share = wgts.*p.s_hat
-    num_prods = length(d.prods)
+    num_prods = maximum(d.prods)
     s_hat_j = Vector{Float64}(undef,num_prods)
     r_hat_j = Vector{Float64}(undef,num_prods)
 
@@ -61,7 +61,7 @@ end
 function calc_risk_moments_obs(app,d::InsuranceLogit,p::parDict{T}) where T
     wgts = weight(d.data)[1,:]
     wgts_share = wgts.*p.s_hat
-    num_prods = length(d.prods)
+    num_prods = maximum(d.prods)
     s_hat_j = Vector{Float64}(undef,num_prods)
     r_hat_j = Vector{Float64}(undef,num_prods)
 
@@ -295,7 +295,7 @@ end
 function calc_risk_moments(d::InsuranceLogit,p::parDict{T}) where T
     wgts = weight(d.data)[1,:]
     wgts_share = wgts.*p.s_hat
-    num_prods = length(d.prods)
+    num_prods = maximum(d.prods)
     S_unwt = Vector{T}(undef,num_prods)
     s_hat_j = Vector{T}(undef,num_prods)
     r_hat_j = Vector{T}(undef,num_prods)
@@ -390,7 +390,7 @@ end
 
 
 function risk_moments_Avar(mean_moments::Array{Float64,1},d::InsuranceLogit)
-    num_prods = length(d.prods)
+    num_prods = maximum(d.prods)
     mom_grad = zeros(length(d.data.tMoments),num_prods*2)
     for (m,idx_mom) in d.data._tMomentDict
         r_est = sum(mean_moments[num_prods .+ idx_mom])/sum(mean_moments[idx_mom])
@@ -411,7 +411,7 @@ end
 function risk_moments_Avar(d::InsuranceLogit,p::parDict{T}) where T
     wgts = weight(d.data)[1,:]
     wgts_share = wgts.*p.s_hat
-    num_prods = length(d.prods)
+    num_prods = maximum(d.prods)
     S_unwt = Vector{T}(undef,num_prods)
     s_hat_2_j = zeros(num_prods)
     r_hat_2_j = zeros(num_prods)
@@ -468,7 +468,7 @@ function risk_moments_Avar(d::InsuranceLogit,p::parDict{T}) where T
 end
 
 function riskmom_Avar(moments::Vector{T},d::InsuranceLogit) where T
-    num_prods = length(d.prods)
+    num_prods = maximum(d.prods)
     s_hat_2_j = moments[1:num_prods]
     r_hat_2_j = moments[(num_prods+1):num_prods*2]
 
@@ -510,7 +510,7 @@ function calc_mom_Avar(d::InsuranceLogit,p0::Vector{Float64})
         idx_prod = d.data._productDict[j]
         productIDs[idx_prod] .= j
     end
-    num_prods = length(d.prods)
+    num_prods = maximum(d.prods)
 
 
     risk_moments = Vector{Float64}(undef,num_prods*2)
@@ -601,7 +601,7 @@ function risk_obs_moments!(mom_obs::Vector{Float64},productIDs::Vector{Int64},
     mom_obs[:] .= 0.0
     wgts = weight(app)[1,:]
     ind = person(app)[1]
-    num_prods = length(d.prods)
+    num_prods = maximum(d.prods)
 
 
     ages = ageRate(app)[1,:]
@@ -639,7 +639,7 @@ end
 function calc_risk_moments_obs(app::ChoiceData,d::InsuranceLogit,p::parDict{T}) where T
     wgts = weight(d.data)[1,:]
     wgts_share = wgts.*p.s_hat
-    num_prods = length(d.prods)
+    num_prods = maximum(d.prods)
     s_hat_j = Vector{Float64}(undef,num_prods)
     r_hat_j = Vector{Float64}(undef,num_prods)
 
