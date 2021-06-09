@@ -14,6 +14,40 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
     @load file p_stg2 spec_Dict
     p_dem_est = copy(p_stg2)
 
+    #### Compute Hessian of Likelihood from Demand for Std Errors ####
+    df_demand = ChoiceData(df,df_mkt,df_risk;
+        demoRaw=spec_Dict["demoRaw"],
+        prodchars=spec_Dict["prodchars"],
+        prodchars_0=spec_Dict["prodchars_0"],
+        fixedEffects=spec_Dict["fixedEffects"],
+        wgt=[:PERWT])
+
+    # Fit into model
+    m_demand = InsuranceLogit(df_demand,spec_Dict["haltonDim"])
+
+    if length(p_stg2)!=m.parLength[:All]
+        println(length(p_stg2))
+        println(m.parLength[:All])
+        error("Parameter Vector Not Quite Right")
+    end
+
+    par_dem = parDict(m_demand,p_dem_est)
+    individual_values!(m,par_dem)
+    individual_shares(m,par_dem)
+
+    ll_grad = Vector{Float64}(undef,length(p_dem_est))
+    ll_hess = Matrix{Float64}(undef,length(p_dem_est),length(p_dem_est))
+    ll = log_likelihood!(hess,grad,m_demand,par_dem)
+
+    mom_grad = Matrix{Float64}(undef,length(p_dem_est),length(m_demand.data.tMoments))
+    mom = calc_risk_moments!(mom_grad,m_demand,par_dem)
+    G_θ = hcat(mom_grad,ll_hess)
+
+    m_demand = 0.0
+    df_demand = 0.0
+    par_dem = 0.0
+    ll_grad = 0.0
+    ll_hess = 0.0
 
     #### Build Model ####
     # Structre the data
@@ -94,7 +128,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
     println("#################")
     println("#################")
 
-    Avar, se, t_stat, stars = GMM_var(costdf,m,p_stg2,par_est,p_dem_est,W)
+    Avar, se, t_stat, stars = GMM_var(costdf,m,p_stg2,par_est,p_dem_est,W,G_θ)
 
     out1 = DataFrame(pars=p_stg2,se=se,ts=t_stat,sig=stars)
     file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/Test_MCestimation_$spec-$rundate.csv"

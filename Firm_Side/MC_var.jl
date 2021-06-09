@@ -622,30 +622,23 @@ function calc_pop_sq(df::ChoiceData)
     return Pop
 end
 
-function GMM_var(c::MC_Data,d::InsuranceLogit,p::Array{Float64},par_est::parDict{Float64},p_dem_vec::Vector{Float64},W::Matrix{Float64};draw_num=1000)
-    # ## Moment Variance
-    # println("Moment Variance")
-    # # S,mom_est = var_bootstrap(c,d,p,par_est,draw_num=draw_num)
-    # S,Σ,Δ,S_m = aVar(c,d,p,par_est)
-    #
-    # ## Derivative of Moments wrt Parameters
-    # println("Moment Gradient")
-    # M_γ = mom_gradient(p,par_est,d,c)
-    # (K,Q) = size(M_γ)
-    #
-    # #### Newey McFadden  1994
-    # println("Demand Gradients")
-    # ## Derivative of Cost Moments wrt Demand Parameters
-    # M_θ = stage1_gradient(p_dem_vec,p,d,c)
-    # (K2,R) = size(M_θ)
-    ## Derivative of Demand Moments wrt Demand Parameters
-    grad = Vector{Float64}(undef,length(p_dem_vec))
-    hess = Matrix{Float64}(undef,length(p_dem_vec),length(p_dem_vec))
-    ll = log_likelihood!(hess,grad,d,p_dem_vec)
+function GMM_var(c::MC_Data,d::InsuranceLogit,p::Array{Float64},par_est::parDict{Float64},p_dem_vec::Vector{Float64},
+                    W::Matrix{Float64},G_θ::Matrix{Float64};draw_num=1000)
+    ## Moment Variance
+    println("Moment Variance")
+    # S,mom_est = var_bootstrap(c,d,p,par_est,draw_num=draw_num)
+    S,Σ,Δ,S_m = aVar(c,d,p,par_est)
 
-    mom_grad = Matrix{Float64}(undef,length(p_dem_vec),length(d.data.tMoments))
-    mom = calc_risk_moments!(mom_grad,d,par_est)
-    G_θ = hcat(mom_grad,hess)
+    ## Derivative of Moments wrt Parameters
+    println("Moment Gradient")
+    M_γ = mom_gradient(p,par_est,d,c)
+    (K,Q) = size(M_γ)
+
+    #### Newey McFadden  1994
+    println("Demand Gradients")
+    ## Derivative of Cost Moments wrt Demand Parameters
+    M_θ = stage1_gradient(p_dem_vec,p,d,c)
+    (K2,R) = size(M_θ)
 
     (R2,J) = size(G_θ)
     G = zeros(K+J,R+Q)
