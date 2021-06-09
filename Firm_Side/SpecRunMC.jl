@@ -36,7 +36,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
 
     ll_grad = Vector{Float64}(undef,length(p_dem_est))
     ll_hess = Matrix{Float64}(undef,length(p_dem_est),length(p_dem_est))
-    ll = log_likelihood!(hess,grad,m_demand,par_dem)
+    ll = log_likelihood!(ll_hess,ll_grad,m_demand,par_dem)
 
     mom_grad = Matrix{Float64}(undef,length(p_dem_est),length(m_demand.data.tMoments))
     mom = calc_risk_moments!(mom_grad,m_demand,par_dem)
@@ -47,6 +47,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
     par_dem = 0.0
     ll_grad = 0.0
     ll_hess = 0.0
+    mom_grad = 0.0
 
     #### Build Model ####
     # Structre the data
