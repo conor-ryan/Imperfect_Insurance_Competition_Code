@@ -19,8 +19,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
         demoRaw=spec_Dict["demoRaw"],
         prodchars=spec_Dict["prodchars"],
         prodchars_0=spec_Dict["prodchars_0"],
-        fixedEffects=spec_Dict["fixedEffects"],
-        wgt=[:PERWT])
+        fixedEffects=spec_Dict["fixedEffects"])
 
     # Fit into model
     m_demand = InsuranceLogit(df_demand,spec_Dict["haltonDim"])
