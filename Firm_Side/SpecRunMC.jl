@@ -31,8 +31,8 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
     end
 
     par_dem = parDict(m_demand,p_dem_est)
-    individual_values!(m,par_dem)
-    individual_shares(m,par_dem)
+    individual_values!(m_demand,par_dem)
+    individual_shares(m_demand,par_dem)
 
     ll_grad = Vector{Float64}(undef,length(p_dem_est))
     ll_hess = Matrix{Float64}(undef,length(p_dem_est),length(p_dem_est))
