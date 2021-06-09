@@ -24,7 +24,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
     # Fit into model
     m_demand = InsuranceLogit(df_demand,spec_Dict["haltonDim"])
 
-    if length(p_stg2)!=m.parLength[:All]
+    if length(p_stg2)!=m_demand.parLength[:All]
         println(length(p_stg2))
         println(m.parLength[:All])
         error("Parameter Vector Not Quite Right")
