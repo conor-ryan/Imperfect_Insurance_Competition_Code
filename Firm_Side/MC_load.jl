@@ -26,3 +26,12 @@ mom_age = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competit
 mom_age_no = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/MC_Moments/ageMoments_noHCC.csv",DataFrame)
 mom_risk = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/MC_Moments/riskMoments.csv",DataFrame)
 mom_ra = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/MC_Moments/raMoments.csv",DataFrame)
+
+
+#### Original Demand Data
+df_dem = CSV.read("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Data/estimationData_discrete.csv",DataFrame,
+types=Dict("unins_rate"=>Float64,"S_ij"=>Float64,"var_HCC_Silver"=>Float64))
+
+df_dem[!,:Firm] = String.(df[!,:Firm])
+# No constant
+df_dem[!,:constant] = ones(size(df, 1))
