@@ -1,20 +1,16 @@
 function estimate_marginal_cost(rundate,spec,cost_spec)
-    # Load the Data
-    println("Loading Data...")
-    codeDir = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Code/Firm_Side"
-    include("$codeDir/MC_load.jl")
-
-
-    # df[:High_small] = df[:HighRisk].*df[:Small]
-
-
     #### Load Demand Estimation Results ####
     println("Rebuild Demand Model...")
     file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_$spec-$rundate-stg2.jld2"
     @load file p_stg2 spec_Dict
     p_dem_est = copy(p_stg2)
 
+
     #### Compute Hessian of Likelihood from Demand for Std Errors ####
+    println("Demand Side Moment Gradients")
+    codeDir = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Code/Demand_Estimation"
+    include("$codeDir/load.jl")
+
     df_demand = ChoiceData(df,df_mkt,df_risk;
         demoRaw=spec_Dict["demoRaw"],
         prodchars=spec_Dict["prodchars"],
@@ -48,6 +44,18 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
     par_dem = 0.0
     ll_grad = 0.0
     ll_hess = 0.0
+    df = 0.0
+    df_mkt = 0.0
+    df_risk = 0.0
+
+
+
+
+    # Load the Data
+    println("Loading Data...")
+    codeDir = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Code/Firm_Side"
+    include("$codeDir/MC_load.jl")
+    # df[:High_small] = df[:HighRisk].*df[:Small]
 
     #### Build Model ####
     # Structre the data
