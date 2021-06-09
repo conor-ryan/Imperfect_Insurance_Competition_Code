@@ -641,10 +641,10 @@ function GMM_var(c::MC_Data,d::InsuranceLogit,p::Array{Float64},par_est::parDict
     ## Derivative of Demand Moments wrt Demand Parameters
     grad = Vector{Float64}(undef,length(p_dem_vec))
     hess = Matrix{Float64}(undef,length(p_dem_vec),length(p_dem_vec))
-    ll = log_likelihood!(hess,grad,d,p_est)
+    ll = log_likelihood!(hess,grad,d,p_dem_vec)
 
     mom_grad = Matrix{Float64}(undef,length(p_dem_vec),length(d.data.tMoments))
-    mom = calc_risk_moments!(mom_grad,d,par)
+    mom = calc_risk_moments!(mom_grad,d,par_est)
     G_θ = hcat(mom_grad,hess)
 
     (R2,J) = size(G_θ)
