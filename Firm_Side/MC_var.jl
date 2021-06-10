@@ -628,7 +628,7 @@ function GMM_var(c::MC_Data,d::InsuranceLogit,p::Array{Float64},par_est::parDict
     println("Moment Variance")
     # S,mom_est = var_bootstrap(c,d,p,par_est,draw_num=draw_num)
     S,Σ,Δ,S_m = aVar(c,d,p,par_est)
-
+    println(size(S))
     ## Derivative of Moments wrt Parameters
     println("Moment Gradient")
     M_γ = mom_gradient(p,par_est,d,c)
@@ -644,16 +644,17 @@ function GMM_var(c::MC_Data,d::InsuranceLogit,p::Array{Float64},par_est::parDict
     G = zeros(K+J,R+Q)
     G[1:J,1:R] = G_θ'
     G[(J+1):(J+K),1:R] = M_θ[:,:]
-    G[(J+1):(J+K),(Q+1):(Q+R)] = M_γ[:,:]
+    G[(J+1):(J+K),(R+1):(Q+R)] = M_γ[:,:]
 
     W_new = Matrix{Float64}(I,J+K,J+K)
     W_new[(J+1):(J+K),(J+1):(J+K)] = W[:,:]
-
+    println(size(W))
+    println("$J,$K,$R,$Q")
 
     ## Calculate Variance
     term1 = G'*W*G
     Avar =  inv(term1)*inv(G'*W*inv(S)*W*G)*inv(term1)
-    Avar = Avar[(Q+1):(Q+R):(Q+1):(Q+R)]
+    Avar = Avar[(R+1):(Q+R):(R+1):(Q+R)]
 
     N = length(unique(person(d.data)))
 
