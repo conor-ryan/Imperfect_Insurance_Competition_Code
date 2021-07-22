@@ -652,7 +652,7 @@ function GMM_var(c::MC_Data,d::InsuranceLogit,p::Array{Float64},par_est::parDict
     println("$J,$K,$R,$Q")
 
     ## Calculate Variance
-    term1 = G'*W*G
+    term1 = G'*W_new*G
     Avar =  inv(term1)*inv(G'*W*inv(S)*W*G)*inv(term1)
     Avar = Avar[(R+1):(Q+R):(R+1):(Q+R)]
 
