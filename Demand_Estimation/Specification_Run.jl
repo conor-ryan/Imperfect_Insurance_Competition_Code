@@ -108,7 +108,7 @@ function res_process_GMM(model::InsuranceLogit,p_est::Vector{Float64})
 
     #### GMM Errors ####
     V1 = calc_mom_Avar(model,p_est)
-    V2 = integration_var_bootstrap(model,p_est;n=100)
+    V2 = integration_var_bootstrap(model,p_est;n=500)
 
     ## Derivative of Moments wrt Parameters
     grad = Vector{Float64}(undef,length(p_est))
@@ -288,8 +288,8 @@ function run_specification_GMM(filename::String,
     @load file p_stg2 obj_2 spec_Dict
 
     println("#### Calculate Standard Errors and Save Results ####")
-    AsVar, stdErr,t_stat, stars = GMM_var(m_GMM,p_stg2)
-    # AsVar, stdErr,t_stat, stars = res_process_ll(m_GMM,p_stg2)
+    # AsVar, stdErr,t_stat, stars = GMM_var(m_GMM,p_stg2)
+    AsVar, stdErr,t_stat, stars = res_process_ll(m_GMM,p_stg2)
 
     out1 = DataFrame(labels=param_labels,pars=p_stg2,se=stdErr,ts=t_stat,sig=stars)
     file1 = "$filename-$rundate-test.csv"

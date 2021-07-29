@@ -128,6 +128,9 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
     println("#################")
     println("#################")
 
+    #### Use Predicted Shares as Observed Shares for computing two-stage Standard Errors
+    m.data.data[m.data._choice,:] = par_est.s_hat
+
     Avar, se, t_stat, stars = GMM_var(costdf,m,p_stg2,par_est,p_dem_est,W,G_θ)
 
     out1 = DataFrame(pars=p_stg2,se=se,ts=t_stat,sig=stars)

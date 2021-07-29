@@ -22,6 +22,14 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     end
     num_prods = maximum(d.prods)
 
+    # Compile the dropped Silver indices
+    missing_index = Vector{Int}(undef,0)
+    for j in 1:num_prods
+        if length(findall(d.prods.==j))==0
+            missing_index = vcat(missing_index,[j])
+        end
+    end
+
     #### Newey McFadden  1994
     # ## Derivative of Cost Moments wrt Demand Parameters
     # G_γ = stage1_gradient(p_dem_vec,p,d,c)
@@ -121,26 +129,34 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     end
     # Σ = Σ./8300
 
-
+    nonzero_index = findall(sum(abs.(Σ),dims=2)[1:dem_mom_length].!=0.0)
+    nonzero_length = sum(mean_dem_moments.!=0.0)
+    nonmissing_prods = length(d.prods)
     # Σ = Σ./(1-w_cov_sumsq[1])
     # Σ = Σ./N
     # Σ = Σ.*Pop
     # println(Pop)
     Γ_m = Δavar(c,d,mean_cost_moments)
-    Γ_g = zeros(d.parLength[:All] + length(d.data.tMoments),dem_mom_length)
+    Γ_g = zeros(d.parLength[:All] + length(d.data.tMoments),nonmissing_prods*2 + d.parLength[:All])
     (Q,R) = size(Γ_g)
     (N,M) = size(Γ_m)
-    Γ_g[1:length(d.data.tMoments),1:(num_prods*2)] = risk_Δavar(mean_dem_moments[1:(num_prods*2)],d)
-    Γ_g[(length(d.data.tMoments)+1):Q,(num_prods*2 + 1):R] = Matrix{Float64}(I,d.parLength[:All],d.parLength[:All])
+    Γ_g_11 = risk_Δavar(mean_dem_moments[1:(num_prods*2)],d)
+    Γ_g[1:length(d.data.tMoments),1:(nonmissing_prods*2)] = Γ_g_11[:,vcat(d.prods,num_prods.+d.prods)]
+    Γ_g[(length(d.data.tMoments)+1):Q,(nonmissing_prods*2 + 1):R] = Matrix{Float64}(I,d.parLength[:All],d.parLength[:All])
 
     Γ = zeros(Q+N,M+R)
     Γ[1:Q,1:R] = Γ_g[:,:]
     Γ[(Q+1):(Q+N),(R+1):(R+M)] = Γ_m
 
-
-    S_est = (Γ*Σ*Γ')
     Σ_m = Σ[(dem_mom_length+1):(dem_mom_length+cost_mom_length),(dem_mom_length+1):(dem_mom_length+cost_mom_length)]
     S_m = Γ_m*Σ_m*Γ_m'
+
+
+    Σ = Σ[vcat(nonzero_index,(dem_mom_length+1):(dem_mom_length+cost_mom_length)),vcat(nonzero_index,(dem_mom_length+1):(dem_mom_length+cost_mom_length))]
+    # Γ = Γ[:,zero_index]
+
+    S_est = (Γ*Σ*Γ')
+
     # S_est = S_est.*(sqrt_n^2)
 
     return S_est, Σ, Γ, S_m
@@ -647,14 +663,15 @@ function GMM_var(c::MC_Data,d::InsuranceLogit,p::Array{Float64},par_est::parDict
     G[(J+1):(J+K),(R+1):(Q+R)] = M_γ[:,:]
 
     W_new = Matrix{Float64}(I,J+K,J+K)
+    # W_new[1:J,1:J] = inv(S[1:J,1:J])
     W_new[(J+1):(J+K),(J+1):(J+K)] = W[:,:]
-    println(size(W))
-    println("$J,$K,$R,$Q")
 
     ## Calculate Variance
     term1 = G'*W_new*G
-    Avar =  inv(term1)*inv(G'*W*inv(S)*W*G)*inv(term1)
-    Avar = Avar[(R+1):(Q+R):(R+1):(Q+R)]
+    inv_term1 = inv(term1)
+    Avar =  inv(G'*W_new*G)*(G'*W_new*inv(S)*W_new*G)*inv(G'*W_new*G)
+    Avar = (G'*inv(S)*G)
+    Avar = Avar[(R+1):(Q+R),(R+1):(Q+R)]
 
     N = length(unique(person(d.data)))
 
