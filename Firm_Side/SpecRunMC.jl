@@ -104,6 +104,10 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
     println("###### Estimation 2 #######")
     println("#################")
     println("#################")
+    #### Use Predicted Shares as Observed Shares for computing two-stage Standard Errors
+    m.data.data[m.data._choice,:] = par_est.s_hat
+
+
     S_all,Σ,Δ,S_m = aVar(costdf,m,p_stg1,par_est)
     S_diag = Matrix(Diagonal(diag(S_m)))
     W = Matrix(Diagonal(diag(inv(S_diag))))
@@ -128,8 +132,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
     println("#################")
     println("#################")
 
-    #### Use Predicted Shares as Observed Shares for computing two-stage Standard Errors
-    m.data.data[m.data._choice,:] = par_est.s_hat
+
 
     Avar, se, t_stat, stars = GMM_var(costdf,m,p_stg2,par_est,p_dem_est,W,G_θ)
 
