@@ -673,9 +673,12 @@ function GMM_var(c::MC_Data,d::InsuranceLogit,p::Array{Float64},par_est::parDict
     Avar = (G'*inv(S)*G)
     Avar = Avar[(R+1):(Q+R),(R+1):(Q+R)]
 
+    Avar_test = M_γ'*inv(S_m)*M_γ
+
     N = length(unique(person(d.data)))
 
     V = Avar./N
+    V_test = Avar_test./N
 
     ## Calculate Standard Error
     if any(diag(V.<0))
