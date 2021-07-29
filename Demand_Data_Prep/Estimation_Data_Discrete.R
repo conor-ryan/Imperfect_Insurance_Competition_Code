@@ -113,7 +113,7 @@ rm(rating)
 
 
 # Modify Age Rate for Family and Smoker
-# Straight Forward rating assumption. 
+# Straight Forward rating assumption. - This needs to change to 0.6 ish see RFP 2021 code.
 eHealth$ageRate_base = eHealth$ageRate
 eHealth$ageRate[eHealth$MEMBERS==1] = with(eHealth[eHealth$MEMBERS==1,],ageRate)
 eHealth$ageRate[eHealth$MEMBERS==2] = with(eHealth[eHealth$MEMBERS==2,],ageRate*2)
@@ -217,6 +217,7 @@ fulldf[STATE%in%c("MD","CT"),Income_flag:=1]
 
 
 fulldf = merge(fulldf,wgts,by.x=c("STATE","AREA","insured","Income_flag"),by.y=c("ST","AREA","insured","Income_flag"),all=TRUE)
+fulldf[,rawN:=N]
 
 fulldf[,sampleSum:=sum(N),by=c("STATE","AREA","insured","Income_flag")]
 fulldf[,N:=(N/sampleSum)*totalWeight]
@@ -299,7 +300,7 @@ choices = choices[choices$valid,]
 # Keep only relevant variables
 choices = choices[,c("STATE","APP_RECORD_NUM","QUOTED_RATE","HOUSEHOLD_INCOME","FFM_APTC_AMOUNT","FFM_PREMIUM_DUE",
                      "FAMILY_OR_INDIVIDUAL","MEMBERS","AGE","ageRate","SMOKER","AREA","Firm","METAL","hix","PREMI27",
-                     "MedDeduct","MedOOP","Y","N","FPL","insured","Income_flag",
+                     "MedDeduct","MedOOP","Y","N","rawN","FPL","insured","Income_flag",
                      "PlatHCC_Age","GoldHCC_Age","SilvHCC_Age","BronHCC_Age","CataHCC_Age")]
 
 
@@ -434,6 +435,9 @@ choices = merge(choices,wgt_test[,c("ST","AREA","insured","Income_flag","wgt_adj
                 by.x=c("STATE","AREA","insured","Income_flag"),
                 by.y=c("ST","AREA","insured","Income_flag"))
 choices[,N:=wgt_adj*N]
+
+households = choices[Y==1]
+save(households,file="Intermediate_Output/Estimation_Data/estimationSampleData.rData")
 
 ##### Discretize the Data into Type Buckets #####
 choices[,FPL_bucket:= "Less than 1"]
