@@ -669,17 +669,14 @@ function GMM_var(c::MC_Data,d::InsuranceLogit,p::Array{Float64},par_est::parDict
     ## Calculate Variance
     term1 = G'*W_new*G
     inv_term1 = inv(term1)
-    Avar =  inv(G'*W_new*G)*(G'*W_new*inv(S)*W_new*G)*inv(G'*W_new*G)
-    Avar = (G'*inv(S)*G)
+    Avar =  inv(G'*W_new*G)*(G'*W_new*S*W_new*G)*inv(G'*W_new*G)
     Avar = Avar[(R+1):(Q+R),(R+1):(Q+R)]
 
-    Avar_test = M_γ'*inv(S_m)*M_γ
+    # Avar_test = inv(M_γ'*W*M_γ)*(M_γ'*W*S_m*W*M_γ)*inv(M_γ'*W*M_γ)
 
     N = length(unique(person(d.data)))
 
     V = Avar./N
-    V_test = Avar_test./N
-
     ## Calculate Standard Error
     if any(diag(V.<0))
         println("Some negative variances")

@@ -137,7 +137,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
     Avar, se, t_stat, stars = GMM_var(costdf,m,p_stg2,par_est,p_dem_est,W,G_θ)
 
     out1 = DataFrame(pars=p_stg2,se=se,ts=t_stat,sig=stars)
-    file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/New_MCestimation_$spec-$rundate.csv"
+    file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_$spec-$rundate-test.csv"
     CSV.write(file1,out1)
 
     return nothing
