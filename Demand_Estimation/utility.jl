@@ -105,7 +105,7 @@ function enforceNegDef(H::Matrix{Float64})
         Λ = -abs.(Diagonal(E.values))
         H = E.vectors*Λ*E.vectors'
     end
-    return H
+    return H, check
 end
 
 function boundedUpdate(p_ind::UnitRange{Int64},p::Vector{Float64},

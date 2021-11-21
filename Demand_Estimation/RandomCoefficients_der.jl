@@ -724,10 +724,10 @@ function ll_obs_hessian!(hess::Matrix{Float64},grad::Vector{Float64},
                     hess[r,q]+= hess_obs
                 end
 
-                # for k in 1:K
-                #     @inbounds @fastmath p.d2Sdθ_j[q,r,prodidx[k]]+= wgt[k]*dS_xy[k]/N
-                #     @inbounds @fastmath p.d2Rdθ_j[q,r,prodidx[k]]+= wgt[k]*(dR_xy[k]/N)
-                # end
+                for k in 1:K
+                    @inbounds @fastmath p.d2Sdθ_j[q,r,prodidx[k]]+= wgt[k]*dS_xy[k]
+                    @inbounds @fastmath p.d2Rdθ_j[q,r,prodidx[k]]+= wgt[k]*(dR_xy[k])
+                end
             end
         end
 
@@ -826,6 +826,11 @@ function ll_obs_gradient!(grad::Vector{S},
 
             ## Calculate Gradient
             grad[q]+= combine_grad(N,gll_t1,gll_t4,dS_x,dS_x_all)
+            
+            for k in 1:K
+                @inbounds @fastmath p.dSdθ_j[q,prodidx[k]]+= wgt[k]*dS_x[k]
+                @inbounds @fastmath p.dRdθ_j[q,prodidx[k]]+= wgt[k]*(dR_x[k])
+            end
 
         end
 

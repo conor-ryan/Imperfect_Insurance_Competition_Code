@@ -23,7 +23,7 @@ function calc_risk_moments!(hess::Array{Float64,3},grad::Matrix{Float64},d::Insu
     calc_Mom_Der!(grad,hess,dSdθ_j,d2Sdθ_j,mom_value,s_hat_j,r_hat_j,d,p,feFlag=feFlag)
 
 
-    mom_disp = mom_value
+    mom_disp = round.(mom_value,digits=2)
     println("Risk moments are $mom_disp")
 
     return mom_value .- d.data.tMoments
@@ -51,7 +51,7 @@ function calc_risk_moments!(grad::Matrix{Float64},d::InsuranceLogit,p::parDict{T
     calc_Mom_Der!(grad,dSdθ_j,mom_value,s_hat_j,r_hat_j,d,p,feFlag=feFlag)
 
 
-    mom_disp = mom_value
+    mom_disp = round.(mom_value,digits=2)
     println("Risk moments are $mom_disp")
 
     return mom_value .- d.data.tMoments
@@ -78,7 +78,7 @@ function calc_risk_moments_obs(app,d::InsuranceLogit,p::parDict{T}) where T
     calc_Mom_Der!(grad,dSdθ_j,mom_value,s_hat_j,r_hat_j,d,p)
 
 
-    mom_disp = mom_value[1:6]
+    mom_disp = round.(mom_value,digits=2)
     println("Risk moments are $mom_disp")
 
     return mom_value .- d.data.tMoments
@@ -657,7 +657,7 @@ function calc_risk_moments_obs(app::ChoiceData,d::InsuranceLogit,p::parDict{T}) 
 
     calc_Mom!(mom_value,s_hat_j,r_hat_j,d,p)
 
-    mom_disp = mom_value[1:6]
+    mom_disp = round.(mom_value,digits=2)
     println("Risk moments are $mom_disp")
 
     return mom_value .- d.data.tMoments

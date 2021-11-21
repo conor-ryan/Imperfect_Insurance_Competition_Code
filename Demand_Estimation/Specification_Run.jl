@@ -215,74 +215,74 @@ function run_specification_GMM(filename::String,
 
     m_GMM = InsuranceLogit(c_data,haltonDim,nested=nested)
 
-    ## Initialize Starting Parameters
-    # ind1 = 1:(m_GMM.parLength[:γ]*2+m_GMM.parLength[:β])
-    # ind2 = (1 + maximum(ind1) + m_GMM.parLength[:σ]):m_GMM.parLength[:All]
-    # σ_ind = (1 + maximum(ind1)):(minimum(ind2)-1)
-    #
-    #
-    # p0 = zeros(m_GMM.parLength[:All])
-    # println(length(p0))
-    # println(length(p_ll))
-    # println(m_GMM.parLength[:All])
-    # println(m_GMM.parLength[:σ])
-    #
-    # p0[ind1] = p_ll[ind1]
-    # p0[ind2] = p_ll[ind2.-m_GMM.parLength[:σ]]
+    # Initialize Starting Parameters
+    ind1 = 1:(m_GMM.parLength[:γ]*2+m_GMM.parLength[:β])
+    ind2 = (1 + maximum(ind1) + m_GMM.parLength[:σ]):m_GMM.parLength[:All]
+    σ_ind = (1 + maximum(ind1)):(minimum(ind2)-1)
+
+
+    p0 = zeros(m_GMM.parLength[:All])
+    println(length(p0))
+    println(length(p_ll))
+    println(m_GMM.parLength[:All])
+    println(m_GMM.parLength[:σ])
+
+    p0[ind1] = p_ll[ind1]
+    p0[ind2] = p_ll[ind2.-m_GMM.parLength[:σ]]
 
     println("#### Estimate GMM First Stage ####")
-    # # if spec_fixedEffects== [:Firm_Market_Cat]
-    # #     p0[σ_ind] = [0.534812, 0.497257, 0.0252315, -0.0605508, 0.144096]
-    # # end
-    # # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/checkin_265.jld2"
-    # # @load file p_vec
-    # # p0 = copy(p_vec)
-    # W = Matrix(1.0I,m_GMM.parLength[:All]+length(m_GMM.data.tMoments),m_GMM.parLength[:All]+length(m_GMM.data.tMoments))
-    # flag = ""
-    # p_stg1 = similar(p0)
-    # obj_1 = 0.0
-    # while flag!="converged"
-    #     p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
-    #     p_stg1, obj_1, flag = two_stage_est(m_GMM,p0,W)
+    # if spec_fixedEffects== [:Firm_Market_Cat]
+    #     p0[σ_ind] = [0.534812, 0.497257, 0.0252315, -0.0605508, 0.144096]
     # end
-    #
-    # println("Save First Stage Result")
-    # file = "$filename-$rundate-stg1.jld2"
-    # @save file p_stg1 obj_1 spec_Dict
+    # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/checkin_265.jld2"
+    # @load file p_vec
+    # p0 = copy(p_vec)
+    W = Matrix(1.0I,m_GMM.parLength[:All]+length(m_GMM.data.tMoments),m_GMM.parLength[:All]+length(m_GMM.data.tMoments))
+    flag = ""
+    p_stg1 = similar(p0)
+    obj_1 = 0.0
+    while flag!="converged"
+        p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
+        p_stg1, obj_1, flag = two_stage_est(m_GMM,p0,W)
+    end
 
-    # println("Load First Stage Result")
-    # file = "$filename-$rundate-stg1.jld2"
-    # @load file p_stg1 obj_1 spec_Dict
+    println("Save First Stage Result")
+    file = "$filename-$rundate-stg1.jld2"
+    @save file p_stg1 obj_1 spec_Dict
+
+    println("Load First Stage Result")
+    file = "$filename-$rundate-stg1.jld2"
+    @load file p_stg1 obj_1 spec_Dict
 
 
     println("#### Estimate GMM Second Stage ####")
-    # mom_pars = vcat(1:length(m_GMM.data.tMoments),(length(m_GMM.data.tMoments)).+σ_ind)
-    # mom_ind = 1:length(m_GMM.data.tMoments)
-    # S = calc_mom_Avar(m_GMM,p_stg1)
-    # S_mom = S[mom_pars,mom_pars]
-    # diag_sigma = Diagonal(diag(S_mom))
-    # S_mom[mom_ind,:] .= 0.0
-    # S_mom[:,mom_ind] .= 0.0
-    # S_mom[mom_ind,mom_ind] = diag_sigma[mom_ind,mom_ind]
-    # W2 = inv(S_mom)
-    # W[mom_pars,mom_pars] = W2[:,:]
-    #
-    #
-    # println(S[mom_pars,mom_pars])
-    # println(W2)
-    # println(W[mom_pars,mom_pars])
-    #
-    # ## Estimate
-    # flag = ""
-    # p_stg2 = similar(p0)
-    # obj_2 = 0.0
-    #
-    # # Start at p_stg1, should add another starting point for robustness.
-    # p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
-    # p_stg2, obj_2, flag = two_stage_est(m_GMM,p_stg1,W)
-    # # p_stg2 = copy(p_stg1)
-    # # obj_2 = copy(obj_1)
-    # println("Save Second Stage Result")
+    mom_pars = vcat(1:length(m_GMM.data.tMoments),(length(m_GMM.data.tMoments)).+σ_ind)
+    mom_ind = 1:length(m_GMM.data.tMoments)
+    S = calc_mom_Avar(m_GMM,p_stg1)
+    S_mom = S[mom_pars,mom_pars]
+    diag_sigma = Diagonal(diag(S_mom))
+    S_mom[mom_ind,:] .= 0.0
+    S_mom[:,mom_ind] .= 0.0
+    S_mom[mom_ind,mom_ind] = diag_sigma[mom_ind,mom_ind]
+    W2 = inv(S_mom)
+    W[mom_pars,mom_pars] = W2[:,:]
+
+
+    println(S[mom_pars,mom_pars])
+    println(W2)
+    println(W[mom_pars,mom_pars])
+
+    ## Estimate
+    flag = ""
+    p_stg2 = similar(p0)
+    obj_2 = 0.0
+
+    # Start at p_stg1, should add another starting point for robustness.
+    p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
+    p_stg2, obj_2, flag = two_stage_est(m_GMM,p_stg1,W)
+    # p_stg2 = copy(p_stg1)
+    # obj_2 = copy(obj_1)
+    println("Save Second Stage Result")
     file = "$filename-$rundate-stg2.jld2"
     # @save file p_stg2 obj_2 spec_Dict
     @load file p_stg2 obj_2 spec_Dict
@@ -317,7 +317,7 @@ function estimate_demand(filename,rundate,
 
     ### Run Specification 1 ####
     println("#### Run Specification ####")
-    spec1 = run_specification_GMM(filename,rundate,
+    spec1 = run_specification_penalizedlikelihood(filename,rundate,
                         df,df_mkt,df_risk,
                         haltonDim = halton_draws,
                         spec_demoRaw=spec_demoRaw,
@@ -325,4 +325,97 @@ function estimate_demand(filename,rundate,
                         spec_prodchars_0=spec_prodchars_0,
                         spec_fixedEffects=spec_fixedEffects)
         return nothing
+end
+
+
+
+function run_specification_penalizedlikelihood(filename::String,
+                            rundate,
+                            df::DataFrame,
+                            df_mkt::DataFrame,
+                            df_risk::DataFrame;
+                            haltonDim = 1,
+                            spec_prodchars=[:Price,:MedDeduct,:High],
+                            spec_prodchars_0=Vector{Symbol}(undef,0),
+                            spec_demoRaw=[:Age,:Family,:LowIncome],
+                            spec_fixedEffects=Vector{Symbol}(undef,0),
+                            nested = false)
+
+    spec_Dict = Dict("prodchars" => spec_prodchars,
+    "prodchars_0"=> spec_prodchars_0,
+    "demoRaw"=>spec_demoRaw,
+    "fixedEffects"=>spec_fixedEffects,
+    "nested"=>nested,
+    "haltonDim"=>haltonDim)
+
+    cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/")
+
+    ## Build GMM Model
+    println("Build Model")
+    c_data = ChoiceData(df,df_mkt,df_risk;
+        demoRaw=spec_demoRaw,
+        prodchars=spec_prodchars,
+        prodchars_0=spec_prodchars_0,
+        fixedEffects=spec_fixedEffects)
+
+    param_labels = vcat(String.(spec_demoRaw),String.(spec_prodchars),"Price:" .* String.(spec_demoRaw),"Variance:".*String.(spec_prodchars_0),c_data.feNames)
+
+    m_ll = InsuranceLogit(c_data,haltonDim,nested=nested)
+
+    # Initialize Starting Parameters
+    ind1 = 1:(m_ll.parLength[:γ]*2+m_ll.parLength[:β])
+    ind2 = (1 + maximum(ind1) + m_ll.parLength[:σ]):m_ll.parLength[:All]
+    σ_ind = (1 + maximum(ind1)):(minimum(ind2)-1)
+
+
+    p0 = rand(m_ll.parLength[:All]) - 0.5
+    p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
+
+    println("#### Estimate First Stage ####")
+    W = -Matrix(1.0I,length(m_ll.data.tMoments),length(m_ll.data.tMoments))
+    flag = ""
+    while flag!="converged"
+        p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
+        p_stg1, obj_1, flag = p_est, fval = newton_raphson_ll(m_ll,p0,W)
+    end
+
+    println("Save First Stage Result")
+    file = "$filename-$rundate-stg1.jld2"
+    @save file p_stg1 obj_1 spec_Dict
+
+    # println("Load First Stage Result")
+    # file = "$filename-$rundate-stg1.jld2"
+    # @load file p_stg1 obj_1 spec_Dict
+
+
+    println("#### Estimate GMM Second Stage ####")
+    mom_ind = 1:length(m_ll.data.tMoments)
+    S = calc_mom_Avar(m_ll,p_stg1)
+    S_mom = S[mom_ind,mom_ind]
+    diag_sigma = Diagonal(diag(S_mom))
+    W = -inv(S_mom)
+    println(W)
+
+    ## Estimate
+    flag = ""
+    p0 = rand(m_ll.parLength[:All]) - 0.5
+    p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
+    while flag!="converged"
+        p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
+        p_stg2, obj_2, flag = p_est, fval = newton_raphson_ll(m_ll,p0,W)
+    end
+    println("Save Second Stage Result")
+    file = "$filename-$rundate-stg2.jld2"
+    @save file p_stg2 obj_2 spec_Dict
+    # @load file p_stg2 obj_2 spec_Dict
+
+    println("#### Calculate Standard Errors and Save Results ####")
+    # AsVar, stdErr,t_stat, stars = GMM_var(m_GMM,p_stg2)
+    # AsVar, stdErr,t_stat, stars = res_process_ll(m_GMM,p_stg2)
+
+    out1 = DataFrame(labels=param_labels,pars=p_stg2)#,se=stdErr,ts=t_stat,sig=stars)
+    file1 = "$filename-$rundate.csv"
+    CSV.write(file1,out1)
+
+    return nothing
 end

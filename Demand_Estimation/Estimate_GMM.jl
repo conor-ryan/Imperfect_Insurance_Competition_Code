@@ -122,7 +122,7 @@ function calc_GMM_Grad!(obj_grad::Vector{Float64},
                     moments_grad::Matrix{Float64},
                     W::Matrix{Float64})
     Q = length(obj_grad)
-    obj_grad[:] .= 0.0
+    # obj_grad[:] .= 0.0
     for k in 1:Q,i in 1:length(moments), j in 1:length(moments)
         obj_grad[k]+= W[i,j]*(moments[j]*moments_grad[k,i] + moments[i]*moments_grad[k,j])
     end
@@ -133,7 +133,7 @@ function calc_GMM_Hess!(obj_hess::Matrix{Float64},
                     moments_grad::Matrix{Float64},
                     moments_hess::Array{Float64,3},
                     W::Matrix{Float64})
-    obj_hess[:] .= 0.0
+    # obj_hess[:] .= 0.0
     Q,K = size(obj_hess)
     for k in 1:Q
         for l in 1:k
@@ -156,7 +156,7 @@ function calc_GMM_Hess_Large!(obj_hess::Matrix{Float64},
                     W::Matrix{Float64})
     hess_vec = W*moments
     grad_mat = moments_grad*W*transpose(moments_grad)
-    obj_hess[:] .= 0.0
+    # obj_hess[:] .= 0.0
     Q,K = size(obj_hess)
     for k in 1:Q
         for l in 1:k
