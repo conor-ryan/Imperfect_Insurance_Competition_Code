@@ -38,6 +38,8 @@ include("$codeDir/Demand_Estimation/RandomCoefficients.jl")
 include("$codeDir/Demand_Estimation/RandomCoefficients_der.jl")
 include("$codeDir/Demand_Estimation/DerivFunctions.jl")
 include("$codeDir/Demand_Estimation/Log_Likehood.jl")
+include("$codeDir/Log_Likehood_Penalty.jl")
+
 # GMM Functions
 include("$codeDir/Demand_Estimation/Contraction.jl")
 include("$codeDir/Demand_Estimation/RiskMoments.jl")
