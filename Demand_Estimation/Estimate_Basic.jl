@@ -273,9 +273,9 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             println("Compute Hessian")
             fval = log_likelihood_penalty!(hess_new,grad_new,d,p_vec,W)
             hess_new, check = enforceNegDef(hess_new)
-            # if !check
-            #     hess_steps = -1
-            # end
+            if !check
+                hess_steps = Hess_Skip_Steps-5
+            end
             H_k = inv(hess_new)
             real_hessian=1
         else
@@ -355,7 +355,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         end
 
         step_size = maximum(abs.(update))
-        if step_size>10
+        if step_size>20
             update = update./step_size
             ind = findall(abs.(update).==1)
             val_disp = p_vec[ind]

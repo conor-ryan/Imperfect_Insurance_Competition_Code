@@ -373,11 +373,7 @@ function run_specification_penalizedlikelihood(filename::String,
 
     println("#### Estimate First Stage ####")
     W = -Matrix(1.0I,length(m_ll.data.tMoments),length(m_ll.data.tMoments))
-    flag = ""
-    while flag!="converged"
-        p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
-        p_stg1, obj_1, flag = p_est, fval = newton_raphson_ll(m_ll,p0,W)
-    end
+    p_stg1, obj_1, flag = p_est, fval = newton_raphson_ll(m_ll,p0,W)
 
     println("Save First Stage Result")
     file = "$filename-$rundate-stg1.jld2"
@@ -400,10 +396,8 @@ function run_specification_penalizedlikelihood(filename::String,
     flag = ""
     p0 = rand(m_ll.parLength[:All]) - 0.5
     p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
-    while flag!="converged"
-        p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
-        p_stg2, obj_2, flag = p_est, fval = newton_raphson_ll(m_ll,p0,W)
-    end
+    p_stg2, obj_2, flag = p_est, fval = newton_raphson_ll(m_ll,p0,W)
+
     println("Save Second Stage Result")
     file = "$filename-$rundate-stg2.jld2"
     @save file p_stg2 obj_2 spec_Dict
