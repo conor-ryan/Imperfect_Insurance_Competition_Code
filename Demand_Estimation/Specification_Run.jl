@@ -368,7 +368,7 @@ function run_specification_penalizedlikelihood(filename::String,
     σ_ind = (1 + maximum(ind1)):(minimum(ind2)-1)
 
 
-    p0 = rand(m_ll.parLength[:All]) - 0.5
+    p0 = rand(m_ll.parLength[:All]) .- 0.5
     p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
 
     println("#### Estimate First Stage ####")
