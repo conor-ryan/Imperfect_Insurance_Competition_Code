@@ -394,7 +394,7 @@ function run_specification_penalizedlikelihood(filename::String,
 
     ## Estimate
     flag = ""
-    p0 = rand(m_ll.parLength[:All]) - 0.5
+    p0 = rand(m_ll.parLength[:All]) .- 0.5
     p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
     p_stg2, obj_2, flag = p_est, fval = newton_raphson_ll(m_ll,p0,W)
 
