@@ -355,12 +355,12 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         end
 
         step_size = maximum(abs.(update))
-        if step_size>20
-            update = update./step_size
+        if step_size>10
+            update = (update./step_size)*10
             ind = findall(abs.(update).==1)
             val_disp = p_vec[ind]
             println("Max Parameter Adjustment: $ind, $val_disp")
-            step_size = 1
+            step_size = 10
         end
 
 
