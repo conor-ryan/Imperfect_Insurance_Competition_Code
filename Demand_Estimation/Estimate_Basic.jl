@@ -329,9 +329,14 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             NaN_steps+=1
             if real_hessian==0
                 println("No Advancement")
-                hess_steps = 0
+                hess_steps = -1
                 update = 0
                 grad_size = 100
+            elseif NaN_steps<5
+                println("Hessian might be singular")
+                println("RUN ROUND OF GRADIENT ASCENT")
+                p_test, f_test = gradient_ascent_ll(d,p_test,W,max_itr=20,strict=true)
+                hess_steps = -1
             else
                 println("ALGORITHM FAILED! SINGULAR HESSIAN!")
                 flag = "failed"
@@ -363,9 +368,10 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             step_size = 1
         end
 
-
-        p_test = p_vec .+ update
-        f_test = log_likelihood_penalty(d,p_test,W)
+        if NaN_steps==0
+            p_test = p_vec .+ update
+            f_test = log_likelihood_penalty(d,p_test,W)
+        end
 
         if hess_steps<Hess_Skip_Steps
             hess_steps+=1
@@ -405,12 +411,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 break
             end
         end
-        if NaN_steps>5
-            println("Hessian might be singular")
-            println("RUN ROUND OF GRADIENT ASCENT")
-            p_test, f_test = gradient_ascent_ll(d,p_test,W,max_itr=20,strict=true)
-            hess_steps = 0
-        end
+
 
         if real_hessian==1 & hess_steps>0
             f_tol_flag = 1
