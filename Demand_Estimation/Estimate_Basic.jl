@@ -332,6 +332,8 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 hess_steps = -1
                 update = 0
                 grad_size = 100
+                p_test = copy(p_vec)
+                f_test = fval
             elseif NaN_steps<5
                 println("Hessian might be singular")
                 println("RUN ROUND OF GRADIENT ASCENT")
