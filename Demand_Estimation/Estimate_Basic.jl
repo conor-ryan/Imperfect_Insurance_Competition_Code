@@ -327,14 +327,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         if any(isnan.(update))
             println("Step contains NaN")
             NaN_steps+=1
-            if real_hessian==0
-                println("No Advancement")
-                hess_steps = -1
-                update = 0
-                grad_size = 100
-                p_test = copy(p_vec)
-                f_test = fval
-            elseif NaN_steps<5
+            if NaN_steps<5
                 println("Hessian might be singular")
                 println("RUN ROUND OF GRADIENT ASCENT")
                 p_test, f_test = gradient_ascent_ll(d,p_test,W,max_itr=20,strict=true)
