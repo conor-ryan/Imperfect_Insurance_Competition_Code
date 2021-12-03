@@ -330,7 +330,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             if NaN_steps<5
                 println("Hessian might be singular")
                 println("RUN ROUND OF GRADIENT ASCENT")
-                p_test, f_test = gradient_ascent_ll(d,p_test,W,max_itr=20,strict=true)
+                p_test, f_test = gradient_ascent_ll(d,p_vec,W,max_itr=20,strict=true)
                 hess_steps = -1
             else
                 println("ALGORITHM FAILED! SINGULAR HESSIAN!")
