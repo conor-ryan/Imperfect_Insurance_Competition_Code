@@ -394,6 +394,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 println("Trial (NR): Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
                 trial_cnt+=1
+                hess_steps=0
             elseif real_hessian==1
                 hess_steps = 0
                 trial_max = 1
