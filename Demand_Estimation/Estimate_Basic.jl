@@ -272,6 +272,14 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         if hess_steps==0
             println("Compute Hessian")
             fval = log_likelihood_penalty!(hess_new,grad_new,d,p_vec,W)
+            while any(isnan.(hess_new)) & (trial_cnt<15)
+                println("NA values in Hessian, RUN: Gradient Ascent")
+                p_vec, f_test = gradient_ascent_ll(d,p_vec,W,max_itr=20,strict=true)
+                println("Recompute Hessian")
+                fval = log_likelihood_penalty!(hess_new,grad_new,d,p_vec,W)
+                trial_cnt+=1
+            end
+            trial_cnt = 0
             hess_new, check = enforceNegDef(hess_new)
             if !check
                 hess_steps = Hess_Skip_Steps-5
