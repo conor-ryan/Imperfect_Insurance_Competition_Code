@@ -134,7 +134,7 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
 
 
         grad_size = maximum(abs.(grad_new))
-        if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1)
+        if (grad_size<grad_tol) #|(f_tol_cnt>1) | (x_tol_cnt>1)
             println("Got to Break Point")
             println(grad_size)
             println(f_tol_cnt)
