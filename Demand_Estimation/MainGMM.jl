@@ -6,7 +6,6 @@ using Dates
 using LinearAlgebra
 using Statistics
 
-
 # Data Structure
 include("InsChoiceData.jl")
 
