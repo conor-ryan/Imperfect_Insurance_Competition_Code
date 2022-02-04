@@ -64,12 +64,10 @@ firm_data = unique(mkt_data[,c("STATE","Firm","Small")])
 firm_moments = merge(firm_moments,firm_data,by.x=c("ST","Firm"),by.y=c("STATE","Firm"))
 
 
-firm_moments[,R_avg:=sum(R_adj_natl*memberMonths)/sum(memberMonths),by=c("HighRisk","Small")]
 
 # firm_moments = firm_moments[HighRisk==1,]
-firm_moments[,momentID:=nrow(metal_moments)+2+HighRisk+Small*2]
+firm_moments[,momentID:=nrow(metal_moments)+1+(1:nrow(firm_moments))]
 setkey(firm_moments,momentID)
-firm_moments[,sum(R_adj_natl*memberMonths)/sum(memberMonths),by=c("HighRisk","Small","momentID")]
 
 
 #### Total Enrolled Moment ####
@@ -95,7 +93,7 @@ firm_moments = merge(mkt_data[,c("STATE","Firm","Product")],firm_moments,
 
 metal_moments = metal_moments[,c("Product","momentID","R_adj","STATE")]
 names(metal_moments) = c("Product","momentID","T_moment","ST")
-firm_moments = firm_moments[,c("Product","momentID","R_avg","STATE")]
+firm_moments = firm_moments[,c("Product","momentID","R_adj_natl","STATE")]
 names(firm_moments) = c("Product","momentID","T_moment","ST")
 
 

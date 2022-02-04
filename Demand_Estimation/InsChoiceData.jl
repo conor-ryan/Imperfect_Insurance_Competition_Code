@@ -22,7 +22,7 @@ struct ChoiceData <: ModelData
     index
     # Names of rows (columns of input data)
     prodchars   # Product Characteristics
-    prodchars_0   # Product Characteristics
+     prodchars_σ   # Product Characteristics
     choice      # Binary choice indicator
     demoRaw    # Household Demographics - raw
     wgt     # Number of People in each type
@@ -33,7 +33,7 @@ struct ChoiceData <: ModelData
     _person::Array{Int,1}
     _product::Array{Int,1}
     _prodchars::Array{Int,1}
-    _prodchars_0::Array{Int,1}
+    _prodchars_σ::Array{Int,1}
     _choice::Array{Int,1}
     _demoRaw::Array{Int,1}
     _wgt::Array{Int,1}
@@ -62,7 +62,7 @@ function ChoiceData(data_choice::DataFrame,
         person=[:Person],
         product=[:Product],
         prodchars=[:Price,:MedDeduct,:High],
-        prodchars_0=[:PriceDiff],
+        prodchars_σ=[:PriceDiff],
         choice=[:S_ij],
         demoRaw=[:Age,:Family,:LowIncome],
         # demoRaw=[:F0_Y0_LI1,
@@ -82,7 +82,7 @@ function ChoiceData(data_choice::DataFrame,
     i = Array(data_choice[!,person])
     j = Array(data_choice[!,product])
     X = Array(data_choice[!,prodchars])
-    # X_0 = Array(Array{Float64},data_choice[prodchars_0])
+    X_σ = Array(data_choice[!,prodchars_σ])
     y = Array(data_choice[!,choice])
     Z = Array(data_choice[!,demoRaw])
     w = Array(data_choice[!,wgt])
@@ -161,8 +161,8 @@ function ChoiceData(data_choice::DataFrame,
     # Create a data matrix, only including person id
     println("Put Together Data non FE data together")
     k = 0
-    for (d, var) in zip([i,j,w,R_metal_index,R_index, y, X, Z, rm, s0,any_vec],
-        [person,product, wgt, r_var,r_silv_var, choice, prodchars, demoRaw,riskChars,unins,r_any])
+    for (d, var) in zip([i,j,w,R_metal_index,R_index, y, X, X_σ, Z, rm, s0,any_vec],
+        [person,product, wgt, r_var,r_silv_var, choice, prodchars, prodchars_σ, demoRaw,riskChars,unins,r_any])
         for l=1:size(d,2)
             k+=1
             dmat = hcat(dmat, d[:,l])
@@ -181,7 +181,7 @@ function ChoiceData(data_choice::DataFrame,
     _person = getDictArray(index,person)
     _product = getDictArray(index,product)
     _prodchars = getDictArray(index, prodchars)
-    _prodchars_0 = getDictArray(index, prodchars_0)
+    _prodchars_σ = getDictArray(index, prodchars_σ)
     _choice = getDictArray(index, choice)
     _demoRaw = getDictArray(index, demoRaw)
     _wgt = getDictArray(index, wgt)
@@ -218,9 +218,9 @@ function ChoiceData(data_choice::DataFrame,
     # end
 
     ## Rand Coefficient Index
-    _randCoeffs = Array{Int,1}(undef,length(prodchars_0))
-    for (i,var) in enumerate(prodchars_0)
-        _randCoeffs[i] = findall(var.==prodchars)[1]
+    _randCoeffs = Array{Int,1}(undef,length(prodchars_σ))
+    for (i,var) in enumerate(prodchars_σ)
+        _randCoeffs[i] = findall(var.==prodchars_σ)[1]
     end
 
     # Get Person ID Dictionary Mapping for Easy Subsets
@@ -287,9 +287,9 @@ function ChoiceData(data_choice::DataFrame,
 
     # Make the data object
     m = ChoiceData(dmat,data_market,rmat,tMoments,st_share,
-            F, index, prodchars,prodchars_0,
+            F, index, prodchars, prodchars_σ,
             choice, demoRaw,wgt, unins,feNames,
-             _person,_product, _prodchars,_prodchars_0,
+             _person,_product, _prodchars,_prodchars_σ,
             _choice, _demoRaw, _wgt,_ageRate,_ageHCC,
              _unins,_rInd,_rIndS,
              _randCoeffs,
@@ -479,7 +479,7 @@ getindex(m::ChoiceData, idx::Symbol, cols) = m.data[getindex(m.index, idx),cols]
 person(m::ChoiceData)      = m[m._person]
 product(m::ChoiceData)      = m[m._product]
 prodchars(m::ChoiceData)   = m[m._prodchars]
-prodchars0(m::ChoiceData)   = m[m._prodchars_0]
+prodcharsσ(m::ChoiceData)   = m[m._prodchars_σ]
 choice(m::ChoiceData)      = m[m._choice]
 demoRaw(m::ChoiceData)     = m[m._demoRaw]
 weight(m::ChoiceData)      = m[m._wgt]
@@ -515,7 +515,7 @@ function subset(d::T, idx) where T<:ModelData
     d.index,
     # Names of rows (columns of input data)
     d.prodchars,   # Product Characteristics
-    d.prodchars_0,   # Product Characteristics
+    d. prodchars_σ,   # Product Characteristics
     d.choice,      # Binary choice indicator
     d.demoRaw,    # Household Demographics - raw
     d.wgt,     # Demographic Fixed Effects
@@ -525,7 +525,7 @@ function subset(d::T, idx) where T<:ModelData
     d._person,
     d._product,
     d._prodchars,
-    d._prodchars_0,
+    d._prodchars_σ,
     d._choice,
     d._demoRaw,
     d._wgt,
@@ -626,7 +626,7 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
 
     # Get Parameter Lengths
     γlen = size(demoRaw(c_data),1)
-    β0len = size(prodchars0(c_data),1)
+    βσlen = size(prodcharsσ(c_data),1)
     βlen = size(prodchars(c_data),1)
     flen = size(fixedEffects(c_data),1)
 
@@ -638,7 +638,7 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
         σlen = 0
     elseif (haltonDim>1) & (!nested)
         # σlen = (size(prodchars(c_data),1)-1)
-        σlen = β0len
+        σlen = βσlen
     elseif (haltonDim==1) & nested
         σlen =1
     else
@@ -649,7 +649,7 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
     #total = 1 + γlen + β0len + γlen + flen + σlen
     total = γlen + βlen + γlen + flen + σlen
     println("Lengths are : $γlen + $βlen + $γlen + $flen + $σlen")
-    parLength = Dict(:γ=>γlen,:β0=>β0len,:β=>βlen,:FE=>flen,
+    parLength = Dict(:γ=>γlen,:βσ=>βσlen,:β=>βlen,:FE=>flen,
     :σ => σlen, :All=>total)
 
     # Initialize Halton Draws
@@ -658,6 +658,7 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
     #draws = MVHaltonNormal(haltonDim,4;scrambled=false)
 
     draws = MVHalton(haltonDim,1;scrambled=false)
+    println("Halton Draws: $draws")
     if riskscores
         risk_draws = Matrix{Float64}(undef,haltonDim,size(c_data.rMoments,1))
         for mom in 1:size(c_data.rMoments,1)

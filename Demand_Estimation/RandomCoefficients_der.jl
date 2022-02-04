@@ -9,7 +9,7 @@ function unPackChars(app::ChoiceData,d::InsuranceLogit)
     idxitr = d.data._personDict[ind]
 
     X_t = prodchars(app)
-    X_0_t = prodchars0(app)
+    X_0_t = prodcharsσ(app)
     Z = demoRaw(app)[:,1]
     #F_t = fixedEffects(app)
     F_t = fixedEffects(app,idxitr)
@@ -826,7 +826,7 @@ function ll_obs_gradient!(grad::Vector{S},
 
             ## Calculate Gradient
             grad[q]+= combine_grad(N,gll_t1,gll_t4,dS_x,dS_x_all)
-            
+
             for k in 1:K
                 @inbounds @fastmath p.dSdθ_j[q,prodidx[k]]+= wgt[k]*dS_x[k]
                 @inbounds @fastmath p.dRdθ_j[q,prodidx[k]]+= wgt[k]*(dR_x[k])

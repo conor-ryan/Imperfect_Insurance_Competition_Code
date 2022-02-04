@@ -40,8 +40,8 @@ function parDict(m::InsuranceLogit,x::Array{T};no2Der=false) where T
     #γlen = 1 + m.parLength[:γ]
     γlen = m.parLength[:γ]
     β0len = γlen + m.parLength[:β]
-    βlen = β0len + m.parLength[:γ]
-    σlen = βlen  + m.parLength[:σ]
+    βlen_price = β0len + m.parLength[:γ]
+    σlen = βlen_price  + m.parLength[:σ]
     FElen = σlen + m.parLength[:FE]
 
     # Distribute Parameters
@@ -50,8 +50,8 @@ function parDict(m::InsuranceLogit,x::Array{T};no2Der=false) where T
     γ_0 = 0.0
     γ = x[1:γlen]
     β_0 = x[(γlen+1):β0len]
-    β_vec = x[(β0len+1):βlen]
-    σ_vec = x[(βlen+1):σlen]
+    β_vec = x[(β0len+1):βlen_price]
+    σ_vec = x[(βlen_price+1):σlen]
     FE_vec = x[(σlen+1):FElen]
 
     # Store FE as row Vector
@@ -59,7 +59,7 @@ function parDict(m::InsuranceLogit,x::Array{T};no2Der=false) where T
     FE[1,:] = FE_vec
 
     # Fill in σ
-    σ = Vector{T}(undef,m.parLength[:β])
+    σ = Vector{T}(undef,m.parLength[:σ])
     σ[:] .= 0.0
     σ[m.data._randCoeffs] = σ_vec
 
@@ -81,7 +81,7 @@ function parDict(m::InsuranceLogit,x::Array{T};no2Der=false) where T
 
     #Calculate Random Coefficients matrix
     (S,R) = size(m.draws)
-    randCoeffs = Array{T,3}(undef,S,m.parLength[:β],size(m.data.rMoments,1))
+    randCoeffs = Array{T,3}(undef,S,m.parLength[:σ],size(m.data.rMoments,1))
     calcRC!(randCoeffs,σ,m.draws)
 
     #Initialize (ij) pairs of deltas
@@ -225,6 +225,7 @@ function util_value!(app::ChoiceData,p::parDict{T};non_price=false) where T
     r_ind = Int(rIndS(app)[1])
     idxitr = app._personDict[ind]
     X = permutedims(prodchars(app),(2,1))
+    X_σ = permutedims(prodcharsσ(app),(2,1))
     Z = demoRaw(app)[:,1]
     #F = fixedEffects(app)
     F = fixedEffects(app,idxitr)
@@ -237,8 +238,8 @@ function util_value!(app::ChoiceData,p::parDict{T};non_price=false) where T
         X[:,1].= 0.0
     end
 
-    chars = X*β_i
-    chars_0 = X*(β_0+β_z)
+    chars_σ = X_σ*β_i
+    chars = X*(β_0+β_z)
 
     # FE is a row Vector
     if T== Float64
@@ -252,9 +253,9 @@ function util_value!(app::ChoiceData,p::parDict{T};non_price=false) where T
         controls = fe*F
     end
 
-    (K,N) = size(chars)
+    (K,N) = size(chars_σ)
     for k = 1:K,n = 1:N
-        @fastmath u = exp(chars[k,n])# + chars_0[k]  + demos) #+ controls[k]
+        @fastmath u = exp(chars_σ[k,n])# + chars_0[k]  + demos) #+ controls[k]
         p.μ_ij[n,idxitr[k]] = u
     end
 
@@ -265,7 +266,7 @@ function util_value!(app::ChoiceData,p::parDict{T};non_price=false) where T
     p.μ_ij_nonRisk[idxitr].=1.0
 
     for k = 1:K
-        @fastmath d = exp(chars_0[k] + demos + controls[k])
+        @fastmath d = exp(chars[k] + demos + controls[k])
         p.δ[idxitr[k]] = d
     end
 

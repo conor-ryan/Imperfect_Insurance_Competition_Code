@@ -752,27 +752,14 @@ choices[METAL%in%c("SILVER 87","SILVER 94","GOLD","PLATINUM"),prodCat:="High"]
 choices[,Firm_Market_Cat:=paste(Firm,Market,prodCat,sep="_")]
 choices[,Market_Cat:=paste(Market,prodCat,sep="_")]
 choices[,Market_Firm:=paste(Market,Firm,sep="_")]
+
+choices[,Firm_ST:=paste(Firm,STATE,sep="_")]
 choices[,Firm_Market_Age:=paste(Firm,Market,Age,sep="_")]
 choices[,Firm_Market_Cat_Age:=paste(Firm,Market,prodCat,Age,sep="_")]
 
 ## Empty Drop Flags
 choices[,drop_FMC:=0]
 choices[,drop_FMCA:=0]
-
-
-## Firm Fixed Effects
-# firm_list = unique(choices$Firm)[-1]
-# for (var in firm_list){
-#   choices[,c(var):=0]
-#   choices[Firm==var,c(var):=1]
-# }
-# 
-# Market_list = unique(choices$Market)[-1]
-# 
-# for (var in Market_list){
-#   choices[,c(var):=0]
-#   choices[Market==var,c(var):=1]
-# }
 
 
 #### Summary Stats for Tables ####
@@ -920,6 +907,13 @@ choices = merge(choices,firmShares[,c("Firm","STATE","Small")],by=c("Firm","STAT
 shares = merge(shares,firmShares[,c("Firm","STATE","Small")],by=c("Firm","STATE"))
 
 choices[,High_small:=Small*HighRisk]
+
+## Firm Fixed Effects
+firm_list = choices[,unique(Firm_ST)]
+for (var in firm_list){
+  choices[,c(var):=0]
+  choices[Firm_ST==var,c(var):=1]
+}
 # rm(firmShare)
 
 # choices[,Big:=as.numeric(grepl("UNITED|BLUE|CIGNA|ASSURANT",Firm))]
@@ -939,8 +933,8 @@ choices[,High_small:=Small*HighRisk]
 setkey(choices,Person,Product)
 setkey(shares,Product)
 
-write.csv(choices[,c("Person","Firm","Market","Product","S_ij","S_raw_ij","N","Price",
-                     "Market_Firm","Market_Cat","Firm_Market_Cat","Firm_Market_Age","Firm_Market_Cat_Age","drop_FMC","drop_FMCA",
+write.csv(choices[,.SD,.SDcols=c("Person","Firm","Market","Product","S_ij","S_raw_ij","N","Price",
+                     "Market_Firm","Market_Cat","Firm_ST","Firm_Market_Cat","Firm_Market_Age","Firm_Market_Cat_Age","drop_FMC","drop_FMCA",
                      "PriceDiff",#"MedDeductDiff","ExcOOPDiff","HighDiff",
                      "MedDeduct","ExcOOP","High","AV","AV_old","HighRisk","Small","High_small",
                      "Family","Age","LowIncome","AGE","HighIncome","IncomeCts",
@@ -952,7 +946,7 @@ write.csv(choices[,c("Person","Firm","Market","Product","S_ij","S_raw_ij","N","P
                      "F0_Y0_LI0","F0_Y0_LI1","F0_Y1_LI0","F0_Y1_LI1",
                      "F1_Y0_LI0","F1_Y0_LI1","F1_Y1_LI0","F1_Y1_LI1",
                      "AgeFE_18_30","AgeFE_31_39","AgeFE_40_51","AgeFE_52_64",
-                     "unins_rate")],
+                     "unins_rate",firm_list)],
           "Intermediate_Output/Estimation_Data/estimationData_discrete.csv",row.names=FALSE)
 write.csv(choices,"Intermediate_Output/Estimation_Data/descriptiveData_discrete.csv",row.names=FALSE)
 

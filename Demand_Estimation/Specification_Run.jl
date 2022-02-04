@@ -3,7 +3,7 @@ function run_specification(df::DataFrame,
                             df_risk::DataFrame;
                             haltonDim = 1,
                             spec_prodchars=[:Price,:MedDeduct,:High],
-                            spec_prodchars_0=[:PriceDiff],
+                            spec_prodchars_σ=[:PriceDiff],
                             spec_demoRaw=[:Age,:Family,:LowIncome],
                             spec_fixedEffects=[],
                             nested = false,
@@ -13,10 +13,10 @@ function run_specification(df::DataFrame,
     c_data = ChoiceData(df,df_mkt,df_risk;
         demoRaw=spec_demoRaw,
         prodchars=spec_prodchars,
-        prodchars_0=spec_prodchars_0,
+        prodchars_σ=spec_prodchars_σ,
         fixedEffects=spec_fixedEffects)
 
-    param_labels = vcat(String.(spec_demoRaw),String.(spec_prodchars),"Price:" .* String.(spec_demoRaw),"Variance:".*String.(spec_prodchars_0),c_data.feNames)
+    param_labels = vcat(String.(spec_demoRaw),String.(spec_prodchars),"Price:" .* String.(spec_demoRaw),"Variance:".*String.(spec_prodchars_σ),c_data.feNames)
 
     m = InsuranceLogit(c_data,haltonDim,nested=nested)
 
@@ -40,7 +40,7 @@ function run_specification(df::DataFrame,
         ll_res = run_specification(df,df_mkt,df_risk,
                         haltonDim = 1,
                             spec_prodchars = spec_prodchars,
-                            spec_prodchars_0= Vector{Symbol}(undef,0),
+                            spec_prodchars_σ= Vector{Symbol}(undef,0),
                             spec_demoRaw=spec_demoRaw,
                             spec_fixedEffects=spec_fixedEffects,
                             nested = nested,
@@ -157,13 +157,13 @@ function run_specification_GMM(filename::String,
                             df_risk::DataFrame;
                             haltonDim = 1,
                             spec_prodchars=[:Price,:MedDeduct,:High],
-                            spec_prodchars_0=Vector{Symbol}(undef,0),
+                            spec_prodchars_σ=Vector{Symbol}(undef,0),
                             spec_demoRaw=[:Age,:Family,:LowIncome],
                             spec_fixedEffects=Vector{Symbol}(undef,0),
                             nested = false)
 
     spec_Dict = Dict("prodchars" => spec_prodchars,
-    "prodchars_0"=> spec_prodchars_0,
+    "prodchars_σ"=> spec_prodchars_σ,
     "demoRaw"=>spec_demoRaw,
     "fixedEffects"=>spec_fixedEffects,
     "nested"=>nested,
@@ -175,7 +175,7 @@ function run_specification_GMM(filename::String,
     # c_ll = ChoiceData(df,df_mkt,df_risk;
     #     demoRaw=spec_demoRaw,
     #     prodchars=spec_prodchars,
-    #     prodchars_0=Vector{Symbol}(undef,0),
+    #     prodchars_σ=Vector{Symbol}(undef,0),
     #     fixedEffects=spec_fixedEffects)
     #
     # m_ll = InsuranceLogit(c_ll,1,nested=nested)
@@ -208,10 +208,10 @@ function run_specification_GMM(filename::String,
     c_data = ChoiceData(df,df_mkt,df_risk;
         demoRaw=spec_demoRaw,
         prodchars=spec_prodchars,
-        prodchars_0=spec_prodchars_0,
+        prodchars_σ=spec_prodchars_σ,
         fixedEffects=spec_fixedEffects)
 
-    param_labels = vcat(String.(spec_demoRaw),String.(spec_prodchars),"Price:" .* String.(spec_demoRaw),"Variance:".*String.(spec_prodchars_0),c_data.feNames)
+    param_labels = vcat(String.(spec_demoRaw),String.(spec_prodchars),"Price:" .* String.(spec_demoRaw),"Variance:".*String.(spec_prodchars_σ),c_data.feNames)
 
     m_GMM = InsuranceLogit(c_data,haltonDim,nested=nested)
 
@@ -307,7 +307,7 @@ function estimate_demand(filename,rundate,
                     haltonDim,
                     spec_demoRaw,
                     spec_prodchars,
-                    spec_prodchars_0,
+                    spec_prodchars_σ,
                     spec_fixedEffects)
     # Load the Data
     println("Loading Data...")
@@ -322,7 +322,7 @@ function estimate_demand(filename,rundate,
                         haltonDim = halton_draws,
                         spec_demoRaw=spec_demoRaw,
                         spec_prodchars=spec_prodchars,
-                        spec_prodchars_0=spec_prodchars_0,
+                        spec_prodchars_σ=spec_prodchars_σ,
                         spec_fixedEffects=spec_fixedEffects)
         return nothing
 end
@@ -336,13 +336,13 @@ function run_specification_penalizedlikelihood(filename::String,
                             df_risk::DataFrame;
                             haltonDim = 1,
                             spec_prodchars=[:Price,:MedDeduct,:High],
-                            spec_prodchars_0=Vector{Symbol}(undef,0),
+                            spec_prodchars_σ=Vector{Symbol}(undef,0),
                             spec_demoRaw=[:Age,:Family,:LowIncome],
                             spec_fixedEffects=Vector{Symbol}(undef,0),
                             nested = false)
 
     spec_Dict = Dict("prodchars" => spec_prodchars,
-    "prodchars_0"=> spec_prodchars_0,
+    "prodchars_σ"=> spec_prodchars_σ,
     "demoRaw"=>spec_demoRaw,
     "fixedEffects"=>spec_fixedEffects,
     "nested"=>nested,
@@ -355,10 +355,10 @@ function run_specification_penalizedlikelihood(filename::String,
     c_data = ChoiceData(df,df_mkt,df_risk;
         demoRaw=spec_demoRaw,
         prodchars=spec_prodchars,
-        prodchars_0=spec_prodchars_0,
+        prodchars_σ=spec_prodchars_σ,
         fixedEffects=spec_fixedEffects)
 
-    param_labels = vcat(String.(spec_demoRaw),String.(spec_prodchars),"Price:" .* String.(spec_demoRaw),"Variance:".*String.(spec_prodchars_0),c_data.feNames)
+    param_labels = vcat(String.(spec_demoRaw),String.(spec_prodchars),"Price:" .* String.(spec_demoRaw),"Variance:".*String.(spec_prodchars_σ),c_data.feNames)
 
     m_ll = InsuranceLogit(c_data,haltonDim,nested=nested)
 

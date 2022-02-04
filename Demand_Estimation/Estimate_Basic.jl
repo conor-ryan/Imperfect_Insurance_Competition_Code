@@ -281,9 +281,9 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             end
             trial_cnt = 0
             hess_new, check = enforceNegDef(hess_new)
-            if !check
-                hess_steps = Hess_Skip_Steps-5
-            end
+            # if !check
+            #     hess_steps = Hess_Skip_Steps-5
+            # end
             H_k = inv(hess_new)
             real_hessian=1
         else
@@ -363,9 +363,9 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         end
 
         step_size = maximum(abs.(update))
-        if step_size>20
-            update = update./step_size
-            ind = findall(abs.(update).==1)
+        if step_size>10
+            update = (update./step_size).*10
+            ind = findall(abs.(update).==10)
             val_disp = p_vec[ind]
             println("Max Parameter Adjustment: $ind, $val_disp")
             step_size = 1
@@ -390,7 +390,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 println("Previous Iteration at $fval")
             end
             if trial_cnt<=2
-                update/= 20
+                update/= 10
             else
                 update/= 200
             end
@@ -402,7 +402,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 println("Trial (NR): Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
                 trial_cnt+=1
-                hess_steps=0
+                # hess_steps=0
             elseif real_hessian==1
                 hess_steps = 0
                 trial_max = 1
@@ -414,8 +414,10 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 p_test = copy(p_vec)
                 break
             end
+            if step_size<1e-8
+                hess_steps=0
+            end
         end
-
 
         if real_hessian==1 & hess_steps>0
             f_tol_flag = 1
