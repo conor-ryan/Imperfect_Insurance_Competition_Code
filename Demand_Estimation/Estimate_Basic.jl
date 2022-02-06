@@ -371,6 +371,9 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             step_size = 1
         end
 
+        large_parameters = abs(p_vec).>500
+        println("Very Large Parameters: $large_parameters")
+
         if NaN_steps==0
             p_test = p_vec .+ update
             f_test = log_likelihood_penalty(d,p_test,W)
