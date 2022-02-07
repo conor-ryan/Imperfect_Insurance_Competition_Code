@@ -116,9 +116,9 @@ function log_likelihood!(grad::Vector{S},
         ll_obs,pars_relevant = ll_obs_gradient!(grad,app,d,p,feFlag=feFlag)
         ll+=ll_obs
     end
-    if isnan(ll)
-        ll = -1e20
-    end
+    # if isnan(ll)
+    #     ll = -1e20
+    # end
     for q in 1:Q
         grad[q]=grad[q]/Pop
     end
@@ -165,9 +165,9 @@ function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
         #add_obs_mat!(hess,grad,hess_obs,grad_obs,Pop,pars_relevant)
 
     end
-    if isnan(ll)
-        ll = -1e20
-    end
+    # if isnan(ll)
+    #     ll = -1e20
+    # end
     for q in 1:Q
         grad[q]=grad[q]/Pop
         for r in 1:Q

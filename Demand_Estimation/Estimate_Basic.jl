@@ -221,7 +221,7 @@ end
 
 
 function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
-    max_itr=2000,strict=true,Hess_Skip_Steps=15)
+    max_itr=2000,strict=true,Hess_Skip_Steps=25)
     ## Initialize Parameter Vector
     p_vec = p0
     N = length(p0)
@@ -334,7 +334,13 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         update = -H_k*grad_new
         if any(isnan.(update))
             println("Step contains NaN")
+            println(p_vec)
+            if any(isnan.(H_k))
+                println("Hessian contains NaN")
+            if any(isnan.(grad_new))
+                println("Gradient contains NaN")
             NaN_steps+=1
+            return p_min,f_min
             if NaN_steps<5
                 println("Hessian might be singular")
                 println("RUN ROUND OF GRADIENT ASCENT")
@@ -371,7 +377,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             step_size = 1
         end
 
-        large_parameters = findall(abs.(p_vec).>500)
+        large_parameters = findall(abs.(p_vec).>50)
         println("Very Large Parameters: $large_parameters")
 
         if NaN_steps==0
