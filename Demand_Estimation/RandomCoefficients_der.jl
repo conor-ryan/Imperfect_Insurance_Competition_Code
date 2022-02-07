@@ -391,11 +391,7 @@ function hess_calc!(dS_xy::Vector{Float64},s_n::Vector{T},
 
     ### 0 Draw Calculation ###
     risk_nr = zeros(1,K)
-    dμ_ij_x_sums, dμ_ij_y_sums, dμ_ij_xy_sums = calc_derSums_xy!(0,s_n,X_mat,Y,μ_ij_nr,δ,μ_ij_nr_sum[1])
-
-    @fastmath Γ_x = dμ_ij_x_sums/μ_ij_nr_sum[1]
-    @fastmath Γ_y = dμ_ij_y_sums/μ_ij_nr_sum[1]
-    @fastmath Γ_xy = dμ_ij_xy_sums/μ_ij_nr_sum[1]
+    Γ_x, Γ_y, Γ_xy = calc_derSums_xy!(0,s_n,X_mat,Y,μ_ij_nr,δ,μ_ij_nr_sum[1])
 
     calc_prodTerms_xy!(0,1-anyR,dS_xy,dR,risk_nr,risk_age,
                 X_mat,Y,s_n,Γ_x,Γ_y,Γ_xy)
@@ -403,12 +399,7 @@ function hess_calc!(dS_xy::Vector{Float64},s_n::Vector{T},
     for n in 1:N
         μ_ij_sums_n = μ_ij_sums[n]
 
-        dμ_ij_x_sums, dμ_ij_y_sums, dμ_ij_xy_sums = calc_derSums_xy!(n,s_n,X_mat,Y,μ_ij,δ,μ_ij_sums_n)
-
-        @fastmath Γ_x = dμ_ij_x_sums/μ_ij_sums_n
-        @fastmath Γ_y = dμ_ij_y_sums/μ_ij_sums_n
-        @fastmath Γ_xy = dμ_ij_xy_sums/μ_ij_sums_n
-        # s_n = μ_ij[n,:].*δ/μ_ij_sums_n
+        Γ_x, Γ_y, Γ_xy = calc_derSums_xy!(n,s_n,X_mat,Y,μ_ij,δ,μ_ij_sums_n)
 
         calc_prodTerms_xy!(n,anyR/N,dS_xy,dR,risk,risk_age,
                             X_mat,Y,s_n,
@@ -421,57 +412,57 @@ function hess_calc!(dS_xy::Vector{Float64},s_n::Vector{T},
 end
 
 
-function thD_calc!(dS_xyz::Vector{Float64},s_n::Vector{Float64},
-                    anyR::Float64,
-                    μ_ij::Matrix{T},μ_ij_nr::Matrix{T},δ::Vector{T},
-                    X_mat::S,Y::R,Z::Q,
-                    μ_ij_sums::Vector{Float64},μ_ij_nr_sum::Vector{T}) where {S,R,Q,T}
-    dS_xyz[:] .= 0.0
-
-    dS_xyz_all = 0.0
-
-
-    (N,K) = size(μ_ij)
-
-    ### 0 Draw Calculation ###
-    dμ_ij_x_sums,dμ_ij_y_sums,dμ_ij_z_sums,dμ_ij_xy_sums,dμ_ij_xz_sums,dμ_ij_yz_sums,dμ_ij_xyz_sums =
-        calc_derSums_xyz!(0,s_n,X_mat,Y,Z,μ_ij_nr,δ,μ_ij_nr_sum[1])
-
-    @fastmath Γ_x = dμ_ij_x_sums/μ_ij_nr_sum[1]
-    @fastmath Γ_y = dμ_ij_y_sums/μ_ij_nr_sum[1]
-    @fastmath Γ_z = dμ_ij_z_sums/μ_ij_nr_sum[1]
-    @fastmath Γ_xy = dμ_ij_xy_sums/μ_ij_nr_sum[1]
-    @fastmath Γ_xz = dμ_ij_xz_sums/μ_ij_nr_sum[1]
-    @fastmath Γ_yz = dμ_ij_yz_sums/μ_ij_nr_sum[1]
-    @fastmath Γ_xyz = dμ_ij_xyz_sums/μ_ij_nr_sum[1]
-    # s_n = s_n./μ_ij_sums_n
-
-    calc_prodTerms_xyz!(0,1-anyR,dS_xyz,
-                X_mat,Y,Z,s_n,Γ_x,Γ_y,Γ_z,Γ_xy,Γ_xz,Γ_yz,Γ_xyz)
-
-    for n in 1:N
-        μ_ij_sums_n = μ_ij_sums[n]
-
-        dμ_ij_x_sums,dμ_ij_y_sums,dμ_ij_z_sums,dμ_ij_xy_sums,dμ_ij_xz_sums,dμ_ij_yz_sums,dμ_ij_xyz_sums =
-            calc_derSums_xyz!(n,s_n,X_mat,Y,Z,μ_ij,δ,μ_ij_sums_n)
-
-        @fastmath Γ_x = dμ_ij_x_sums/μ_ij_sums_n
-        @fastmath Γ_y = dμ_ij_y_sums/μ_ij_sums_n
-        @fastmath Γ_z = dμ_ij_z_sums/μ_ij_sums_n
-        @fastmath Γ_xy = dμ_ij_xy_sums/μ_ij_sums_n
-        @fastmath Γ_xz = dμ_ij_xz_sums/μ_ij_sums_n
-        @fastmath Γ_yz = dμ_ij_yz_sums/μ_ij_sums_n
-        @fastmath Γ_xyz = dμ_ij_xyz_sums/μ_ij_sums_n
-        # s_n = s_n./μ_ij_sums_n
-
-        calc_prodTerms_xyz!(n,anyR/N,dS_xyz,
-                    X_mat,Y,Z,s_n,Γ_x,Γ_y,Γ_z,Γ_xy,Γ_xz,Γ_yz,Γ_xyz)
-    end
-    for k in 1:K
-        @inbounds @fastmath dS_xyz_all+= dS_xyz[k]
-    end
-    return dS_xyz_all
-end
+# function thD_calc!(dS_xyz::Vector{Float64},s_n::Vector{Float64},
+#                     anyR::Float64,
+#                     μ_ij::Matrix{T},μ_ij_nr::Matrix{T},δ::Vector{T},
+#                     X_mat::S,Y::R,Z::Q,
+#                     μ_ij_sums::Vector{Float64},μ_ij_nr_sum::Vector{T}) where {S,R,Q,T}
+#     dS_xyz[:] .= 0.0
+#
+#     dS_xyz_all = 0.0
+#
+#
+#     (N,K) = size(μ_ij)
+#
+#     ### 0 Draw Calculation ###
+#     dμ_ij_x_sums,dμ_ij_y_sums,dμ_ij_z_sums,dμ_ij_xy_sums,dμ_ij_xz_sums,dμ_ij_yz_sums,dμ_ij_xyz_sums =
+#         calc_derSums_xyz!(0,s_n,X_mat,Y,Z,μ_ij_nr,δ,μ_ij_nr_sum[1])
+#
+#     @fastmath Γ_x = dμ_ij_x_sums/μ_ij_nr_sum[1]
+#     @fastmath Γ_y = dμ_ij_y_sums/μ_ij_nr_sum[1]
+#     @fastmath Γ_z = dμ_ij_z_sums/μ_ij_nr_sum[1]
+#     @fastmath Γ_xy = dμ_ij_xy_sums/μ_ij_nr_sum[1]
+#     @fastmath Γ_xz = dμ_ij_xz_sums/μ_ij_nr_sum[1]
+#     @fastmath Γ_yz = dμ_ij_yz_sums/μ_ij_nr_sum[1]
+#     @fastmath Γ_xyz = dμ_ij_xyz_sums/μ_ij_nr_sum[1]
+#     # s_n = s_n./μ_ij_sums_n
+#
+#     calc_prodTerms_xyz!(0,1-anyR,dS_xyz,
+#                 X_mat,Y,Z,s_n,Γ_x,Γ_y,Γ_z,Γ_xy,Γ_xz,Γ_yz,Γ_xyz)
+#
+#     for n in 1:N
+#         μ_ij_sums_n = μ_ij_sums[n]
+#
+#         dμ_ij_x_sums,dμ_ij_y_sums,dμ_ij_z_sums,dμ_ij_xy_sums,dμ_ij_xz_sums,dμ_ij_yz_sums,dμ_ij_xyz_sums =
+#             calc_derSums_xyz!(n,s_n,X_mat,Y,Z,μ_ij,δ,μ_ij_sums_n)
+#
+#         @fastmath Γ_x = dμ_ij_x_sums/μ_ij_sums_n
+#         @fastmath Γ_y = dμ_ij_y_sums/μ_ij_sums_n
+#         @fastmath Γ_z = dμ_ij_z_sums/μ_ij_sums_n
+#         @fastmath Γ_xy = dμ_ij_xy_sums/μ_ij_sums_n
+#         @fastmath Γ_xz = dμ_ij_xz_sums/μ_ij_sums_n
+#         @fastmath Γ_yz = dμ_ij_yz_sums/μ_ij_sums_n
+#         @fastmath Γ_xyz = dμ_ij_xyz_sums/μ_ij_sums_n
+#         # s_n = s_n./μ_ij_sums_n
+#
+#         calc_prodTerms_xyz!(n,anyR/N,dS_xyz,
+#                     X_mat,Y,Z,s_n,Γ_x,Γ_y,Γ_z,Γ_xy,Γ_xz,Γ_yz,Γ_xyz)
+#     end
+#     for k in 1:K
+#         @inbounds @fastmath dS_xyz_all+= dS_xyz[k]
+#     end
+#     return dS_xyz_all
+# end
 
 
 function grad_calc!(dS_x::Vector{T},
@@ -491,10 +482,8 @@ function grad_calc!(dS_x::Vector{T},
 
     ### 0 Draw Calculation ###
     risk_nr = zeros(1,K)
-    dμ_ij_x_sums = calc_derSums_x!(0,s_n,X_mat,μ_ij_nr,δ,μ_ij_nr_sum[1])
+    Γ_x = calc_derSums_x!(0,s_n,X_mat,μ_ij_nr,δ,μ_ij_nr_sum[1])
 
-    @fastmath Γ_x = dμ_ij_x_sums/μ_ij_nr_sum[1]
-    # s_n = s_n./μ_ij_sums_n
 
     calc_prodTerms_x!(0,1-anyR,dS_x,dR,risk_nr,risk_age,
                 X_mat,s_n,Γ_x)
@@ -502,10 +491,7 @@ function grad_calc!(dS_x::Vector{T},
     for n in 1:N
         μ_ij_sums_n = μ_ij_sums[n]
 
-        dμ_ij_x_sums = calc_derSums_x!(n,s_n,X_mat,μ_ij,δ,μ_ij_sums_n)
-
-        @fastmath Γ_x = dμ_ij_x_sums/μ_ij_sums_n
-        # s_n = s_n./μ_ij_sums_n
+        Γ_x = calc_derSums_x!(n,s_n,X_mat,μ_ij,δ,μ_ij_sums_n)
 
         calc_prodTerms_x!(n,anyR/N,dS_x,dR,risk,risk_age,
                     X_mat,s_n,Γ_x)
@@ -795,29 +781,29 @@ function ll_obs_gradient!(grad::Vector{S},
 
 
         for (q_i,q) in enumerate(pars_relevant)
-            if q<0
-                X = 1.0
-            elseif q<=γlen
-                X = Z[q]
-            elseif q<=β0len
-                X = X_t[q-γlen,:]
-            elseif q<=βlen
-                # Characteristic Interactions
-                X = X_t[1,:].*Z[q-β0len]
-            elseif q<=σlen
-                #Quality Random Effect
-                X_mat[1,:].=0.0
-                for n in 1:N,k in 1:K
-                    @inbounds X_mat[n+1,k] = draws[n,r_ind]*X_0_t[q-(βlen),k]
-                end
-                X = X_mat
-            else
-                #Fixed Effect
-                X = F_t[q-σlen,:]
-            end
-            # returnParameter!(q,X_mat,
-            #                 Z,X_0_t,X_t,draws,F_t,r_ind,
-            #                 γlen,β0len,βlen,σlen)
+            # if q<0
+            #     X = 1.0
+            # elseif q<=γlen
+            #     X = Z[q]
+            # elseif q<=β0len
+            #     X = X_t[q-γlen,:]
+            # elseif q<=βlen
+            #     # Characteristic Interactions
+            #     X = X_t[1,:].*Z[q-β0len]
+            # elseif q<=σlen
+            #     #Quality Random Effect
+            #     X_mat[1,:].=0.0
+            #     for n in 1:N,k in 1:K
+            #         @inbounds X_mat[n+1,k] = draws[n,r_ind]*X_0_t[q-(βlen),k]
+            #     end
+            #     X = X_mat
+            # else
+            #     #Fixed Effect
+            #     X = F_t[q-σlen,:]
+            # end
+            X = returnParameterX!(q,X_mat,
+                            Z,X_0_t,X_t,draws,F_t,r_ind,
+                            γlen,β0len,βlen,σlen)
 
             dS_x_all = grad_calc!(dS_x,s_n,anyR,
                         dR_x,risk,r_age,
