@@ -337,8 +337,10 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             println(p_vec)
             if any(isnan.(H_k))
                 println("Hessian contains NaN")
+            end
             if any(isnan.(grad_new))
                 println("Gradient contains NaN")
+            end
             NaN_steps+=1
             return p_min,f_min
             if NaN_steps<5
