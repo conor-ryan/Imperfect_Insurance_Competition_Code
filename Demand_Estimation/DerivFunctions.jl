@@ -980,9 +980,9 @@ function calc_derSums_xy!(n::Int64,s_n::Vector{T},
                     μ_ij::Matrix{T},δ::Vector{T},
                     μ_ij_sums_n::T) where T
 
-    Γ_x = 0.0
-    Γ_y = 0.0
-    Γ_xy = 0.0
+        Γ_x = 0.0
+        Γ_y = 0.0
+        Γ_xy = 0.0
     n1 = max(n,1)
 
     K = length(δ)
@@ -991,12 +991,10 @@ function calc_derSums_xy!(n::Int64,s_n::Vector{T},
         @inbounds @fastmath x = X_mat[n+1,k]
         @inbounds @fastmath y = Y[n+1,k]
 
-        @fastmath s = u/μ_ij_sums_n
-        @inbounds @fastmath s_n[k] = s
-
-         @fastmath Γ_x += s*x
-         @fastmath Γ_y += s*y
-         @fastmath Γ_xy += s*x*y
+        @inbounds @fastmath s_n[k] = u/μ_ij_sums_n
+         @fastmath Γ_x+= u*x/μ_ij_sums_n
+         @fastmath Γ_y+= u*y/μ_ij_sums_n
+         @fastmath Γ_xy+= u*x*y/μ_ij_sums_n
     end
 
     return Γ_x, Γ_y, Γ_xy
@@ -1018,12 +1016,10 @@ function calc_derSums_xy!(n::Int64,s_n::Vector{T},
         @inbounds @fastmath x = X_mat[n+1,k]
         @inbounds @fastmath y = Y[k]
 
-        @fastmath s = u/μ_ij_sums_n
-        @inbounds @fastmath s_n[k] = s
-
-         @fastmath Γ_x += s*x
-         @fastmath Γ_y += s*y
-         @fastmath Γ_xy += s*x*y
+        @inbounds @fastmath s_n[k] = u/μ_ij_sums_n
+        @fastmath Γ_x+= u*x/μ_ij_sums_n
+        @fastmath Γ_y+= u*y/μ_ij_sums_n
+        @fastmath Γ_xy+= u*x*y/μ_ij_sums_n
     end
 
     return Γ_x, Γ_y, Γ_xy
@@ -1044,12 +1040,10 @@ function calc_derSums_xy!(n::Int64,s_n::Vector{T},
         @inbounds @fastmath u = μ_ij[n1,k]*δ[k]
         @inbounds @fastmath x = X_mat[n+1,k]
 
-        @fastmath s = u/μ_ij_sums_n
-        @inbounds @fastmath s_n[k] = s
-
-         @fastmath Γ_x += s*x
-         @fastmath Γ_y += s*y
-         @fastmath Γ_xy += s*x*y
+        @inbounds @fastmath s_n[k] = u/μ_ij_sums_n
+        @fastmath Γ_x+= u*x/μ_ij_sums_n
+        @fastmath Γ_y+= u*y/μ_ij_sums_n
+        @fastmath Γ_xy+= u*x*y/μ_ij_sums_n
     end
 
     return Γ_x, Γ_y, Γ_xy
@@ -1071,12 +1065,10 @@ function calc_derSums_xy!(n::Int64,s_n::Vector{T},
         @inbounds @fastmath x = X_mat[k]
         @inbounds @fastmath y = Y[n+1,k]
 
-        @fastmath s = u/μ_ij_sums_n
-        @inbounds @fastmath s_n[k] = s
-
-         @fastmath Γ_x += s*x
-         @fastmath Γ_y += s*y
-         @fastmath Γ_xy += s*x*y
+        @inbounds @fastmath s_n[k] = u/μ_ij_sums_n
+        @fastmath Γ_x+= u*x/μ_ij_sums_n
+        @fastmath Γ_y+= u*y/μ_ij_sums_n
+        @fastmath Γ_xy+= u*x*y/μ_ij_sums_n
     end
 
     return Γ_x, Γ_y, Γ_xy
@@ -1098,12 +1090,10 @@ function calc_derSums_xy!(n::Int64,s_n::Vector{T},
         @inbounds @fastmath x = X_mat[k]
         @inbounds @fastmath y = Y[k]
 
-        @fastmath s = u/μ_ij_sums_n
-        @inbounds @fastmath s_n[k] = s
-
-         @fastmath Γ_x += s*x
-         @fastmath Γ_y += s*y
-         @fastmath Γ_xy += s*x*y
+        @inbounds @fastmath s_n[k] = u/μ_ij_sums_n
+        @fastmath Γ_x+= u*x/μ_ij_sums_n
+        @fastmath Γ_y+= u*y/μ_ij_sums_n
+        @fastmath Γ_xy+= u*x*y/μ_ij_sums_n
     end
 
     return Γ_x, Γ_y, Γ_xy
@@ -1124,12 +1114,10 @@ function calc_derSums_xy!(n::Int64,s_n::Vector{T},
         @inbounds @fastmath u = μ_ij[n1,k]*δ[k]
         @inbounds @fastmath x = X_mat[k]
 
-        @fastmath s = u/μ_ij_sums_n
-        @inbounds @fastmath s_n[k] = s
-
-         @fastmath Γ_x += s*x
-         @fastmath Γ_y += s*y
-         @fastmath Γ_xy += s*x*y
+        @inbounds @fastmath s_n[k] = u/μ_ij_sums_n
+        @fastmath Γ_x+= u*x/μ_ij_sums_n
+        @fastmath Γ_y+= u*y/μ_ij_sums_n
+        @fastmath Γ_xy+= u*x*y/μ_ij_sums_n
     end
 
     return Γ_x, Γ_y, Γ_xy
@@ -1150,12 +1138,10 @@ function calc_derSums_xy!(n::Int64,s_n::Vector{T},
         @inbounds @fastmath u = μ_ij[n1,k]*δ[k]
         @inbounds @fastmath y = Y[n+1,k]
 
-        @fastmath s = u/μ_ij_sums_n
-        @inbounds @fastmath s_n[k] = s
-
-         @fastmath Γ_x += s*x
-         @fastmath Γ_y += s*y
-         @fastmath Γ_xy += s*x*y
+        @inbounds @fastmath s_n[k] = u/μ_ij_sums_n
+        @fastmath Γ_x+= u*x/μ_ij_sums_n
+        @fastmath Γ_y+= u*y/μ_ij_sums_n
+        @fastmath Γ_xy+= u*x*y/μ_ij_sums_n
     end
 
     return Γ_x, Γ_y, Γ_xy
@@ -1176,12 +1162,10 @@ function calc_derSums_xy!(n::Int64,s_n::Vector{T},
         @inbounds @fastmath u = μ_ij[n1,k]*δ[k]
         @inbounds @fastmath y = Y[k]
 
-        @fastmath s = u/μ_ij_sums_n
-        @inbounds @fastmath s_n[k] = s
-
-         @fastmath Γ_x += s*x
-         @fastmath Γ_y += s*y
-         @fastmath Γ_xy += s*x*y
+        @inbounds @fastmath s_n[k] = u/μ_ij_sums_n
+        @fastmath Γ_x+= u*x/μ_ij_sums_n
+        @fastmath Γ_y+= u*y/μ_ij_sums_n
+        @fastmath Γ_xy+= u*x*y/μ_ij_sums_n
     end
 
     return Γ_x, Γ_y, Γ_xy
@@ -1201,12 +1185,10 @@ function calc_derSums_xy!(n::Int64,s_n::Vector{T},
     for k in 1:K
         @inbounds @fastmath u = μ_ij[n1,k]*δ[k]
 
-        @fastmath s = u/μ_ij_sums_n
-        @inbounds @fastmath s_n[k] = s
-
-         @fastmath Γ_x += s*x
-         @fastmath Γ_y += s*y
-         @fastmath Γ_xy += s*x*y
+        @inbounds @fastmath s_n[k] = u/μ_ij_sums_n
+        @fastmath Γ_x+= u*x/μ_ij_sums_n
+        @fastmath Γ_y+= u*y/μ_ij_sums_n
+        @fastmath Γ_xy+= u*x*y/μ_ij_sums_n
     end
 
     return Γ_x, Γ_y, Γ_xy
@@ -1224,9 +1206,9 @@ function calc_derSums_x!(n::Int64,s_n::Vector{T},
         @inbounds @fastmath u = μ_ij[n1,k]*δ[k]
         @inbounds @fastmath x = X_mat[n+1,k]
 
-         @fastmath s = u/μ_ij_sums_n
-         @inbounds s_n[k] = s
-         @fastmath Γ_x+= s*x
+        @fastmath s = u/μ_ij_sums_n
+        @inbounds s_n[k] = s
+        @fastmath Γ_x+= s*x
     end
 
     return Γ_x
@@ -1243,6 +1225,7 @@ function calc_derSums_x!(n::Int64,s_n::Vector{T},
     for k in 1:K
         @inbounds @fastmath u = μ_ij[n1,k]*δ[k]
         @inbounds @fastmath x = X_mat[k]
+
         @fastmath s = u/μ_ij_sums_n
         @inbounds s_n[k] = s
         @fastmath Γ_x+= s*x
@@ -1261,10 +1244,10 @@ function calc_derSums_x!(n::Int64,s_n::Vector{T},
     K = length(δ)
     for k in 1:K
         @inbounds @fastmath u = μ_ij[n1,k]*δ[k]
-
+        @inbounds @fastmath x = X_mat
         @fastmath s = u/μ_ij_sums_n
         @inbounds s_n[k] = s
-        @fastmath Γ_x+= s*X_mat
+        @fastmath Γ_x+= s*x
     end
 
     return Γ_x

@@ -52,6 +52,7 @@ struct ChoiceData <: ModelData
     _productDict::Dict{Int, Array{Int,1}}
 
     _rel_fe_Dict::Dict{Real,Array{Int64,1}}
+    _rel_rc_Dict::Dict{Real,Array{Int64,1}}
     _tMomentDict::Dict{Int,Array{Int,1}}
     _stDict::Dict{Int,Array{Int,1}}
 end
@@ -246,13 +247,23 @@ function ChoiceData(data_choice::DataFrame,
     #     _productDict[id] = findin(j,id)
     # end
 
-    # Relevant Parameters Per Person
+    # Relevant Fixed Effect Parameters Per Person
     rel_fe_Dict = Dict{Real,Array{Int64,1}}()
     for (id,idxitr) in _personDict
         F_t = view(F,:,idxitr)
         any_positive = maximum(F_t,dims=2)[:,1]
         pars_relevant = findall(any_positive .>0)
         rel_fe_Dict[id] = pars_relevant
+    end
+
+    # Relevant Random Coefficient Parameters Per Person
+    rel_rc_Dict = Dict{Real,Array{Int64,1}}()
+    X_σ = permutedims(X_σ,(2,1))
+    for (id,idxitr) in _personDict
+        X_σ_t = view(X_σ,:,idxitr)
+        any_positive = maximum(X_σ_t,dims=2)[:,1]
+        pars_relevant = findall(any_positive .>0)
+        rel_rc_Dict[id] = pars_relevant
     end
 
     # Construct Risk Moments
@@ -294,7 +305,7 @@ function ChoiceData(data_choice::DataFrame,
              _unins,_rInd,_rIndS,
              _randCoeffs,
              uniqids,_personDict,_productDict,
-            rel_fe_Dict,_tMomentDict,_stDict)
+            rel_fe_Dict,rel_rc_Dict,_tMomentDict,_stDict)
     return m
 end
 
@@ -539,6 +550,7 @@ function subset(d::T, idx) where T<:ModelData
     d._personDict,
     d._productDict,
     d._rel_fe_Dict,
+    d._rel_rc_Dict,
     d._tMomentDict,
     d._stDict)
 end
