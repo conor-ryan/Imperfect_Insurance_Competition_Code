@@ -58,7 +58,9 @@ end
 
 function relPar(app::ChoiceData,d::InsuranceLogit,F_t::SubArray,ind::Float64,feFlag::Int64)
     Q = d.parLength[:All]
-    Q_0 = Q - size(F_t,1)
+    F_length =size(F_t,1)
+    σ_length = d.parLength[:σ]
+    Q_0 = Q - F_length
     Q_no_σ = Q_0 - d.parLength[:σ]
     ## Relevant Parameters for this observation
     if feFlag==0
@@ -68,7 +70,7 @@ function relPar(app::ChoiceData,d::InsuranceLogit,F_t::SubArray,ind::Float64,feF
         # pars_relevant = vcat(Q_0 .+ app._rel_fe_Dict[ind])
         pars_relevant = vcat(1:Q_no_σ,Q_0 .+ app._rel_fe_Dict[ind])
     else
-        pars_relevant = vcat(1:Q_0,Q_0 .+ app._rel_fe_Dict[ind])
+        pars_relevant = vcat(1:Q_no_σ,Q_no_σ.+app._rel_rc_Dict[ind],Q_0 .+ app._rel_fe_Dict[ind])
     end
     return pars_relevant
 end
@@ -391,11 +393,11 @@ function hess_calc!(dS_xy::Vector{Float64},s_n::Vector{T},
 
     ### 0 Draw Calculation ###
     risk_nr = zeros(1,K)
-    dμ_ij_x_sums, dμ_ij_y_sums, dμ_ij_xy_sums = calc_derSums_xy!(0,s_n,X_mat,Y,μ_ij_nr,δ,μ_ij_nr_sum[1])
+    Γ_x, Γ_y, Γ_xy = calc_derSums_xy!(0,s_n,X_mat,Y,μ_ij_nr,δ,μ_ij_nr_sum[1])
 
-    @fastmath Γ_x = dμ_ij_x_sums/μ_ij_nr_sum[1]
-    @fastmath Γ_y = dμ_ij_y_sums/μ_ij_nr_sum[1]
-    @fastmath Γ_xy = dμ_ij_xy_sums/μ_ij_nr_sum[1]
+    # @fastmath Γ_x = dμ_ij_x_sums/μ_ij_nr_sum[1]
+    # @fastmath Γ_y = dμ_ij_y_sums/μ_ij_nr_sum[1]
+    # @fastmath Γ_xy = dμ_ij_xy_sums/μ_ij_nr_sum[1]
 
     calc_prodTerms_xy!(0,1-anyR,dS_xy,dR,risk_nr,risk_age,
                 X_mat,Y,s_n,Γ_x,Γ_y,Γ_xy)
@@ -403,11 +405,11 @@ function hess_calc!(dS_xy::Vector{Float64},s_n::Vector{T},
     for n in 1:N
         μ_ij_sums_n = μ_ij_sums[n]
 
-        dμ_ij_x_sums, dμ_ij_y_sums, dμ_ij_xy_sums = calc_derSums_xy!(n,s_n,X_mat,Y,μ_ij,δ,μ_ij_sums_n)
+        Γ_x, Γ_y, Γ_xy = calc_derSums_xy!(n,s_n,X_mat,Y,μ_ij,δ,μ_ij_sums_n)
 
-        @fastmath Γ_x = dμ_ij_x_sums/μ_ij_sums_n
-        @fastmath Γ_y = dμ_ij_y_sums/μ_ij_sums_n
-        @fastmath Γ_xy = dμ_ij_xy_sums/μ_ij_sums_n
+        # @fastmath Γ_x = dμ_ij_x_sums/μ_ij_sums_n
+        # @fastmath Γ_y = dμ_ij_y_sums/μ_ij_sums_n
+        # @fastmath Γ_xy = dμ_ij_xy_sums/μ_ij_sums_n
         # s_n = μ_ij[n,:].*δ/μ_ij_sums_n
 
         calc_prodTerms_xy!(n,anyR/N,dS_xy,dR,risk,risk_age,
@@ -491,9 +493,8 @@ function grad_calc!(dS_x::Vector{T},
 
     ### 0 Draw Calculation ###
     risk_nr = zeros(1,K)
-    dμ_ij_x_sums = calc_derSums_x!(0,s_n,X_mat,μ_ij_nr,δ,μ_ij_nr_sum[1])
+    Γ_x = calc_derSums_x!(0,s_n,X_mat,μ_ij_nr,δ,μ_ij_nr_sum[1])
 
-    @fastmath Γ_x = dμ_ij_x_sums/μ_ij_nr_sum[1]
     # s_n = s_n./μ_ij_sums_n
 
     calc_prodTerms_x!(0,1-anyR,dS_x,dR,risk_nr,risk_age,
@@ -502,9 +503,9 @@ function grad_calc!(dS_x::Vector{T},
     for n in 1:N
         μ_ij_sums_n = μ_ij_sums[n]
 
-        dμ_ij_x_sums = calc_derSums_x!(n,s_n,X_mat,μ_ij,δ,μ_ij_sums_n)
+        Γ_x = calc_derSums_x!(n,s_n,X_mat,μ_ij,δ,μ_ij_sums_n)
 
-        @fastmath Γ_x = dμ_ij_x_sums/μ_ij_sums_n
+
         # s_n = s_n./μ_ij_sums_n
 
         calc_prodTerms_x!(n,anyR/N,dS_x,dR,risk,risk_age,

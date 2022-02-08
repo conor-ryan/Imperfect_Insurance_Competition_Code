@@ -126,7 +126,7 @@ c = ChoiceData(df,df_mkt,df_risk;
 param_labels = vcat(String.(spec_demoRaw),String.(spec_prodchars),"Price:" .* String.(spec_demoRaw),"Variance:".*String.(spec_prodchars_σ),c.feNames)
 
 # Fit into model
-m = InsuranceLogit(c,10)
+m = InsuranceLogit(c,5)
 println("Data Loaded")
 
 
@@ -157,7 +157,7 @@ hess = Matrix{Float64}(undef,length(p0),length(p0))
 ll = log_likelihood(m,p0)
 println(ll)
 ll = log_likelihood_penalty!(hess,grad,m,p0,W)
-# ll = log_likelihood_penalty!(grad,m,p0,W)
+# ll = log_likelihood_penalty!(grad_test,m,p0,W)
 println(ll)
 
 
