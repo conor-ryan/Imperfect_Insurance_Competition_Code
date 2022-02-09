@@ -642,9 +642,9 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
     βlen = size(prodchars(c_data),1)
     flen = size(fixedEffects(c_data),1)
 
-    println(γlen)
-    test = demoRaw(c_data)
-    println(test[:,1:5])
+    # println(γlen)
+    # test = demoRaw(c_data)
+    # println(test[:,1:5])
 
     if haltonDim==1 & !nested
         σlen = 0
@@ -670,7 +670,7 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
     #draws = MVHaltonNormal(haltonDim,4;scrambled=false)
 
     draws = MVHalton(haltonDim,1;scrambled=false)
-    println("Halton Draws: $draws")
+    # println("Halton Draws: $draws")
     if riskscores
         risk_draws = Matrix{Float64}(undef,haltonDim,size(c_data.rMoments,1))
         for mom in 1:size(c_data.rMoments,1)
