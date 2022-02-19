@@ -81,7 +81,7 @@ function parDict(m::InsuranceLogit,x::Array{T};no2Der=false) where T
 
     #Calculate Random Coefficients matrix
     (S,R) = size(m.draws)
-    randCoeffs = Array{T,3}(undef,S,m.parLength[:σ],size(m.data.rMoments,1))
+    randCoeffs = Array{T,3}(undef,S,m.parLength[:σ],size(m.data.rDistribution,1))
     calcRC!(randCoeffs,σ,m.draws)
 
     #Initialize (ij) pairs of deltas

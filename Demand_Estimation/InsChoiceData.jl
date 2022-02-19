@@ -13,8 +13,8 @@ struct ChoiceData <: ModelData
     # Matrix of the product level data (pre-sorted)
     pdata::DataFrame
     # Risk Score Moments
-    rMoments::Matrix{Float64}
-    tMoments::Vector{Float64}
+    rDistribution::Matrix{Float64}
+    rMoments::Vector{Float64}
     st_share::Vector{Float64}
     # Matrix of Fixed Effects
     fixedEffects::Matrix{Float64}
@@ -53,13 +53,17 @@ struct ChoiceData <: ModelData
 
     _rel_fe_Dict::Dict{Real,Array{Int64,1}}
     _rel_rc_Dict::Dict{Real,Array{Int64,1}}
+
+    _rMomentDict::Dict{Int,Array{Int,1}}
     _tMomentDict::Dict{Int,Array{Int,1}}
     _stDict::Dict{Int,Array{Int,1}}
+    _stMomentMap::Dict{Int,Array{Int,1}}
 end
 
 function ChoiceData(data_choice::DataFrame,
                     data_market::DataFrame,
-                    data_risk::DataFrame;
+                    data_risk::DataFrame,
+                    data_transfer::DataFrame;
         person=[:Person],
         product=[:Product],
         prodchars=[:Price,:MedDeduct,:High],
@@ -268,23 +272,33 @@ function ChoiceData(data_choice::DataFrame,
 
     # Construct Risk Moments
     println("Construct Risk Moments")
+    _rMomentDict = Dict{Int,Array{Int64,1}}()
+    moments_risk = sort(unique(data_risk[!,:momentID]))
+
+
     _tMomentDict = Dict{Int,Array{Int64,1}}()
-    moments = sort(unique(data_risk[!,:momentID]))
-    tMoments = Vector{Float64}(undef,length(moments))
+    _stMomentMap = Dict{Int,Array{Int64,1}}()
+    moments_transfer = sort(unique(data_transfer[!,:momentID]))
+
+    rMoments = Vector{Float64}(undef,length(moments_risk)+length(moments_transfer))
+
     st_share = zeros(Int(maximum(keys(_productDict))))
     _stDict = Dict{Int,Array{Int64,1}}()
     if constMoments
-
-        for m in moments
-            _tMomentDict[m] = data_risk[!,:Product][findall(data_risk[!,:momentID].==m)]
-            tMoments[m] = data_risk[!,:T_moment][findall(data_risk[!,:momentID].==m)][1]
+        for m in moments_risk
+            _rMomentDict[m] = data_risk[!,:Product][findall(data_risk[!,:momentID].==m)]
+            rMoments[m] = data_risk[!,:R_moment][findall(data_risk[!,:momentID].==m)][1]
         end
 
+        for m in moments_transfer
+            _tMomentDict[m] = data_transfer[!,:Product][findall(data_transfer[!,:momentID].==m)]
+            rMoments[m] = data_transfer[!,:T_moment][findall(data_transfer[!,:momentID].==m)][1]
+        end
 
-
-        states = unique(data_risk[!,:ST])
+        states = sort(unique(data_transfer[!,:ST]))
         for s in states
-            _stDict[s] = unique(data_risk[!,:Product][findall(data_risk[!,:ST].==s)])
+            _stDict[s] = unique(data_transfer[!,:Product][findall(data_transfer[!,:ST].==s)])
+            _stMomentMap[s] = sort(unique(data_transfer[!,:momentID][findall(data_transfer[!,:ST].==s)]))
         end
 
         for prod in keys(_productDict)
@@ -296,8 +310,9 @@ function ChoiceData(data_choice::DataFrame,
         end
     end
 
+
     # Make the data object
-    m = ChoiceData(dmat,data_market,rmat,tMoments,st_share,
+    m = ChoiceData(dmat,data_market,rmat,rMoments,st_share,
             F, index, prodchars, prodchars_σ,
             choice, demoRaw,wgt, unins,feNames,
              _person,_product, _prodchars,_prodchars_σ,
@@ -305,7 +320,7 @@ function ChoiceData(data_choice::DataFrame,
              _unins,_rInd,_rIndS,
              _randCoeffs,
              uniqids,_personDict,_productDict,
-            rel_fe_Dict,rel_rc_Dict,_tMomentDict,_stDict)
+            rel_fe_Dict,rel_rc_Dict,_rMomentDict,_tMomentDict,_stDict,_stMomentMap)
     return m
 end
 
@@ -520,7 +535,7 @@ function subset(d::T, idx) where T<:ModelData
 #    people = data[d._person,:]
 
     # Don't subset any other fields for now...
-    return T(data,d.pdata,d.rMoments,d.tMoments,d.st_share,
+    return T(data,d.pdata,d.rDistribution,d.rMoments,d.st_share,
     fixedEf,
     # Index of the column names
     d.index,
@@ -551,8 +566,10 @@ function subset(d::T, idx) where T<:ModelData
     d._productDict,
     d._rel_fe_Dict,
     d._rel_rc_Dict,
+    d._rMomentDict,
     d._tMomentDict,
-    d._stDict)
+    d._stDict,
+    d._stMomentMap)
 end
 
 ########## People Iterator ###############
@@ -672,11 +689,11 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
     draws = MVHalton(haltonDim,1;scrambled=false)
     # println("Halton Draws: $draws")
     if riskscores
-        risk_draws = Matrix{Float64}(undef,haltonDim,size(c_data.rMoments,1))
-        for mom in 1:size(c_data.rMoments,1)
-            any = 1 - c_data.rMoments[mom,2]
-            μ_risk = c_data.rMoments[mom,3]
-            std_risk = sqrt(c_data.rMoments[mom,4])
+        risk_draws = Matrix{Float64}(undef,haltonDim,size(c_data.rDistribution,1))
+        for mom in 1:size(c_data.rDistribution,1)
+            any = 1 - c_data.rDistribution[mom,2]
+            μ_risk = c_data.rDistribution[mom,3]
+            std_risk = sqrt(c_data.rDistribution[mom,4])
             for ind in 1:haltonDim
                 d = (draws[ind])
                 log_r = norminvcdf(d)*std_risk + μ_risk

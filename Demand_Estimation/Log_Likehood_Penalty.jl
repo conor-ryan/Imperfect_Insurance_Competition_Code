@@ -26,7 +26,7 @@ function log_likelihood_penalty!(grad::Vector{Float64},d::InsuranceLogit,p::Arra
 
     ll = log_likelihood!(grad,d,params,cont_flag = cont_flag,feFlag=feFlag)
 
-    mom_grad = Matrix{Float64}(undef,length(p),length(d.data.tMoments))
+    mom_grad = Matrix{Float64}(undef,length(p),length(d.data.rMoments))
     mom = calc_risk_moments!(mom_grad,d,params,feFlag=feFlag)
 
 
@@ -53,8 +53,8 @@ function log_likelihood_penalty!(hess::Matrix{Float64},grad::Vector{Float64},
 
     ll = log_likelihood!(hess,grad,d,params,feFlag=feFlag)
 
-    mom_grad = Matrix{Float64}(undef,length(p),length(d.data.tMoments))
-    mom_hess = Array{Float64,3}(undef,length(p),length(p),length(d.data.tMoments))
+    mom_grad = Matrix{Float64}(undef,length(p),length(d.data.rMoments))
+    mom_hess = Array{Float64,3}(undef,length(p),length(p),length(d.data.rMoments))
     mom = calc_risk_moments!(mom_hess,mom_grad,d,params,feFlag=feFlag)
 
     # hess_test = Array{Float64,2}(undef,length(p),length(p))
@@ -71,10 +71,10 @@ end
 function calc_penalty(d::InsuranceLogit,p0::Array{T},W::Matrix{Float64};feFlag::Int64=-1) where T
 
     par0 = parDict(d,p0,no2Der=true)
-    grad = Vector{T}(undef,length(p0))
+    # grad = Vector{T}(undef,length(p0))
     # ll = log_likelihood(d,par0,feFlag=feFlag)
     mom = calc_risk_moments(d,p0)
     # moments = grad
-    obj = calc_GMM_Obj(mom,W)
-    return obj
+    # obj = calc_GMM_Obj(mom,W)
+    return -mom[1]^2
 end

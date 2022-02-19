@@ -122,23 +122,31 @@ firm_RA[,payments_adj:=Payments]
 firm_RA[Firm=="OTHER",payments_adj:=0]
 firm_RA[,payments_adj_net:=sum(payments_adj),by="ST"]
 firm_RA[Firm=="OTHER",payments_adj:=-payments_adj_net]
+firm_RA[,T_norm_adj:=-payments_adj/(memberMonths*RA_prem)]
 
 # Set avg_prem everywhere
 firm_RA[,MLR_avg_prem:=max(MLR_avg_prem,na.rm=TRUE),by="ST"]
 
+# Firm Relative Risk, assuming OTHER has average age distribution
+# These are moments that can be targeted in the model as firm average risk minus state average risk
+firm_RA[Firm=="OTHER",other_risk:=(T_norm_adj+1)*AvgPLRS]
+firm_RA[,other_risk:=max(other_risk,na.rm=TRUE),by="ST"]
+firm_RA[Firm=="OTHER",other_share:=MLR_share]
+firm_RA[,other_share:=max(other_share,na.rm=TRUE),by="ST"]
 
+firm_RA[,ST_R_Adj:=(AvgPLRS - other_share*other_risk)/(1-other_share)]
+firm_RA[,relative_risk_unadj:=T_norm_adj*AvgPLRS - ST_R_Adj]
+firm_RA[,relative_risk_adj_term:=AvgPLRS]
+firm_RA[,relative_risk_age_const:=T_norm_adj*AvgPLRS - ST_R_Adj + AvgPLRS]
 
-### Average Transfer - Assuming Balanced Ages
-firm_RA[,T_norm_adj:=-payments_adj/(memberMonths*RA_prem)]
-firm_RA[,R_adj:=(T_norm_adj+1)*AvgPLRS]
-firm_RA[,R_adj_natl:=(T_norm_adj+1)*1.448]
-firm_RA[,ST_R:=sum(memberMonths*R_adj_natl)/sum(memberMonths),by="ST"]
-
-
+# relative risk 
+# T = R/R_avg - A/A_avg
+# T*R_avg = R - R_avg*(A/A_avg)
+# T*R_avg + R_avg(A/A_avg) - R_adj_avg = R-R_adj_avg
 
 firm_RA[,names(firm_RA)[!names(firm_RA)%in%c("Firm","ST","payments_adj",
                                              "ST_MLR_months","memberMonths","MM_compliant","T_norm","T_norm_adj","R_adj","R_adj_natl",
-                                             "RA_prem","AvgPLRS","AvgARF")]:=NULL]
+                                             "RA_prem","AvgPLRS","AvgARF","relative_risk_unadj","relative_risk_adj_term","relative_risk_age_const")]:=NULL]
 
 firm_RA[,HighRisk:=0]
 firm_RA[T_norm_adj>0.08,HighRisk:=1] # 75th percentile of most risky
