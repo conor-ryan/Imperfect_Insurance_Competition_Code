@@ -41,17 +41,17 @@ end
 
 function sumShares!(s_hat::Vector{T},ind::Float64) where T
     # Fix possible computational error
-    for k in eachindex(s_hat)
-        if abs(s_hat[k])<=1e-300
-            s_hat[k]=1e-15
-            #println("Hit Share Constraint for person $ind, product $k")
-        end
-    end
+    # for k in eachindex(s_hat)
+    #     if abs(s_hat[k])<=1e-300
+    #         s_hat[k]=1e-15
+    #         #println("Hit Share Constraint for person $ind, product $k")
+    #     end
+    # end
     s_insured = sum(s_hat)
-    if s_insured>=(1-1e-300)
-        s_insured= 1 - 1e-15
-        #println("Hit insured constraint for person $ind")
-    end
+    # if s_insured>=(1-1e-300)
+    #     s_insured= 1 - 1e-15
+    #     #println("Hit insured constraint for person $ind")
+    # end
 
     return s_insured
 end

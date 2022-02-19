@@ -169,24 +169,33 @@ println(ll)
 
 
 d = m
+d.data.data[102,d.data._personDict[11]].=0.99
 p = parDict(d,p0,no2Der=true)
 individual_values!(d,p)
 individual_shares(d,p)
-app = iterate(eachperson(d.data),3171)[1]
+
+# f_obj(x) = log_likelihood_penalty(m,x,W)
+# hess_1 = Matrix{Float64}(undef,length(p0),length(p0))
+
+f_obj(x) = ll_obs_test(app,m,x)
+individual=11
+println("Trying: $individual")
+app = iterate(eachperson(d.data),individual)[1]
+unins(app)
 grad[:].=0.0
 ll, ind = ll_obs_gradient!(grad,app,d,p)
 
-f_obj(x) = log_likelihood_penalty(m,x,W)
-# f_obj(x) = ll_obs_test(app,m,x)
-
 grad_1 = Vector{Float64}(undef,length(p0))
-hess_1 = Matrix{Float64}(undef,length(p0),length(p0))
+
 fval = f_obj(p0)
 println(fval-ll)
 
-println("Grad")
+println("Grad Compute")
 ForwardDiff.gradient!(grad_1,f_obj, p0)#, cfg)
 println(maximum(abs.(grad_1-grad)))
+
+
+
 
 println("Hessian")
 cfg = ForwardDiff.HessianConfig(f_obj, p0, ForwardDiff.Chunk{8}())
