@@ -98,12 +98,12 @@ function ll_Terms(wgt::Array{Float64,N},S_ij::Array{Float64,N},urate::Array{Floa
         gll_t1[k] = wgt[k]*S_ij[k]*(1/s_hat[k])
         gll_t2[k] = wgt[k]*S_ij[k]*(1/s_hat[k]^2)
         gll_t3[k] = wgt[k]*S_ij[k]*2*(1/s_hat[k]^3)
-        gll_t4[k] = wgt[k]*S_ij[k]*urate[k]*(1/(s_insured) + 1/(1-s_insured))
-        gll_t5[k] = wgt[k]*S_ij[k]*urate[k]*(1/(s_insured^2) - 1/((1-s_insured)^2))
-        gll_t6[k] = wgt[k]*S_ij[k]*urate[k]*2*(1/(s_insured^3) + 1/((1-s_insured)^3))
+        gll_t4[k] = wgt[k]*(S_ij[k]*urate[k]*(1/(s_insured)) - (1/K)*urate[k]*(1/(1-s_insured)))
+        gll_t5[k] = wgt[k]*(S_ij[k]*urate[k]*(1/(s_insured^2)) + (1/K)*urate[k]*(1/((1-s_insured)^2)))
+        gll_t6[k] = wgt[k]*(S_ij[k]*urate[k]*2*(1/(s_insured^3)) - (1/K)*urate[k]*2*(1/((1-s_insured)^3)))
         # Log Likelihood
-        ll_obs+=wgt[k]*S_ij[k]*(log(s_hat[k]) -
-                        urate[k]*(log(s_insured)-log(1-s_insured)))
+        ll_obs+=wgt[k]*(S_ij[k]*(log(s_hat[k]) -
+                        urate[k]*log(s_insured)) + (1/K)*urate[k]*(log(1-s_insured)))
     end
 
     return gll_t1, gll_t2, gll_t3, gll_t4,gll_t5,gll_t6, ll_obs
@@ -115,8 +115,8 @@ function ll_calc(wgt::Array{Float64,N},S_ij::Array{Float64,N},urate::Array{Float
     ll_obs = 0.0
     for k in 1:K
         # Log Likelihood
-        ll_obs+=wgt[k]*S_ij[k]*(log(s_hat[k]) -
-                        urate[k]*(log(s_insured)-log(1-s_insured)))
+        ll_obs+=wgt[k]*(S_ij[k]*(log(s_hat[k]) -
+                        urate[k]*log(s_insured)) + (1/K)*urate[k]*(log(1-s_insured)))
     end
 
     return ll_obs
@@ -312,35 +312,35 @@ function ll_obs_hessian!(thD::Array{Float64,3},hess::Matrix{Float64},grad::Vecto
     return ll_obs,pars_relevant
 end
 
-function combine_thD(N::Int64,
-                    gll_t1::Vector{T},gll_t2::Vector{T},
-                    gll_t3::Vector{T},gll_t4::Vector{T},
-                    gll_t5::Vector{T},gll_t6::Vector{T},
-                    dS_xyz::Vector{T},
-                    dS_xy::Vector{T},dS_xz::Vector{T},dS_yz::Vector{T},
-                    dS_x::Vector{T},dS_y::Vector{T},dS_z::Vector{T},
-                    dS_xyz_all::T,
-                    dS_xy_all::T,dS_xz_all::T,dS_yz_all::T,
-                    dS_x_all::T,dS_y_all::T,dS_z_all::T) where T
-    thD_obs = 0.0
-    K = length(dS_xyz)
-
-    @inbounds @fastmath @simd for k in 1:K
-        # thD_obs += gll_t1[k]*dS_xyz[k]/N -
-        #                 gll_t2[k]*((dS_x[k]/N)*(dS_yz[k]/N) + (dS_y[k]/N)*(dS_xz[k]/N) + (dS_z[k]/N)*(dS_xy[k]/N)) +
-        #                 gll_t3[k]*(dS_x[k]/N)*(dS_y[k]/N)*(dS_z[k]/N) -
-        #                 gll_t4[k]*(dS_xyz_all/N) +
-        #                 gll_t5[k]*((dS_x_all/N)*(dS_yz_all/N)+(dS_y_all/N)*(dS_xz_all/N)+(dS_z_all/N)*(dS_xy_all/N)) -
-        #                 gll_t6[k]*(dS_x_all/N)*(dS_y_all/N)*(dS_z_all/N)
-        thD_obs += gll_t1[k]*dS_xyz[k] -
-                        gll_t2[k]*((dS_x[k])*(dS_yz[k]) + (dS_y[k])*(dS_xz[k]) + (dS_z[k])*(dS_xy[k])) +
-                        gll_t3[k]*(dS_x[k])*(dS_y[k])*(dS_z[k]) -
-                        gll_t4[k]*(dS_xyz_all) +
-                        gll_t5[k]*((dS_x_all)*(dS_yz_all)+(dS_y_all)*(dS_xz_all)+(dS_z_all)*(dS_xy_all)) -
-                        gll_t6[k]*(dS_x_all)*(dS_y_all)*(dS_z_all)
-    end
-    return thD_obs
-end
+# function combine_thD(N::Int64,
+#                     gll_t1::Vector{T},gll_t2::Vector{T},
+#                     gll_t3::Vector{T},gll_t4::Vector{T},
+#                     gll_t5::Vector{T},gll_t6::Vector{T},
+#                     dS_xyz::Vector{T},
+#                     dS_xy::Vector{T},dS_xz::Vector{T},dS_yz::Vector{T},
+#                     dS_x::Vector{T},dS_y::Vector{T},dS_z::Vector{T},
+#                     dS_xyz_all::T,
+#                     dS_xy_all::T,dS_xz_all::T,dS_yz_all::T,
+#                     dS_x_all::T,dS_y_all::T,dS_z_all::T) where T
+#     thD_obs = 0.0
+#     K = length(dS_xyz)
+#
+#     @inbounds @fastmath @simd for k in 1:K
+#         # thD_obs += gll_t1[k]*dS_xyz[k]/N -
+#         #                 gll_t2[k]*((dS_x[k]/N)*(dS_yz[k]/N) + (dS_y[k]/N)*(dS_xz[k]/N) + (dS_z[k]/N)*(dS_xy[k]/N)) +
+#         #                 gll_t3[k]*(dS_x[k]/N)*(dS_y[k]/N)*(dS_z[k]/N) -
+#         #                 gll_t4[k]*(dS_xyz_all/N) +
+#         #                 gll_t5[k]*((dS_x_all/N)*(dS_yz_all/N)+(dS_y_all/N)*(dS_xz_all/N)+(dS_z_all/N)*(dS_xy_all/N)) -
+#         #                 gll_t6[k]*(dS_x_all/N)*(dS_y_all/N)*(dS_z_all/N)
+#         thD_obs += gll_t1[k]*dS_xyz[k] -
+#                         gll_t2[k]*((dS_x[k])*(dS_yz[k]) + (dS_y[k])*(dS_xz[k]) + (dS_z[k])*(dS_xy[k])) +
+#                         gll_t3[k]*(dS_x[k])*(dS_y[k])*(dS_z[k]) -
+#                         gll_t4[k]*(dS_xyz_all) +
+#                         gll_t5[k]*((dS_x_all)*(dS_yz_all)+(dS_y_all)*(dS_xz_all)+(dS_z_all)*(dS_xy_all)) -
+#                         gll_t6[k]*(dS_x_all)*(dS_y_all)*(dS_z_all)
+#     end
+#     return thD_obs
+# end
 
 
 function combine_hess(N::Int64,

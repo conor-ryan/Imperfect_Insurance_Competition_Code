@@ -158,10 +158,10 @@ ll = log_likelihood(m,p0)
 println(ll)
 
 
-ll = log_likelihood_penalty!(hess,grad,m,p0,W)
+# ll = log_likelihood_penalty!(hess,grad,m,p0,W)
 # ll = log_likelihood_penalty!(grad_test,m,p0,W)
 println(ll)
-ll = log_likelihood_penalty!(grad_test,m,p0,W)
+ll = log_likelihood_penalty!(grad,m,p0,W)
 println(ll)
 
 
@@ -174,7 +174,7 @@ println(ll)
 # ll, ind = ll_obs_gradient!(grad,app,d,p)
 
 f_obj(x) = log_likelihood_penalty(m,x,W)
-
+# f_obj(x) = ll_obs_test(app,m,x)
 
 grad_1 = Vector{Float64}(undef,length(p0))
 hess_1 = Matrix{Float64}(undef,length(p0),length(p0))

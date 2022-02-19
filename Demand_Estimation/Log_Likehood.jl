@@ -258,3 +258,26 @@ function log_likelihood!(thD::Array{Float64,3},
     # convert_δ!(d)
     return ll
 end
+
+
+# Calculate Log Likelihood for an individual (testing)
+function ll_obs_test(app::ChoiceData,d::InsuranceLogit,p::Array{T}) where T
+    ll = 0.0
+    par = parDict(d,p,no2Der=true)
+    individual_values!(d,par)
+    individual_shares(d,par)
+
+    ind, S_ij, wgt, urate, idxitr = unPackChars_ll(app,d)
+    wgt = convert(Array{Float64,2},wgt)
+    S_ij = convert(Array{Float64,2},S_ij)
+    urate = convert(Array{Float64,2},urate)
+
+    # Get Market Shares
+    s_hat = par.s_hat[idxitr]
+
+    s_insured = sumShares!(s_hat,ind)
+
+    ll = ll_calc(wgt,S_ij,urate,s_hat,s_insured)
+
+    return ll
+end
