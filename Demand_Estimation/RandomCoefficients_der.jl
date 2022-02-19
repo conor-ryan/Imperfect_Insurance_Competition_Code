@@ -796,29 +796,29 @@ function ll_obs_gradient!(grad::Vector{S},
 
 
         for (q_i,q) in enumerate(pars_relevant)
-            # if q<0
-            #     X = 1.0
-            # elseif q<=γlen
-            #     X = Z[q]
-            # elseif q<=β0len
-            #     X = X_t[q-γlen,:]
-            # elseif q<=βlen
-            #     # Characteristic Interactions
-            #     X = X_t[1,:].*Z[q-β0len]
-            # elseif q<=σlen
-            #     #Quality Random Effect
-            #     X_mat[1,:].=0.0
-            #     for n in 1:N,k in 1:K
-            #         @inbounds X_mat[n+1,k] = draws[n,r_ind]*X_0_t[q-(βlen),k]
-            #     end
-            #     X = X_mat
-            # else
-            #     #Fixed Effect
-            #     X = F_t[q-σlen,:]
-            # end
-            X = returnParameterX!(q,X_mat,
-                            Z,X_0_t,X_t,draws,F_t,r_ind,
-                            γlen,β0len,βlen,σlen)
+            if q<0
+                X = 1.0
+            elseif q<=γlen
+                X = Z[q]
+            elseif q<=β0len
+                X = X_t[q-γlen,:]
+            elseif q<=βlen
+                # Characteristic Interactions
+                X = X_t[1,:].*Z[q-β0len]
+            elseif q<=σlen
+                #Quality Random Effect
+                X_mat[1,:].=0.0
+                for n in 1:N,k in 1:K
+                    @inbounds X_mat[n+1,k] = draws[n,r_ind]*X_0_t[q-(βlen),k]
+                end
+                X = X_mat
+            else
+                #Fixed Effect
+                X = F_t[q-σlen,:]
+            end
+            # X = returnParameterX!(q,X_mat,
+            #                 Z,X_0_t,X_t,draws,F_t,r_ind,
+            #                 γlen,β0len,βlen,σlen)
 
             dS_x_all = grad_calc!(dS_x,s_n,anyR,
                         dR_x,risk,r_age,
