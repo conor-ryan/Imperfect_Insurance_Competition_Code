@@ -816,7 +816,7 @@ function ll_obs_gradient!(grad::Vector{S},
                 #Fixed Effect
                 X = F_t[q-σlen,:]
             end
-            # X = returnParameterX!(q,X_mat,
+            # X = returnParameter!(q,X_mat,
             #                 Z,X_0_t,X_t,draws,F_t,r_ind,
             #                 γlen,β0len,βlen,σlen)
 
