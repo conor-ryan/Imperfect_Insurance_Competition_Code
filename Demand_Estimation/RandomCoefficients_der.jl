@@ -98,9 +98,9 @@ function ll_Terms(wgt::Array{Float64,N},S_ij::Array{Float64,N},urate::Array{Floa
         gll_t1[k] = wgt[k]*S_ij[k]*(1/s_hat[k])
         gll_t2[k] = wgt[k]*S_ij[k]*(1/s_hat[k]^2)
         gll_t3[k] = wgt[k]*S_ij[k]*2*(1/s_hat[k]^3)
-        gll_t4[k] = wgt[k]*(S_ij[k]*urate[k]*(1/(s_insured)) - (1/K)*urate[k]*(1/(1-s_insured)))
-        gll_t5[k] = wgt[k]*(S_ij[k]*urate[k]*(1/(s_insured^2)) + (1/K)*urate[k]*(1/((1-s_insured)^2)))
-        gll_t6[k] = wgt[k]*(S_ij[k]*urate[k]*2*(1/(s_insured^3)) - (1/K)*urate[k]*2*(1/((1-s_insured)^3)))
+        gll_t4[k] = wgt[k]*(S_ij[k]*urate[k]*(1/(s_insured)) + (1/K)*urate[k]*(1/(1-s_insured)))
+        gll_t5[k] = wgt[k]*(S_ij[k]*urate[k]*(1/(s_insured^2)) - (1/K)*urate[k]*(1/((1-s_insured)^2)))
+        gll_t6[k] = wgt[k]*(S_ij[k]*urate[k]*2*(1/(s_insured^3)) + (1/K)*urate[k]*2*(1/((1-s_insured)^3)))
         # Log Likelihood
         ll_obs+=wgt[k]*(S_ij[k]*(log(s_hat[k]) -
                         urate[k]*log(s_insured)) + (1/K)*urate[k]*(log(1-s_insured)))

@@ -165,16 +165,16 @@ ll = log_likelihood_penalty!(grad,m,p0,W)
 println(ll)
 
 
-# d = m
-# p = parDict(d,p0,no2Der=true)
-# individual_values!(d,p)
-# individual_shares(d,p)
-# app = iterate(eachperson(d.data),3171)[1]
-# grad[:].=0.0
-# ll, ind = ll_obs_gradient!(grad,app,d,p)
+d = m
+p = parDict(d,p0,no2Der=true)
+individual_values!(d,p)
+individual_shares(d,p)
+app = iterate(eachperson(d.data),3171)[1]
+grad[:].=0.0
+ll, ind = ll_obs_gradient!(grad,app,d,p)
 
-f_obj(x) = log_likelihood_penalty(m,x,W)
-# f_obj(x) = ll_obs_test(app,m,x)
+# f_obj(x) = log_likelihood_penalty(m,x,W)
+f_obj(x) = ll_obs_test(app,m,x)
 
 grad_1 = Vector{Float64}(undef,length(p0))
 hess_1 = Matrix{Float64}(undef,length(p0),length(p0))
