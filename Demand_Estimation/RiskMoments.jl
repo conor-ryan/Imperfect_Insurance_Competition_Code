@@ -86,8 +86,8 @@ function calc_risk_moments!(hess::Array{Float64,3},grad::Matrix{Float64},d::Insu
     calc_rMom!(mom_value,s_hat_j,r_hat_j,d,p)
     calc_rMom_Der!(grad,hess,dSdθ_j,d2Sdθ_j,mom_value,s_hat_j,r_hat_j,d,p,feFlag=feFlag)
 
-    # calc_tMom!(mom_value,s_hat_j,r_hat_j,d,p)
-    # calc_tMom_Der!(grad,hess,dSdθ_j,d2Sdθ_j,mom_value,s_hat_j,r_hat_j,d,p,feFlag=feFlag)
+    calc_tMom!(mom_value,s_hat_j,r_hat_j,d,p)
+    calc_tMom_Der!(grad,hess,dSdθ_j,d2Sdθ_j,mom_value,s_hat_j,r_hat_j,d,p,feFlag=feFlag)
 
 
     mom_disp = round.(mom_value,digits=3)
@@ -116,8 +116,8 @@ function calc_risk_moments!(grad::Matrix{Float64},d::InsuranceLogit,p::parDict{T
     calc_rMom!(mom_value,s_hat_j,r_hat_j,d,p)
     calc_rMom_Der!(grad,dSdθ_j,mom_value,s_hat_j,r_hat_j,d,p,feFlag=feFlag)
 
-    #calc_tMom!(mom_value,s_hat_j,r_hat_j,d,p)
-    #calc_tMom_Der!(grad,dSdθ_j,mom_value,s_hat_j,r_hat_j,d,p,feFlag=feFlag)
+    calc_tMom!(mom_value,s_hat_j,r_hat_j,d,p)
+    calc_tMom_Der!(grad,dSdθ_j,mom_value,s_hat_j,r_hat_j,d,p,feFlag=feFlag)
 
     mom_disp = round.(mom_value,digits=3)
     println("Risk moments are $mom_disp")
@@ -278,12 +278,13 @@ function calc_tMom_Der!(grad::Matrix{Float64},
         st_idx = d.data._stDict[st]
         s_st = sum(s_hat_j[st_idx])
         r_avg = sliceMean_wgt(r_hat_j,s_hat_j,st_idx)
-        grad_st[:].=0.0
+
         for m in st_moms
             idx_mom = d.data._tMomentDict[m]
             s_mom = sum(s_hat_j[idx_mom])
             r_mom = sliceMean_wgt(r_hat_j,s_hat_j,idx_mom)
             grad_mom[:].=0.0
+            grad_st[:].=0.0
             for q in parList
                 dS_mom_q = sum(dSdθ_j[q,idx_mom])
                 dR_mom_q = sum(p.dRdθ_j[q,idx_mom])

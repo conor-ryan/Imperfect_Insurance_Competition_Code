@@ -75,6 +75,6 @@ function calc_penalty(d::InsuranceLogit,p0::Array{T},W::Matrix{Float64};feFlag::
     # ll = log_likelihood(d,par0,feFlag=feFlag)
     mom = calc_risk_moments(d,p0)
     # moments = grad
-    # obj = calc_GMM_Obj(mom,W)
-    return -mom[1]^2
+    obj = calc_GMM_Obj(mom,W)
+    return obj
 end
