@@ -141,12 +141,7 @@ p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 
 
 W = -Matrix(1.0I,length(m.data.rMoments),length(m.data.rMoments))
-# W = zeros(length(m.data.rMoments),length(m.data.rMoments))
-# W[1,1] = -1.0
-# W[2,2] = -1.0
-# W[3,3] = -1.0
-# W[4,4] = -1.0
-# W[5,5] = -1.0
+
 # p_est, fval = newton_raphson_ll(m,p0,W)
 # out1 = DataFrame(labels=param_labels,pars=p_est)
 # file1 = "test.csv"
@@ -155,19 +150,38 @@ W = -Matrix(1.0I,length(m.data.rMoments),length(m.data.rMoments))
 
 
 
-# grad = Vector{Float64}(undef,length(p0))
-# grad_test = Vector{Float64}(undef,length(p0))
-# hess = Matrix{Float64}(undef,length(p0),length(p0))
-#
-# ll = log_likelihood_penalty(m,p0,W)
-# println(ll)
+grad = Vector{Float64}(undef,length(p0))
+grad_test = Vector{Float64}(undef,length(p0))
+hess = Matrix{Float64}(undef,length(p0),length(p0))
+
+ll = log_likelihood_penalty(m,p0,W)
+println(ll)
 
 
 # ll = log_likelihood_penalty!(hess,grad,m,p0,W)
 # ll = log_likelihood_penalty!(grad_test,m,p0,W)
 # println(ll)
-# ll = log_likelihood_penalty!(grad_test,m,p0,W)
-# println(ll)
+ll = log_likelihood_penalty!(grad,m,p0,W)
+println(ll)
+
+
+f_obj(x) = log_likelihood_penalty(m,x,W)
+
+
+grad_1 = Vector{Float64}(undef,length(p0))
+hess_1 = Matrix{Float64}(undef,length(p0),length(p0))
+fval = f_obj(p0)
+println(fval-ll)
+
+println("Grad")
+ForwardDiff.gradient!(grad_1,f_obj, p0)#, cfg)
+println(maximum(abs.(grad_1-grad)))
+#
+# println("Hessian")
+# cfg = ForwardDiff.HessianConfig(f_obj, p0, ForwardDiff.Chunk{8}())
+# ForwardDiff.hessian!(hess_1,f_obj, p0)#,cfg)
+# println(maximum(abs.(hess_1-hess)))
+
 
 
 d = m
@@ -198,22 +212,6 @@ calc_GMM_Hess!(hess,mom,mom_grad,mom_hess,W)
 # hess[:].=0.0
 # ll, ind = ll_obs_hessian!(hess,grad,app,d,p)
 #
-# f_obj(x) = log_likelihood_penalty(m,x,W)
-#
-#
-# grad_1 = Vector{Float64}(undef,length(p0))
-# hess_1 = Matrix{Float64}(undef,length(p0),length(p0))
-# fval = f_obj(p0)
-# println(fval-ll)
-#
-# println("Grad")
-# ForwardDiff.gradient!(grad_1,f_obj, p0)#, cfg)
-# println(maximum(abs.(grad_1-grad)))
-#
-# println("Hessian")
-# cfg = ForwardDiff.HessianConfig(f_obj, p0, ForwardDiff.Chunk{8}())
-# ForwardDiff.hessian!(hess_1,f_obj, p0)#,cfg)
-# println(maximum(abs.(hess_1-hess)))
 #
 #
 # f_obj_ll(x) = log_likelihood(m,x)
