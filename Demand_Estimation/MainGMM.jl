@@ -127,7 +127,7 @@ println("Running on $rundate")
 println("####  ####")
 filename = "Test"
 spec1 = run_specification_penalizedlikelihood(filename,rundate,
-                    df,df_mkt,df_risk,
+                    df,df_mkt,df_risk,df_transfer,
                     haltonDim = halton_draws,
                     spec_demoRaw=spec_demoRaw,
                     spec_prodchars=spec_prodchars,

@@ -368,6 +368,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             step = 1/grad_size
             update = - step.*grad_new
             mistake_thresh = 1.00
+            return p_min, fval
         end
 
         step_size = maximum(abs.(update))

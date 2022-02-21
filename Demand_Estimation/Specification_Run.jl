@@ -333,7 +333,8 @@ function run_specification_penalizedlikelihood(filename::String,
                             rundate,
                             df::DataFrame,
                             df_mkt::DataFrame,
-                            df_risk::DataFrame;
+                            df_risk::DataFrame,
+                            df_transfer::DataFrame;
                             haltonDim = 1,
                             spec_prodchars=[:Price,:MedDeduct,:High],
                             spec_prodchars_σ=Vector{Symbol}(undef,0),
@@ -352,7 +353,7 @@ function run_specification_penalizedlikelihood(filename::String,
 
     ## Build GMM Model
     println("Build Model")
-    c_data = ChoiceData(df,df_mkt,df_risk;
+    c_data = ChoiceData(df,df_mkt,df_risk,df_transfer;
         demoRaw=spec_demoRaw,
         prodchars=spec_prodchars,
         prodchars_σ=spec_prodchars_σ,
@@ -372,7 +373,7 @@ function run_specification_penalizedlikelihood(filename::String,
     p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
 
     println("#### Estimate First Stage ####")
-    W = -Matrix(1.0I,length(m_ll.data.tMoments),length(m_ll.data.tMoments))
+    W = -Matrix(1.0I,length(m_ll.data.rMoments),length(m_ll.data.rMoments))
     p_stg1, obj_1, flag = p_est, fval = newton_raphson_ll(m_ll,p0,W)
 
     println("Save First Stage Result")
@@ -385,7 +386,7 @@ function run_specification_penalizedlikelihood(filename::String,
 
 
     println("#### Estimate GMM Second Stage ####")
-    mom_ind = 1:length(m_ll.data.tMoments)
+    mom_ind = 1:length(m_ll.data.rMoments)
     S = calc_mom_Avar(m_ll,p_stg1)
     S_mom = S[mom_ind,mom_ind]
     diag_sigma = Diagonal(diag(S_mom))
