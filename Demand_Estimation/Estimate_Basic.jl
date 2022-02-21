@@ -366,9 +366,9 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             fval = log_likelihood_penalty!(grad_new,d,p_vec,W)
             grad_size = maximum(abs.(grad_new))
             step = 1/grad_size
-            update = - step.*grad_new
+            update =  step.*grad_new
             mistake_thresh = 1.00
-            return p_min, fval
+            # return p_min, fval
         end
 
         step_size = maximum(abs.(update))
@@ -377,16 +377,11 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             ind = findall(abs.(update).==10)
             val_disp = p_vec[ind]
             println("Max Parameter Adjustment: $ind, $val_disp")
-            step_size = 1
+            step_size = maximum(abs.(update))
         end
 
-        large_parameters = findall(abs.(p_vec).>50)
-        println("Very Large Parameters: $large_parameters")
-
-        if NaN_steps==0
-            p_test = p_vec .+ update
-            f_test = log_likelihood_penalty(d,p_test,W)
-        end
+        p_test = p_vec .+ update
+        f_test = log_likelihood_penalty(d,p_test,W)
 
         if hess_steps<Hess_Skip_Steps
             hess_steps+=1
