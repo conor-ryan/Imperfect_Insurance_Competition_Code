@@ -149,11 +149,11 @@ p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
 p0[14:15] = [0.0,1.0]
 
 W = -Matrix(1.0I,length(m.data.rMoments),length(m.data.rMoments))./10
-W[1,1] = 5.0
-W[2,2] = 5.0
-W[3,3] = 5.0
-W[4,4] = 5.0
-W[5,5] = 5.0
+W[1,1] = -5.0
+W[2,2] = -5.0
+W[3,3] = -5.0
+W[4,4] = -5.0
+W[5,5] = -5.0
 
 p_est, fval = newton_raphson_ll(m,p0,W)
 
