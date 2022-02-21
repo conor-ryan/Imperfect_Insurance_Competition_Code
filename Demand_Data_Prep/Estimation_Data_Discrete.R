@@ -753,7 +753,7 @@ choices[,Firm_Market_Cat:=paste(Firm,Market,prodCat,sep="_")]
 choices[,Market_Cat:=paste(Market,prodCat,sep="_")]
 choices[,Market_Firm:=paste(Market,Firm,sep="_")]
 
-choices[,Firm_ST:=paste(Firm,STATE,sep="_")]
+choices[,Firm_ST:=paste(STATE,Firm,sep="_")]
 choices[,Firm_Market_Age:=paste(Firm,Market,Age,sep="_")]
 choices[,Firm_Market_Cat_Age:=paste(Firm,Market,prodCat,Age,sep="_")]
 
