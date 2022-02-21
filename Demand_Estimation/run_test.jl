@@ -1,4 +1,3 @@
-println(p_est)
 using BenchmarkTools
 using JLD2
 using CSV
