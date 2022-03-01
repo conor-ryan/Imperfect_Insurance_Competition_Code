@@ -374,7 +374,13 @@ function run_specification_penalizedlikelihood(filename::String,
 
     println("#### Estimate First Stage ####")
     W = -Matrix(1.0I,length(m_ll.data.rMoments),length(m_ll.data.rMoments))
-    p_stg1, obj_1, flag = p_est, fval = newton_raphson_ll(m_ll,p0,W)
+    W[1,1] = -5.0
+    W[2,2] = -5.0
+    W[3,3] = -5.0
+    W[4,4] = -5.0
+    W[5,5] = -5.0
+
+    p_est, fval = newton_raphson_ll(m_ll,p0,W)
 
     println("Save First Stage Result")
     file = "$filename-$rundate-stg1.jld2"
@@ -386,18 +392,14 @@ function run_specification_penalizedlikelihood(filename::String,
 
 
     println("#### Estimate GMM Second Stage ####")
-    mom_ind = 1:length(m_ll.data.rMoments)
-    S = calc_mom_Avar(m_ll,p_stg1)
-    S_mom = S[mom_ind,mom_ind]
-    diag_sigma = Diagonal(diag(S_mom))
-    W = -inv(S_mom)
-    println(W)
+    V = risk_moment_bootstrap(m_ll,p_stg1)
+    W = -Diagonal(1 ./diag(V))./1000
+    # println(W)
 
     ## Estimate
-    flag = ""
     p0 = rand(m_ll.parLength[:All]) .- 0.5
     p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
-    p_stg2, obj_2, flag = p_est, fval = newton_raphson_ll(m_ll,p_stg1,W)
+    p_est, fval = newton_raphson_ll(m_ll,p0,W)
 
     println("Save Second Stage Result")
     file = "$filename-$rundate-stg2.jld2"

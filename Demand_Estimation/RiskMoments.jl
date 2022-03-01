@@ -809,3 +809,22 @@ function integration_var_bootstrap(d::InsuranceLogit,p0::Array{T};feFlag::Int64=
     V = cov(gmm_moments,dims=2)
     return V
 end
+
+
+function risk_moment_bootstrap(d::InsuranceLogit,p0::Array{T};n=500) where T
+    num_halton_draws,R = size(d.draws)
+
+    moments = Array{Float64}(undef,length(d.data.rMoments),n)
+
+    for i in 1:n
+        if i%20==0
+            println("Sample $i")
+        end
+        sample = bootstrapSample(d.data)
+        m_sample = InsuranceLogit(sample,num_halton_draws)
+        # println("Calculate Moment")
+        moments[:,i] = calc_risk_moments(m_sample,p0)
+    end
+    V = cov(moments,dims=2)
+    return V
+end

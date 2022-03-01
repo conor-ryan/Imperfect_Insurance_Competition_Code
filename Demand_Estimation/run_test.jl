@@ -131,10 +131,15 @@ prodchars_σ=spec_prodchars_σ,
 fixedEffects=[:Firm_ST])
 
 
+
+
 param_labels = vcat(String.(spec_demoRaw),String.(spec_prodchars),"Price:" .* String.(spec_demoRaw),"Variance:".*String.(spec_prodchars_σ),c.feNames)
 
 # Fit into model
-m = InsuranceLogit(c,100)
+m = InsuranceLogit(c,10)
+
+sample = bootstrapSample(c)
+m_sample = InsuranceLogit(sample,100)
 println("Data Loaded")
 
 
@@ -167,6 +172,8 @@ p_est = [-0.15799367504993345, -0.4153628912295182, -0.45674336645804414, -0.947
   -2.0111225633662286, -1.929465428623987, -4.049119353853824, -0.6097628813479259, -4.585759892033744, -3.8845838474404135, -5.150327406032447, -3.9282786789749387, -3.9666185327245462, -1.8050879653368086, -1.2341675010560986, -1.326082278508739, -2.5896338823352347, -1.0718621516823357, -2.2637025658543006, -3.4257683396008067, -3.0340098848954877, -3.4095120202610714, -4.706192806200132, -0.5238030490464243, -3.4986974813342577, -4.215409792932519, -2.7364988435579063,
   -6.287601934191264, -3.936737179500676, -4.172448472135178, -2.814472881943419, -1.9090869747554822, -2.9101611525036897, -2.562585802991304, -3.6286007734667534, -1.8704872674123634, -0.7311902745277835, -3.515399671003983]
 
+
+mom, V = risk_moment_bootstrap(m,p_est)
 
 # p0 = copy(p_est)
 
@@ -203,8 +210,18 @@ println(maximum(abs.(hess_1-hess)))
 
 
 
+@benchmark calc_risk_moments(m_sample,p_est)
+
+using Profile
+Profile.init()
+Profile.clear()
+Juno.@profile sample = calc_risk_moments(m_sample,p_est)
+Juno.profiler()
+
+
+
 d = m
-p = parDict(d,p_est,no2Der=false)
+p = parDict(m_sample,p_est,no2Der=false)
 
 grad = Vector{Float64}(undef,length(p0))
 hess = Matrix{Float64}(undef,length(p0),length(p0))

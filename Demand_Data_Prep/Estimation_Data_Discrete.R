@@ -914,6 +914,7 @@ for (var in firm_list){
   choices[,c(var):=0]
   choices[Firm_ST==var,c(var):=1]
 }
+choices[,numericST:=as.numeric(as.factor(as.character(STATE)))]
 # rm(firmShare)
 
 # choices[,Big:=as.numeric(grepl("UNITED|BLUE|CIGNA|ASSURANT",Firm))]
@@ -933,12 +934,13 @@ for (var in firm_list){
 setkey(choices,Person,Product)
 setkey(shares,Product)
 
+
 write.csv(choices[,.SD,.SDcols=c("Person","Firm","Market","Product","S_ij","S_raw_ij","N","Price",
                      "Market_Firm","Market_Cat","Firm_ST","Firm_Market_Cat","Firm_Market_Age","Firm_Market_Cat_Age","drop_FMC","drop_FMCA",
                      "PriceDiff",#"MedDeductDiff","ExcOOPDiff","HighDiff",
                      "MedDeduct","ExcOOP","High","AV","AV_old","HighRisk","Small","High_small",
                      "Family","Age","LowIncome","AGE","HighIncome","IncomeCts",
-                     "METAL",
+                     "METAL","numericST",
                      "ageRate_avg","HCC_age","SilvHCC_Age",
                      "mean_HCC_Platinum","mean_HCC_Gold","mean_HCC_Silver","mean_HCC_Bronze","mean_HCC_Catastrophic",
                      "Rtype","Any_HCC",

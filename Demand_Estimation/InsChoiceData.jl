@@ -22,7 +22,7 @@ struct ChoiceData <: ModelData
     index
     # Names of rows (columns of input data)
     prodchars   # Product Characteristics
-     prodchars_σ   # Product Characteristics
+    prodchars_σ   # Product Characteristics
     choice      # Binary choice indicator
     demoRaw    # Household Demographics - raw
     wgt     # Number of People in each type
@@ -50,6 +50,7 @@ struct ChoiceData <: ModelData
     _personIDs::Array{Float64,1}
     _personDict::Dict{Int, UnitRange{Int}}
     _productDict::Dict{Int, Array{Int,1}}
+    _sampleDict::Dict{Int, Array{Int,1}}
 
     _rel_fe_Dict::Dict{Real,Array{Int64,1}}
     _rel_rc_Dict::Dict{Real,Array{Int64,1}}
@@ -58,6 +59,122 @@ struct ChoiceData <: ModelData
     _tMomentDict::Dict{Int,Array{Int,1}}
     _stDict::Dict{Int,Array{Int,1}}
     _stMomentMap::Dict{Int,Array{Int,1}}
+end
+
+function bootstrapSample(c::ChoiceData)
+    ## Indexing
+    data_length_approx = Int.(floor(size(c.data,2)*1.25))
+    data_ind = Vector{Int}(undef,data_length_approx)
+    bootstrapIDs = Vector{Float64}(undef,0)
+    bootstrap_draw  = Vector{Int}(undef,0)
+    bootstrap_id_data = Vector{Float64}(undef,data_length_approx)
+    max_id = 0
+    running_index = 0
+
+    ## Re-populate Dictionaries
+    _personDict=Dict{Int, UnitRange{Int}}()
+    _productDict=Dict{Int, Array{Int,1}}()
+    _rel_fe_Dict=Dict{Real,Array{Int64,1}}()
+    _rel_rc_Dict=Dict{Real,Array{Int64,1}}()
+
+    # Bootstrap  with State Sub-Sample
+    # for (s,people) in c._sampleDict
+    #     sample_size = length(people)
+    #     random_sample = ceil.(Int,rand(sample_size).*sample_size)
+    #     bootstrap_draw = people[random_sample]
+    #     sample_ids = Int.(max_id .+ (1:length(bootstrap_draw)))
+    #     bootstrapIDs = vcat(bootstrapIDs,sample_ids)
+    #
+    #     max_id = maximum(bootstrapIDs)
+    #     for (i, id) in enumerate(sample_ids)
+    #         draw = bootstrap_draw[i]
+    #         sample_index = c._personDict[draw]
+    #         idx_itr = running_index .+ (1:length(sample_index))
+    #
+    #         _personDict[id] = idx_itr
+    #
+    #         data_ind[idx_itr] = sample_index
+    #
+    #         person_data = repeat([Float64.(id)],length(sample_index))
+    #         bootstrap_id_data[idx_itr] = person_data
+    #
+    #
+    #         running_index = maximum(idx_itr)
+    #         _rel_fe_Dict[id] = c._rel_fe_Dict[draw]
+    #         _rel_rc_Dict[id] = c._rel_rc_Dict[draw]
+    #     end
+    # end
+
+
+    # Bootstrap  from Full Data with at-least one draw per state
+    for (s,people) in c._sampleDict
+        sample_size = length(people)
+        random_sample = ceil.(Int,rand(1).*sample_size)
+        bootstrap_draw = vcat(bootstrap_draw,people[random_sample])
+        sample_ids = Int.(max_id .+ (1:length(random_sample)))
+        bootstrapIDs = vcat(bootstrapIDs,sample_ids)
+        max_id = maximum(bootstrapIDs)
+    end
+    sample_size = length(c._personIDs) - length(bootstrapIDs)
+    random_sample = ceil.(Int,rand(sample_size).*length(c._personIDs))
+    bootstrap_draw = vcat(bootstrap_draw,c._personIDs[random_sample])
+    sample_ids = Int.(max_id .+ (1:length(random_sample)))
+    bootstrapIDs = vcat(bootstrapIDs,sample_ids)
+
+    for (i, id) in enumerate(bootstrapIDs)
+        draw = bootstrap_draw[i]
+        sample_index = c._personDict[draw]
+        idx_itr = running_index .+ (1:length(sample_index))
+
+        _personDict[id] = idx_itr
+
+        data_ind[idx_itr] = sample_index
+
+        person_data = repeat([Float64.(id)],length(sample_index))
+        bootstrap_id_data[idx_itr] = person_data
+
+
+        running_index = maximum(idx_itr)
+        _rel_fe_Dict[id] = c._rel_fe_Dict[draw]
+        _rel_rc_Dict[id] = c._rel_rc_Dict[draw]
+    end
+
+
+    data_ind = data_ind[1:running_index]
+    bootstrap_id_data = bootstrap_id_data[1:running_index]
+
+    ## Subset Data
+    data = c.data[:,data_ind]
+    data[1,:] = bootstrap_id_data
+    F = c.fixedEffects[:,data_ind]
+
+    ## Rebuild Product Dictionary
+    # dict_binary_vector = BitArray{1}(undef,size(c.data,2))
+    # for (p, prod_ind) in c._productDict
+    #     dict_binary_vector[:].=false
+    #     dict_binary_vector[prod_ind].=true
+    #     new_dict_vector = dict_binary_vector[data_ind]
+    #     _productDict[p] = findall(new_dict_vector)
+    # end
+    _productDict = build_ProdDict(data[2,:])
+
+
+    #Re-Build
+
+    m = ChoiceData(data, # Re-sampled Data
+    c.pdata,c.rDistribution,c.rMoments,c.st_share,
+    F, # New Fixed Effects
+    c.index,c.prodchars,c. prodchars_σ, c.choice, c.demoRaw,c.wgt,
+    c.unins,c.feNames,
+    c._person,c._product,c._prodchars, c._prodchars_σ,
+    c._choice, c._demoRaw,c._wgt, c._ageRate,c._ageHCC, c._unins, c._rInd,
+     c._rIndS, c._randCoeffs,
+     bootstrapIDs, _personDict, _productDict, # New ID Dicts
+     c._sampleDict,
+     _rel_fe_Dict,_rel_rc_Dict, # New Coeff Dicts
+     c._rMomentDict,c._tMomentDict,c._stDict, c._stMomentMap)
+
+
 end
 
 function ChoiceData(data_choice::DataFrame,
@@ -240,6 +357,13 @@ function ChoiceData(data_choice::DataFrame,
         _personDict[id] = idx1:idxJ
     end
 
+    println("State-Person Mapping")
+    _sampleDict = Dict{Int,Array{Int,1}}()
+    states = unique(df[!,:numericST])
+    for s in states
+        _sampleDict[s] = unique(df[!,:Person][findall(df[!,:numericST].==s)])
+    end
+
 
     #Create Product Dictionary
     println("Product Dictionary")
@@ -319,7 +443,7 @@ function ChoiceData(data_choice::DataFrame,
             _choice, _demoRaw, _wgt,_ageRate,_ageHCC,
              _unins,_rInd,_rIndS,
              _randCoeffs,
-             uniqids,_personDict,_productDict,
+             uniqids,_personDict,_productDict,_sampleDict,
             rel_fe_Dict,rel_rc_Dict,_rMomentDict,_tMomentDict,_stDict,_stMomentMap)
     return m
 end
@@ -564,6 +688,7 @@ function subset(d::T, idx) where T<:ModelData
     d._personIDs,
     d._personDict,
     d._productDict,
+    d._sampleDict,
     d._rel_fe_Dict,
     d._rel_rc_Dict,
     d._rMomentDict,
@@ -677,7 +802,7 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
 
     #total = 1 + γlen + β0len + γlen + flen + σlen
     total = γlen + βlen + γlen + flen + σlen
-    println("Lengths are : $γlen + $βlen + $γlen + $flen + $σlen")
+    # println("Lengths are : $γlen + $βlen + $γlen + $flen + $σlen")
     parLength = Dict(:γ=>γlen,:βσ=>βσlen,:β=>βlen,:FE=>flen,
     :σ => σlen, :All=>total)
 
