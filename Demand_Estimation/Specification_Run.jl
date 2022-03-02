@@ -380,26 +380,27 @@ function run_specification_penalizedlikelihood(filename::String,
     W[4,4] = -5.0
     W[5,5] = -5.0
 
-    p_init, obj_init = gradient_ascent_ll(m_ll,p0,W,max_itr=50)
-    p_stg1, obj_1 = newton_raphson_ll(m_ll,p_init,W)
-
-    println("Save First Stage Result")
-    file = "$filename-$rundate-stg1.jld2"
-    @save file p_stg1 obj_1 spec_Dict
-
-    # println("Load First Stage Result")
+    # p_init, obj_init = gradient_ascent_ll(m_ll,p0,W,max_itr=50)
+    # p_stg1, obj_1 = newton_raphson_ll(m_ll,p_init,W)
+    #
+    # println("Save First Stage Result")
     # file = "$filename-$rundate-stg1.jld2"
-    # @load file p_stg1 obj_1 spec_Dict
+    # @save file p_stg1 obj_1 spec_Dict
+
+    println("Load First Stage Result")
+    file = "$filename-$rundate-stg1.jld2"
+    @load file p_stg1 obj_1 spec_Dict
 
 
     println("#### Estimate GMM Second Stage ####")
     V = risk_moment_bootstrap(m_ll,p_stg1)
     W = -Matrix{Float64}(Diagonal(1 ./diag(V))./1000)
-    # println(W)
+    println(diag(W))
 
     ## Estimate
     p0 = rand(m_ll.parLength[:All]) .- 0.5
     p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
+    p_init, obj_init = gradient_ascent_ll(m_ll,p0,W,max_itr=50)
     p_stg2, obj_2 = newton_raphson_ll(m_ll,p0,W)
 
     println("Save Second Stage Result")
