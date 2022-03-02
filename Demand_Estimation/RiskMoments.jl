@@ -90,10 +90,15 @@ function calc_risk_moments!(hess::Array{Float64,3},grad::Matrix{Float64},d::Insu
     calc_tMom_Der!(grad,hess,dSdθ_j,d2Sdθ_j,mom_value,s_hat_j,r_hat_j,d,p,feFlag=feFlag)
 
 
-    mom_disp = round.(mom_value,digits=3)
-    println("Risk moments are $mom_disp")
+    moments = mom_value .- d.data.rMoments
 
-    return mom_value .- d.data.rMoments
+    mom_metal = sqrt(mean(moments[1:4].^2))
+    mom_all = moments[5]
+    mom_firms= sqrt(mean(moments[6:length(moments)].^2))
+
+    println("RMSE Metal: $mom_metal, RMSE All: $mom_all, RMSE Firms: $mom_firms")
+
+    return moments
 end
 
 
@@ -119,10 +124,15 @@ function calc_risk_moments!(grad::Matrix{Float64},d::InsuranceLogit,p::parDict{T
     calc_tMom!(mom_value,s_hat_j,r_hat_j,d,p)
     calc_tMom_Der!(grad,dSdθ_j,mom_value,s_hat_j,r_hat_j,d,p,feFlag=feFlag)
 
-    mom_disp = round.(mom_value,digits=3)
-    println("Risk moments are $mom_disp")
+    moments = mom_value .- d.data.rMoments
 
-    return mom_value .- d.data.rMoments
+    mom_metal = sqrt(mean(moments[1:4].^2))
+    mom_all = moments[5]
+    mom_firms= sqrt(mean(moments[6:length(moments)].^2))
+
+    println("RMSE Metal: $mom_metal, RMSE All: $mom_all, RMSE Firms: $mom_firms")
+
+    return moments
 end
 
 
@@ -146,10 +156,15 @@ function calc_risk_moments_obs(app,d::InsuranceLogit,p::parDict{T}) where T
     calc_Mom_Der!(grad,dSdθ_j,mom_value,s_hat_j,r_hat_j,d,p)
 
 
-    mom_disp = round.(mom_value,digits=3)
-    println("Risk moments are $mom_disp")
+    moments = mom_value .- d.data.rMoments
 
-    return mom_value .- d.data.rMoments
+    mom_metal = sqrt(mean(moments[1:4].^2))
+    mom_all = moments[5]
+    mom_firms= sqrt(mean(moments[6:length(moments)].^2))
+
+    println("RMSE Metal: $mom_metal, RMSE All: $mom_all, RMSE Firms: $mom_firms")
+
+    return moments
 end
 
 function calc_rMom!(mom_value::Vector{Float64},
@@ -749,10 +764,15 @@ function calc_risk_moments_obs(app::ChoiceData,d::InsuranceLogit,p::parDict{T}) 
 
     calc_Mom!(mom_value,s_hat_j,r_hat_j,d,p)
 
-    mom_disp = round.(mom_value,digits=3)
-    println("Risk moments are $mom_disp")
+    moments = mom_value .- d.data.rMoments
 
-    return mom_value .- d.data.rMoments
+    mom_metal = sqrt(mean(moments[1:4].^2))
+    mom_all = moments[5]
+    mom_firms= sqrt(mean(moments[6:length(moments)].^2))
+
+    println("RMSE Metal: $mom_metal, RMSE All: $mom_all, RMSE Firms: $mom_firms")
+
+    return moments
 end
 
 function calc_Mom_obs!(mom_value::Vector{Float64},
