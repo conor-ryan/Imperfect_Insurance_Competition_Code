@@ -380,7 +380,7 @@ function run_specification_penalizedlikelihood(filename::String,
     W[4,4] = -5.0
     W[5,5] = -5.0
 
-    p_est, fval = newton_raphson_ll(m_ll,p0,W)
+    p_stg1, obj_1 = newton_raphson_ll(m_ll,p0,W)
 
     println("Save First Stage Result")
     file = "$filename-$rundate-stg1.jld2"
@@ -399,7 +399,7 @@ function run_specification_penalizedlikelihood(filename::String,
     ## Estimate
     p0 = rand(m_ll.parLength[:All]) .- 0.5
     p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
-    p_est, fval = newton_raphson_ll(m_ll,p0,W)
+    p_stg2, obj_2 = newton_raphson_ll(m_ll,p0,W)
 
     println("Save Second Stage Result")
     file = "$filename-$rundate-stg2.jld2"
