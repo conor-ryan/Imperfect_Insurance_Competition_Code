@@ -422,7 +422,6 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 println("No Advancement")
                 hess_steps = 0
                 p_test = copy(p_vec)
-                return p_min,f_test
             end
             if step_size<1e-8
                 hess_steps=0

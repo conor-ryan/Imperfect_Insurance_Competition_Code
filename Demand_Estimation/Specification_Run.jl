@@ -380,7 +380,8 @@ function run_specification_penalizedlikelihood(filename::String,
     W[4,4] = -5.0
     W[5,5] = -5.0
 
-    p_stg1, obj_1 = newton_raphson_ll(m_ll,p0,W)
+    p_init, obj_init = gradient_ascent_ll(d,p0,W,max_itr=50)
+    p_stg1, obj_1 = newton_raphson_ll(m_ll,p_init,W)
 
     println("Save First Stage Result")
     file = "$filename-$rundate-stg1.jld2"
@@ -393,7 +394,7 @@ function run_specification_penalizedlikelihood(filename::String,
 
     println("#### Estimate GMM Second Stage ####")
     V = risk_moment_bootstrap(m_ll,p_stg1)
-    W = -Diagonal(1 ./diag(V))./1000
+    W = -Matrix{Float64}(Diagonal(1 ./diag(V))./1000)
     # println(W)
 
     ## Estimate
