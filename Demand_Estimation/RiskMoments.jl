@@ -831,7 +831,7 @@ function integration_var_bootstrap(d::InsuranceLogit,p0::Array{T};feFlag::Int64=
 end
 
 
-function risk_moment_bootstrap(d::InsuranceLogit,p0::Array{T};n=500) where T
+function risk_moment_bootstrap(d::InsuranceLogit,p0::Array{T};n=200) where T
     num_halton_draws,R = size(d.draws)
 
     moments = Array{Float64}(undef,length(d.data.rMoments),n)
