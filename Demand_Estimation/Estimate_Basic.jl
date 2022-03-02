@@ -402,9 +402,6 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 update/= 200
             end
             step_size = maximum(abs.(update))
-            if step_size<1e-6
-                return p_min,f_test
-            end
             if ((real_hessian==0) & (step_size>1e-4)) | ((real_hessian==1) & (step_size>x_tol))
                 p_test = p_vec .+ update
                 f_test = log_likelihood_penalty(d,p_test,W)
@@ -422,6 +419,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 println("No Advancement")
                 hess_steps = 0
                 p_test = copy(p_vec)
+                break
             end
             if step_size<1e-8
                 hess_steps=0
