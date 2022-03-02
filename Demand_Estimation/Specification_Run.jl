@@ -380,7 +380,7 @@ function run_specification_penalizedlikelihood(filename::String,
     W[4,4] = -5.0
     W[5,5] = -5.0
 
-    p_init, obj_init = gradient_ascent_ll(d,p0,W,max_itr=50)
+    p_init, obj_init = gradient_ascent_ll(m_ll,p0,W,max_itr=50)
     p_stg1, obj_1 = newton_raphson_ll(m_ll,p_init,W)
 
     println("Save First Stage Result")
