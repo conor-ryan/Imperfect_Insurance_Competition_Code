@@ -151,7 +151,7 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
         end
 
         if cnt==1
-            step = 1/grad_size
+            step = 0.1
         else
             g = p_vec - p_last
             y = grad_new - grad_last
