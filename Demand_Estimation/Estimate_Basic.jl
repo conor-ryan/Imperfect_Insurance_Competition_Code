@@ -372,7 +372,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         end
 
         step_size = maximum(abs.(update))
-        if step_size>10
+        if (step_size>10) & (grad_size>0.1)
             update = (update./step_size).*10
             ind = findall(abs.(update).==10)
             val_disp = p_vec[ind]
