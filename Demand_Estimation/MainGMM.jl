@@ -145,7 +145,7 @@ println("Running on $rundate")
 ### Run Specification 1 ####
 println("#### Run Specification 1  - Firm-State Fixed Effects ####")
 filename = "GMM_Estimate_Firm"
-spec1 = run_specification_GMM(filename,rundate,
+spec1 = run_specification_penalizedlikelihood(filename,rundate,
                     df,df_mkt,df_risk,
                     haltonDim = halton_draws,
                     spec_demoRaw=spec_demoRaw,
@@ -156,7 +156,7 @@ spec1 = run_specification_GMM(filename,rundate,
 # # #### Run Specification 2 ####
 # println("#### Run Specification 2  - Firm-Market-Category Fixed Effects ####")
 # filename = "GMM_Estimate_FMC"
-# spec1 = run_specification_GMM(filename,rundate,
+# spec1 = run_specification_penalizedlikelihood(filename,rundate,
 #                 df,df_mkt,df_risk,
 #                 haltonDim = halton_draws,
 #                 spec_demoRaw=spec_demoRaw,
@@ -168,7 +168,7 @@ spec1 = run_specification_GMM(filename,rundate,
 #
 # println("#### Run Specification 3  - Firm-Market-Category-Age Fixed Effects ####")
 # filename = "GMM_Estimate_FMCA"
-# spec1 = run_specification_GMM(filename,rundate,
+# spec1 = run_specification_penalizedlikelihood(filename,rundate,
 #                 df,df_mkt,df_risk,
 #                 haltonDim = halton_draws,
 #                 spec_demoRaw=spec_demoRaw,
