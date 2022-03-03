@@ -394,8 +394,9 @@ function run_specification_penalizedlikelihood(filename::String,
 
     println("#### Estimate GMM Second Stage ####")
     V = risk_moment_bootstrap(m_ll,p_stg1)
-    W = -Matrix{Float64}(Diagonal(1 ./diag(V))./1000)
-    println(diag(W))
+    # W = -Matrix{Float64}(Diagonal(1 ./diag(V))./1000)
+    # println(diag(W))
+    W = - inv(V)
 
     ## Estimate
     p0 = rand(m_ll.parLength[:All]) .- 0.5
