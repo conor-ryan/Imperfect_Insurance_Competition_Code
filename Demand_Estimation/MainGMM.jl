@@ -153,25 +153,25 @@ spec1 = run_specification_GMM(filename,rundate,
                     spec_prodchars_σ=spec_prodchars_σ,
                     spec_fixedEffects=[:Firm_ST])
 
-# #### Run Specification 2 ####
-println("#### Run Specification 2  - Firm-Market-Category Fixed Effects ####")
-filename = "GMM_Estimate_FMC"
-spec1 = run_specification_GMM(filename,rundate,
-                df,df_mkt,df_risk,
-                haltonDim = halton_draws,
-                spec_demoRaw=spec_demoRaw,
-                spec_prodchars=spec_prodchars,
-                spec_prodchars_σ=spec_prodchars_σ,
-                spec_fixedEffects=[:Firm_Market_Cat])
-
-
-
-println("#### Run Specification 3  - Firm-Market-Category-Age Fixed Effects ####")
-filename = "GMM_Estimate_FMCA"
-spec1 = run_specification_GMM(filename,rundate,
-                df,df_mkt,df_risk,
-                haltonDim = halton_draws,
-                spec_demoRaw=spec_demoRaw,
-                spec_prodchars=spec_prodchars,
-                spec_prodchars_σ=spec_prodchars_σ,
-                spec_fixedEffects=[:Firm_Market_Cat_Age])
+# # #### Run Specification 2 ####
+# println("#### Run Specification 2  - Firm-Market-Category Fixed Effects ####")
+# filename = "GMM_Estimate_FMC"
+# spec1 = run_specification_GMM(filename,rundate,
+#                 df,df_mkt,df_risk,
+#                 haltonDim = halton_draws,
+#                 spec_demoRaw=spec_demoRaw,
+#                 spec_prodchars=spec_prodchars,
+#                 spec_prodchars_σ=spec_prodchars_σ,
+#                 spec_fixedEffects=[:Firm_Market_Cat])
+#
+#
+#
+# println("#### Run Specification 3  - Firm-Market-Category-Age Fixed Effects ####")
+# filename = "GMM_Estimate_FMCA"
+# spec1 = run_specification_GMM(filename,rundate,
+#                 df,df_mkt,df_risk,
+#                 haltonDim = halton_draws,
+#                 spec_demoRaw=spec_demoRaw,
+#                 spec_prodchars=spec_prodchars,
+#                 spec_prodchars_σ=spec_prodchars_σ,
+#                 spec_fixedEffects=[:Firm_Market_Cat_Age])
