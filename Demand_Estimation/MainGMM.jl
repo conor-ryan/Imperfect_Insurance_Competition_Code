@@ -34,7 +34,7 @@ include("load.jl")
 
 #### General Specification ####
 
-halton_draws = 200
+halton_draws = 5000
 spec_demoRaw = [:AgeFE_31_39,
         :AgeFE_40_51,
         :AgeFE_52_64,
@@ -131,47 +131,47 @@ spec_prodchars_σ=[:constant,:AV,
 rundate = Dates.today()
 println("Running on $rundate")
 
-### Test Specification ####
-println("####  ####")
-filename = "Test"
-spec1 = run_specification_penalizedlikelihood(filename,rundate,
-                    df,df_mkt,df_risk,df_transfer,
+# ### Test Specification ####
+# println("####  ####")
+# filename = "Test"
+# spec1 = run_specification_penalizedlikelihood(filename,rundate,
+#                     df,df_mkt,df_risk,df_transfer,
+#                     haltonDim = halton_draws,
+#                     spec_demoRaw=spec_demoRaw,
+#                     spec_prodchars=spec_prodchars,
+#                     spec_prodchars_σ=spec_prodchars_σ,
+#                     spec_fixedEffects=[:Firm_ST])
+
+### Run Specification 1 ####
+println("#### Run Specification 1  - Firm-State Fixed Effects ####")
+filename = "GMM_Estimate_Firm"
+spec1 = run_specification_GMM(filename,rundate,
+                    df,df_mkt,df_risk,
                     haltonDim = halton_draws,
                     spec_demoRaw=spec_demoRaw,
                     spec_prodchars=spec_prodchars,
                     spec_prodchars_σ=spec_prodchars_σ,
                     spec_fixedEffects=[:Firm_ST])
 
-# ### Run Specification 1 ####
-# println("#### Run Specification 1  - Firm Fixed Effects ####")
-# filename = "GMM_Estimate_Firm"
-# spec1 = run_specification_GMM(filename,rundate,
-#                     df,df_mkt,df_risk,
-#                     haltonDim = halton_draws,
-#                     spec_demoRaw=spec_demoRaw,
-#                     spec_prodchars=spec_prodchars,
-#                     spec_prodchars_σ=spec_prodchars_σ,
-#                     spec_fixedEffects=[:Firm])
-#
-# # #### Run Specification 1 ####
-# println("#### Run Specification 2  - Firm-Market-Category Fixed Effects ####")
-# filename = "GMM_Estimate_FMC"
-# spec1 = run_specification_GMM(filename,rundate,
-#                 df,df_mkt,df_risk,
-#                 haltonDim = halton_draws,
-#                 spec_demoRaw=spec_demoRaw,
-#                 spec_prodchars=spec_prodchars,
-#                 spec_prodchars_σ=spec_prodchars_σ,
-#                 spec_fixedEffects=[:Firm_Market_Cat])
-#
-#
-#
-# # println("#### Run Specification 3  - Firm-Market-Category-Age Fixed Effects ####")
-# # filename = "GMM_Estimate_FMCA"
-# # spec1 = run_specification_GMM(filename,rundate,
-# #                 df,df_mkt,df_risk,
-# #                 haltonDim = halton_draws,
-# #                 spec_demoRaw=spec_demoRaw,
-# #                 spec_prodchars=spec_prodchars,
-# #                 spec_prodchars_σ=spec_prodchars_σ,
-# #                 spec_fixedEffects=[:Firm_Market_Cat_Age])
+# #### Run Specification 2 ####
+println("#### Run Specification 2  - Firm-Market-Category Fixed Effects ####")
+filename = "GMM_Estimate_FMC"
+spec1 = run_specification_GMM(filename,rundate,
+                df,df_mkt,df_risk,
+                haltonDim = halton_draws,
+                spec_demoRaw=spec_demoRaw,
+                spec_prodchars=spec_prodchars,
+                spec_prodchars_σ=spec_prodchars_σ,
+                spec_fixedEffects=[:Firm_Market_Cat])
+
+
+
+println("#### Run Specification 3  - Firm-Market-Category-Age Fixed Effects ####")
+filename = "GMM_Estimate_FMCA"
+spec1 = run_specification_GMM(filename,rundate,
+                df,df_mkt,df_risk,
+                haltonDim = halton_draws,
+                spec_demoRaw=spec_demoRaw,
+                spec_prodchars=spec_prodchars,
+                spec_prodchars_σ=spec_prodchars_σ,
+                spec_fixedEffects=[:Firm_Market_Cat_Age])
