@@ -181,7 +181,7 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
                 println("Previous Iteration at $fval")
                 println("Reducing Step Size...")
             end
-            step/= 20
+            step/= 5
             p_test = p_vec .+ step.*grad_new
             f_test = log_likelihood_penalty(d,p_test,W)
             trial_cnt+=1
