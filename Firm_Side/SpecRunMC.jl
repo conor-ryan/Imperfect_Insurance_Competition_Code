@@ -15,7 +15,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
     p_dem_est = copy(p_stg2)
 
     #### Compute Hessian of Likelihood from Demand for Std Errors ####
-    df_demand = ChoiceData(df_dem,df_mkt,df_risk;
+    df_demand = ChoiceData(df_dem,df_mkt,df_risk,df_transfer;
         demoRaw=spec_Dict["demoRaw"],
         prodchars=spec_Dict["prodchars"],
         prodchars_σ=spec_Dict["prodchars_σ"],
@@ -51,7 +51,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
 
     #### Build Model ####
     # Structre the data
-    chdf = ChoiceData(df,df_mkt,df_risk;
+    chdf = ChoiceData(df,df_mkt,df_risk,df_transfer;
         product = [:Product_std],
         demoRaw=spec_Dict["demoRaw"],
         prodchars=spec_Dict["prodchars"],

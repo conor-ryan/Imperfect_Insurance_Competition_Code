@@ -318,7 +318,7 @@ function estimate_demand(filename,rundate,
     ### Run Specification 1 ####
     println("#### Run Specification ####")
     spec1 = run_specification_penalizedlikelihood(filename,rundate,
-                        df,df_mkt,df_risk,
+                        df,df_mkt,df_risk,df_transfer,
                         haltonDim = halton_draws,
                         spec_demoRaw=spec_demoRaw,
                         spec_prodchars=spec_prodchars,
