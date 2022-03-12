@@ -18,7 +18,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
     df_demand = ChoiceData(df_dem,df_mkt,df_risk;
         demoRaw=spec_Dict["demoRaw"],
         prodchars=spec_Dict["prodchars"],
-        prodchars_0=spec_Dict["prodchars_0"],
+        prodchars_σ=spec_Dict["prodchars_σ"],
         fixedEffects=spec_Dict["fixedEffects"])
 
     # Fit into model
@@ -55,7 +55,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
         product = [:Product_std],
         demoRaw=spec_Dict["demoRaw"],
         prodchars=spec_Dict["prodchars"],
-        prodchars_0=spec_Dict["prodchars_0"],
+        prodchars_σ=spec_Dict["prodchars_σ"],
         fixedEffects=spec_Dict["fixedEffects"],
         wgt=[:PERWT])
 

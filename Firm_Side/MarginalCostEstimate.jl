@@ -40,7 +40,7 @@ p_dem_est = copy(p_stg2)
 chdf = ChoiceData(df,df_mkt,df_risk;
     demoRaw=spec_Dict["demoRaw"],
     prodchars=spec_Dict["prodchars"],
-    prodchars_0=spec_Dict["prodchars_0"],
+    prodchars_σ=spec_Dict["prodchars_σ"],
     fixedEffects=spec_Dict["fixedEffects"],
     wgt=[:PERWT])
 
