@@ -67,7 +67,7 @@ firmClaims[is.na(prjAvgCost),prjAvgCost:=AvgCost*prj_adj]
 
 
 firmClaims[,logAvgCost:=log(prjAvgCost)]
-firmClaims[,Firm_ST:=paste(Firm,ST,sep="_")]
+firmClaims[,Firm_ST:=paste(ST,Firm,sep="_")]
 setkey(firmClaims,Firm_ST)
 firmClaims[,Firm_ST:=NULL]
 firmClaims$M_num = 1:nrow(firmClaims)

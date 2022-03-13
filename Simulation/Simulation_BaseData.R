@@ -282,8 +282,8 @@ acs[,High_small:=HighRisk*Small]
 
 #### Fixed Effects ####
 ## Firm Fixed Effects
-firm_list = acs[,unique(Firm_ST)]
-for (var in firm_list){
+firm_list_labels = acs[,unique(Firm_ST)]
+for (var in firm_list_labels){
   acs[,c(var):=0]
   acs[Firm_ST==var,c(var):=1]
 }
@@ -404,19 +404,19 @@ acs[,c("Age_Cat","Inc_Cat"):=NULL]
 
 
 #### Output Analogous Data ####
-choiceData = acs[,c("Person","Firm","ST","Firm_ST","Market_Firm","Market_Cat","Firm_Market_Cat","Firm_Market_Cat_Age","drop_FMC","drop_FMCA",
-                    "Market","PERWT","Price",
-                    "MedDeduct","ExcOOP","High","AV","AV_std","AV_diff","HighRisk","Small","High_small","Gamma_j",
-                    "Mandate","subsidy","benchBase","IncomeCont","mkt_density",
-                    "Family","Age","LowIncome","AGE","AvgAge",
-                    "METAL","premBase","count_hix_prod",
-                    "Metal_std","Product_std","premBase_std",
-                    "Bronze","Catas","Silver","Gold","Platinum",
-                    "ageRate","ageRate_avg","HCC_age","SilvHCC_Age","MEMBERS",
-                    "mean_HCC_Platinum","mean_HCC_Gold","mean_HCC_Silver","mean_HCC_Bronze","mean_HCC_Catastrophic",
-                    "Rtype","Any_HCC",
-                    "var_HCC_Platinum","var_HCC_Gold","var_HCC_Silver","var_HCC_Bronze","var_HCC_Catastrophic",
-                    "AgeFE_18_30","AgeFE_31_39","AgeFE_40_51","AgeFE_52_64")]
+# choiceData = acs[,c("Person","Firm","ST","Firm_ST","Market_Firm","Market_Cat","Firm_Market_Cat","Firm_Market_Cat_Age","drop_FMC","drop_FMCA",
+#                     "Market","PERWT","Price",
+#                     "MedDeduct","ExcOOP","High","AV","AV_std","AV_diff","HighRisk","Small","High_small","Gamma_j",
+#                     "Mandate","subsidy","benchBase","IncomeCont","mkt_density",
+#                     "Family","Age","LowIncome","AGE","AvgAge",
+#                     "METAL","premBase","count_hix_prod",
+#                     "Metal_std","Product_std","premBase_std",
+#                     "Bronze","Catas","Silver","Gold","Platinum",
+#                     "ageRate","ageRate_avg","HCC_age","SilvHCC_Age","MEMBERS",
+#                     "mean_HCC_Platinum","mean_HCC_Gold","mean_HCC_Silver","mean_HCC_Bronze","mean_HCC_Catastrophic",
+#                     "Rtype","Any_HCC",
+#                     "var_HCC_Platinum","var_HCC_Gold","var_HCC_Silver","var_HCC_Bronze","var_HCC_Catastrophic",
+#                     "AgeFE_18_30","AgeFE_31_39","AgeFE_40_51","AgeFE_52_64")]
 
 
 choiceData = acs[,.SD,.SDcols=c("Person","Firm","ST","Market","PERWT","Price",
@@ -433,7 +433,7 @@ choiceData = acs[,.SD,.SDcols=c("Person","Firm","ST","Market","PERWT","Price",
                     "Rtype","Any_HCC",
                     "var_HCC_Platinum","var_HCC_Gold","var_HCC_Silver","var_HCC_Bronze","var_HCC_Catastrophic",
                     "AgeFE_18_30","AgeFE_31_39","AgeFE_40_51","AgeFE_52_64",
-                    firm_list)]
+                    firm_list_labels)]
 
 choiceData[,S_ij:=0]
 choiceData[,unins_rate:=0]

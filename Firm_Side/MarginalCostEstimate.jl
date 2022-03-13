@@ -24,20 +24,21 @@ include("Firm_Inner_Loop.jl")
 # Load the Data
 include("MC_load.jl")
 
-rundate = "2019-08-21"
-spec = "FMC"
+rundate = "2022-03-11"
+spec = "Firm"
 
 
 #### Load Demand Estimation Results ####
 println("Rebuild Demand Model...")
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/GMM_Estimate_$spec-$rundate-stg2.jld2"
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/PLL_Estimate_$spec-$rundate-stg2.jld2"
 @load file p_stg2 spec_Dict
 p_dem_est = copy(p_stg2)
 
 
 #### Build Model ####
 # Structre the data
-chdf = ChoiceData(df,df_mkt,df_risk;
+chdf = ChoiceData(df,df_mkt,df_risk,df_transfer;
+    product = [:Product_std],
     demoRaw=spec_Dict["demoRaw"],
     prodchars=spec_Dict["prodchars"],
     prodchars_σ=spec_Dict["prodchars_σ"],
