@@ -10,6 +10,7 @@ load_path = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Cod
 include("$load_path/InsChoiceData.jl")
 include("$load_path/Halton.jl")
 include("$load_path/RandomCoefficients.jl")
+include("$load_path/RandomCoefficients_der.jl")
 include("$load_path/RiskMoments.jl")
 include("$load_path/utility.jl")
 include("$load_path/Contraction.jl")
@@ -87,28 +88,29 @@ println("###### Estimation 1 #######")
 println("#################")
 println("#################")
 
-W = Matrix(1.0I,costdf.mom_length,costdf.mom_length)
-W[1:85,1:85].=0.0
-p0 = vcat(rand(3)*.2)
-p0[2] = rand()*3+1
-
-est_init = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4,max_itr=100)
-est_stg1 = estimate_NLOpt(est_init[3],par_est,m,costdf,W,itrFirms=true)
-# #
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
-@save file est_stg1
-
-
-file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
-@load file est_stg1
-# p_stg1, fval = est_stg1
-flag,fval,p_stg1 = est_stg1
+# W = Matrix(1.0I,costdf.mom_length,costdf.mom_length)
+# W[1:85,1:85].=0.0
+# p0 = vcat(rand(3)*.2)
+# p0[2] = rand()*3+1
 #
+# est_init = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4,max_itr=100)
+# est_stg1 = estimate_NLOpt(est_init[3],par_est,m,costdf,W,itrFirms=true)
+# # #
+# file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
+# @save file est_stg1
+#
+#
+# # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$rundate.jld2"
+# # @load file est_stg1
+# # p_stg1, fval = est_stg1
+# flag,fval,p_stg1 = est_stg1
+#
+p_stg1 = [0.3938142600016884, 2.3536534364506356, 0.1061596114740308]
 p_test = fit_firm_moments(p_stg1,par_est,m,costdf,itrFirms=true)
 
-par = parMC(p_test,par_est,m,costdf)
-individual_costs(m,par)
-moments= costMoments(costdf,m,par)
+# par = parMC(p_test,par_est,m,costdf)
+# individual_costs(m,par)
+# moments= costMoments(costdf,m,par)
 
 println("#################")
 println("#################")
@@ -118,9 +120,11 @@ println("#################")
 
 p_full1 = fit_firm_moments(p_stg1,par_est,m,costdf,itrFirms=true)
 S,Σ,Δ,mom_long = aVar(costdf,m,p_full1,par_est)
+
+
 S_diag = Matrix(Diagonal(diag(S)))
 W = Matrix(Diagonal(diag(inv(S_diag))))
-W[1:85,1:85].=0.0
+# W[1:85,1:85].=0.0
 
 p0 = vcat(rand(3)*.2)
 p0[2] = rand()*2+1
