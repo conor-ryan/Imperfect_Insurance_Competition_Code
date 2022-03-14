@@ -4,9 +4,9 @@ function solve_model!(m::InsuranceLogit,f::firmData;
     states = sort(String.(keys(f._prodSTDict)))#[1:6]
     # states = ["GA"]
     for s in states
-        # if s!="MI"
-        #     continue
-        # end
+        if s=="IA"
+            continue
+        end
         println("Solving for $s")
         solve_model_st!(m,f,s,sim=sim,merg=merg,tol=tol,voucher=voucher,update_voucher=update_voucher,no_policy=no_policy)
         # P_res[f._prodSTDict[s]] = f.P_j[f._prodSTDict[s]]
@@ -106,11 +106,11 @@ function solve_equilibrium(rundate,spec)
     #### Build Model ####
     println("Rebuild Demand Model...")
     # Structre the data
-    chdf = ChoiceData(df,df_mkt,df_risk;
+    chdf = ChoiceData(df,df_mkt,df_risk,df_transfer;
         product =[:Product_std],
         demoRaw=spec_Dict["demoRaw"],
         prodchars=spec_Dict["prodchars"],
-        prodchars_0=spec_Dict["prodchars_0"],
+        prodchars_σ=spec_Dict["prodchars_σ"],
         fixedEffects=spec_Dict["fixedEffects"],
         wgt=[:PERWT])
 

@@ -126,7 +126,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
         #
         # idx_nonEmpty = vcat(idx_nonEmpty_dem,length(g_n).+idx_nonEmpty_cost)
 
-        add_Σ(Σ,m_n,idx_nonEmpty)
+        add_Σ(Σ,m_n,idx_nonEmpty,w_cov,Σ_hold)
         # add_Σ(Σ,g_tilde,idx_nonEmpty,w_cov,Σ_hold)
     end
     # Σ = Σ./8300

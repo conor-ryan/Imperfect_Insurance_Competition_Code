@@ -17,11 +17,11 @@ function process_demand(rundate,spec)
     #### Build Model ####
     println("Rebuild Demand Model...")
     # Structre the data
-    chdf = ChoiceData(df,df_mkt,df_risk;
+    chdf = ChoiceData(df,df_mkt,df_risk,df_transfer;
         product =[:Product_std],
         demoRaw=spec_Dict["demoRaw"],
         prodchars=spec_Dict["prodchars"],
-        prodchars_0=spec_Dict["prodchars_0"],
+        prodchars_σ=spec_Dict["prodchars_σ"],
         fixedEffects=spec_Dict["fixedEffects"],
         wgt=[:PERWT])
 

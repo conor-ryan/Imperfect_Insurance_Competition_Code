@@ -80,25 +80,25 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
 
     println("Product Map/Dict")
     ### Standard Products
-    # prodMap = unique(df[:,[:Product,:Product_std]])
+    # prodMap = unique(df[!,[:Product,:Product_std]])
     # sort!(prodMap,:Product)
     # prodMap = convert(Vector{Int64},prodMap[:,:Product_std])
     # prod_std = unique(prodMap)
-    prodMap = convert(Vector{Int64},unique(df[:,:Product_std]))
-    prod_std = sort(unique(prodMap))
+    prodMap = Vector{Int64}(unique(df[!,:Product_std]))
+    prod_std = Vector{Int64}(sort(unique(prodMap)))
 
     catas_prods = Int.(mkt[:,:Product_std][mkt[:,:Metal_std].=="CATASTROPHIC"])
     bench_prods = Vector{Float64}(undef,J)
     bench_prods[:].=0.0
 
-    prod_vec = convert(Vector{Float64},df[:,:Product_std])
+    prod_vec = Vector{Float64}(df[!,:Product_std])
     _productDict = build_ProdDict(prod_vec)
 
     println("Supplemental Data")
-    df[:,:Catastrophic] = Float64.(df[:,:Metal_std].=="CATASTROPHIC")
-    df[:,:Rev_foc] = df[:,:premBase].*df[:,:ageRate]./df[:,:MEMBERS]
+    df[!,:Catastrophic] = Float64.(df[!,:Metal_std].=="CATASTROPHIC")
+    df[!,:Rev_foc] = df[!,:premBase].*df[!,:ageRate]./df[!,:MEMBERS]
     dataNames = [:ageRate,:ageRate_avg,:IncomeCont,:Mandate,:MEMBERS,:Catastrophic,:subsidy,:Rev_foc]
-    data = convert(Matrix{Float64},df[dataNames])
+    data = Array(df[!,dataNames])
     index = Dict{Symbol, Int}()
     for (l,var) in enumerate(dataNames)
         index[var] = l
@@ -154,7 +154,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     metals = mkt[:,:Metal_std]
     uniq_mkts = sort(unique(markets))
     _perMktDict = Dict{Int,Array{Int64,1}}()
-    mkt_per = unique(df[:,[:Person,:Market]])
+    mkt_per = unique(df[!,[:Person,:Market]])
     for (n,mt) in enumerate(uniq_mkts)
         m_ind = findall(markets.==mt)
         mkt_index[n] = mkt[:,:Product_std][m_ind]
@@ -171,7 +171,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     end
 
     mkt_index_long = Vector{Int64}(undef,M)
-    for (n,prod) in enumerate(df[:,:Product_std])
+    for (n,prod) in enumerate(df[!,:Product_std])
         mkt_index_long[n] = mkt_map[prod]
     end
 
@@ -220,7 +220,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     end
 
     #### State Person Index ####
-    st_per = unique(df[:,[:Person,:ST]])
+    st_per = unique(df[!,[:Person,:ST]])
     _perSTDict = Dict{String,Array{Int64,1}}()
     states = unique(st_per[:,:ST])
     for s in states

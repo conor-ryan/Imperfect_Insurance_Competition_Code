@@ -10,7 +10,7 @@ using DataFrames
 codeDir = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Code/"
 
 ##### Set Specification ####
-halton_draws = 1000
+halton_draws = 500
 spec_demoRaw = [:AgeFE_31_39,
         :AgeFE_40_51,
         :AgeFE_52_64,
@@ -23,9 +23,8 @@ spec_prodchars_0=[:AV,:constant,:HighRisk,:Small,:High_small]
 cost_spec = [:AGE,:AV]
 
 rundate = Dates.today()
-rundate = "2022-03-11"
 println("Running on $rundate")
-spec = "Firm"
+spec = "FMC"
 spec_fixedEffects=[:Market_Firm,:Market_Cat]
 
 println("##### Estimate Demand #####")
@@ -53,12 +52,12 @@ include("$codeDir/Demand_Estimation/utility.jl")
 include("$codeDir/Demand_Estimation/Specification_Run.jl")
 
 filename = "PLL_Estimate_$spec"
-# estimate_demand(filename,rundate,
-#                     halton_draws,
-#                     spec_demoRaw,
-#                     spec_prodchars,
-#                     spec_prodchars_0,
-#                     spec_fixedEffects)
+estimate_demand(filename,rundate,
+                    halton_draws,
+                    spec_demoRaw,
+                    spec_prodchars,
+                    spec_prodchars_0,
+                    spec_fixedEffects)
 
 
 println("##### Estimation Marginal Cost #####")
