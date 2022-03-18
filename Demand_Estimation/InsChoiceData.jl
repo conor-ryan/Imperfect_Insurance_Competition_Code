@@ -386,12 +386,18 @@ function ChoiceData(data_choice::DataFrame,
 
     # Relevant Random Coefficient Parameters Per Person
     rel_rc_Dict = Dict{Real,Array{Int64,1}}()
-    X_σ = permutedims(X_σ,(2,1))
-    for (id,idxitr) in _personDict
-        X_σ_t = view(X_σ,:,idxitr)
-        any_positive = maximum(X_σ_t,dims=2)[:,1]
-        pars_relevant = findall(any_positive .>0)
-        rel_rc_Dict[id] = pars_relevant
+    if length(prodchars_σ)>0
+        X_σ = permutedims(X_σ,(2,1))
+        for (id,idxitr) in _personDict
+            X_σ_t = view(X_σ,:,idxitr)
+            any_positive = maximum(X_σ_t,dims=2)[:,1]
+            pars_relevant = findall(any_positive .>0)
+            rel_rc_Dict[id] = pars_relevant
+        end
+    else
+        for (id,idxitr) in _personDict
+            rel_rc_Dict[id] =  Vector{Int64}(undef,0)
+        end
     end
 
     # Construct Risk Moments
