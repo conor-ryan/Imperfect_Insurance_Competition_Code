@@ -372,14 +372,14 @@ function run_specification_penalizedlikelihood(filename::String,
     println("#### Estimate LL Starting Point ####")
 
     ## Estimate
-    W = zeros(length(m_ll.data.rMoments),length(m_ll.data.rMoments))
-    p_ll, fval = newton_raphson_ll(m_ll,p0,W)
+    # W = zeros(length(m_ll.data.rMoments),length(m_ll.data.rMoments))
+    # p_ll, fval = newton_raphson_ll(m_ll,p0,W)
 
 
     println("Save LL Result")
     file = "$filename-$rundate-ll.jld2"
-    @save file p_ll spec_Dict
-
+    # @save file p_ll spec_Dict
+    @load file p_ll spec_Dict
 
     ## Build GMM Model
     println("Build Model")
