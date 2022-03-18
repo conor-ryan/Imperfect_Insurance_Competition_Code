@@ -352,7 +352,7 @@ function run_specification_penalizedlikelihood(filename::String,
     cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/")
 
     println("Build LL Model - Fixed Effects Starting Point")
-    c_ll = ChoiceData(df,df_mkt,df_risk,df_tranfer;
+    c_ll = ChoiceData(df,df_mkt,df_risk,df_transfer;
         demoRaw=spec_demoRaw,
         prodchars=spec_prodchars,
         prodchars_σ=Vector{Symbol}(undef,0),
