@@ -141,7 +141,7 @@ estimate_demand(filename,rundate,
                     halton_draws,
                     spec_demoRaw,
                     spec_prodchars,
-                    spec_prodchars_0,
+                    spec_prodchars_σ,
                     spec_fixedEffects)
 
 
