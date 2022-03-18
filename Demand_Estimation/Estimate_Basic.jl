@@ -122,6 +122,8 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
     ## Tolerance Counts
     f_tol_cnt = 0
     x_tol_cnt = 0
+
+    println("Starting Vector: $(p_vec[vcat([6,7,8],[14,15],[9,10,11,12,13])])")
     # Maximize by Newtons Method
     while (cnt<max_itr)
         cnt+=1
@@ -151,7 +153,7 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
         end
 
         if cnt==1
-            step = 0.1
+            step = 1/grad_size
         else
             g = p_vec - p_last
             y = grad_new - grad_last

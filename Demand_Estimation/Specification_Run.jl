@@ -402,7 +402,7 @@ function run_specification_penalizedlikelihood(filename::String,
     p0 = rand(m_ll.parLength[:All]) .- 0.5
     p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
     p0[(length(p0)-fe_length):length(p0)] = p_ll[(length(p_ll)-fe_length):length(p_ll)]
-
+    println("Starting vector: $p0")
 
     println("#### Estimate First Stage ####")
     W = -Matrix(1.0I,length(m_ll.data.rMoments),length(m_ll.data.rMoments))
