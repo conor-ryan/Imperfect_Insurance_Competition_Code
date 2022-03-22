@@ -20,11 +20,19 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
     err_new = 1
     err_last = 1
     itr_cnt = 0
-    stp = 0.05
+    stp = 0.0001
     no_prog_cnt = 0
     no_prog = 0
     P_last = zeros(length(f.P_j[:]))
     P_new_last = zeros(length(f.P_j[:]))
+
+    ## Initialize Step Vector
+    prod_ind = f._prodSTDict[ST]
+    stp_vec = zeros(length(f.P_j[:]))
+    stp_vec[prod_ind].=stp
+
+    dProf_last = zeros(length(f.P_j[:]))
+
     # println(f.P_j[f._prodSTDict[ST]])
     while err_new>tol
         itr_cnt+=1
@@ -34,46 +42,51 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
 
 
 
-        foc_err, err_new, tot_err,P_new = foc_error(f,ST,stp,sim=sim,merg=merg,voucher=voucher)
+         tot_err, dProf = foc_error(f,prod_ind,stp,sim=sim,merg=merg,voucher=voucher)
 
 
-        P_last[:] = copy(f.P_j[:])
-        P_new_last[:] = copy(P_new[:])
-        f.P_j[:] = (1-stp).*f.P_j[:] + stp.*P_new[:]
-        println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
+        f.P_j[:] = f.P_j[:] + stp_vec.*dProf[:]
+        println("Iteration Count: $itr_cnt, Current Error: $tot_err")
+        println("Step Vector: $(stp_vec[prod_ind])")
         # println(foc_err)
-        println(P_new[f._prodSTDict[ST]])
+        println(f.P_j[f._prodSTDict[ST]])
         # println(f.P_j[f._prodSTDict[ST]])
 
-        if stp==1.0
-            stp = .001
-        end
-        stp = max(stp,1e-6)
-        if stp<.05
-            if err_new>1e-3
-                stp = stp*2
-            else
-                stp = stp*1.1
-            end
-        elseif stp<.25
-            stp = stp*(1.1)
-        elseif stp<.75
-            stp=stp*(1.1)
-        end
+        stp_vec = stp_vec.*1.1
+        flipped_sign = ((dProf.>0) .& (dProf_last.<0)) .| ((dProf.<0) .& (dProf_last.>0))
+        stp_vec[flipped_sign].=stp
+        stp_vec[prod_ind][(dProf_last[prod_ind].==0.0)].=stp
+        #
+        #
+        # if stp==1.0
+        #     stp = .001
+        # end
+        # stp = max(stp,1e-6)
+        # if stp<.05
+        #     if err_new>1e-3
+        #         stp = stp*2
+        #     else
+        #         stp = stp*1.1
+        #     end
+        # elseif stp<.25
+        #     stp = stp*(1.1)
+        # elseif stp<.75
+        #     stp=stp*(1.1)
+        # end
+        #
+        # if ((err_new>err_last) & (no_prog==0)) | ((err_new<err_last) & (no_prog==1))
+        #     stp = .05
+        #     # if (itr_cnt>100) & (rand()<.2)
+        #     #     stp = 1.0
+        #     # end
+        # end
+        # if err_new>err_last
+        #     no_prog = 1
+        # else
+        #     no_prog=0
+        # end
 
-        if ((err_new>err_last) & (no_prog==0)) | ((err_new<err_last) & (no_prog==1))
-            stp = .05
-            # if (itr_cnt>100) & (rand()<.2)
-            #     stp = 1.0
-            # end
-        end
-        if err_new>err_last
-            no_prog = 1
-        else
-            no_prog=0
-        end
-
-        err_last = copy(err_new)
+        # err_last = copy(err_new)
         # println(P_last)
     end
     println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
