@@ -34,7 +34,7 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
     dProf_last = zeros(length(f.P_j[:]))
 
     # println(f.P_j[f._prodSTDict[ST]])
-    while (tot_err>tol) & (!isnan(tot_err))
+    while (tot_err>tol) & !(isnan(tot_err))
         itr_cnt+=1
         # println("Evaluate Model")
         evaluate_model!(m,f,ST,voucher=voucher,update_voucher=update_voucher,no_policy=no_policy)
@@ -46,8 +46,8 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
 
 
         f.P_j[:] = f.P_j[:] + stp_vec.*dProf[:]
-        # println("Iteration Count: $itr_cnt, Current Error: $tot_err")
-        # println("Step Vector: $(stp_vec[prod_ind])")
+        println("Iteration Count: $itr_cnt, Current Error: $tot_err")
+        println("Step Vector: $(stp_vec[prod_ind])")
         # println(foc_err)
         println(f.P_j[f._prodSTDict[ST]])
         # println(f.P_j[f._prodSTDict[ST]])
@@ -58,7 +58,6 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
         stp_vec[prod_ind][(dProf_last[prod_ind].==0.0)].=stp
 
         dProf_last = copy(dProf)
-        if (any)
         #
         #
         # if stp==1.0
