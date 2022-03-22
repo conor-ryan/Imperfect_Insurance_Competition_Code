@@ -40,9 +40,9 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
         P_last[:] = copy(f.P_j[:])
         P_new_last[:] = copy(P_new[:])
         f.P_j[:] = (1-stp).*f.P_j[:] + stp.*P_new[:]
-        # println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
+        println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
         # println(foc_err)
-        # println(P_new[f._prodSTDict[ST]])
+        println(P_new[f._prodSTDict[ST]])
         # println(f.P_j[f._prodSTDict[ST]])
 
         if stp==1.0
@@ -497,28 +497,147 @@ function solveMain_SP(m::InsuranceLogit,f::firmData,file::String)
     trash = total_welfare_bymkt(m,f,"SP_cpm",update_voucher=false)
 
 
+    #### Solve without Risk Adjustment ####
+    println("####################################")
+    println("#### Solve without Individual Mandate ####")
+    println("####################################")
+    f.P_j[:] = P_Obs[:]
+    f.data[:,f.index[:Mandate]].=0.0
+    solve_model!(m,f,sim="Base",voucher=true,update_voucher=false)
+    P_man[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
+    S_man[:] = f.S_j[:]
+
+    man_profits = market_profits(m,f)
+
+    consumer_welfare(m,f,"man_vch")
+    man_welfare = total_welfare_bymkt(m,f,"man_vch",update_voucher=false)
+
+    println("###### Solve Merger Scenario ######")
+    solve_model!(m,f,sim="Base",merg="Merger",voucher=true,update_voucher=false)
+    P_man_m[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
+    S_man_m[:] = f.S_j[:]
+
+    merger_man_profits = market_profits(m,f)
+
+    consumer_welfare(m,f,"man_m_vch")
+    trash = total_welfare_bymkt(m,f,"man_m_vch",update_voucher=false)
+
+    println("#### CURRENT PROFIT PROBLEM ####")
+    f.P_j[:] = P_SP[:]
+    markets_cp, λ_vec_cp = solve_SP_λ!(m,f,man_profits,CW_target=man_welfare)
+    P_SP_cp_man[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
+    S_SP_cp_man[:] = f.S_j[:]
+
+
+    consumer_welfare(m,f,"SP_cp_man")
+    trash = total_welfare_bymkt(m,f,"SP_cp_man",update_voucher=false)
+
+    println("#### MERGER PROFIT PROBLEM ####")
+    f.P_j[:] = P_SP[:]
+    markets_cpm, λ_vec_cpm = solve_SP_λ!(m,f,merger_man_profits,markets=[4;5;6;7;8;9;10;11;12;13;14])
+    P_SP_cpm_man[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
+    S_SP_cpm_man[:] = f.S_j[:]
+
+    consumer_welfare(m,f,"SP_cpm_man")
+    trash = total_welfare_bymkt(m,f,"SP_cpm_man",update_voucher=false)
+
+
+    #### Solve without Risk Adjustment ####
+    println("####################################")
+    println("#### Solve without Individual Mandate ####")
+    println("####################################")
+    f.P_j[:] = P_Obs[:]
+    f.data[:,f.index[:Mandate]].=0.0
+    solve_model!(m,f,sim="RA",voucher=true,update_voucher=false)
+    P_RAman[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
+    S_RAman[:] = f.S_j[:]
+
+    RAman_profits = market_profits(m,f)
+
+    consumer_welfare(m,f,"RAman_vch")
+    RAman_welfare = total_welfare_bymkt(m,f,"RAman_vch",update_voucher=false)
+
+    println("###### Solve Merger Scenario ######")
+    solve_model!(m,f,sim="RA",merg="Merger",voucher=true,update_voucher=false)
+    P_RAman_m[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
+    S_RAman_m[:] = f.S_j[:]
+
+    merger_RAman_profits = market_profits(m,f)
+
+    consumer_welfare(m,f,"RAman_m_vch")
+    trash = total_welfare_bymkt(m,f,"RAman_m_vch",update_voucher=false)
+
+    println("#### CURRENT PROFIT PROBLEM ####")
+    f.P_j[:] = P_SP[:]
+    markets_cp, λ_vec_cp = solve_SP_λ!(m,f,RAman_profits,CW_target=RAman_welfare)
+    P_SP_cp_RAman[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
+    S_SP_cp_RAman[:] = f.S_j[:]
+
+
+    consumer_welfare(m,f,"SP_cp_RAman")
+    trash = total_welfare_bymkt(m,f,"SP_cp_RAman",update_voucher=false)
+
+    println("#### MERGER PROFIT PROBLEM ####")
+    f.P_j[:] = P_SP[:]
+    markets_cpm, λ_vec_cpm = solve_SP_λ!(m,f,merger_RAman_profits,markets=[4;5;6;7;8;9;10;11;12;13;14])
+    P_SP_cpm_RAman[:] = f.P_j[:]
+    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
+    S_SP_cpm_RAman[:] = f.S_j[:]
+
+    consumer_welfare(m,f,"SP_cpm_RAman")
+    trash = total_welfare_bymkt(m,f,"SP_cpm_RAman",update_voucher=false)
+
+
     output =  DataFrame(Product=prod_vec,
                         Price_data=P_Obs,
                         Price_sp=P_SP,
                         Price_sp_zp=P_SP_zp,
+
                         Price_sp_cp=P_SP_cp,
                         Price_sp_cpm=P_SP_cpm,
                         Price_sp_cp_base=P_SP_cp_base,
                         Price_sp_cpm_base=P_SP_cpm_base,
+                        Price_sp_cp_man=P_SP_cp_man,
+                        Price_sp_cpm_man=P_SP_cpm_man,
+                        Price_sp_cp_RAman=P_SP_cp_RAman,
+                        Price_sp_cpm_RAman=P_SP_cpm_RAman,
+
                         Price_base=P_Base,
                         Price_RA =P_RA,
+                        Price_man =P_man,
+                        Price_RAman =P_RAman,
                         Price_base_m=P_Base_m,
                         Price_RA_m =P_RA_m,
+                        Price_man_m =P_man_m,
+                        Price_RAman_m =P_RAman_m,
+
                         Lives_sp=S_SP,
                         Lives_sp_zp=S_SP_zp,
                         Lives_sp_cp=S_SP_cp,
                         Lives_sp_cpm=S_SP_cpm,
                         Lives_sp_cp_base=S_SP_cp_base,
                         Lives_sp_cpm_base=S_SP_cpm_base,
+                        Lives_sp_cp_man=S_SP_cp_man,
+                        Lives_sp_cpm_man=S_SP_cpm_man,
+                        Lives_sp_cp_RAman=S_SP_cp_RAman,
+                        Lives_sp_cpm_RAman=S_SP_cpm_RAman,
+
+
                         Lives_base=S_Base,
                         Lives_RA =S_RA,
+                        Lives_man =S_man,
+                        Lives_RAman =S_RAman,
                         Lives_base_m=S_Base_m,
-                        Lives_RA_m =S_RA_m)
+                        Lives_RA_m =S_RA_m,
+                        Lives_man_m =S_man_m,
+                        Lives_RAman_m =S_RAman_m)
 
     CSV.write(file,output)
 

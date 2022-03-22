@@ -235,12 +235,13 @@ function wtp_value!(wtp_nr::Vector{Float64},wtp_r::Matrix{Float64},
     r_ind = Int(rIndS(app)[1])
     idxitr = app._personDict[ind]
     Z = demoRaw(app)[:,1]
+    price = prodchars(app)[1,:]
 
     β_z = β*Z
     β_i= calc_indCoeffs(p,r_ind)
 
     α = (β_0+β_z)[1]
-    β_AV_nr = (β_0 + β_z)[2]
+    β_AV_nr = (β_0 + β_z)[3]
     β_AV_r = β_i[2,:]
 
 
@@ -250,8 +251,8 @@ function wtp_value!(wtp_nr::Vector{Float64},wtp_r::Matrix{Float64},
     wtp_r[ind_index,:] = -(β_AV_nr .+ β_AV_r)/α
 
     ## Own-price Semi-Elasticity
-    elas_nr[idxitr] = α*(1 .- Smat_nr[idxitr])
-    elas_r[idxitr,:] = α*(1 .- Smat_r[idxitr,:])
+    elas_nr[idxitr] = α.*(1 .- Smat_nr[idxitr]).*price
+    elas_r[idxitr,:] = α.*(1 .- Smat_r[idxitr,:]).*price
 
     ## Extensive Margin Semi-Elasticity
     elas0_nr[ind_index] = α*(sum(Smat_nr[idxitr]))

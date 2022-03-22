@@ -107,7 +107,8 @@ spec_prodchars_σ=[:constant,:AV,
 
 cost_spec = [:AGE,:AV]
 
-rundate = Dates.today()
+# rundate = Dates.today()
+rundate = "2022-03-18"
 println("Running on $rundate")
 spec = "FMC"
 spec_fixedEffects=[:Market_Firm,:Market_Cat]
@@ -137,12 +138,12 @@ include("$codeDir/Demand_Estimation/utility.jl")
 include("$codeDir/Demand_Estimation/Specification_Run.jl")
 
 filename = "PLL_Estimate_$spec"
-estimate_demand(filename,rundate,
-                    halton_draws,
-                    spec_demoRaw,
-                    spec_prodchars,
-                    spec_prodchars_σ,
-                    spec_fixedEffects)
+# estimate_demand(filename,rundate,
+#                     halton_draws,
+#                     spec_demoRaw,
+#                     spec_prodchars,
+#                     spec_prodchars_σ,
+#                     spec_fixedEffects)
 
 
 println("##### Estimation Marginal Cost #####")
@@ -154,7 +155,7 @@ include("$codeDir/Firm_Side/MC_derivatives.jl")
 include("$codeDir/Firm_Side/MC_optimization.jl")
 include("$codeDir/Firm_Side/Firm_Inner_Loop.jl")
 include("$codeDir/Firm_Side/SpecRunMC.jl")
-estimate_marginal_cost(rundate,spec,cost_spec)
+# estimate_marginal_cost(rundate,spec,cost_spec)
 
 include("ProcessDemResults.jl")
 process_demand(rundate,spec)

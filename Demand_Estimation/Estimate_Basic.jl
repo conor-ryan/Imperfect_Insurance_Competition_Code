@@ -362,7 +362,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
 
         if no_progress>5
             no_progress = 0
-            hess_steps = 0
+            hess_steps = -1
             println("Return: Limit on No Progress")
             p_vec = copy(p_min)
             fval = log_likelihood_penalty!(grad_new,d,p_vec,W)
