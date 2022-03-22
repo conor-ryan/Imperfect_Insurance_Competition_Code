@@ -4,9 +4,9 @@ function solve_model!(m::InsuranceLogit,f::firmData;
     states = sort(String.(keys(f._prodSTDict)))#[1:6]
     # states = ["GA"]
     for s in states
-        if s=="IA"
-            continue
-        end
+        # if s=="IA"
+        #     continue
+        # end
         println("Solving for $s")
         solve_model_st!(m,f,s,sim=sim,merg=merg,tol=tol,voucher=voucher,update_voucher=update_voucher,no_policy=no_policy)
         # P_res[f._prodSTDict[s]] = f.P_j[f._prodSTDict[s]]
@@ -16,11 +16,11 @@ function solve_model!(m::InsuranceLogit,f::firmData;
 end
 
 function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
-                sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=false,update_voucher=true,no_policy=false)
+                sim="Base",merg::String="Base",tol::Float64=1e-8,voucher=false,update_voucher=true,no_policy=false)
     err_new = 1
-    err_last = 1
+    tot_err = 1
     itr_cnt = 0
-    stp = 0.0001
+    stp = 0.001
     no_prog_cnt = 0
     no_prog = 0
     P_last = zeros(length(f.P_j[:]))
@@ -34,7 +34,7 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
     dProf_last = zeros(length(f.P_j[:]))
 
     # println(f.P_j[f._prodSTDict[ST]])
-    while err_new>tol
+    while (tot_err>tol) & (!isnan(tot_err))
         itr_cnt+=1
         # println("Evaluate Model")
         evaluate_model!(m,f,ST,voucher=voucher,update_voucher=update_voucher,no_policy=no_policy)
@@ -46,8 +46,8 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
 
 
         f.P_j[:] = f.P_j[:] + stp_vec.*dProf[:]
-        println("Iteration Count: $itr_cnt, Current Error: $tot_err")
-        println("Step Vector: $(stp_vec[prod_ind])")
+        # println("Iteration Count: $itr_cnt, Current Error: $tot_err")
+        # println("Step Vector: $(stp_vec[prod_ind])")
         # println(foc_err)
         println(f.P_j[f._prodSTDict[ST]])
         # println(f.P_j[f._prodSTDict[ST]])
@@ -56,6 +56,9 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
         flipped_sign = ((dProf.>0) .& (dProf_last.<0)) .| ((dProf.<0) .& (dProf_last.>0))
         stp_vec[flipped_sign].=stp
         stp_vec[prod_ind][(dProf_last[prod_ind].==0.0)].=stp
+
+        dProf_last = copy(dProf)
+        if (any)
         #
         #
         # if stp==1.0
@@ -89,7 +92,7 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
         # err_last = copy(err_new)
         # println(P_last)
     end
-    println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
+    println("Solved at Iteration Count: $itr_cnt, Error: $tot_err")
     benchmarks = f.bench_prods[f._prodSTDict[ST]]
     benchmarks = benchmarks[benchmarks.>0]
     println("Benchmark Products: $benchmarks")

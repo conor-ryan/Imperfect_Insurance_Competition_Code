@@ -222,22 +222,22 @@ function predict_price(f::firmData,std_ind::Vector{Int};sim="Base",merg::String=
 
     if sim=="RA"
         # P_new = copy(P_std)
-        dProf[std_ind] = SA  - dSdp*f.P_j[std_ind]  + cost_std
+        dProf[std_ind] = SA  + dSdp*f.P_j[std_ind]  - cost_std
     elseif sim=="Base"
         # P_new = copy(P_RA)
-        dProf[std_ind] = SA  - dSdp*f.P_j[std_ind]  + cost_pl
+        dProf[std_ind] = dSdp*f.P_j[std_ind] +  (SA  - cost_pl)
     elseif sim=="SP"
         # P_new = copy(MC)
-        dProf[std_ind] = - dSdp*f.P_j[std_ind]  + cost_std
+        dProf[std_ind] = dSdp*f.P_j[std_ind]  - cost_std
     elseif sim=="SP_gov"
         # P_new = copy(MC) + copy(dSubs)
-        dProf[std_ind] = - dSdp*f.P_j[std_ind]  + cost_std + subs_term
+        dProf[std_ind] = dSdp*f.P_j[std_ind]  - cost_std + subs_term
     elseif sim=="SPλ"
         # P_new = MC + λ.*Mkup
-        dProf[std_ind] = λ.*SA  - dSdp*f.P_j[std_ind]  + cost_std
+        dProf[std_ind] = λ.*SA  + dSdp*f.P_j[std_ind]  - cost_std
     elseif sim=="SPλ_gov"
         # P_new = MC + λ.*Mkup + (1-λ).*dSubs
-        dProf[std_ind] = λ.*SA  - dSdp*f.P_j[std_ind]  + cost_std + (1-λ).*subs_term
+        dProf[std_ind] = λ.*SA  + dSdp*f.P_j[std_ind]  - cost_std - (1-λ).*subs_term
     end
     return dProf
 end
@@ -255,6 +255,7 @@ end
 function foc_error(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base",voucher::Bool=false)
 
     dProf = predict_price(f,prod_ind,sim=sim,merg=merg,λ=λ,voucher=voucher)
+    # println("Profit Derivatives: $(dProf[prod_ind])")
     # println(prod_ind)
     # println(tot_err)
     # println(P_new[prod_ind])
