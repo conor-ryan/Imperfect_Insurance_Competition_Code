@@ -1,12 +1,12 @@
 function solve_model!(m::InsuranceLogit,f::firmData;
-                sim="Base",merg::String="Base",tol::Float64=1e-8,voucher=false,update_voucher=true,no_policy=false)
+                sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=false,update_voucher=true,no_policy=false)
     # P_res = zeros(length(f.P_j))
     states = sort(String.(keys(f._prodSTDict)))#[1:6]
     # states = ["GA"]
     for s in states
-        if s!="MI"
-            continue
-        end
+        # if s!="MI"
+        #     continue
+        # end
         println("Solving for $s")
         solve_model_st!(m,f,s,sim=sim,merg=merg,tol=tol,voucher=voucher,update_voucher=update_voucher,no_policy=no_policy)
         # P_res[f._prodSTDict[s]] = f.P_j[f._prodSTDict[s]]
@@ -16,26 +16,18 @@ function solve_model!(m::InsuranceLogit,f::firmData;
 end
 
 function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
-                sim="Base",merg::String="Base",tol::Float64=1e-8,voucher=false,update_voucher=true,no_policy=false)
+                sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=false,update_voucher=true,no_policy=false)
     err_new = 1
-    tot_err = 1
+    err_last = 1
     itr_cnt = 0
-    stp = 0.000001
+    stp = 0.05
     no_prog_cnt = 0
     no_prog = 0
     P_last = zeros(length(f.P_j[:]))
     P_new_last = zeros(length(f.P_j[:]))
-    P_orig = zeros(length(f.P_j[:]))
-    P_orig[:] = f.P_j[:]
-    ## Initialize Step Vector
-    prod_ind = f._prodSTDict[ST]
-    stp_vec = zeros(length(f.P_j[:]))
-    stp_vec[prod_ind].=0.01
-
-    dProf_last = zeros(length(f.P_j[:]))
-
+    P_orig = copy(f.P_j[:])
     # println(f.P_j[f._prodSTDict[ST]])
-    while (tot_err>tol) & !(isnan(tot_err))
+    while (err_new>tol) & (!isnan(err_new))
         itr_cnt+=1
         # println("Evaluate Model")
         evaluate_model!(m,f,ST,voucher=voucher,update_voucher=update_voucher,no_policy=no_policy)
@@ -43,90 +35,49 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
 
 
 
-         tot_err, dProf = foc_error(f,prod_ind,stp,sim=sim,merg=merg,voucher=voucher)
+        foc_err, err_new, tot_err,P_new = foc_error(f,ST,stp,sim=sim,merg=merg,voucher=voucher)
 
-         price_update = stp_vec.*dProf[:]
-         # Cap update at 50 dollars
-         update_sign = price_update
-         price_update[abs.(price_update).>50].= 50 .*(sign.(price_update[abs.(price_update).>50]))
 
-        f.P_j[:] = f.P_j[:] .+ price_update
-        println("Iteration Count: $itr_cnt, Current Error: $tot_err")
-        println("Prices: $(round.(f.P_j[prod_ind]))")
-        println("Step Vector: $(round.(stp_vec[prod_ind],digits=4))")
-        println("Profit Derivatives: $(dProf[prod_ind])")
-
+        P_last[:] = copy(f.P_j[:])
+        P_new_last[:] = copy(P_new[:])
+        f.P_j[:] = (1-stp).*f.P_j[:] + stp.*P_new[:]
+        # println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
         # println(foc_err)
+        # println(P_new[f._prodSTDict[ST]])
         # println(f.P_j[f._prodSTDict[ST]])
-        # println(f.P_j[f._prodSTDict[ST]])
 
-        high_prices = f.P_j[prod_ind].>1e3
-        # println("High Prices")
-        # println("High Prices at indices: $(findall(high_prices))")
-        # println("Prices: $(f.P_j[prod_ind][high_prices])")
-        # println("Price Update: $(price_update[prod_ind][high_prices])")
-        # # println("Lives: $(f.S_j[prod_ind][high_prices])")
-        # println("Profit Derivatives: $(dProf[prod_ind][high_prices])")
-
-        large_change = abs.(price_update[prod_ind]).>=10
-        # println("Big Update")
-        # println("High Prices at indices: $(findall(large_change))")
-        # println("Prices: $(f.P_j[prod_ind][large_change])")
-        # println("Price Update: $(price_update[prod_ind][large_change])")
-        # # println("Lives: $(f.S_j[prod_ind][high_prices])")
-        # println("Profit Derivatives: $(dProf[prod_ind][large_change])")
-
-        stp_vec = stp_vec.*1.2
-        stp_vec[abs.(price_update).>40] = stp_vec[abs.(price_update).>40]./1.2
-        flipped_sign = ((dProf.>0) .& (dProf_last.<0)) .| ((dProf.<0) .& (dProf_last.>0))
-        println("Flipped products: $(findall(flipped_sign))")
-        println("Flipped steps: $(stp_vec[flipped_sign])")
-        println("Flipped dProf: $(round.(dProf[flipped_sign]))")
-
-        stp_vec[flipped_sign].=stp
-        stp_vec[prod_ind][(dProf_last[prod_ind].==0.0)].=stp
-
-        if tot_err>100
-            stp_vec[stp_vec.>.1].=.1
+        if stp==1.0
+            stp = .001
+        end
+        stp = max(stp,1e-6)
+        if stp<.05
+            if err_new>1e-3
+                stp = stp*2
+            else
+                stp = stp*1.1
+            end
+        elseif stp<.25
+            stp = stp*(1.1)
+        elseif stp<.75
+            stp=stp*(1.1)
         end
 
+        if ((err_new>err_last) & (no_prog==0)) | ((err_new<err_last) & (no_prog==1))
+            stp = .05
+            # if (itr_cnt>100) & (rand()<.2)
+            #     stp = 1.0
+            # end
+        end
+        if err_new>err_last
+            no_prog = 1
+        else
+            no_prog=0
+        end
 
-
-        dProf_last = copy(dProf)
-        #
-        #
-        # if stp==1.0
-        #     stp = .001
-        # end
-        # stp = max(stp,1e-6)
-        # if stp<.05
-        #     if err_new>1e-3
-        #         stp = stp*2
-        #     else
-        #         stp = stp*1.1
-        #     end
-        # elseif stp<.25
-        #     stp = stp*(1.1)
-        # elseif stp<.75
-        #     stp=stp*(1.1)
-        # end
-        #
-        # if ((err_new>err_last) & (no_prog==0)) | ((err_new<err_last) & (no_prog==1))
-        #     stp = .05
-        #     # if (itr_cnt>100) & (rand()<.2)
-        #     #     stp = 1.0
-        #     # end
-        # end
-        # if err_new>err_last
-        #     no_prog = 1
-        # else
-        #     no_prog=0
-        # end
-
-        # err_last = copy(err_new)
+        err_last = copy(err_new)
         # println(P_last)
     end
-    println("Solved at Iteration Count: $itr_cnt, Error: $tot_err")
+    println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
     benchmarks = f.bench_prods[f._prodSTDict[ST]]
     benchmarks = benchmarks[benchmarks.>0]
     println("Benchmark Products: $benchmarks")
@@ -134,10 +85,9 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
     silver = f.P_j[f._prodSTDict[ST]]
     silver = silver[benchmarks.>0]
     println("Silver Premiums: $silver")
-
     obs_silver = P_orig[f._prodSTDict[ST]]
     obs_silver = obs_silver[benchmarks.>0]
-    println("Observed(Previous) Silver Premiums: $obs_silver")
+    println("Observed (Previous) Silver Premiums: $obs_silver")
     return nothing
 end
 
