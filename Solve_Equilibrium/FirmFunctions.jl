@@ -1,3 +1,80 @@
+#### Profit Derivative Functions ####
+function evaluate_FOC_dprof(f::firmData,std_ind::Vector{Int64},merg::String="Base",voucher::Bool=false)
+    # P_std = zeros(length(f.P_j))
+    # P_RA = zeros(length(f.P_j))
+    # MC = zeros(length(f.P_j))
+    # Mkup = zeros(length(f.P_j))
+    # dSubs = zeros(length(f.P_j))
+
+    ownershipMatrix = f.ownMat
+    if merg=="Merger"
+        ownershipMatrix = f.ownMat_merge
+    elseif merg=="SP"
+        ownershipMatrix = ones(size(f.ownMat))
+    end
+
+    if voucher
+        dSdp = (f.dSAdp_j.*ownershipMatrix)[std_ind,std_ind]
+    else
+        dSdp = ((f.dSAdp_j - f.bench_prods.*f.dMAdp_j).*ownershipMatrix)[std_ind,std_ind]
+    end
+
+    cost_std = sum(f.dCdp_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
+    cost_pl = sum(f.dCdp_pl_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
+    SA = f.SA_j[std_ind]
+
+    # P_std[std_ind]= inv(dSdp)*(-SA + cost_std)
+    # P_RA[std_ind] = inv(dSdp)*(-SA + cost_pl)
+    #
+    # Mkup[std_ind] = inv(dSdp)*(-SA)
+    # MC[std_ind] = inv(dSdp)*(cost_std)
+    subs_term = sum(f.dSubdp_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
+    # dSubs[std_ind] = inv(dSdp)*sum(f.dSubdp_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
+
+    return cost_std, cost_pl, SA, subs_term, dSdp
+end
+
+
+# function evaluate_FOC(f::firmData,std_ind::Vector{Int},merg::String="Base")
+#     P_std, P_RA, MR, MC = evaluate_FOC(f,std_ind,merg)
+#     return P_std, P_RA, MR, MC
+# end
+
+function evaluate_FOC_dprof(f::firmData,merg::String="Base")
+    std_ind = f.prods
+    cost_std, cost_pl, SA, subs_term, dSdp = evaluate_FOC_dprof(f,std_ind,merg)
+    return cost_std, cost_pl, SA, subs_term, dSdp
+end
+
+function predict_dprof(f::firmData,std_ind::Vector{Int};sim="Base",merg::String="Base",λ::Float64=0.0,voucher::Bool=false)
+    dProf = zeros(length(f.P_j))
+    cost_std, cost_pl, SA, subs_term, dSdp = evaluate_FOC_dprof(f,std_ind,merg,voucher)
+    # println(P_std[f._prodSTDict[ST]])
+
+    if sim=="RA"
+        # P_new = copy(P_std)
+        dProf[std_ind] = SA  + dSdp*f.P_j[std_ind]  - cost_std
+    elseif sim=="Base"
+        # P_new = copy(P_RA)
+        dProf[std_ind] = dSdp*f.P_j[std_ind] +  (SA  - cost_pl)
+    elseif sim=="SP"
+        # P_new = copy(MC)
+        dProf[std_ind] = dSdp*f.P_j[std_ind]  - cost_std
+    elseif sim=="SP_gov"
+        # P_new = copy(MC) + copy(dSubs)
+        dProf[std_ind] = dSdp*f.P_j[std_ind]  - cost_std + subs_term
+    elseif sim=="SPλ"
+        # P_new = MC + λ.*Mkup
+        dProf[std_ind] = λ.*SA  + dSdp*f.P_j[std_ind]  - cost_std
+    elseif sim=="SPλ_gov"
+        # P_new = MC + λ.*Mkup + (1-λ).*dSubs
+        dProf[std_ind] = λ.*SA  + dSdp*f.P_j[std_ind]  - cost_std - (1-λ).*subs_term
+    end
+    return dProf
+end
+
+
+
 function compute_profit(d::InsuranceLogit,f::firmData)
     Revenue = zeros(length(d.prods))
     Cost = zeros(length(d.prods))
@@ -169,11 +246,11 @@ end
 
 
 function evaluate_FOC(f::firmData,std_ind::Vector{Int64},merg::String="Base",voucher::Bool=false)
-    # P_std = zeros(length(f.P_j))
-    # P_RA = zeros(length(f.P_j))
-    # MC = zeros(length(f.P_j))
-    # Mkup = zeros(length(f.P_j))
-    # dSubs = zeros(length(f.P_j))
+    P_std = zeros(length(f.P_j))
+    P_RA = zeros(length(f.P_j))
+    MC = zeros(length(f.P_j))
+    Mkup = zeros(length(f.P_j))
+    dSubs = zeros(length(f.P_j))
 
     ownershipMatrix = f.ownMat
     if merg=="Merger"
@@ -192,15 +269,14 @@ function evaluate_FOC(f::firmData,std_ind::Vector{Int64},merg::String="Base",vou
     cost_pl = sum(f.dCdp_pl_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
     SA = f.SA_j[std_ind]
 
-    # P_std[std_ind]= inv(dSdp)*(-SA + cost_std)
-    # P_RA[std_ind] = inv(dSdp)*(-SA + cost_pl)
-    #
-    # Mkup[std_ind] = inv(dSdp)*(-SA)
-    # MC[std_ind] = inv(dSdp)*(cost_std)
-    subs_term = sum(f.dSubdp_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
-    # dSubs[std_ind] = inv(dSdp)*sum(f.dSubdp_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
+    P_std[std_ind]= inv(dSdp)*(-SA + cost_std)
+    P_RA[std_ind] = inv(dSdp)*(-SA + cost_pl)
 
-    return cost_std, cost_pl, SA, subs_term, dSdp
+    Mkup[std_ind] = inv(dSdp)*(-SA)
+    MC[std_ind] = inv(dSdp)*(cost_std)
+    dSubs[std_ind] = inv(dSdp)*sum(f.dSubdp_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
+
+    return P_std, P_RA, Mkup, MC, dSubs
 end
 
 
@@ -211,35 +287,29 @@ end
 
 function evaluate_FOC(f::firmData,merg::String="Base")
     std_ind = f.prods
-    cost_std, cost_pl, SA, subs_term, dSdp = evaluate_FOC(f,std_ind,merg)
-    return cost_std, cost_pl, SA, subs_term, dSdp
+    P_std, P_RA, Mkup, MC, dSubs = evaluate_FOC(f,std_ind,merg)
+    return P_std, P_RA, Mkup, MC, dSubs
 end
 
-function predict_price(f::firmData,std_ind::Vector{Int};sim="Base",merg::String="Base",λ::Float64=0.0,voucher::Bool=false)
-    dProf = zeros(length(f.P_j))
-    cost_std, cost_pl, SA, subs_term, dSdp = evaluate_FOC(f,std_ind,merg,voucher)
+function predict_price(f::firmData,prod_ind::Vector{Int};sim="Base",merg::String="Base",λ::Float64=0.0,voucher::Bool=false)
+
+    P_std, P_RA, Mkup, MC, dSubs = evaluate_FOC(f,prod_ind,merg,voucher)
     # println(P_std[f._prodSTDict[ST]])
 
     if sim=="RA"
-        # P_new = copy(P_std)
-        dProf[std_ind] = SA  + dSdp*f.P_j[std_ind]  - cost_std
+        P_new = copy(P_std)
     elseif sim=="Base"
-        # P_new = copy(P_RA)
-        dProf[std_ind] = dSdp*f.P_j[std_ind] +  (SA  - cost_pl)
+        P_new = copy(P_RA)
     elseif sim=="SP"
-        # P_new = copy(MC)
-        dProf[std_ind] = dSdp*f.P_j[std_ind]  - cost_std
+        P_new = copy(MC)
     elseif sim=="SP_gov"
-        # P_new = copy(MC) + copy(dSubs)
-        dProf[std_ind] = dSdp*f.P_j[std_ind]  - cost_std + subs_term
+        P_new = copy(MC) + copy(dSubs)
     elseif sim=="SPλ"
-        # P_new = MC + λ.*Mkup
-        dProf[std_ind] = λ.*SA  + dSdp*f.P_j[std_ind]  - cost_std
+        P_new = MC + λ.*Mkup
     elseif sim=="SPλ_gov"
-        # P_new = MC + λ.*Mkup + (1-λ).*dSubs
-        dProf[std_ind] = λ.*SA  + dSdp*f.P_j[std_ind]  - cost_std - (1-λ).*subs_term
+        P_new = MC + λ.*Mkup + (1-λ).*dSubs
     end
-    return dProf
+    return P_new
 end
 
 function foc_error(f::firmData,ST::String,stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base",voucher::Bool=false)
@@ -254,24 +324,26 @@ end
 
 function foc_error(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base",voucher::Bool=false)
 
-    dProf = predict_price(f,prod_ind,sim=sim,merg=merg,λ=λ,voucher=voucher)
-    # println("Profit Derivatives: $(dProf[prod_ind])")
+    P_new = predict_price(f,prod_ind,sim=sim,merg=merg,λ=λ,voucher=voucher)
+    tot_err = (P_new[prod_ind] - f.P_j[prod_ind])./100
     # println(prod_ind)
     # println(tot_err)
     # println(P_new[prod_ind])
 
-    non_prods = .!(inlist(Int.(1:length(dProf)),prod_ind))
+    dprof = predict_dprof(f,prod_ind,sim=sim,merg=merg,λ=λ,voucher=voucher)
+    # println("Profit Derivatives: $(dprof[prod_ind])")
+
+    non_prods = .!(inlist(Int.(1:length(P_new)),prod_ind))
 
     ### 0 Market Share
     exit_thresh = 1.0
     ProdExit = f.S_j.< exit_thresh
-    choke_point = 0.1
-    ChokePrice = (f.S_j.< choke_point) .& (dProf.>0)
-    dProf[ChokePrice] .=0.0
-    println("Exited Products: $(findall(ChokePrice[prod_ind]))")
+    choke_point = 0.5
+    ChokePrice = f.S_j.< choke_point
+    P_new[ChokePrice] = min.(f.P_j[ChokePrice],P_new[ChokePrice])
 
     #Price Cap
-    # P_new[P_new.>5e4] .= 5e4
+    P_new[P_new.>5e4] .= 5e4
 
     if any(ProdExit[prod_ind])
         exited = length(findall(ProdExit[prod_ind]))
@@ -281,17 +353,12 @@ function foc_error(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.
     end
 
     ### Negative Prices
-    lower_price_bound = (f.P_j.<=0.0) .& (dProf.<0.0)
-    dProf[lower_price_bound].=0.0
-    f.P_j[f.P_j.<=0.0].=0.0
-
-    ### Price Upper Bound ($10,000) - should only bind when it's past the choke point in the shares
-    # upper_price_bound = (f.P_j.>=5000) .& (f.S_j.<=1.0)
-    # f.P_j[upper_price_bound].=5000
+    P_new[non_prods].=0.0
+    P_new[P_new.<0] = 0.5.*f.P_j[P_new.<0]
 
     ## Error in Prices
-    # prod_ind_ne = prod_ind[f.S_j[prod_ind].>exit_thresh]
-    # foc_err = (P_new[prod_ind_ne] - f.P_j[prod_ind_ne])./100
+    prod_ind_ne = prod_ind[f.S_j[prod_ind].>exit_thresh]
+    foc_err = (P_new[prod_ind_ne] - f.P_j[prod_ind_ne])./100
 
 
     # ### MLR Constraint
@@ -307,19 +374,19 @@ function foc_error(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.
     #P_new = min.(P_new,MLR_const)
 
 
-
-    tot_err = sum(dProf.^2)/length(prod_ind)
+    err_new = sum(foc_err.^2)/length(prod_ind_ne)
+    tot_err = sum(tot_err.^2)/length(prod_ind)
 
     ### New Prices
 
-    # P_new[non_prods] = f.P_j[non_prods]
-    # P_update = f.P_j.*(1-stp) + stp.*P_new
-    # P_update[non_prods] = f.P_j[non_prods]
+    P_new[non_prods] = f.P_j[non_prods]
+    P_update = f.P_j.*(1-stp) + stp.*P_new
+    P_update[non_prods] = f.P_j[non_prods]
     # P_update[P_new.>=MLR_const] = MLR_const[P_new.>MLR_const]
     # Contrain Prices at 0
     #P_update = max.(P_update,0)
 
     # f.P_j[:] = P_update[:]
 
-    return tot_err, dProf
+    return foc_err, err_new, tot_err, P_new
 end
