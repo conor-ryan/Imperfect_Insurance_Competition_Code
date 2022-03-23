@@ -4,9 +4,9 @@ function solve_model!(m::InsuranceLogit,f::firmData;
     states = sort(String.(keys(f._prodSTDict)))#[1:6]
     # states = ["GA"]
     for s in states
-        # if s=="IA"
-        #     continue
-        # end
+        if s!="MI"
+            continue
+        end
         println("Solving for $s")
         solve_model_st!(m,f,s,sim=sim,merg=merg,tol=tol,voucher=voucher,update_voucher=update_voucher,no_policy=no_policy)
         # P_res[f._prodSTDict[s]] = f.P_j[f._prodSTDict[s]]
@@ -20,7 +20,7 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
     err_new = 1
     tot_err = 1
     itr_cnt = 0
-    stp = 0.0001
+    stp = 0.000001
     no_prog_cnt = 0
     no_prog = 0
     P_last = zeros(length(f.P_j[:]))
@@ -30,7 +30,7 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
     ## Initialize Step Vector
     prod_ind = f._prodSTDict[ST]
     stp_vec = zeros(length(f.P_j[:]))
-    stp_vec[prod_ind].=stp
+    stp_vec[prod_ind].=0.01
 
     dProf_last = zeros(length(f.P_j[:]))
 
@@ -45,18 +45,52 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
 
          tot_err, dProf = foc_error(f,prod_ind,stp,sim=sim,merg=merg,voucher=voucher)
 
+         price_update = stp_vec.*dProf[:]
+         # Cap update at 50 dollars
+         update_sign = price_update
+         price_update[abs.(price_update).>50].= 50 .*(sign.(price_update[abs.(price_update).>50]))
 
-        f.P_j[:] = f.P_j[:] + stp_vec.*dProf[:]
-        # println("Iteration Count: $itr_cnt, Current Error: $tot_err")
-        # println("Step Vector: $(stp_vec[prod_ind])")
+        f.P_j[:] = f.P_j[:] .+ price_update
+        println("Iteration Count: $itr_cnt, Current Error: $tot_err")
+        println("Prices: $(round.(f.P_j[prod_ind]))")
+        println("Step Vector: $(round.(stp_vec[prod_ind],digits=4))")
+        println("Profit Derivatives: $(dProf[prod_ind])")
+
         # println(foc_err)
         # println(f.P_j[f._prodSTDict[ST]])
         # println(f.P_j[f._prodSTDict[ST]])
 
+        high_prices = f.P_j[prod_ind].>1e3
+        # println("High Prices")
+        # println("High Prices at indices: $(findall(high_prices))")
+        # println("Prices: $(f.P_j[prod_ind][high_prices])")
+        # println("Price Update: $(price_update[prod_ind][high_prices])")
+        # # println("Lives: $(f.S_j[prod_ind][high_prices])")
+        # println("Profit Derivatives: $(dProf[prod_ind][high_prices])")
+
+        large_change = abs.(price_update[prod_ind]).>=10
+        # println("Big Update")
+        # println("High Prices at indices: $(findall(large_change))")
+        # println("Prices: $(f.P_j[prod_ind][large_change])")
+        # println("Price Update: $(price_update[prod_ind][large_change])")
+        # # println("Lives: $(f.S_j[prod_ind][high_prices])")
+        # println("Profit Derivatives: $(dProf[prod_ind][large_change])")
+
         stp_vec = stp_vec.*1.2
+        stp_vec[abs.(price_update).>40] = stp_vec[abs.(price_update).>40]./1.2
         flipped_sign = ((dProf.>0) .& (dProf_last.<0)) .| ((dProf.<0) .& (dProf_last.>0))
+        println("Flipped products: $(findall(flipped_sign))")
+        println("Flipped steps: $(stp_vec[flipped_sign])")
+        println("Flipped dProf: $(round.(dProf[flipped_sign]))")
+
         stp_vec[flipped_sign].=stp
         stp_vec[prod_ind][(dProf_last[prod_ind].==0.0)].=stp
+
+        if tot_err>100
+            stp_vec[stp_vec.>.1].=.1
+        end
+
+
 
         dProf_last = copy(dProf)
         #

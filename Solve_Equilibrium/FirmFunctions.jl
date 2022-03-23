@@ -265,9 +265,10 @@ function foc_error(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.
     ### 0 Market Share
     exit_thresh = 1.0
     ProdExit = f.S_j.< exit_thresh
-    choke_point = 1e-3
+    choke_point = 0.1
     ChokePrice = (f.S_j.< choke_point) .& (dProf.>0)
     dProf[ChokePrice] .=0.0
+    println("Exited Products: $(findall(ChokePrice[prod_ind]))")
 
     #Price Cap
     # P_new[P_new.>5e4] .= 5e4
@@ -282,7 +283,11 @@ function foc_error(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.
     ### Negative Prices
     lower_price_bound = (f.P_j.<=0.0) .& (dProf.<0.0)
     dProf[lower_price_bound].=0.0
-    f.P_j[lower_price_bound].=0.0
+    f.P_j[f.P_j.<=0.0].=0.0
+
+    ### Price Upper Bound ($10,000) - should only bind when it's past the choke point in the shares
+    # upper_price_bound = (f.P_j.>=5000) .& (f.S_j.<=1.0)
+    # f.P_j[upper_price_bound].=5000
 
     ## Error in Prices
     # prod_ind_ne = prod_ind[f.S_j[prod_ind].>exit_thresh]
