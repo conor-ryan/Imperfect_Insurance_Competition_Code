@@ -158,7 +158,7 @@ include("$codeDir/Firm_Side/SpecRunMC.jl")
 # estimate_marginal_cost(rundate,spec,cost_spec)
 
 include("ProcessDemResults.jl")
-process_demand(rundate,spec)
+# process_demand(rundate,spec)
 
 
 println("##### Solve Equilibrium #####")

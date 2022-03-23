@@ -255,7 +255,7 @@ end
 function foc_error(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base",voucher::Bool=false)
 
     dProf = predict_price(f,prod_ind,sim=sim,merg=merg,λ=λ,voucher=voucher)
-    # println("Profit Derivatives: $(dProf[prod_ind])")
+    println("Profit Derivatives: $(dProf[prod_ind])")
     # println(prod_ind)
     # println(tot_err)
     # println(P_new[prod_ind])

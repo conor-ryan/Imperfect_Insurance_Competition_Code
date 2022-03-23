@@ -1,5 +1,5 @@
 function solve_model!(m::InsuranceLogit,f::firmData;
-                sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=false,update_voucher=true,no_policy=false)
+                sim="Base",merg::String="Base",tol::Float64=1e-8,voucher=false,update_voucher=true,no_policy=false)
     # P_res = zeros(length(f.P_j))
     states = sort(String.(keys(f._prodSTDict)))#[1:6]
     # states = ["GA"]
@@ -20,12 +20,13 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
     err_new = 1
     tot_err = 1
     itr_cnt = 0
-    stp = 0.001
+    stp = 0.0001
     no_prog_cnt = 0
     no_prog = 0
     P_last = zeros(length(f.P_j[:]))
     P_new_last = zeros(length(f.P_j[:]))
-
+    P_orig = zeros(length(f.P_j[:]))
+    P_orig[:] = f.P_j[:]
     ## Initialize Step Vector
     prod_ind = f._prodSTDict[ST]
     stp_vec = zeros(length(f.P_j[:]))
@@ -46,13 +47,13 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
 
 
         f.P_j[:] = f.P_j[:] + stp_vec.*dProf[:]
-        # println("Iteration Count: $itr_cnt, Current Error: $tot_err")
-        # println("Step Vector: $(stp_vec[prod_ind])")
+        println("Iteration Count: $itr_cnt, Current Error: $tot_err")
+        println("Step Vector: $(stp_vec[prod_ind])")
         # println(foc_err)
-        # println(f.P_j[f._prodSTDict[ST]])
+        println(f.P_j[f._prodSTDict[ST]])
         # println(f.P_j[f._prodSTDict[ST]])
 
-        stp_vec = stp_vec.*1.1
+        stp_vec = stp_vec.*1.2
         flipped_sign = ((dProf.>0) .& (dProf_last.<0)) .| ((dProf.<0) .& (dProf_last.>0))
         stp_vec[flipped_sign].=stp
         stp_vec[prod_ind][(dProf_last[prod_ind].==0.0)].=stp
@@ -99,6 +100,10 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
     silver = f.P_j[f._prodSTDict[ST]]
     silver = silver[benchmarks.>0]
     println("Silver Premiums: $silver")
+
+    obs_silver = P_orig[f._prodSTDict[ST]]
+    obs_silver = obs_silver[benchmarks.>0]
+    println("Observed(Previous) Silver Premiums: $obs_silver")
     return nothing
 end
 
