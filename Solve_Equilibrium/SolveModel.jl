@@ -50,7 +50,7 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
         # println("Iteration Count: $itr_cnt, Current Error: $tot_err")
         # println("Step Vector: $(stp_vec[prod_ind])")
         # println(foc_err)
-        println(f.P_j[f._prodSTDict[ST]])
+        # println(f.P_j[f._prodSTDict[ST]])
         # println(f.P_j[f._prodSTDict[ST]])
 
         stp_vec = stp_vec.*1.2
