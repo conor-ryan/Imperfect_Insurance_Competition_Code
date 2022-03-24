@@ -127,8 +127,8 @@ spec_prodchars_σ=[:constant,:AV,
 c = ChoiceData(df,df_mkt,df_risk,df_transfer;
 demoRaw=spec_demoRaw,
 prodchars=spec_prodchars,
-prodchars_σ=spec_prodchars_σ,
-fixedEffects=[:Firm_ST])
+prodchars_σ=Vector{Symbol}(undef,0),
+fixedEffects=[:Market_Firm,:Market_Cat])
 
 
 
@@ -136,7 +136,19 @@ fixedEffects=[:Firm_ST])
 param_labels = vcat(String.(spec_demoRaw),String.(spec_prodchars),"Price:" .* String.(spec_demoRaw),"Variance:".*String.(spec_prodchars_σ),c.feNames)
 
 # Fit into model
-m = InsuranceLogit(c,10)
+m = InsuranceLogit(c,1)
+
+γstart = rand(m.parLength[:γ])/10 .-.05
+β0start = rand(m.parLength[:β])/10 .-.05
+βstart = rand(m.parLength[:γ])/10 .- .05
+σstart = rand(m.parLength[:σ])/10 .- .05
+
+FEstart = rand(m.parLength[:FE])/100 .-.005
+p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
+W = zeros(length(m.data.rMoments),length(m.data.rMoments))
+
+p_est, fval = newton_raphson_ll(m,p0,W)
+
 
 sample = bootstrapSample(c)
 m_sample = InsuranceLogit(sample,100)

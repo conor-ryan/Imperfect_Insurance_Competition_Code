@@ -4,9 +4,9 @@ function solve_model!(m::InsuranceLogit,f::firmData;
     states = sort(String.(keys(f._prodSTDict)))#[1:6]
     # states = ["GA"]
     for s in states
-        # if s!="MI"
-        #     continue
-        # end
+        if s=="OK"
+            continue
+        end
         println("Solving for $s")
         solve_model_st!(m,f,s,sim=sim,merg=merg,tol=tol,voucher=voucher,update_voucher=update_voucher,no_policy=no_policy)
         # P_res[f._prodSTDict[s]] = f.P_j[f._prodSTDict[s]]
@@ -41,10 +41,19 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
         P_last[:] = copy(f.P_j[:])
         P_new_last[:] = copy(P_new[:])
         f.P_j[:] = (1-stp).*f.P_j[:] + stp.*P_new[:]
-        # println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
+        println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
         # println(foc_err)
-        # println(P_new[f._prodSTDict[ST]])
+        println(P_new[f._prodSTDict[ST]])
+        println(f.S_j[f._prodSTDict[ST]])
         # println(f.P_j[f._prodSTDict[ST]])
+
+        ### If really no one buys, then we can't invert the derivative matrix
+        inversion_stopgap = 1e-6
+        problem_product = f.S_j.<inversion_stopgap
+        if any(problem_product[f._prodSTDict[ST]])
+            f.P_j[problem_product]= min.(0.5*P_last[problem_product],f.P_j[problem_product])
+            println("POTENTIAL INVERSION ISSUE: $(findall(problem_product[f._prodSTDict[ST]]))")
+        end
 
         if stp==1.0
             stp = .001

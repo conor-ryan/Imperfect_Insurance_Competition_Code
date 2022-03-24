@@ -343,7 +343,7 @@ function foc_error(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.
     P_new[ChokePrice] = min.(f.P_j[ChokePrice],P_new[ChokePrice])
 
     #Price Cap
-    P_new[P_new.>5e4] .= 5e4
+    # P_new[P_new.>5e4] .= 5e4
 
     if any(ProdExit[prod_ind])
         exited = length(findall(ProdExit[prod_ind]))

@@ -204,7 +204,11 @@ function ChoiceData(data_choice::DataFrame,
     i = Array(data_choice[!,person])
     j = Array(data_choice[!,product])
     X = Array(data_choice[!,prodchars])
-    X_σ = Array(data_choice[!,prodchars_σ])
+    if length(prodchars_σ)>0
+        X_σ = Array(data_choice[!,prodchars_σ])
+    else
+        X_σ = Matrix{Float64}(undef,size(i,1),0)
+    end
     y = Array(data_choice[!,choice])
     Z = Array(data_choice[!,demoRaw])
     w = Array(data_choice[!,wgt])
