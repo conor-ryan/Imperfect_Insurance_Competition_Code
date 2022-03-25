@@ -163,7 +163,7 @@ function solve_SP!(m::InsuranceLogit,f::firmData;
     # P_res = zeros(length(f.P_j))
     markets = sort(Int.(keys(f.mkt_index)))
     for mkt in markets
-        # if s!="MI"
+        # if mkt<49
         #     continue
         # end
         println("Solving for $mkt")
@@ -197,10 +197,12 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
 
         P_last[:] = copy(f.P_j[:])
         P_new_last[:] = copy(P_new[:])
-        f.P_j[:] = (1-stp).*f.P_j[:] + stp.*P_new[:]
-        println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
+        update = stp.*(P_new[:] .- f.P_j[:])
+        # update[abs.(update).>50].=50 .*sign.(update[abs.(update).>50])
+        f.P_j[:] = f.P_j[:] .+ update[:]
+        # println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
         # println(foc_err)
-        println(P_new[f.mkt_index[mkt]])
+        # println(P_new[f.mkt_index[mkt]])
         # println(f.P_j[f.mkt_index[mkt]])
 
         if stp==1.0
@@ -209,7 +211,7 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         stp = max(stp,1e-6)
         if stp<.05
             if err_new>1e-3
-                stp = stp*2
+                stp = stp*1.1
             else
                 stp = stp*1.1
             end

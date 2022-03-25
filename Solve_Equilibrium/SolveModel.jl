@@ -4,9 +4,9 @@ function solve_model!(m::InsuranceLogit,f::firmData;
     states = sort(String.(keys(f._prodSTDict)))#[1:6]
     # states = ["GA"]
     for s in states
-        if s=="OK"
-            continue
-        end
+        # if s=="OK"
+        #     continue
+        # end
         println("Solving for $s")
         solve_model_st!(m,f,s,sim=sim,merg=merg,tol=tol,voucher=voucher,update_voucher=update_voucher,no_policy=no_policy)
         # P_res[f._prodSTDict[s]] = f.P_j[f._prodSTDict[s]]
@@ -41,10 +41,10 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
         P_last[:] = copy(f.P_j[:])
         P_new_last[:] = copy(P_new[:])
         f.P_j[:] = (1-stp).*f.P_j[:] + stp.*P_new[:]
-        println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
+        # println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
         # println(foc_err)
-        println(P_new[f._prodSTDict[ST]])
-        println(f.S_j[f._prodSTDict[ST]])
+        # println(P_new[f._prodSTDict[ST]])
+        # println(f.S_j[f._prodSTDict[ST]])
         # println(f.P_j[f._prodSTDict[ST]])
 
         ### If really no one buys, then we can't invert the derivative matrix
@@ -114,7 +114,8 @@ function solve_equilibrium(rundate,spec)
     @load file p_stg2 p_dem_est cost_spec spec_Dict
     mc_est = copy(p_stg2)
     #### Load Estimation Results ####
-
+    # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/PLL_Estimate_$spec-$rundate-stg1.jld2"
+    # @load file p_stg1 spec_Dict
 
     #### Build Model ####
     println("Rebuild Demand Model...")

@@ -10,9 +10,10 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
 
     #### Load Demand Estimation Results ####
     println("Rebuild Demand Model...")
-    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/PLL_Estimate_$spec-$rundate-stg2.jld2"
-    @load file p_stg2 spec_Dict
-    p_dem_est = copy(p_stg2)
+    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/PLL_Estimate_$spec-$rundate-stg1.jld2"
+    @load file p_stg1 spec_Dict
+    p_dem_est = copy(p_stg1)
+    p_stg2 = copy(p_stg1)
 
     #### Compute Hessian of Likelihood from Demand for Std Errors ####
     # df_demand = ChoiceData(df_dem,df_mkt,df_risk,df_transfer;
