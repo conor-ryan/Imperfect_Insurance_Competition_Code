@@ -26,7 +26,6 @@ function fit_firm_moments(p0::Vector{Float64},p_est::parDict{Float64},
     end
 
     println("Fit Firm Moments in $cnt iterations")
-    println(ΔFpar)
     return p_vec
 end
 

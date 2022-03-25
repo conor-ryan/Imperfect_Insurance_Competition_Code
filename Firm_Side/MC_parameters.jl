@@ -331,6 +331,9 @@ function individual_costs(d::InsuranceLogit,p::parMC{T}) where T
         p.s_hat_nonrisk[idxitr] = s_nr
         p.s_hat_risk[idxitr] = s_r
     end
+    # Zero shares need zero costs
+    p.C[p.pars.s_hat.==0.0].=0.0
+    p.C_cap[p.pars.s_hat.==0.0].=0.0
     return Nothing
 end
 
@@ -401,6 +404,10 @@ function calc_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},r_sc::
 
     s_mean = s_sum./N
     # s_mean_risk = s_risk_sum./N_r
+
+    ### Zero share gets zero cost
+    c_mean[s_sum.==0.0] .= 0.0
+    c_mean_capped[s_sum.==0.0] .= 0.0
 
     return s_mean, c_mean, c_mean_capped, c_mean_pool #, c_mean_risk, dc_mean, dc_mean_risk, d2c_mean, d2c_mean_risk
 end
