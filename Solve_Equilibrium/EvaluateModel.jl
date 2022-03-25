@@ -30,6 +30,70 @@ function individual_shares(d::InsuranceLogit,p::parDict{T}) where T
     return Nothing
 end
 
+#### OVERWRITE CALC SHARES TO INSERT MINIMUM SHARE
+function calc_shares(μ_ij::Matrix{T},δ::Vector{T},r::Matrix{Float64},r_age::Vector{Float64}) where T
+    (N,K) = size(μ_ij)
+    util = Matrix{T}(undef,K,N)
+    s_hat = Matrix{T}(undef,K,N)
+    r_hat = Matrix{T}(undef,K,N)
+
+    for n in 1:N
+        expsum = 1.0
+        #r_score = r[n,:]
+        for i in 1:K
+            a = μ_ij[n,i]*δ[i]
+            util[i,n] = a
+            expsum += a
+        end
+        for i in 1:K
+            s = util[i,n]/expsum
+            s_hat[i,n] = max(s,1e-9)
+            r_hat[i,n] = s*(r[n,i] + r_age[i])
+        end
+    end
+    s_mean = mean(s_hat,dims=2)
+    r_mean = sum(r_hat,dims=2)./sum(s_hat,dims=2)
+    return s_mean, r_mean
+end
+
+function calc_shares(μ_ij::Vector{T},δ::Vector{T}) where T
+    (K) = length(μ_ij)
+    util = Vector{T}(undef,K)
+    s_hat = Vector{T}(undef,K)
+
+    expsum = 1.0
+    #r_score = r[n,:]
+    for i in 1:K
+        a = μ_ij[i]*δ[i]
+        util[i] = a
+        expsum += a
+    end
+    for i in 1:K
+        s = util[i]/expsum
+        s_hat[i] = max(s,1e-9)
+    end
+    return s_hat
+end
+
+function calc_shares(μ_ij::Matrix{T},δ::Vector{T}) where T
+    (N,K) = size(μ_ij)
+    util = Matrix{T}(undef,K,N)
+    s_hat = Matrix{T}(undef,K,N)
+    for n in 1:N
+        expsum = 1.0
+        for i in 1:K
+            a = μ_ij[n,i]*δ[i]
+            util[i,n] = a
+            expsum += a
+        end
+        for i in 1:K
+            s_hat[i,n] = max(util[i,n]/expsum,1e-9)
+        end
+    end
+    s_mean = mean(s_hat,dims=2)
+    return s_mean
+end
+
 function compute_nonprice!(d::InsuranceLogit,firm::firmData)
     # Calculate μ_ij, which depends only on parameters
     for app in eachperson(d.data)
@@ -180,7 +244,7 @@ function update_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},c::V
         s_ins[n] = si
         for i in 1:K
             @inbounds @fastmath s = util[i,n]/expsum
-            @inbounds s_hat[i,n] = s
+            @inbounds s_hat[i,n] = max(s,1e-9)
 
             @inbounds @fastmath cost = (r[n,i]*c[i])
             cost = capped_cost(cost)
