@@ -174,9 +174,9 @@ function solve_equilibrium(rundate,spec)
     consumer_welfare(model,firm,"obs")
     trash = total_welfare_bymkt(model,firm,"obs",update_voucher=true)
 
-    println("Solve Equilibrium...")
-    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_$spec-$rundate.csv"
-    solveMain(model,firm,file)
+    # println("Solve Equilibrium...")
+    # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_$spec-$rundate.csv"
+    # solveMain(model,firm,file)
 
 
     println("Solve Social Welfare Decomposition...")
@@ -185,17 +185,17 @@ function solve_equilibrium(rundate,spec)
     file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_Welfare_$spec-$rundate.csv"
     solveMain_SP(model,firm,file)
 
-    println("Solve Social Welfare Decomposition, Robustness Check...")
-    firm = firmData(model,df,eq_mkt,par_dem,par_cost)
-    evaluate_model!(model,firm,"All",foc_check=true)
-    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_WelfareGov_$spec-$rundate.csv"
-    solveMain_SP_Gov(model,firm,file)
-
-    println("Solve Price-Linked Equilibrium, Robustness...")
-    firm = firmData(model,df,eq_mkt,par_dem,par_cost)
-    evaluate_model!(model,firm,"All",foc_check=true)
-    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_PL_$spec-$rundate.csv"
-    solveMain_PL(model,firm,file)
+    # println("Solve Social Welfare Decomposition, Robustness Check...")
+    # firm = firmData(model,df,eq_mkt,par_dem,par_cost)
+    # evaluate_model!(model,firm,"All",foc_check=true)
+    # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_WelfareGov_$spec-$rundate.csv"
+    # solveMain_SP_Gov(model,firm,file)
+    #
+    # println("Solve Price-Linked Equilibrium, Robustness...")
+    # firm = firmData(model,df,eq_mkt,par_dem,par_cost)
+    # evaluate_model!(model,firm,"All",foc_check=true)
+    # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_PL_$spec-$rundate.csv"
+    # solveMain_PL(model,firm,file)
 
     return nothing
 end
@@ -372,10 +372,18 @@ function solveMain_SP(m::InsuranceLogit,f::firmData,file::String)
     P_SP_zp = zeros(J)
     P_SP_cp = zeros(J)
     P_SP_cpm = zeros(J)
+    P_SP_cp_man = zeros(J)
+    P_SP_cpm_man = zeros(J)
+    P_SP_cp_RAman = zeros(J)
+    P_SP_cpm_RAman = zeros(J)
     P_Base = zeros(J)
-    P_RA = zeros(J)
     P_Base_m = zeros(J)
+    P_RA = zeros(J)
     P_RA_m = zeros(J)
+    P_RAman = zeros(J)
+    P_RAman_m = zeros(J)
+    P_man = zeros(J)
+    P_man_m = zeros(J)
 
     S_SP_cp_base = zeros(J)
     S_SP_cpm_base = zeros(J)
@@ -383,10 +391,18 @@ function solveMain_SP(m::InsuranceLogit,f::firmData,file::String)
     S_SP_zp = zeros(J)
     S_SP_cp = zeros(J)
     S_SP_cpm = zeros(J)
+    S_SP_cp_man = zeros(J)
+    S_SP_cpm_man = zeros(J)
+    S_SP_cp_RAman = zeros(J)
+    S_SP_cpm_RAman = zeros(J)
     S_Base = zeros(J)
-    S_RA = zeros(J)
     S_Base_m = zeros(J)
+    S_RA = zeros(J)
     S_RA_m = zeros(J)
+    S_RAman = zeros(J)
+    S_RAman_m = zeros(J)
+    S_man = zeros(J)
+    S_man_m = zeros(J)
 
     P_Obs[:] = f.P_j[:]
 
@@ -432,15 +448,15 @@ function solveMain_SP(m::InsuranceLogit,f::firmData,file::String)
     consumer_welfare(m,f,"SP")
     trash = total_welfare_bymkt(m,f,"SP",update_voucher=false)
 
-    println("#### ZERO PROFIT PROBLEM ####")
-    f.P_j[:] = P_SP[:]
-    markets_zp, λ_vec_zp = solve_SP_λ!(m,f,zeros(length(base_profits)),sim="SPλ")
-    P_SP_zp[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
-    S_SP_zp[:] = f.S_j[:]
-
-    consumer_welfare(m,f,"SP_zp")
-    trash = total_welfare_bymkt(m,f,"SP_zp",update_voucher=false)
+    # println("#### ZERO PROFIT PROBLEM ####")
+    # f.P_j[:] = P_SP[:]
+    # markets_zp, λ_vec_zp = solve_SP_λ!(m,f,zeros(length(base_profits)),sim="SPλ")
+    # P_SP_zp[:] = f.P_j[:]
+    # evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
+    # S_SP_zp[:] = f.S_j[:]
+    #
+    # consumer_welfare(m,f,"SP_zp")
+    # trash = total_welfare_bymkt(m,f,"SP_zp",update_voucher=false)
 
     println("#### CURRENT PROFIT PROBLEM ####")
     f.P_j[:] = P_SP[:]
@@ -562,7 +578,7 @@ function solveMain_SP(m::InsuranceLogit,f::firmData,file::String)
 
     #### Solve without Risk Adjustment ####
     println("####################################")
-    println("#### Solve without Individual Mandate ####")
+    println("#### Solve without Individual Mandate nor Risk Adjustment ####")
     println("####################################")
     f.P_j[:] = P_Obs[:]
     f.data[:,f.index[:Mandate]].=0.0
