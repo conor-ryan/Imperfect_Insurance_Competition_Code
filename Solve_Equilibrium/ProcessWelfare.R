@@ -5,27 +5,46 @@ library(ggplot2)
 library(scales)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
-run = "2020-03-10"
+run = "2022-03-18"
 spec = "FMC"
 
 #### Read in Base Data ####
-baseDataFull = read.csv("Intermediate_Output/Simulated_BaseData/simchoiceData_discrete.csv")
-baseData = as.data.table(unique(baseDataFull[,c("Person","ST","Market","PERWT","Age","AGE","ageRate","MEMBERS","Family","LowIncome","Mandate")]))
+baseDataFull = as.data.table(read.csv("Intermediate_Output/Simulated_BaseData/simchoiceData_discrete.csv"))
+baseData = unique(baseDataFull[,c("Person","ST","Market","PERWT","Age","AGE","ageRate","MEMBERS","Family","LowIncome","Mandate")])
 
 
 #### Merge in Market Info ####
 file = paste("Estimation_Output/MktHHI_",spec,"-",run,".rData",sep="")
 load(file)
+base_mkt_data = as.data.table(read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv"))
+base_mkt_data = base_mkt_data[,list(s_inside = sum(s_inside),share=sum(Share)),by=c("Firm","Market")]
+base_mkt_data[,count:=1]
+base_mkt_data[,share_rank:=rank(-s_inside,ties.method="first"),by="Market"]
+base_mkt_data = base_mkt_data[,list(FirmNum = sum(count),CR2=sum(s_inside*(share_rank<=2)),insured=sum(share),HHI_data = sum((s_inside*100)^2)),by=c("Market")]
+
 
 baseData = merge(baseData,Mkt,by="Market")
+baseData = merge(baseData,base_mkt_data,by="Market")
 baseData[,Market_num:=as.numeric(as.factor(Market))]
 
-#### Welfare By Market Cross-Section ####
 
-mktWelfare = unique(baseData[,c("Market","ST","HHI","Market_num")])
+##### Concentration Description #####
+mktWelfare = baseData[,list(population = sum(PERWT)),by=c("Market","ST","HHI","Market_num","FirmNum","CR2","insured","HHI_data")]
+mktWelfare[,HHI_cat:=ceiling(HHI_data/500)*500]
+mktWelfare[HHI_data<2500,HHI_cat:=3000]
+mktWelfare[HHI_data>4500,HHI_cat:=ceiling((HHI_data-500)/1000)*1000+500]
+mktWelfare[HHI_data>7500,HHI_cat:=7500]
+mktWelfare[HHI_data>=9000,HHI_cat:=10000]
+mktWelfare[,count:=1]
+
+#### Welfare By Market Cross-Section ####
+descTable = mktWelfare[,list(FirmNum=round(mean(FirmNum),1),CR2 = round(100*mean(CR2),1),HHI_data=mean(HHI_data),HHI_base=mean(HHI),marketNum=sum(count),population=round(mean(population)/1000),insured=mean(insured)),by="HHI_cat"]
+setkey(descTable,HHI_cat)
+
+mktWelfare[,list(FirmNum=round(mean(FirmNum),1),CR2 = round(100*mean(CR2),1),HHI_data=mean(HHI_data),HHI_base=mean(HHI),marketNum=sum(count),population=round(mean(population)/1000),insured=mean(insured))]
 
 ## Merge in Welfare Info 
-for (cw in c("Base_vch","RA_vch","SP_cp_base","SP_cp","SP_zp","SP")){
+for (cw in c("Base_vch","RA_vch","man_vch","RAman_vch","SP_cp_base","SP_cp","SP_cp_RAman","SP_cp_man","SP")){
   file = paste("Estimation_Output/totalWelfare_bymkt_",cw,"-",spec,"-",run,".csv",sep="")
   data_cw = as.data.table(read.csv(file))
   data_cw[,totalWelfare:=CW+Profit]
@@ -58,12 +77,7 @@ mktWelfare[,IntSel_noRA:=totalWelfare_SP_cp-totalWelfare_RA]
 #                              totalWelfare_RA=sum(Population_Base*totalWelfare_RA)/sum(Population_Base),
 #                             pop = sum(Population_Base))]
 
-mktWelfare[,HHI_cat:=ceiling(HHI/500)*500]
-mktWelfare[HHI<2500,HHI_cat:=3000]
-mktWelfare[HHI>4500,HHI_cat:=ceiling((HHI-500)/1000)*1000+500]
-mktWelfare[HHI>7500,HHI_cat:=7500]
-mktWelfare[HHI>=9000,HHI_cat:=10000]
-mktWelfare[,count:=1]
+
 cross_section = mktWelfare[,list(ExtSel=sum(Population_Base*ExtSel)/sum(Population_Base),
                                  Markup=sum(Population_Base*Markup)/sum(Population_Base),
                                  IntSel=sum(Population_Base*IntSel)/sum(Population_Base),

@@ -55,8 +55,8 @@ function process_demand(rundate,spec)
     #### Willingness to Pay, Elasticities, Costs ####
     Smat_r,Smat_nr = individual_share_matrix(model,par_dem)
 
-
-    wtp_nr, wtp_r,elas_nr,elas_r,elas0_nr,elas0_r = individual_wtp(model,par_dem,Smat_r,Smat_nr)
+    prem_base = df[!,:premBase].*12 .*df[!,:ageRate]./1000
+    wtp_nr, wtp_r,elas_nr,elas_r,elas0_nr,elas0_r = individual_wtp(model,par_dem,Smat_r,Smat_nr,prem_base)
 
     c_nr = par_cost.C_nonrisk
     c_r = individual_cost_matrix(model,par_cost)
@@ -130,7 +130,7 @@ function process_demand(rundate,spec)
     elas_r_vec = elas_r[:]
 
     all_elas = vcat(elas_r_vec,elas_nr)
-    all_elas = all_elas.*12 ./1000 .*10 # $10 per month
+    # all_elas = all_elas.*12 ./1000 .*10 # $10 per month
 
     elas_sort_index = sortperm(all_elas)
 
@@ -203,7 +203,7 @@ function find_pctile_index(wgts::Vector{Float64},sort_index::Vector{Int64},pctil
 end
 
 
-function individual_wtp(d::InsuranceLogit,p::parDict{T},Smat_r::Matrix{Float64},Smat_nr::Vector{Float64}) where T
+function individual_wtp(d::InsuranceLogit,p::parDict{T},Smat_r::Matrix{Float64},Smat_nr::Vector{Float64},prem_base::Vector{Float64}) where T
     # Calculate μ_ij, which depends only on parameters
     P = maximum(Int.(keys(d.data._personDict)))
     wtp_nr = zeros(P)
@@ -214,7 +214,7 @@ function individual_wtp(d::InsuranceLogit,p::parDict{T},Smat_r::Matrix{Float64},
     elas0_r = zeros(P,size(d.draws,1))
 
     for app in eachperson(d.data)
-        wtp_value!(wtp_nr,wtp_r,elas_nr,elas_r,elas0_nr,elas0_r,app,p,Smat_r,Smat_nr)
+        wtp_value!(wtp_nr,wtp_r,elas_nr,elas_r,elas0_nr,elas0_r,app,p,Smat_r,Smat_nr,prem_base)
     end
     return wtp_nr,wtp_r,elas_nr,elas_r,elas0_nr,elas0_r
 end
@@ -223,7 +223,7 @@ function wtp_value!(wtp_nr::Vector{Float64},wtp_r::Matrix{Float64},
                     elas_nr::Vector{Float64},elas_r::Matrix{Float64},
                     elas0_nr::Vector{Float64},elas0_r::Matrix{Float64},
                     app::ChoiceData,p::parDict{T},
-                    Smat_r::Matrix{Float64},Smat_nr::Vector{Float64}) where T
+                    Smat_r::Matrix{Float64},Smat_nr::Vector{Float64},prem_base::Vector{Float64}) where T
     γ_0 = p.γ_0
     γ = p.γ
     β_0= p.β_0
@@ -235,8 +235,8 @@ function wtp_value!(wtp_nr::Vector{Float64},wtp_r::Matrix{Float64},
     r_ind = Int(rIndS(app)[1])
     idxitr = app._personDict[ind]
     Z = demoRaw(app)[:,1]
-    price = prodchars(app)[1,:]
-
+    # price = prodchars(app)[1,:]
+    price = prem_base[idxitr]
     β_z = β*Z
     β_i= calc_indCoeffs(p,r_ind)
 
