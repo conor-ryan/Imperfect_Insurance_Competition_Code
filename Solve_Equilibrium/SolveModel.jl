@@ -174,6 +174,12 @@ function solve_equilibrium(rundate,spec)
     consumer_welfare(model,firm,"obs")
     trash = total_welfare_bymkt(model,firm,"obs",update_voucher=true)
 
+    println("Solve Price-Linked Equilibrium, Robustness...")
+    firm = firmData(model,df,eq_mkt,par_dem,par_cost)
+    evaluate_model!(model,firm,"All",foc_check=true)
+    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_PL_$spec-$rundate.csv"
+    solveMain_PL(model,firm,file)
+    
     println("Solve Equilibrium...")
     file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_$spec-$rundate.csv"
     solveMain(model,firm,file)
@@ -191,11 +197,7 @@ function solve_equilibrium(rundate,spec)
     # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_WelfareGov_$spec-$rundate.csv"
     # solveMain_SP_Gov(model,firm,file)
     #
-    # println("Solve Price-Linked Equilibrium, Robustness...")
-    # firm = firmData(model,df,eq_mkt,par_dem,par_cost)
-    # evaluate_model!(model,firm,"All",foc_check=true)
-    # file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_PL_$spec-$rundate.csv"
-    # solveMain_PL(model,firm,file)
+
 
     return nothing
 end
