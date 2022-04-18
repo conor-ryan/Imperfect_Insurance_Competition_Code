@@ -30,10 +30,10 @@ baseData[,Market_num:=as.numeric(as.factor(Market))]
 
 ##### Concentration Description #####
 mktWelfare = baseData[,list(population = sum(PERWT)),by=c("Market","ST","HHI","Market_num","FirmNum","CR2","insured","HHI_data")]
-mktWelfare[,HHI_cat:=ceiling(HHI_data/500)*500]
+mktWelfare[,HHI_cat:=ceiling(HHI_data/1000)*1000]
 mktWelfare[HHI_data<2500,HHI_cat:=3000]
-mktWelfare[HHI_data>4500,HHI_cat:=ceiling((HHI_data-500)/1000)*1000+500]
-mktWelfare[HHI_data>7500,HHI_cat:=7500]
+# mktWelfare[HHI_data>4500,HHI_cat:=ceiling((HHI_data-500)/1000)*1000+500]
+# mktWelfare[HHI_data>8000,HHI_cat:=10000]
 mktWelfare[HHI_data>=9000,HHI_cat:=10000]
 mktWelfare[,count:=1]
 
@@ -44,7 +44,7 @@ setkey(descTable,HHI_cat)
 mktWelfare[,list(FirmNum=round(mean(FirmNum),1),CR2 = round(100*mean(CR2),1),HHI_data=mean(HHI_data),HHI_base=mean(HHI),marketNum=sum(count),population=round(mean(population)/1000),insured=mean(insured))]
 
 ## Merge in Welfare Info 
-for (cw in c("Base_vch","RA_vch","man_vch","RAman_vch","SP_cp_base","SP_cp","SP_cp_RAman","SP_cp_man","SP")){
+for (cw in c("Base_vch","RA_vch","man_vch","RAman_vch","SP_cp_base","SP_cp","SP_cp_RAman","SP_cp_man","SP","SP_man")){
   file = paste("Estimation_Output/totalWelfare_bymkt_",cw,"-",spec,"-",run,".csv",sep="")
   data_cw = as.data.table(read.csv(file))
   data_cw[,totalWelfare:=CW+Profit]
@@ -61,12 +61,17 @@ for (cw in c("Base_vch","RA_vch","man_vch","RAman_vch","SP_cp_base","SP_cp","SP_
   mktWelfare = merge(mktWelfare,data_cw,by.x="Market_num",by.y=paste("markets",cw,sep="_"))
 }
 
-mktWelfare[,ExtSel:=totalWelfare_SP-totalWelfare_SP_zp]
-mktWelfare[,Markup:=totalWelfare_SP_zp-totalWelfare_SP_cp_base]
+mktWelfare[,Markup:=totalWelfare_SP-totalWelfare_SP_cp_base]
 mktWelfare[,IntSel:=totalWelfare_SP_cp_base-totalWelfare_Base]
 
-mktWelfare[,Markup_noRA:=totalWelfare_SP_zp-totalWelfare_SP_cp]
+mktWelfare[,Markup_noRA:=totalWelfare_SP-totalWelfare_SP_cp]
 mktWelfare[,IntSel_noRA:=totalWelfare_SP_cp-totalWelfare_RA]
+
+mktWelfare[,Markup_noMan:=totalWelfare_SP_man-totalWelfare_SP_cp_man]
+mktWelfare[,IntSel_noMan:=totalWelfare_SP_cp_man-totalWelfare_man]
+
+mktWelfare[,Markup_noRAMan:=totalWelfare_SP_man-totalWelfare_SP_cp_RAman]
+mktWelfare[,IntSel_noRAMan:=totalWelfare_SP_cp_RAman-totalWelfare_RAman]
 # mktWelfare[,RiskAdj:=totalWelfare_RA-(totalWelfare_Base-RA_transfers_Base)]
 
 # test_mean = mktWelfare[,list(totalWelfare_SP=sum(Population_Base*totalWelfare_SP)/sum(Population_Base),
@@ -78,11 +83,14 @@ mktWelfare[,IntSel_noRA:=totalWelfare_SP_cp-totalWelfare_RA]
 #                             pop = sum(Population_Base))]
 
 
-cross_section = mktWelfare[,list(ExtSel=sum(Population_Base*ExtSel)/sum(Population_Base),
-                                 Markup=sum(Population_Base*Markup)/sum(Population_Base),
+cross_section = mktWelfare[,list(Markup=sum(Population_Base*Markup)/sum(Population_Base),
                                  IntSel=sum(Population_Base*IntSel)/sum(Population_Base),
                                  Markup_noRA=sum(Population_Base*Markup_noRA)/sum(Population_Base),
                                  IntSel_noRA=sum(Population_Base*IntSel_noRA)/sum(Population_Base),
+                                 Markup_noMan=sum(Population_Base*Markup_noMan)/sum(Population_Base),
+                                 IntSel_noMan=sum(Population_Base*IntSel_noMan)/sum(Population_Base),
+                                 Markup_noRAMan=sum(Population_Base*Markup_noRAMan)/sum(Population_Base),
+                                 IntSel_noRAMan=sum(Population_Base*IntSel_noRAMan)/sum(Population_Base),
                                  # RiskAdj=sum(Population_Base*RiskAdj)/sum(Population_Base),
                                  count = sum(count),
                                  pop = sum(Population_Base)),
@@ -90,6 +98,103 @@ cross_section = mktWelfare[,list(ExtSel=sum(Population_Base*ExtSel)/sum(Populati
 setkey(cross_section,HHI_cat)
 
 round(cross_section,1)
+plot = as.data.table(reshape(cross_section,varying=names(cross_section)[grepl("Markup|IntSel",names(cross_section))],
+               v.names="value",
+               timevar="welfare_type",
+               times = names(cross_section)[grepl("Markup|IntSel",names(cross_section))],
+               idvar="HHI_cat",
+               direction="long"))
+plot[,label:=gsub("IntSel|Markup","",welfare_type,perl=TRUE)]
+plot[,welfare_type:=gsub("(_.*)","",welfare_type,perl=TRUE)]
+plot[welfare_type=="IntSel",welfare_type:="Sorting"]
+
+png("Writing/Images/Welfare_CrossSection_NoPolicy.png",width=1200,height=1000,res=275)
+ggplot(plot[label=="_noRAMan"]) +aes(x=as.factor(HHI_cat),y=value,color=welfare_type,fill=welfare_type) + 
+  geom_bar(position="dodge",stat="identity",width=0.7) + 
+  xlab("HHI") + 
+  ylab ("Monthly Welfare Cost per Person")+
+  # scale_x_continuous(label=percent_format(accuracy=1))+
+  theme(panel.background = element_rect(color=grey(.2),fill=grey(0.95)),
+        strip.background = element_blank(),
+        strip.text = element_text(size=18),
+        plot.title = element_text(size=18,hjust=0.5), 
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.background = element_rect(color=grey(.5)),
+        legend.title=element_blank(),
+        legend.text = element_text(size=16),
+        legend.key.width = unit(.05,units="npc"),
+        legend.key = element_rect(color="transparent",fill="transparent"),
+        legend.position = "bottom",
+        axis.title=element_text(size=12),
+        axis.text = element_text(size=12))
+dev.off()
+
+png("Writing/Images/Welfare_CrossSection_MandateOnly.png",width=1200,height=1000,res=275)
+ggplot(plot[label=="_noRA"]) +aes(x=as.factor(HHI_cat),y=value,color=welfare_type,fill=welfare_type) + 
+  geom_bar(position="dodge",stat="identity",width=0.7) + 
+  xlab("HHI") + 
+  ylab ("Monthly Welfare Cost per Person")+
+  # scale_x_continuous(label=percent_format(accuracy=1))+
+  theme(panel.background = element_rect(color=grey(.2),fill=grey(0.95)),
+        strip.background = element_blank(),
+        strip.text = element_text(size=18),
+        plot.title = element_text(size=18,hjust=0.5), 
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.background = element_rect(color=grey(.5)),
+        legend.title=element_blank(),
+        legend.text = element_text(size=16),
+        legend.key.width = unit(.05,units="npc"),
+        legend.key = element_rect(color="transparent",fill="transparent"),
+        legend.position = "bottom",
+        axis.title=element_text(size=12),
+        axis.text = element_text(size=12))
+dev.off()
+
+png("Writing/Images/Welfare_CrossSection_RAOnly.png",width=1200,height=1000,res=275)
+ggplot(plot[label=="_noMan"]) +aes(x=as.factor(HHI_cat),y=value,color=welfare_type,fill=welfare_type) + 
+  geom_bar(position="dodge",stat="identity",width=0.7) + 
+  xlab("HHI") + 
+  ylab ("Monthly Welfare Cost per Person")+
+  # scale_x_continuous(label=percent_format(accuracy=1))+
+  theme(panel.background = element_rect(color=grey(.2),fill=grey(0.95)),
+        strip.background = element_blank(),
+        strip.text = element_text(size=18),
+        plot.title = element_text(size=18,hjust=0.5), 
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.background = element_rect(color=grey(.5)),
+        legend.title=element_blank(),
+        legend.text = element_text(size=16),
+        legend.key.width = unit(.05,units="npc"),
+        legend.key = element_rect(color="transparent",fill="transparent"),
+        legend.position = "bottom",
+        axis.title=element_text(size=12),
+        axis.text = element_text(size=12))
+dev.off()
+
+png("Writing/Images/Welfare_CrossSection_Baseline.png",width=1200,height=1000,res=275)
+ggplot(plot[label==""]) +aes(x=as.factor(HHI_cat),y=value,color=welfare_type,fill=welfare_type) + 
+  geom_bar(position="dodge",stat="identity",width=0.7) + 
+  xlab("HHI") + 
+  ylab ("Monthly Welfare Cost per Person")+
+  # scale_x_continuous(label=percent_format(accuracy=1))+
+  theme(panel.background = element_rect(color=grey(.2),fill=grey(0.95)),
+        strip.background = element_blank(),
+        strip.text = element_text(size=18),
+        plot.title = element_text(size=18,hjust=0.5), 
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.background = element_rect(color=grey(.5)),
+        legend.title=element_blank(),
+        legend.text = element_text(size=16),
+        legend.key.width = unit(.05,units="npc"),
+        legend.key = element_rect(color="transparent",fill="transparent"),
+        legend.position = "bottom",
+        axis.title=element_text(size=12),
+        axis.text = element_text(size=12))
+dev.off()
 
 all_mean = mktWelfare[,list(ExtSel=sum(Population_Base*ExtSel)/sum(Population_Base),
                                  Markup=sum(Population_Base*Markup)/sum(Population_Base),
@@ -103,10 +208,13 @@ all_mean = mktWelfare[,list(ExtSel=sum(Population_Base*ExtSel)/sum(Population_Ba
 round(all_mean,1)
 
 #### Welfare By Market Merger #### 
-mktWelfare = unique(baseData[,c("Market","ST","HHI","Market_num")])
+mktWelfare = unique(baseData[,c("Market","ST","HHI","Market_num","HHI_flag")])
 
 ## Merge in Welfare Info 
-for (cw in c("SP_zp","SP_cp_base","Base_vch","SP_cpm_base","Base_m_vch","SP_cp","RA_vch","SP_cpm","RA_m_vch")){
+for (cw in c("SP","SP_man","SP_cp_base","Base_vch","SP_cpm_base","Base_m_vch",
+             "SP_cp","RA_vch","SP_cpm","RA_m_vch",
+             "SP_cp_man","man_vch","SP_cpm_man","man_m_vch",
+             "SP_cp_RAman","RAman_vch","SP_cpm_RAman","RAman_m_vch")){
   file = paste("Estimation_Output/totalWelfare_bymkt_",cw,"-",spec,"-",run,".csv",sep="")
   data_cw = as.data.table(read.csv(file))
   cw = gsub("_vch","",cw)
@@ -128,17 +236,29 @@ for (cw in c("SP_zp","SP_cp_base","Base_vch","SP_cpm_base","Base_m_vch","SP_cp",
 mktWelfare = mktWelfare[ST=="GA"&Market!="GA_1",]
 
 
-mktWelfare[,Markup_RA:=totalWelfare_SP_zp-totalWelfare_SP_cp]
+mktWelfare[,Markup_RA:=totalWelfare_SP-totalWelfare_SP_cp]
 mktWelfare[,IntSel_RA:=totalWelfare_SP_cp-totalWelfare_RA]
 
-mktWelfare[,Markup_RA_m:=totalWelfare_SP_zp-totalWelfare_SP_cpm]
+mktWelfare[,Markup_RA_m:=totalWelfare_SP-totalWelfare_SP_cpm]
 mktWelfare[,IntSel_RA_m:=totalWelfare_SP_cpm-totalWelfare_RA_m]
 
-mktWelfare[,Markup_base:=totalWelfare_SP_zp-totalWelfare_SP_cp_base]
+mktWelfare[,Markup_base:=totalWelfare_SP-totalWelfare_SP_cp_base]
 mktWelfare[,IntSel_base:=totalWelfare_SP_cp_base-totalWelfare_Base]
 
-mktWelfare[,Markup_base_m:=totalWelfare_SP_zp-totalWelfare_SP_cpm_base]
+mktWelfare[,Markup_base_m:=totalWelfare_SP-totalWelfare_SP_cpm_base]
 mktWelfare[,IntSel_base_m:=totalWelfare_SP_cpm_base-totalWelfare_Base_m]
+
+mktWelfare[,Markup_man:=totalWelfare_SP_man-totalWelfare_SP_cp_man]
+mktWelfare[,IntSel_man:=totalWelfare_SP_cp_man-totalWelfare_man]
+
+mktWelfare[,Markup_man_m:=totalWelfare_SP_man-totalWelfare_SP_cpm_man]
+mktWelfare[,IntSel_man_m:=totalWelfare_SP_cpm_man-totalWelfare_man_m]
+
+mktWelfare[,Markup_RAman:=totalWelfare_SP_man-totalWelfare_SP_cp_RAman]
+mktWelfare[,IntSel_RAman:=totalWelfare_SP_cp_RAman-totalWelfare_RAman]
+
+mktWelfare[,Markup_RAman_m:=totalWelfare_SP_man-totalWelfare_SP_cpm_RAman]
+mktWelfare[,IntSel_RAman_m:=totalWelfare_SP_cpm_RAman-totalWelfare_RAman_m]
 
 
 mktWelfare[,dCW_base:=CW_Base_m - CW_Base]
@@ -153,86 +273,215 @@ mktWelfare[,dPS_RA:=Profit_RA_m - Profit_RA]
 mktWelfare[,dMkup_RA:= Markup_RA_m - Markup_RA]
 mktWelfare[,dInt_RA:= IntSel_RA_m - IntSel_RA]
 
+mktWelfare[,dCW_man:=CW_man_m - CW_man]
+mktWelfare[,dPS_man:=Profit_man_m - Profit_man]
+
+mktWelfare[,dMkup_man:= Markup_man_m - Markup_man]
+mktWelfare[,dInt_man:= IntSel_man_m - IntSel_man]
+
+mktWelfare[,dCW_RAman:=CW_RAman_m - CW_RAman]
+mktWelfare[,dPS_RAman:=Profit_RAman_m - Profit_RAman]
+
+mktWelfare[,dMkup_RAman:= Markup_RAman_m - Markup_RAman]
+mktWelfare[,dInt_RAman:= IntSel_RAman_m - IntSel_RAman]
+
 mktWelfare[,netchg_RA:=dCW_RA+dPS_RA]
 mktWelfare[,netchg_base:=dCW_base+dPS_base]
 setkey(mktWelfare,HHI)
 
-mktWelfare[,HHI_cat:=as.numeric(HHI<3800)]
+# mktWelfare[,HHI_cat:=as.numeric(HHI>3700)]
 mktWelfare[,count:=1]
 
 merger = mktWelfare[,list(dCW_base=sum(dCW_base*Population_Base)/sum(Population_Base),
                           dPS_base=sum(dPS_base*Population_Base)/sum(Population_Base),
-                          dMkup_base=sum(dMkup_base*Population_Base)/sum(Population_Base),
-                          dInt_base=sum(dInt_base*Population_Base)/sum(Population_Base),
+                          dMkup_base=-sum(dMkup_base*Population_Base)/sum(Population_Base),
+                          dInt_base=-sum(dInt_base*Population_Base)/sum(Population_Base),
                           dCW_RA=sum(dCW_RA*Population_Base)/sum(Population_Base),
                           dPS_RA=sum(dPS_RA*Population_Base)/sum(Population_Base),
-                          dMkup_RA=sum(dMkup_RA*Population_Base)/sum(Population_Base),
-                          dInt_RA=sum(dInt_RA*Population_Base)/sum(Population_Base),
-                          count = sum(count),
-                          pop= sum(Population_Base)),
-                    by=c("HHI_cat")]
-round(merger,1)
-
-
-#### Welfare Policy Analysis - By Market ####
-mktWelfare = unique(baseData[,c("Market","ST","HHI","Market_num","HHI_flag")])
-
-
-## Merge in Welfare Info 
-for (cw in c("Base","RA","man","RAman")){
-  file = paste("Estimation_Output/totalWelfare_bymkt_",cw,"-",spec,"-",run,".csv",sep="")
-  data_cw = as.data.table(read.csv(file))
-  data_cw[,insRate:=Insured/Population]
-  if (cw%in%c("Base","Base_m","man","man_m")){
-    data_cw[,Profit:=Profit-RA_transfers/Population]
-    # data_cw[,totalWelfare:=CW+Profit-RA_transfers/Population]
-    
-    data_cw = data_cw[,c("markets","CW","Profit","Spending","insRate","Population")]
-  }else{
-    # data_cw[,totalWelfare:=CW+Profit]
-    data_cw = data_cw[,c("markets","CW","Profit","Spending","insRate")]
-  }
-  # data_cw = data_cw[,c("markets","Profit")]
-  
-  
-  names(data_cw) = paste(names(data_cw),cw,sep="_")
-  mktWelfare = merge(mktWelfare,data_cw,by.x="Market_num",by.y=paste("markets",cw,sep="_"))
-}
-mktWelfare[,count:=1]
-policy = mktWelfare[,list(CW_base=sum(CW_Base*Population_Base)/sum(Population_Base),
-                          CW_RA=sum(CW_RA*Population_Base)/sum(Population_Base),
-                          CW_man=sum(CW_man*Population_Base)/sum(Population_Base),
-                          CW_RAman=sum(CW_RAman*Population_Base)/sum(Population_Base),
-                          PS_base=sum(Profit_Base*Population_Base)/sum(Population_Base),
-                          PS_RA=sum(Profit_RA*Population_Base)/sum(Population_Base),
-                          PS_man=sum(Profit_man*Population_Base)/sum(Population_Base),
-                          PS_RAman=sum(Profit_RAman*Population_Base)/sum(Population_Base),
-                          Gov_base=sum(Spending_Base*Population_Base)/sum(Population_Base),
-                          Gov_RA=sum(Spending_RA*Population_Base)/sum(Population_Base),
-                          Gov_man=sum(Spending_man*Population_Base)/sum(Population_Base),
-                          Gov_RAman=sum(Spending_RAman*Population_Base)/sum(Population_Base),
-                          insRate_base=sum(insRate_Base*Population_Base)/sum(Population_Base),
-                          insRate_RA=sum(insRate_RA*Population_Base)/sum(Population_Base),
-                          insRate_man=sum(insRate_man*Population_Base)/sum(Population_Base),
-                          insRate_RAman=sum(insRate_RAman*Population_Base)/sum(Population_Base),
+                          dMkup_RA=-sum(dMkup_RA*Population_Base)/sum(Population_Base),
+                          dInt_RA=-sum(dInt_RA*Population_Base)/sum(Population_Base),
+                          dCW_man=sum(dCW_man*Population_Base)/sum(Population_Base),
+                          dPS_man=sum(dPS_man*Population_Base)/sum(Population_Base),
+                          dMkup_man=-sum(dMkup_man*Population_Base)/sum(Population_Base),
+                          dInt_man=-sum(dInt_man*Population_Base)/sum(Population_Base),
+                          dCW_RAman=sum(dCW_RAman*Population_Base)/sum(Population_Base),
+                          dPS_RAman=sum(dPS_RAman*Population_Base)/sum(Population_Base),
+                          dMkup_RAman=-sum(dMkup_RAman*Population_Base)/sum(Population_Base),
+                          dInt_RAman=-sum(dInt_RAman*Population_Base)/sum(Population_Base),
                           count = sum(count),
                           pop= sum(Population_Base)),
                     by=c("HHI_flag")]
-setkey(policy,HHI_flag)
-round(policy,1)
-round(policy,3)
 
-#### Data Insurance Rates ####
-load("Intermediate_Output/Simulated_BaseData/acs_prepped.rData")
-mktWelfare = unique(baseData[,c("Market","ST","HHI","Market_num","HHI_flag")])
-mktIns = acs[,list(insuranceRate=sum(PERWT*insured)/sum(PERWT),
-                   population = sum(PERWT)),by=c("ST","AREA")]
-mktIns[,Market:=paste(ST,gsub("Rating Area ","",AREA),sep="_")]
-mktIns = merge(mktIns,mktWelfare,by=c("Market","ST"))
+merger[,dTot_base:=dCW_base+dPS_base]
+merger[,dTot_RA:=dCW_RA+dPS_RA]
+merger[,dTot_man:=dCW_man+dPS_man]
+merger[,dTot_RAman:=dCW_RAman+dPS_RAman]
+round(merger,1)
 
-mktIns = mktIns[,list(insuranceRate=sum(insuranceRate*population)/sum(population)),
-                by="HHI_flag"]
 
+plot = as.data.table(reshape(merger,varying=names(merger)[grepl("^d",names(merger))],
+                             v.names="value",
+                             timevar="welfare_type",
+                             times = names(merger)[grepl("^d",names(merger))],
+                             idvar="HHI_flag",
+                             direction="long"))
+plot[,label:=gsub("dCW|dPS|dMkup|dInt","",welfare_type,perl=TRUE)]
+plot[,welfare_type:=gsub("(_.*)","",welfare_type,perl=TRUE)]
+plot[,welfare_type:=factor(welfare_type,levels=c("dCW","dPS","dMkup","dInt"),
+                           labels=c("Consumer Surplus","Profit","Markup Channel","Sorting Channel"))]
+plot[,HHI_label:=factor(HHI_flag,labels=c("HHI < 3700","HHI > 3700"))]
+
+png("Writing/Images/Welfare_Merger_noPolicy.png",width=1200,height=1000,res=275)
+ggplot(plot[label=="_RAman"]) +aes(x=welfare_type,y=value,color=HHI_label,fill=HHI_label) + 
+  geom_bar(position="dodge",stat="identity",width=0.7) + 
+  xlab("") + 
+  ylab ("$ per Person per Month")+
+  geom_abline(intercept=0,slope=0) + 
+  # scale_x_continuous(label=percent_format(accuracy=1))+
+  theme(panel.background = element_rect(color=grey(.2),fill=grey(0.95)),
+        strip.background = element_blank(),
+        strip.text = element_text(size=18),
+        plot.title = element_text(size=18,hjust=0.5), 
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.background = element_rect(color=grey(.5)),
+        legend.title=element_blank(),
+        legend.text = element_text(size=16),
+        legend.key.width = unit(.05,units="npc"),
+        legend.key = element_rect(color="transparent",fill="transparent"),
+        legend.position = "bottom",
+        axis.title=element_text(size=12),
+        axis.text = element_text(size=12))
+dev.off()
+
+png("Writing/Images/Welfare_Merger_noMandate.png",width=1200,height=1000,res=275)
+ggplot(plot[label=="_man"]) +aes(x=welfare_type,y=value,color=HHI_label,fill=HHI_label) + 
+  geom_bar(position="dodge",stat="identity",width=0.7) + 
+  xlab("") + 
+  ylab ("$ per Person per Month")+
+  geom_abline(intercept=0,slope=0) + 
+  # scale_x_continuous(label=percent_format(accuracy=1))+
+  theme(panel.background = element_rect(color=grey(.2),fill=grey(0.95)),
+        strip.background = element_blank(),
+        strip.text = element_text(size=18),
+        plot.title = element_text(size=18,hjust=0.5), 
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.background = element_rect(color=grey(.5)),
+        legend.title=element_blank(),
+        legend.text = element_text(size=16),
+        legend.key.width = unit(.05,units="npc"),
+        legend.key = element_rect(color="transparent",fill="transparent"),
+        legend.position = "bottom",
+        axis.title=element_text(size=12),
+        axis.text = element_text(size=12))
+dev.off()
+
+png("Writing/Images/Welfare_Merger_noRA.png",width=1200,height=1000,res=275)
+ggplot(plot[label=="_RA"]) +aes(x=welfare_type,y=value,color=HHI_label,fill=HHI_label) + 
+  geom_bar(position="dodge",stat="identity",width=0.7) + 
+  xlab("") + 
+  ylab ("$ per Person per Month")+
+  geom_abline(intercept=0,slope=0) + 
+  # scale_x_continuous(label=percent_format(accuracy=1))+
+  theme(panel.background = element_rect(color=grey(.2),fill=grey(0.95)),
+        strip.background = element_blank(),
+        strip.text = element_text(size=18),
+        plot.title = element_text(size=18,hjust=0.5), 
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.background = element_rect(color=grey(.5)),
+        legend.title=element_blank(),
+        legend.text = element_text(size=16),
+        legend.key.width = unit(.05,units="npc"),
+        legend.key = element_rect(color="transparent",fill="transparent"),
+        legend.position = "bottom",
+        axis.title=element_text(size=12),
+        axis.text = element_text(size=12))
+dev.off()
+
+png("Writing/Images/Welfare_Merger_Baseline.png",width=1200,height=1000,res=275)
+ggplot(plot[label=="_base"]) +aes(x=welfare_type,y=value,color=HHI_label,fill=HHI_label) + 
+  geom_bar(position="dodge",stat="identity",width=0.7) + 
+  xlab("") + 
+  ylab ("$ per Person per Month")+
+  geom_abline(intercept=0,slope=0) + 
+  # scale_x_continuous(label=percent_format(accuracy=1))+
+  theme(panel.background = element_rect(color=grey(.2),fill=grey(0.95)),
+        strip.background = element_blank(),
+        strip.text = element_text(size=18),
+        plot.title = element_text(size=18,hjust=0.5), 
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.background = element_rect(color=grey(.5)),
+        legend.title=element_blank(),
+        legend.text = element_text(size=16),
+        legend.key.width = unit(.05,units="npc"),
+        legend.key = element_rect(color="transparent",fill="transparent"),
+        legend.position = "bottom",
+        axis.title=element_text(size=12),
+        axis.text = element_text(size=12))
+dev.off()
+
+# #### Welfare Policy Analysis - By Market ####
+# mktWelfare = unique(baseData[,c("Market","ST","HHI","Market_num","HHI_flag")])
+# 
+# 
+# ## Merge in Welfare Info 
+# for (cw in c("Base","RA","man","RAman")){
+#   file = paste("Estimation_Output/totalWelfare_bymkt_",cw,"-",spec,"-",run,".csv",sep="")
+#   data_cw = as.data.table(read.csv(file))
+#   data_cw[,insRate:=Insured/Population]
+#   if (cw%in%c("Base","Base_m","man","man_m")){
+#     data_cw[,Profit:=Profit-RA_transfers/Population]
+#     # data_cw[,totalWelfare:=CW+Profit-RA_transfers/Population]
+#     
+#     data_cw = data_cw[,c("markets","CW","Profit","Spending","insRate","Population")]
+#   }else{
+#     # data_cw[,totalWelfare:=CW+Profit]
+#     data_cw = data_cw[,c("markets","CW","Profit","Spending","insRate")]
+#   }
+#   # data_cw = data_cw[,c("markets","Profit")]
+#   
+#   
+#   names(data_cw) = paste(names(data_cw),cw,sep="_")
+#   mktWelfare = merge(mktWelfare,data_cw,by.x="Market_num",by.y=paste("markets",cw,sep="_"))
+# }
+# mktWelfare[,count:=1]
+# policy = mktWelfare[,list(CW_base=sum(CW_Base*Population_Base)/sum(Population_Base),
+#                           CW_RA=sum(CW_RA*Population_Base)/sum(Population_Base),
+#                           CW_man=sum(CW_man*Population_Base)/sum(Population_Base),
+#                           CW_RAman=sum(CW_RAman*Population_Base)/sum(Population_Base),
+#                           PS_base=sum(Profit_Base*Population_Base)/sum(Population_Base),
+#                           PS_RA=sum(Profit_RA*Population_Base)/sum(Population_Base),
+#                           PS_man=sum(Profit_man*Population_Base)/sum(Population_Base),
+#                           PS_RAman=sum(Profit_RAman*Population_Base)/sum(Population_Base),
+#                           Gov_base=sum(Spending_Base*Population_Base)/sum(Population_Base),
+#                           Gov_RA=sum(Spending_RA*Population_Base)/sum(Population_Base),
+#                           Gov_man=sum(Spending_man*Population_Base)/sum(Population_Base),
+#                           Gov_RAman=sum(Spending_RAman*Population_Base)/sum(Population_Base),
+#                           insRate_base=sum(insRate_Base*Population_Base)/sum(Population_Base),
+#                           insRate_RA=sum(insRate_RA*Population_Base)/sum(Population_Base),
+#                           insRate_man=sum(insRate_man*Population_Base)/sum(Population_Base),
+#                           insRate_RAman=sum(insRate_RAman*Population_Base)/sum(Population_Base),
+#                           count = sum(count),
+#                           pop= sum(Population_Base)),
+#                     by=c("HHI_flag")]
+# setkey(policy,HHI_flag)
+# round(policy,1)
+# round(policy,3)
+# 
+# #### Data Insurance Rates ####
+# load("Intermediate_Output/Simulated_BaseData/acs_prepped.rData")
+# mktWelfare = unique(baseData[,c("Market","ST","HHI","Market_num","HHI_flag")])
+# mktIns = acs[,list(insuranceRate=sum(PERWT*insured)/sum(PERWT),
+#                    population = sum(PERWT)),by=c("ST","AREA")]
+# mktIns[,Market:=paste(ST,gsub("Rating Area ","",AREA),sep="_")]
+# mktIns = merge(mktIns,mktWelfare,by=c("Market","ST"))
+# 
+# mktIns = mktIns[,list(insuranceRate=sum(insuranceRate*population)/sum(population)),
+#                 by="HHI_flag"]
+# 
 
 
 #### Welfare By Market Merger - Policy #### 
@@ -316,10 +565,10 @@ merger = mktWelfare[Market!="GA_1",list(dCW_base=sum(dCW_base*Population_Base)/s
                                         dIns_base=sum(dIns_base*Population_Base)/sum(Population_Base),
                                         dIns_RA=sum(dIns_RA*Population_Base)/sum(Population_Base),
                                         dIns_man=sum(dIns_man*Population_Base)/sum(Population_Base),
-                                        dIns_RAman=sum(dIns_RAman*Population_Base)/sum(Population_Base))]
+                                        dIns_RAman=sum(dIns_RAman*Population_Base)/sum(Population_Base)),by="HHI_flag"]
 
 
-round(merger*100,1)
+round(merger,1)
 
 
 

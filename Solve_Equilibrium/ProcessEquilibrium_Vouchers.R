@@ -9,7 +9,7 @@ run = "2022-03-18"
 spec = "FMC"
 
 #### Read in Data ####
-eqFile = paste("Estimation_Output/solvedEquilibrium_",spec,"-",run,".csv",sep="")
+eqFile = paste("Estimation_Output/solvedEquilibrium_Welfare_",spec,"-",run,".csv",sep="")
 eqData = as.data.table(read.csv(eqFile))
 
 prodData = as.data.table(read.csv("Intermediate_Output/Equilibrium_Data/estimated_prodData_full.csv"))
@@ -178,7 +178,7 @@ prod_pred = merge(prod_pred,firms[,c("Market","Firm","merger")],by=c("Market","F
 
 hhi_table = unique(prod_pred[mergerLabel!="No Merger"&ST=="GA",c("HHI_flag","dhhi_pred")])
 
-# png("Writing/Images/Prices_Merger_noPolicy.png",width=1200,height=1000,res=275)
+png("Writing/Images/Prices_Merger_noPolicy.png",width=1200,height=1000,res=275)
 ggplot(prod_pred[mergerLabel!="No Merger"&ST=="GA"]) + 
   aes(x=Price_RAman,y=Price_RAman_m-Price_RAman,size=Share_RAman) + 
   geom_point() + coord_cartesian(ylim=c(-75,50)) + facet_wrap(~HHI_label) + 
@@ -201,9 +201,9 @@ ggplot(prod_pred[mergerLabel!="No Merger"&ST=="GA"]) +
         legend.position = "none",
         axis.title=element_text(size=12),
         axis.text = element_text(size=12))
-# dev.off()
+dev.off()
 
-# png("Writing/Images/Prices_Merger_noMandate.png",width=1200,height=1000,res=275)
+png("Writing/Images/Prices_Merger_noMandate.png",width=1200,height=1000,res=275)
 ggplot(prod_pred[mergerLabel!="No Merger"&ST=="GA"]) + 
   aes(x=Price_man,y=Price_man_m-Price_man,size=Share_man) + 
   geom_point()  + facet_wrap(~HHI_label) + 
@@ -226,9 +226,9 @@ ggplot(prod_pred[mergerLabel!="No Merger"&ST=="GA"]) +
         legend.position = "none",
         axis.title=element_text(size=12),
         axis.text = element_text(size=12))
-# dev.off()
+dev.off()
 
-# png("Writing/Images/Prices_Merger_noRA.png",width=1200,height=1000,res=275)
+png("Writing/Images/Prices_Merger_noRA.png",width=1200,height=1000,res=275)
 ggplot(prod_pred[mergerLabel!="No Merger"&ST=="GA"]) + 
   aes(x=Price_RA,y=Price_RA_m-Price_RA,size=Share_RA) + 
   geom_point()  + facet_wrap(~HHI_label) + 
@@ -251,9 +251,9 @@ ggplot(prod_pred[mergerLabel!="No Merger"&ST=="GA"]) +
         legend.position = "none",
         axis.title=element_text(size=12),
         axis.text = element_text(size=12))
-# dev.off()
+dev.off()
 
-# png("Writing/Images/Prices_Merger_Baseline.png",width=1200,height=1000,res=275)
+png("Writing/Images/Prices_Merger_Baseline.png",width=1200,height=1000,res=275)
 ggplot(prod_pred[mergerLabel!="No Merger"&ST=="GA"]) + 
   aes(x=Price_base,y=Price_base_m-Price_base,size=Share_base) + 
   geom_point() + coord_cartesian(ylim=c(-75,50)) + facet_wrap(~HHI_label) + 
@@ -276,7 +276,7 @@ ggplot(prod_pred[mergerLabel!="No Merger"&ST=="GA"]) +
         legend.position = "none",
         axis.title=element_text(size=12),
         axis.text = element_text(size=12))
-# dev.off()
+dev.off()
 
 
 table_prem = prod_pred[mergerLabel!="No Merger"&ST=="GA"&merger!="None",
@@ -302,7 +302,7 @@ table_prem[,none_effect:= round(100*(prem_none_m-prem_none)/prem_none,1)]
 
 table_prem[,Group:="Merging Parties"]
 
-table_prem_all = prod_pred[mergerLabel!="No Merger"&ST=="GA"&merger=="None",
+table_prem_all = prod_pred[mergerLabel!="No Merger"&ST=="GA",
                            list(prem_base = sum(Price_base*Lives_base)/sum(Lives_base),
                                 prem_noRA = sum(Price_RA*Lives_RA)/sum(Lives_RA),
                                 prem_noMan = sum(Price_man*Lives_man)/sum(Lives_man),
@@ -318,10 +318,10 @@ table_prem_all[,Metal_std:=factor(Metal_std,levels=c("CATASTROPHIC","BRONZE","SI
 setkey(table_prem_all,HHI_flag,Metal_std)
 
 
-table_prem_all[,base_effect:=round(100*(prem_base_m-prem_base)/prem_base,1)]
-table_prem_all[,noRA_effect:=  round(100*(prem_noRA_m-prem_noRA)/prem_noRA,1)]
-table_prem_all[,noMan_effect:= round(100*(prem_noMan_m-prem_noMan)/prem_noMan,1)]
-table_prem_all[,none_effect:= round(100*(prem_none_m-prem_none)/prem_none,1)]
+table_prem_all[,base_effect:=round((prem_base_m-prem_base),1)]
+table_prem_all[,noRA_effect:=  round((prem_noRA_m-prem_noRA),1)]
+table_prem_all[,noMan_effect:= round((prem_noMan_m-prem_noMan),1)]
+table_prem_all[,none_effect:= round((prem_none_m-prem_none),1)]
 
 
 table_prem_all[,Group:="All Other Firms"]
