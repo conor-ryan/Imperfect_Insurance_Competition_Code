@@ -56,6 +56,7 @@ mutable struct firmData
     mkt_index::Dict{Real,Array{Int64,1}}
     silver_index::Dict{Real,Array{Int64,1}}
     mkt_index_long::Array{Int64,1}
+    firm_vector::Vector{String}
 
     ownMat::Matrix{Float64}
     ownMat_merge::Matrix{Float64}
@@ -177,7 +178,8 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
 
     #### Ownership Matrix
     ## Build Ownership Matrix
-    firms = Vector{Union{Missing,String}}(missing,J)
+    firms = Vector{String}(undef,J)
+    firms[:].=""
     firms[prod_std] = mkt[:,:Firm]
     # firms[prod_std] = string.(mkt[:Product])
     # firms[prod_std] = mkt[:Market]
@@ -244,7 +246,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     hix_cnt,bench_base,
     dSdp_j,dSAdp_j,dRdp_j,dCdp_j,dMdp_j,dMAdp_j,dCdp_pl_j,dSubdp_j,
     prod_std,catas_prods,bench_prods,_productDict,
-    mkt_index,silv_index,mkt_index_long,
+    mkt_index,silv_index,mkt_index_long,firms,
     ownMat,ownMat_merge,poolMat,
     _perSTDict,_prodSTDict,_perMktDict)
 

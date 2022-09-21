@@ -178,7 +178,7 @@ prod_pred = merge(prod_pred,firms[,c("Market","Firm","merger")],by=c("Market","F
 
 hhi_table = unique(prod_pred[mergerLabel!="No Merger"&ST=="GA",c("HHI_flag","dhhi_pred")])
 
-png("Writing/Images/Prices_Merger_noPolicy.png",width=1200,height=1000,res=275)
+png("Writing/Images/Price_Merger_noPolicy.png",width=1200,height=1000,res=275)
 ggplot(prod_pred[mergerLabel!="No Merger"&ST=="GA"]) + 
   aes(x=Price_RAman,y=Price_RAman_m-Price_RAman,size=Share_RAman) + 
   geom_point() + coord_cartesian(ylim=c(-75,50)) + facet_wrap(~HHI_label) + 
@@ -189,7 +189,7 @@ ggplot(prod_pred[mergerLabel!="No Merger"&ST=="GA"]) +
   # scale_x_continuous(label=percent_format(accuracy=1))+
   theme(panel.background = element_rect(color=grey(.2),fill=grey(0.95)),
         strip.background = element_blank(),
-        strip.text = element_text(size=18),
+        strip.text = element_text(size=12),
         plot.title = element_text(size=18,hjust=0.5), 
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -203,7 +203,7 @@ ggplot(prod_pred[mergerLabel!="No Merger"&ST=="GA"]) +
         axis.text = element_text(size=12))
 dev.off()
 
-png("Writing/Images/Prices_Merger_noMandate.png",width=1200,height=1000,res=275)
+png("Writing/Images/Price_Merger_RAOnly.png",width=1200,height=1000,res=275)
 ggplot(prod_pred[mergerLabel!="No Merger"&ST=="GA"]) + 
   aes(x=Price_man,y=Price_man_m-Price_man,size=Share_man) + 
   geom_point()  + facet_wrap(~HHI_label) + 
@@ -214,7 +214,7 @@ ggplot(prod_pred[mergerLabel!="No Merger"&ST=="GA"]) +
   # scale_x_continuous(label=percent_format(accuracy=1))+
   theme(panel.background = element_rect(color=grey(.2),fill=grey(0.95)),
         strip.background = element_blank(),
-        strip.text = element_text(size=18),
+        strip.text = element_text(size=12),
         plot.title = element_text(size=18,hjust=0.5), 
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -228,7 +228,7 @@ ggplot(prod_pred[mergerLabel!="No Merger"&ST=="GA"]) +
         axis.text = element_text(size=12))
 dev.off()
 
-png("Writing/Images/Prices_Merger_noRA.png",width=1200,height=1000,res=275)
+png("Writing/Images/Price_Merger_MandateOnly.png",width=1200,height=1000,res=275)
 ggplot(prod_pred[mergerLabel!="No Merger"&ST=="GA"]) + 
   aes(x=Price_RA,y=Price_RA_m-Price_RA,size=Share_RA) + 
   geom_point()  + facet_wrap(~HHI_label) + 
@@ -239,7 +239,7 @@ ggplot(prod_pred[mergerLabel!="No Merger"&ST=="GA"]) +
   # scale_x_continuous(label=percent_format(accuracy=1))+
   theme(panel.background = element_rect(color=grey(.2),fill=grey(0.95)),
         strip.background = element_blank(),
-        strip.text = element_text(size=18),
+        strip.text = element_text(size=12),
         plot.title = element_text(size=18,hjust=0.5), 
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -253,7 +253,7 @@ ggplot(prod_pred[mergerLabel!="No Merger"&ST=="GA"]) +
         axis.text = element_text(size=12))
 dev.off()
 
-png("Writing/Images/Prices_Merger_Baseline.png",width=1200,height=1000,res=275)
+png("Writing/Images/Price_Merger_Baseline.png",width=1200,height=1000,res=275)
 ggplot(prod_pred[mergerLabel!="No Merger"&ST=="GA"]) + 
   aes(x=Price_base,y=Price_base_m-Price_base,size=Share_base) + 
   geom_point() + coord_cartesian(ylim=c(-75,50)) + facet_wrap(~HHI_label) + 
@@ -264,7 +264,7 @@ ggplot(prod_pred[mergerLabel!="No Merger"&ST=="GA"]) +
   # scale_x_continuous(label=percent_format(accuracy=1))+
   theme(panel.background = element_rect(color=grey(.2),fill=grey(0.95)),
         strip.background = element_blank(),
-        strip.text = element_text(size=18),
+        strip.text = element_text(size=12),
         plot.title = element_text(size=18,hjust=0.5), 
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),

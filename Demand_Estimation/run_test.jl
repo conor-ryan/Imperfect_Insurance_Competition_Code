@@ -29,6 +29,15 @@ include("DerivFunctions.jl")
 include("Log_Likehood_Penalty.jl")
 println("Code Loaded")
 
+
+
+
+println("Rebuild Demand Model...")
+file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/PLL_Estimate_FMC-2022-03-18-stg1.jld2"
+@load file p_stg1 spec_Dict
+
+
+
 # Load the Data
 include("load.jl")
 spec_demoRaw = [:AgeFE_31_39,
@@ -125,15 +134,21 @@ spec_prodchars_σ=[:constant,:AV,
 :UT_MOLINA_HEALTH_CARE]
 #Structure the data
 c = ChoiceData(df,df_mkt,df_risk,df_transfer;
-demoRaw=spec_demoRaw,
-prodchars=spec_prodchars,
-prodchars_σ=Vector{Symbol}(undef,0),
-fixedEffects=[:Market_Firm,:Market_Cat])
-
-
+demoRaw=spec_Dict["demoRaw"],
+prodchars=spec_Dict["prodchars"],
+prodchars_σ=spec_Dict["prodchars_σ"],
+fixedEffects=spec_Dict["fixedEffects"])
 
 
 param_labels = vcat(String.(spec_demoRaw),String.(spec_prodchars),"Price:" .* String.(spec_demoRaw),"Variance:".*String.(spec_prodchars_σ),c.feNames)
+
+out1 = DataFrame(labels=param_labels,pars_stg1=p_stg1)#,se=stdErr,ts=t_stat,sig=stars)
+file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/PLL_Estimate_FMC_stg1-2022-03-18.csv"
+CSV.write(file1,out1)
+
+
+
+
 
 # Fit into model
 m = InsuranceLogit(c,1)

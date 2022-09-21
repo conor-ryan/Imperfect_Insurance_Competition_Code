@@ -196,12 +196,14 @@ ggplot(plot[label==""]) +aes(x=as.factor(HHI_cat),y=value,color=welfare_type,fil
         axis.text = element_text(size=12))
 dev.off()
 
-all_mean = mktWelfare[,list(ExtSel=sum(Population_Base*ExtSel)/sum(Population_Base),
-                                 Markup=sum(Population_Base*Markup)/sum(Population_Base),
-                                 IntSel=sum(Population_Base*IntSel)/sum(Population_Base),
-                                 Markup_noRA=sum(Population_Base*Markup_noRA)/sum(Population_Base),
-                                 IntSel_noRA=sum(Population_Base*IntSel_noRA)/sum(Population_Base),
-                                 # RiskAdj=sum(Population_Base*RiskAdj)/sum(Population_Base),
+all_mean = mktWelfare[,list(Markup=sum(Population_Base*Markup)/sum(Population_Base),
+                            IntSel=sum(Population_Base*IntSel)/sum(Population_Base),
+                            Markup_noRA=sum(Population_Base*Markup_noRA)/sum(Population_Base),
+                            IntSel_noRA=sum(Population_Base*IntSel_noRA)/sum(Population_Base),
+                            Markup_noMan=sum(Population_Base*Markup_noMan)/sum(Population_Base),
+                            IntSel_noMan=sum(Population_Base*IntSel_noMan)/sum(Population_Base),
+                            Markup_noRAMan=sum(Population_Base*Markup_noRAMan)/sum(Population_Base),
+                            IntSel_noRAMan=sum(Population_Base*IntSel_noRAMan)/sum(Population_Base),
                                  count = sum(count),
                                  pop = sum(Population_Base))]
 
@@ -317,6 +319,32 @@ merger[,dTot_RA:=dCW_RA+dPS_RA]
 merger[,dTot_man:=dCW_man+dPS_man]
 merger[,dTot_RAman:=dCW_RAman+dPS_RAman]
 round(merger,1)
+
+
+all = mktWelfare[,list(dCW_base=sum(dCW_base*Population_Base)/sum(Population_Base),
+                          dPS_base=sum(dPS_base*Population_Base)/sum(Population_Base),
+                          dMkup_base=-sum(dMkup_base*Population_Base)/sum(Population_Base),
+                          dInt_base=-sum(dInt_base*Population_Base)/sum(Population_Base),
+                          dCW_RA=sum(dCW_RA*Population_Base)/sum(Population_Base),
+                          dPS_RA=sum(dPS_RA*Population_Base)/sum(Population_Base),
+                          dMkup_RA=-sum(dMkup_RA*Population_Base)/sum(Population_Base),
+                          dInt_RA=-sum(dInt_RA*Population_Base)/sum(Population_Base),
+                          dCW_man=sum(dCW_man*Population_Base)/sum(Population_Base),
+                          dPS_man=sum(dPS_man*Population_Base)/sum(Population_Base),
+                          dMkup_man=-sum(dMkup_man*Population_Base)/sum(Population_Base),
+                          dInt_man=-sum(dInt_man*Population_Base)/sum(Population_Base),
+                          dCW_RAman=sum(dCW_RAman*Population_Base)/sum(Population_Base),
+                          dPS_RAman=sum(dPS_RAman*Population_Base)/sum(Population_Base),
+                          dMkup_RAman=-sum(dMkup_RAman*Population_Base)/sum(Population_Base),
+                          dInt_RAman=-sum(dInt_RAman*Population_Base)/sum(Population_Base),
+                          count = sum(count),
+                          pop= sum(Population_Base))]
+
+all[,dTot_base:=dCW_base+dPS_base]
+all[,dTot_RA:=dCW_RA+dPS_RA]
+all[,dTot_man:=dCW_man+dPS_man]
+all[,dTot_RAman:=dCW_RAman+dPS_RAman]
+round(all,1)
 
 
 plot = as.data.table(reshape(merger,varying=names(merger)[grepl("^d",names(merger))],
@@ -705,25 +733,25 @@ mktWelfare[,dIns_RAman:=Insured_RAman_m - Insured_RAman]
 
 
 
-merger = mktWelfare[Market!="GA_1",list(dCW_base=sum(dCW_base*Population_Base)/sum(CW_Base*Population_Base),
-                                        dCW_RA=sum(dCW_RA*Population_Base)/sum(CW_RA*Population_Base),
-                                        dCW_man=sum(dCW_man*Population_Base)/sum(CW_man*Population_Base),
-                                        dCW_RAman=sum(dCW_RAman*Population_Base)/sum(CW_RAman*Population_Base),
-                                        dPS_base=sum(dPS_base*Population_Base)/sum(Profit_Base*Population_Base),
-                                        dPS_RA=sum(dPS_RA*Population_Base)/sum(Profit_RA*Population_Base),
-                                        dPS_man=sum(dPS_man*Population_Base)/sum(Profit_man*Population_Base),
-                                        dPS_RAman=sum(dPS_RAman*Population_Base)/sum(Profit_RAman*Population_Base),
-                                        dGov_base=sum(dGov_base*Population_Base)/sum(Spending_Base*Population_Base),
-                                        dGov_RA=sum(dGov_RA*Population_Base)/sum(Spending_RA*Population_Base),
-                                        dGov_man=sum(dGov_man*Population_Base)/sum(Spending_man*Population_Base),
-                                        dGov_RAman=sum(dGov_RAman*Population_Base)/sum(Spending_RAman*Population_Base),
-                                        dIns_base=sum(dIns_base*Population_Base)/sum(Insured_Base*Population_Base),
-                                        dIns_RA=sum(dIns_RA*Population_Base)/sum(Insured_RA*Population_Base),
-                                        dIns_man=sum(dIns_man*Population_Base)/sum(Insured_man*Population_Base),
-                                        dIns_RAman=sum(dIns_RAman*Population_Base)/sum(Insured_RAman*Population_Base))]
+merger = mktWelfare[Market!="GA_1",list(dCW_base=sum(dCW_base*Population_Base)/sum(Population_Base),
+                                        dCW_RA=sum(dCW_RA*Population_Base)/sum(Population_Base),
+                                        dCW_man=sum(dCW_man*Population_Base)/sum(Population_Base),
+                                        dCW_RAman=sum(dCW_RAman*Population_Base)/sum(Population_Base),
+                                        dPS_base=sum(dPS_base*Population_Base)/sum(Population_Base),
+                                        dPS_RA=sum(dPS_RA*Population_Base)/sum(Population_Base),
+                                        dPS_man=sum(dPS_man*Population_Base)/sum(Population_Base),
+                                        dPS_RAman=sum(dPS_RAman*Population_Base)/sum(Population_Base),
+                                        dGov_base=sum(dGov_base*Population_Base)/sum(Population_Base),
+                                        dGov_RA=sum(dGov_RA*Population_Base)/sum(Population_Base),
+                                        dGov_man=sum(dGov_man*Population_Base)/sum(Population_Base),
+                                        dGov_RAman=sum(dGov_RAman*Population_Base)/sum(Population_Base),
+                                        dIns_base=sum(dIns_base*Population_Base)/sum(Population_Base),
+                                        dIns_RA=sum(dIns_RA*Population_Base)/sum(Population_Base),
+                                        dIns_man=sum(dIns_man*Population_Base)/sum(Population_Base),
+                                        dIns_RAman=sum(dIns_RAman*Population_Base)/sum(Population_Base)),by="HHI_flag"]
 
 
-round(merger*100,1)
+round(merger,1)
 
 
 
