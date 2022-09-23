@@ -11,10 +11,10 @@ using DataFrames
 if occursin(r"cxr5626",homedir())
         home_directory = "$(homedir())/work"
 else
-        home_directory = homedir()
+        home_directory = "$(homedir())/Documents"
 end
 
-codeDir = "$(home_directory)/Documents/Research/Imperfect_Insurance_Competition/Code/"
+codeDir = "$(home_directory)/Research/Imperfect_Insurance_Competition/Code/"
 
 ##### Set Specification ####
 halton_draws = 500
