@@ -1,17 +1,19 @@
 function solve_model!(m::InsuranceLogit,f::firmData;
                 sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=false,update_voucher=true,no_policy=false)
-    # P_res = zeros(length(f.P_j))
-    states = sort(String.(keys(f._prodSTDict)))#[1:6]
-    # states = ["GA"]
+    states = sort(String.(keys(f._prodSTDict)))
     for s in states
-        # if s=="OK"
-        #     continue
-        # end
         println("Solving for $s")
         solve_model_st!(m,f,s,sim=sim,merg=merg,tol=tol,voucher=voucher,update_voucher=update_voucher,no_policy=no_policy)
-        # P_res[f._prodSTDict[s]] = f.P_j[f._prodSTDict[s]]
     end
-    # f.P_j[:] = P_res[:]
+    return nothing
+end
+
+function solve_model!(m::InsuranceLogit,f::firmData,states::Vector{String};
+                sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=false,update_voucher=true,no_policy=false)
+    for s in states
+        println("Solving for $s")
+        solve_model_st!(m,f,s,sim=sim,merg=merg,tol=tol,voucher=voucher,update_voucher=update_voucher,no_policy=no_policy)
+    end
     return nothing
 end
 
@@ -179,7 +181,7 @@ function solve_equilibrium(rundate,spec)
     evaluate_model!(model,firm,"All",foc_check=true)
     file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_PL_$spec-$rundate.csv"
     solveMain_PL(model,firm,file)
-    
+
     println("Solve Equilibrium...")
     file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/solvedEquilibrium_$spec-$rundate.csv"
     solveMain(model,firm,file)

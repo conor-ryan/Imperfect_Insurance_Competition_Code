@@ -7,7 +7,14 @@ using LinearAlgebra
 using Statistics
 using DataFrames
 
-codeDir = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Code/"
+## Check OS Environment
+if occursin(r"cxr5626",homedir())
+        home_directory = "$(homedir())/work"
+else
+        home_directory = homedir()
+end
+
+codeDir = "$(home_directory)/Documents/Research/Imperfect_Insurance_Competition/Code/"
 
 ##### Set Specification ####
 halton_draws = 500
@@ -158,7 +165,7 @@ include("$codeDir/Firm_Side/SpecRunMC.jl")
 # estimate_marginal_cost(rundate,spec,cost_spec)
 
 include("ProcessDemResults.jl")
-process_demand(rundate,spec)
+# process_demand(rundate,spec)
 
 
 println("##### Solve Equilibrium #####")
@@ -170,4 +177,9 @@ include("EvaluateModel.jl")
 include("PriceUpdate.jl")
 include("ConsumerWelfare.jl")
 include("PlannerProblem.jl")
-solve_equilibrium(rundate,spec)
+include("SolveMergers.jl")
+
+MergersMain(rundate,spec,home_directory)
+
+
+# solve_equilibrium(rundate,spec)

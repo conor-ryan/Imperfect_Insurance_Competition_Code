@@ -46,8 +46,9 @@ function origBenchmark(firm::firmData)
     return benchLong
 end
 
-function calcSubsidy!(firm::firmData;foc_check=false,refund=false)
+function calcSubsidy!(firm::firmData;foc_check=false,refund=true)
     if foc_check
+        refund = false
         benchmarks = origBenchmark(firm)
     else
         benchmarks = calcBenchmark(firm)
