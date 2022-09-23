@@ -55,7 +55,7 @@ function MergersMain(rundate,spec,home_directory)
 
 
     # println("####################################")
-    # println("#### Solve Policy Baseline - Price Linked ####")
+    # println("#### Solve Policy Baseline  ####")
     # println("####################################")
     # filestub = "AllMergers_$spec-$(rundate)_Base"
     # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,

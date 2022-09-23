@@ -112,7 +112,7 @@ function consumer_welfare_bymkt(d::InsuranceLogit,firm::firmData,type::String)
         cw_mkt[mkt] = cw
         # println("CW in Market $mkt: $(cw)")
     end
-    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/consumerWelfare_bymkt_$type-$spec-$rundate.csv"
+    file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/consumerWelfare_bymkt_$type-$spec-$rundate.csv"
     output =  DataFrame(markets=markets,CW=cw_mkt)
     CSV.write(file,output)
 
@@ -122,7 +122,7 @@ end
 function consumer_welfare(d::InsuranceLogit,firm::firmData,type::String)
     CW_long, CW_r_long, CW_nr_long, people = calc_consumer(d,firm)
 
-    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/consumerWelfare_$type-$spec-$rundate.csv"
+    file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/consumerWelfare_$type-$spec-$rundate.csv"
     output =  DataFrame(pers = people,
                         CW = CW_long,
                         CW_risk = CW_r_long,
@@ -146,7 +146,7 @@ function total_welfare_bymkt(d::InsuranceLogit,firm::firmData,type::String;updat
     spend_mkt = -spend_mkt./pop_mkt
     trans_mkt = market_transfers(d,firm)
 
-    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/totalWelfare_bymkt_$type-$spec-$rundate.csv"
+    file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/totalWelfare_bymkt_$type-$spec-$rundate.csv"
     output =  DataFrame(markets=markets,CW=cw_mkt,Profit=prof_mkt,Spending=spend_mkt,RA_transfers=trans_mkt,
                         Population=pop_mkt,Insured=ins_mkt)
     CSV.write(file,output)
