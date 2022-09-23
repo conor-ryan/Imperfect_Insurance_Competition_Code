@@ -9,11 +9,11 @@ function MergersMain(rundate,spec,home_directory)
     mark_the_output_date = Dates.today()
     println("Running spec $rundate on $mark_the_output_date")
 
-    file = "$(home_directory)/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$spec-$rundate.jld2"
+    file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$spec-$rundate.jld2"
     @load file p_stg2 p_dem_est cost_spec spec_Dict
     mc_est = copy(p_stg2)
     #### Load Estimation Results ####
-    # file = "$(home_directory)/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/PLL_Estimate_$spec-$rundate-stg1.jld2"
+    # file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/PLL_Estimate_$spec-$rundate-stg1.jld2"
     # @load file p_stg1 spec_Dict
 
     #### Build Model ####
@@ -201,7 +201,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     trash = total_welfare_bymkt(m,f,"$(file_stub)_baseline",update_voucher=update_voucher)
 
     # Output Baseline Model
-    file = "$(home_directory)/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_baseline.csv"
+    file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_baseline.csv"
     output =  DataFrame(Product=prod_vec,
                         Price=P_Base,
                         Lives=S_Base)
@@ -242,7 +242,7 @@ function simulate_all_mergers(m::InsuranceLogit,
             trash = total_welfare_bymkt(m,f,"$(file_stub)_$(merging_parties[1])_$(merging_parties[2])",update_voucher=update_voucher)
 
             # Output equilibrium
-            file = "$(home_directory)/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_$(merging_parties[1])_$(merging_parties[2]).csv"
+            file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_$(merging_parties[1])_$(merging_parties[2]).csv"
             output =  DataFrame(Product=prod_vec,
                                 Price=P_m,
                                 Lives=S_m)
