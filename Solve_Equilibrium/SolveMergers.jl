@@ -172,6 +172,9 @@ function simulate_all_mergers(m::InsuranceLogit,
     sendto(workers(),m,f)
     println("Data Distributed")
 
+    @everywhere test = m
+    @everywhere test = f
+
     # Policy Regime
     if policy=="RA_repeal"
         @everywhere sim="RA"
