@@ -164,38 +164,45 @@ function simulate_all_mergers(m::InsuranceLogit,
                             df::DataFrame,mkt::DataFrame,par_dem::parDict,par_cost::parMC,
                             file_stub;
                             policy="",voucher=true)
+
+    println("Add Workers")
+    addprocs(4)
+
+    println("Send Data to Workers")
+    sendto([2,3,4,5,6,7,8,9,10,11,12,13],m)
+    println("Data Distributed")
     # Initialize Firm Data
-    f = firmData(m,df,mkt,par_dem,par_cost)
+    @everywhere f = firmData(m,df,mkt,par_dem,par_cost)
 
     # Policy Regime
     if policy=="RA_repeal"
-        sim="RA"
+        @everywhere sim="RA"
     elseif policy=="Man_repeal"
-        sim = "Base"
+        @everywhere sim = "Base"
         f.data[:,f.index[:Mandate]].=0.0
     elseif policy=="RAMan_repeal"
-        sim = "RA"
+        @everywhere sim = "RA"
         f.data[:,f.index[:Mandate]].=0.0
     else
-        sim = "Base"
+        @everywhere sim = "Base"
     end
 
     # Price link Regime
-    update_voucher = !voucher
+    @everywhere update_voucher = !voucher
 
     # Initialize Vectors
-    J = maximum(m.prods)
-    prod_vec = zeros(J)
-    prod_vec[sort(m.prods)] = sort(m.prods)
-    P_Base = zeros(J)
-    S_Base = zeros(J)
+    @everywhere J = maximum(m.prods)
+    @everywhere prod_vec = zeros(J)
+    @everywhere prod_vec[sort(m.prods)] = sort(m.prods)
+    @everywhere P_Base = zeros(J)
+    @everywhere S_Base = zeros(J)
 
     # # Solve Baseline Model
     # solve_model!(m,f,sim=sim,voucher=voucher)
     # evaluate_model!(m,f,"All",voucher=voucher)
     # set_voucher!(f,refund=true)
-    # P_Base[:] = f.P_j[:]
-    # S_Base[:] = f.S_j[:]
+    # @everywhere P_Base[:] = f.P_j[:]
+    # @everywhere S_Base[:] = f.S_j[:]
     #
     # consumer_welfare(m,f,"$(file_stub)_baseline")
     # trash = total_welfare_bymkt(m,f,"$(file_stub)_baseline",update_voucher=update_voucher)
@@ -207,12 +214,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     #                     Lives=S_Base)
     # CSV.write(file,output)
 
-    println("Add Workers")
-    addprocs(12)
 
-    println("Send Data to Workers")
-    sendto([2,3,4,5,6,7,8,9,10,11,12,13],f,m)
-    println("Data Distributed")
     # Iterate through all potential mergers
     unique_firms = sort(unique(f.firm_vector[f.firm_vector.!=""]))
     merging_party_list = Vector{Vector{String}}(undef,0)
@@ -230,7 +232,7 @@ function simulate_all_mergers(m::InsuranceLogit,
         end
     end
     println("Send to Iteration Parameters to Workers")
-    sendto([2,3,4,5,6,7,8,9,10,11,12,13],merging_party_list,J,sim,voucher,update_voucher,home_directory_file_stub)
+    sendto([2,3,4,5,6,7,8,9,10,11,12,13],merging_party_list,home_directory,file_stub)
     println("Data Distributed")
     @distributed for merging_parties in merging_party_list
         println(merging_parties)
