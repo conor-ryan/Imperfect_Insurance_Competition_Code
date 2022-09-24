@@ -190,26 +190,32 @@ function simulate_all_mergers(m::InsuranceLogit,
     P_Base = zeros(J)
     S_Base = zeros(J)
 
-    # Solve Baseline Model
-    solve_model!(m,f,sim=sim,voucher=voucher)
-    evaluate_model!(m,f,"All",voucher=voucher)
-    set_voucher!(f,refund=true)
-    P_Base[:] = f.P_j[:]
-    S_Base[:] = f.S_j[:]
+    # # Solve Baseline Model
+    # solve_model!(m,f,sim=sim,voucher=voucher)
+    # evaluate_model!(m,f,"All",voucher=voucher)
+    # set_voucher!(f,refund=true)
+    # P_Base[:] = f.P_j[:]
+    # S_Base[:] = f.S_j[:]
+    #
+    # consumer_welfare(m,f,"$(file_stub)_baseline")
+    # trash = total_welfare_bymkt(m,f,"$(file_stub)_baseline",update_voucher=update_voucher)
+    #
+    # # Output Baseline Model
+    # file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_baseline.csv"
+    # output =  DataFrame(Product=prod_vec,
+    #                     Price=P_Base,
+    #                     Lives=S_Base)
+    # CSV.write(file,output)
 
-    consumer_welfare(m,f,"$(file_stub)_baseline")
-    trash = total_welfare_bymkt(m,f,"$(file_stub)_baseline",update_voucher=update_voucher)
+    println("Add Workers")
+    addprocs(12)
 
-    # Output Baseline Model
-    file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_baseline.csv"
-    output =  DataFrame(Product=prod_vec,
-                        Price=P_Base,
-                        Lives=S_Base)
-    CSV.write(file,output)
-
+    println("Send to Workers")
+    sendto([2,3,4,5,6,7,8,9,10,11,12,13],f,m)
 
     # Iterate through all potential mergers
     unique_firms = sort(unique(f.firm_vector[f.firm_vector.!=""]))
+    merging_party_list = Vector{Vector{String}}(undef,0)
     for (f_index,merge_party_2) in enumerate(unique_firms)
         for merge_party_1 in unique_firms[1:(f_index-1)]
             # Merging parties
@@ -220,35 +226,111 @@ function simulate_all_mergers(m::InsuranceLogit,
             if length(shared_markets)==0
                 continue
             end
-            println(merging_parties)
-            ## Set post-merger ownership matrix
-            ownerMatrix!(f,merging_parties)
-
-            ## Initialize save vectors
-            P_m=  zeros(J)
-            S_m =  zeros(J)
-
-            ## Reset to pre-merger baseline
-            f.P_j[:] = P_Base[:]
-            # Solve model in the affected states
-            solve_model!(m,f,shared_markets,sim=sim,voucher=voucher,update_voucher=update_voucher)
-            evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
-            P_m[:] = f.P_j[:]
-            S_m[:] = f.S_j[:]
-
-            # Output welfare
-            ## ADD FIRM 1 FIRM 2 TAGS
-            consumer_welfare(m,f,"$(file_stub)_$(merging_parties[1])_$(merging_parties[2])")
-            trash = total_welfare_bymkt(m,f,"$(file_stub)_$(merging_parties[1])_$(merging_parties[2])",update_voucher=update_voucher)
-
-            # Output equilibrium
-            file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_$(merging_parties[1])_$(merging_parties[2]).csv"
-            output =  DataFrame(Product=prod_vec,
-                                Price=P_m,
-                                Lives=S_m)
-
-            CSV.write(file,output)
+            push!(merging_party_list,merging_parties)
         end
+    end
+        sendto([2,3,4,5,6,7,8,9,10,11,12,13],merging_party_list,J,sim,voucher,update_voucher,home_directory_file_stub)
+    @distributed for merging_parties in merging_party_list
+        println(merging_parties)
+        ## Set post-merger ownership matrix
+        ownerMatrix!(f,merging_parties)
+
+        ## Initialize save vectors
+        P_m=  zeros(J)
+        S_m =  zeros(J)
+
+        ## Reset to pre-merger baseline
+        f.P_j[:] = P_Base[:]
+        # Solve model in the affected states
+        solve_model!(m,f,shared_markets,sim=sim,voucher=voucher,update_voucher=update_voucher)
+        evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
+        P_m[:] = f.P_j[:]
+        S_m[:] = f.S_j[:]
+
+        # Output welfare
+        ## ADD FIRM 1 FIRM 2 TAGS
+        consumer_welfare(m,f,"$(file_stub)_$(merging_parties[1])_$(merging_parties[2])")
+        trash = total_welfare_bymkt(m,f,"$(file_stub)_$(merging_parties[1])_$(merging_parties[2])",update_voucher=update_voucher)
+
+        # Output equilibrium
+        file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_$(merging_parties[1])_$(merging_parties[2]).csv"
+        output =  DataFrame(Product=prod_vec,
+                            Price=P_m,
+                            Lives=S_m)
+
+        CSV.write(file,output)
     end
     return nothing
 end
+
+function sendto(p::Int; args...)
+    for (nm, val) in args
+        @spawnat(p, eval(Main, Expr(:(=), nm, val)))
+    end
+end
+function sendto(ps::Vector{Int}; args...)
+    for p in ps
+        sendto(p; args...)
+    end
+end
+
+#
+# addprocs(3)
+#
+# @everywhere
+#
+# sendto
+# Send an arbitrary number of variables to specified processes.
+#
+# New variables are created in the Main module on specified processes. The name will be the key of the keyword argument and the value will be the associated value.
+#
+
+# Examples
+# # creates an integer x and Matrix y on processes 1 and 2
+# sendto([1, 2], x=100, y=rand(2, 3))
+#
+# # create a variable here, then send it everywhere else
+# z = randn(10, 10); sendto(workers(), z=z)
+# getfrom
+# Retrieve an object defined in an arbitrary module on an arbitrary process. Defaults to the Main module.
+#
+# The name of the object to be retrieved should be a symbol.
+#
+# getfrom(p::Int, nm::Symbol; mod=Main) = fetch(@spawnat(p, getfield(mod, nm)))
+# Examples
+# # get an object from named x from Main module on process 2. Name it x
+# x = getfrom(2, :x)
+# passobj
+# Pass an arbitrary number of objects from one process to arbitrary processes. The variable must be defined in the from_mod module of the src process and will be copied under the same name to the to_mod module on each target process.
+#
+# function passobj(src::Int, target::Vector{Int}, nm::Symbol;
+#                  from_mod=Main, to_mod=Main)
+#     r = RemoteRef(src)
+#     @spawnat(src, put!(r, getfield(from_mod, nm)))
+#     for to in target
+#         @spawnat(to, eval(to_mod, Expr(:(=), nm, fetch(r))))
+#     end
+#     nothing
+# end
+#
+#
+# function passobj(src::Int, target::Int, nm::Symbol; from_mod=Main, to_mod=Main)
+#     passobj(src, [target], nm; from_mod=from_mod, to_mod=to_mod)
+# end
+#
+#
+# function passobj(src::Int, target, nms::Vector{Symbol};
+#                  from_mod=Main, to_mod=Main)
+#     for nm in nms
+#         passobj(src, target, nm; from_mod=from_mod, to_mod=to_mod)
+#     end
+# end
+# Examples
+# # pass variable named x from process 2 to all other processes
+# passobj(2, filter(x->x!=2, procs()), :x)
+#
+# # pass variables t, u, v from process 3 to process 1
+# passobj(3, 1, [:t, :u, :v])
+#
+# # Pass a variable from the `Foo` module on process 1 to Main on workers
+# passobj(1, workers(), [:foo]; from_mod=Foo)

@@ -6,6 +6,7 @@ using Dates
 using LinearAlgebra
 using Statistics
 using DataFrames
+using Distributed
 
 ## Check OS Environment
 if occursin(r"cxr5626",homedir())
