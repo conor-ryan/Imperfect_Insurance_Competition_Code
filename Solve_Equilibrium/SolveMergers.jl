@@ -165,9 +165,6 @@ function simulate_all_mergers(m::InsuranceLogit,
                             file_stub;
                             policy="",voucher=true)
 
-    println("Add Workers")
-    addprocs(4)
-
     println("Send Data to Workers")
     sendto(workers(),m,home_directory)
     println("Data Distributed")
@@ -264,7 +261,6 @@ function simulate_all_mergers(m::InsuranceLogit,
 
         CSV.write(file,output)
     end
-    rmprocs(workers())
     return nothing
 end
 

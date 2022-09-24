@@ -8,6 +8,9 @@ using Statistics
 using DataFrames
 using Distributed
 
+println("Add Workers")
+addprocs(4)
+
 ## Check OS Environment
 if occursin(r"cxr5626",homedir())
         home_directory = "$(homedir())/work"
@@ -124,26 +127,26 @@ spec_fixedEffects=[:Market_Firm,:Market_Cat]
 println("##### Estimate Demand #####")
 println("Load Demand Estimation Code...")
 # Data Structure
-include("$codeDir/Demand_Estimation/InsChoiceData.jl")
+@everywhere include("$codeDir/Demand_Estimation/InsChoiceData.jl")
 #Halton Draws
-include("$codeDir/Demand_Estimation/Halton.jl")
+@everywhere include("$codeDir/Demand_Estimation/Halton.jl")
 # Random Coefficients MLE
-include("$codeDir/Demand_Estimation/RandomCoefficients.jl")
-include("$codeDir/Demand_Estimation/RandomCoefficients_der.jl")
-include("$codeDir/Demand_Estimation/DerivFunctions.jl")
-include("$codeDir/Demand_Estimation/Log_Likehood.jl")
-include("$codeDir/Demand_Estimation/Log_Likehood_Penalty.jl")
+@everywhere include("$codeDir/Demand_Estimation/RandomCoefficients.jl")
+@everywhere include("$codeDir/Demand_Estimation/RandomCoefficients_der.jl")
+@everywhere include("$codeDir/Demand_Estimation/DerivFunctions.jl")
+@everywhere include("$codeDir/Demand_Estimation/Log_Likehood.jl")
+@everywhere include("$codeDir/Demand_Estimation/Log_Likehood_Penalty.jl")
 
 # GMM Functions
-include("$codeDir/Demand_Estimation/Contraction.jl")
-include("$codeDir/Demand_Estimation/RiskMoments.jl")
-include("$codeDir/Demand_Estimation/GMM_Var.jl")
+@everywhere include("$codeDir/Demand_Estimation/Contraction.jl")
+@everywhere include("$codeDir/Demand_Estimation/RiskMoments.jl")
+@everywhere include("$codeDir/Demand_Estimation/GMM_Var.jl")
 # Estimation Functions
-include("$codeDir/Demand_Estimation/Estimate_Basic.jl")
-include("$codeDir/Demand_Estimation/Estimate_GMM.jl")
-include("$codeDir/Demand_Estimation/Estimate_TwoStage.jl")
-include("$codeDir/Demand_Estimation/utility.jl")
-include("$codeDir/Demand_Estimation/Specification_Run.jl")
+@everywhere include("$codeDir/Demand_Estimation/Estimate_Basic.jl")
+@everywhere include("$codeDir/Demand_Estimation/Estimate_GMM.jl")
+@everywhere include("$codeDir/Demand_Estimation/Estimate_TwoStage.jl")
+@everywhere include("$codeDir/Demand_Estimation/utility.jl")
+@everywhere include("$codeDir/Demand_Estimation/Specification_Run.jl")
 
 filename = "PLL_Estimate_$spec"
 # estimate_demand(filename,rundate,
@@ -156,29 +159,29 @@ filename = "PLL_Estimate_$spec"
 
 println("##### Estimation Marginal Cost #####")
 println("Load Marginal Cost Estimation Code...")
-include("$codeDir/Firm_Side/MC_parameters.jl")
-include("$codeDir/Firm_Side/MC_GMM.jl")
-include("$codeDir/Firm_Side/MC_var.jl")
-include("$codeDir/Firm_Side/MC_derivatives.jl")
-include("$codeDir/Firm_Side/MC_optimization.jl")
-include("$codeDir/Firm_Side/Firm_Inner_Loop.jl")
-include("$codeDir/Firm_Side/SpecRunMC.jl")
+@everywhere include("$codeDir/Firm_Side/MC_parameters.jl")
+@everywhere include("$codeDir/Firm_Side/MC_GMM.jl")
+@everywhere include("$codeDir/Firm_Side/MC_var.jl")
+@everywhere include("$codeDir/Firm_Side/MC_derivatives.jl")
+@everywhere include("$codeDir/Firm_Side/MC_optimization.jl")
+@everywhere include("$codeDir/Firm_Side/Firm_Inner_Loop.jl")
+@everywhere include("$codeDir/Firm_Side/SpecRunMC.jl")
 # estimate_marginal_cost(rundate,spec,cost_spec)
 
-include("ProcessDemResults.jl")
+@everywhere include("ProcessDemResults.jl")
 # process_demand(rundate,spec)
 
 
 println("##### Solve Equilibrium #####")
 println("Load Equilibrium Code...")
-include("predictionData.jl")
-include("FirmFunctions.jl")
-include("SolveModel.jl")
-include("EvaluateModel.jl")
-include("PriceUpdate.jl")
-include("ConsumerWelfare.jl")
-include("PlannerProblem.jl")
-include("SolveMergers.jl")
+@everywhere include("predictionData.jl")
+@everywhere include("FirmFunctions.jl")
+@everywhere include("SolveModel.jl")
+@everywhere include("EvaluateModel.jl")
+@everywhere include("PriceUpdate.jl")
+@everywhere include("ConsumerWelfare.jl")
+@everywhere include("PlannerProblem.jl")
+@everywhere include("SolveMergers.jl")
 
 MergersMain(rundate,spec,home_directory)
 
