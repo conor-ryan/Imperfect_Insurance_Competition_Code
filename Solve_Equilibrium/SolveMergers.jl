@@ -168,12 +168,19 @@ function simulate_all_mergers(m::InsuranceLogit,
     # Initialize Firm Data
     f = firmData(m,df,mkt,par_dem,par_cost)
 
-    println("Send Data to Workers")
-    sendto(workers(),m,f)
-    println("Data Distributed")
+    # println("Send Data to Workers")
+    # sendto(workers(),m,f)
+    # println("Data Distributed")
 
-    @everywhere test = m
+    for w in workers()
+        println("Sending data to $w...")
+        @spawnat(w,eval(:(f=f)))
+        @spawnat(w,eval(:(m=m)))
+    end
+
     @everywhere test = f
+    @everywhere test = m
+
 
     # Policy Regime
     if policy=="RA_repeal"
