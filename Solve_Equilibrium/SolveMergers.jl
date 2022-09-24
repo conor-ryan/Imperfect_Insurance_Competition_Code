@@ -271,7 +271,7 @@ function sendto(p::Int, args...)
 end
 function sendto(ps::Vector{Int}, args...)
     for p in ps
-        sendto(p; args...)
+        sendto(p,args)
     end
 end
 
