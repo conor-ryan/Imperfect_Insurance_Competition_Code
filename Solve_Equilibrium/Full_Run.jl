@@ -1,15 +1,20 @@
-using BenchmarkTools
-using JLD2
-using CSV
-using Random
-using Dates
-using LinearAlgebra
-using Statistics
-using DataFrames
 using Distributed
-
 println("Add Workers")
 addprocs(4)
+
+@everywhere using BenchmarkTools
+@everywhere using JLD2
+@everywhere using CSV
+@everywhere using Random
+@everywhere using Dates
+@everywhere using LinearAlgebra
+@everywhere using Statistics
+@everywhere using DataFrames
+@everywhere using StatsFuns
+@everywhere using ForwardDiff
+@everywhere using NLopt
+@everywhere using FiniteDiff
+
 
 ## Check OS Environment
 if occursin(r"cxr5626",homedir())
