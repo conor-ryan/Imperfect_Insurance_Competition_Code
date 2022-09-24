@@ -13,9 +13,9 @@ addprocs(4)
 
 ## Check OS Environment
 if occursin(r"cxr5626",homedir())
-        home_directory = "$(homedir())/work"
+        @everywhere home_directory = "$(homedir())/work"
 else
-        home_directory = "$(homedir())/Documents"
+        @everywhere home_directory = "$(homedir())/Documents"
 end
 
 @everywhere codeDir = "$(home_directory)/Research/Imperfect_Insurance_Competition/Code/"
