@@ -210,9 +210,9 @@ function simulate_all_mergers(m::InsuranceLogit,
     println("Add Workers")
     addprocs(12)
 
-    println("Send to Workers")
+    println("Send Data to Workers")
     sendto([2,3,4,5,6,7,8,9,10,11,12,13],f,m)
-
+    println("Data Distributed")
     # Iterate through all potential mergers
     unique_firms = sort(unique(f.firm_vector[f.firm_vector.!=""]))
     merging_party_list = Vector{Vector{String}}(undef,0)
@@ -229,7 +229,9 @@ function simulate_all_mergers(m::InsuranceLogit,
             push!(merging_party_list,merging_parties)
         end
     end
-        sendto([2,3,4,5,6,7,8,9,10,11,12,13],merging_party_list,J,sim,voucher,update_voucher,home_directory_file_stub)
+    println("Send to Iteration Parameters to Workers")
+    sendto([2,3,4,5,6,7,8,9,10,11,12,13],merging_party_list,J,sim,voucher,update_voucher,home_directory_file_stub)
+    println("Data Distributed")
     @distributed for merging_parties in merging_party_list
         println(merging_parties)
         ## Set post-merger ownership matrix
@@ -271,6 +273,7 @@ function sendto(p::Int, args...)
 end
 function sendto(ps::Vector{Int}, args...)
     for p in ps
+        println("Sending to worker $p...")
         sendto(p,args)
     end
 end
