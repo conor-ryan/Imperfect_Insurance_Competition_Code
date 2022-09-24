@@ -169,7 +169,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     addprocs(4)
 
     println("Send Data to Workers")
-    sendto([2,3,4,5,6,7,8,9,10,11,12,13],m)
+    sendto(workers(),m,home_directory)
     println("Data Distributed")
     # Initialize Firm Data
     @everywhere f = firmData(m,df,mkt,par_dem,par_cost)
@@ -232,7 +232,7 @@ function simulate_all_mergers(m::InsuranceLogit,
         end
     end
     println("Send to Iteration Parameters to Workers")
-    sendto([2,3,4,5,6,7,8,9,10,11,12,13],merging_party_list,home_directory,file_stub)
+    sendto(workers(),merging_party_list,file_stub)
     println("Data Distributed")
     @distributed for merging_parties in merging_party_list
         println(merging_parties)
