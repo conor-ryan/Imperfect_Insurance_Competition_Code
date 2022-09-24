@@ -174,13 +174,11 @@ function simulate_all_mergers(m::InsuranceLogit,
 
     for w in workers()
         println("Sending data to $w...")
-        @spawnat(w,eval(:(f=f)))
-        @spawnat(w,eval(:(m=m)))
+        tag = @spawnat w f;
+        fetch(tag)
     end
 
     @everywhere test = f
-    @everywhere test = m
-
 
     # Policy Regime
     if policy=="RA_repeal"
