@@ -18,7 +18,7 @@ else
         home_directory = "$(homedir())/Documents"
 end
 
-codeDir = "$(home_directory)/Research/Imperfect_Insurance_Competition/Code/"
+@everywhere codeDir = "$(home_directory)/Research/Imperfect_Insurance_Competition/Code/"
 
 ##### Set Specification ####
 halton_draws = 500
