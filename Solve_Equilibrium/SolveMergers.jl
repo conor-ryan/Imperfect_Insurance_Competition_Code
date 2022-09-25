@@ -169,7 +169,6 @@ function simulate_all_mergers(m::InsuranceLogit,
     f = firmData(m,df,mkt,par_dem,par_cost)
 
     println("Send Data to Workers")
-    # sendto(workers(),m,f)
     @eval @everywhere m=$m
     @eval @everywhere f=$f
     println("Data Distributed")
@@ -180,9 +179,6 @@ function simulate_all_mergers(m::InsuranceLogit,
     #     fetch(tag)
     # end
 
-    @everywhere test = f
-    @everywhere test = m
-    println("Test Successful")
 
     # Policy Regime
     if policy=="RA_repeal"
@@ -198,7 +194,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     end
 
     # Price link Regime
-    @everywhere update_voucher = !voucher
+    update_voucher = !voucher
 
     # Initialize Vectors
     @everywhere J = maximum(m.prods)
@@ -242,8 +238,14 @@ function simulate_all_mergers(m::InsuranceLogit,
         end
     end
     println("Send to Iteration Parameters to Workers")
-    sendto(workers(),merging_party_list,file_stub,update_voucher)
+    # sendto(workers(),merging_party_list,file_stub,update_voucher)
+    @eval @everywhere merging_party_list=$merging_party_list
+    @eval @everywhere file_stub=$file_stub
+    @eval @everywhere update_voucher=$update_voucher
+    @eval @everywhere voucher=$voucher
+    @eval @everywhere home_directory=$home_directory
     println("Data Distributed")
+
     @distributed for merging_parties in merging_party_list
         println(merging_parties)
         ## Set post-merger ownership matrix
