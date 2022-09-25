@@ -200,7 +200,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     @everywhere J = maximum(m.prods)
     @everywhere prod_vec = zeros(J)
     @everywhere prod_vec[sort(m.prods)] = sort(m.prods)
-    @everywhere P_Base = zeros(J)
+    @everywhere P_Base = f.P_j[:]
     @everywhere S_Base = zeros(J)
 
     # # Solve Baseline Model
@@ -258,10 +258,12 @@ function simulate_all_mergers(m::InsuranceLogit,
         ## Reset to pre-merger baseline
         f.P_j[:] = P_Base[:]
         # Solve model in the affected states
+        println("Begin Solution")
         solve_model!(m,f,shared_markets,sim=sim,voucher=voucher,update_voucher=update_voucher)
         evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
         P_m[:] = f.P_j[:]
         S_m[:] = f.S_j[:]
+        println("Begin Welfare Calculation")
 
         # Output welfare
         ## ADD FIRM 1 FIRM 2 TAGS
