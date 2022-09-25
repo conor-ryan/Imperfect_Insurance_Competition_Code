@@ -166,19 +166,19 @@ function simulate_all_mergers(m::InsuranceLogit,
                             policy="",voucher=true)
 
     # Initialize Firm Data
-    f = firmData(m,df,mkt,par_dem,par_cost)
+    @everywhere f = firmData(m,df,mkt,par_dem,par_cost)
 
     # println("Send Data to Workers")
     # sendto(workers(),m,f)
     # println("Data Distributed")
 
-    for w in workers()
-        println("Sending data to $w...")
-        tag = @spawnat w f;
-        fetch(tag)
-    end
+    # for w in workers()
+    #     println("Sending data to $w...")
+    #     tag = @spawnat w f;
+    #     fetch(tag)
+    # end
 
-    @everywhere test = f
+    # @everywhere test = f
 
     # Policy Regime
     if policy=="RA_repeal"
@@ -194,7 +194,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     end
 
     # Price link Regime
-    update_voucher = !voucher
+    @everywhere update_voucher = !voucher
 
     # Initialize Vectors
     @everywhere J = maximum(m.prods)
