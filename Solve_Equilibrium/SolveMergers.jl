@@ -47,9 +47,9 @@ function MergersMain(rundate,spec,home_directory)
 
     #### Compute Parameter Objects ####
     println("Compute Parameters...")
-    @everywhere par_dem = parDict(model,p_dem_est,no2Der=true)
-    @everywhere individual_values!(model,par_dem)
-    @everywhere individual_shares(model,par_dem)
+    par_dem = parDict(model,p_dem_est,no2Der=true)
+    individual_values!(model,par_dem)
+    individual_shares(model,par_dem)
 
     par_cost = parMC(mc_est,par_dem,model,costdf)
 
