@@ -2,16 +2,16 @@ function MergersMain(rundate,spec,home_directory)
 
     #Load Data
     println("Loading Data...")
-    @everywhere include("EQ_load.jl")
+    include("EQ_load.jl")
 
     # df[:High_small] = df[:HighRisk].*df[:Small]
 
     mark_the_output_date = Dates.today()
     println("Running spec $rundate on $mark_the_output_date")
 
-    @everywhere file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$spec-$rundate.jld2"
-    @everywhere @load file p_stg2 p_dem_est cost_spec spec_Dict
-    @everywhere mc_est = copy(p_stg2)
+    file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$spec-$rundate.jld2"
+    @load file p_stg2 p_dem_est cost_spec spec_Dict
+    mc_est = copy(p_stg2)
     #### Load Estimation Results ####
     # file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/PLL_Estimate_$spec-$rundate-stg1.jld2"
     # @load file p_stg1 spec_Dict
@@ -19,7 +19,7 @@ function MergersMain(rundate,spec,home_directory)
     #### Build Model ####
     println("Rebuild Demand Model...")
     # Structre the data
-    @everywhere     chdf = ChoiceData(df,df_mkt,df_risk,df_transfer;
+    chdf = ChoiceData(df,df_mkt,df_risk,df_transfer;
         product =[:Product_std],
         demoRaw=spec_Dict["demoRaw"],
         prodchars=spec_Dict["prodchars"],
@@ -28,7 +28,7 @@ function MergersMain(rundate,spec,home_directory)
         wgt=[:PERWT])
 
     # Fit into model
-    @everywhere model = InsuranceLogit(chdf,spec_Dict["haltonDim"])
+    model = InsuranceLogit(chdf,spec_Dict["haltonDim"])
 
 
     if length(p_dem_est)!=model.parLength[:All]
@@ -39,7 +39,7 @@ function MergersMain(rundate,spec,home_directory)
 
     println("Rebuild Cost Data...")
 
-    @everywhere costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk,mom_ra;
+    costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk,mom_ra;
                     baseSpec=cost_spec,
                     fixedEffects=[:Firm_ST],
                     constMoments=true)
@@ -51,7 +51,7 @@ function MergersMain(rundate,spec,home_directory)
     @everywhere individual_values!(model,par_dem)
     @everywhere individual_shares(model,par_dem)
 
-    @everywhere par_cost = parMC(mc_est,par_dem,model,costdf)
+    par_cost = parMC(mc_est,par_dem,model,costdf)
 
 
     println("####################################")
@@ -168,9 +168,11 @@ function simulate_all_mergers(m::InsuranceLogit,
     # Initialize Firm Data
     @everywhere f = firmData(m,df,mkt,par_dem,par_cost)
 
-    # println("Send Data to Workers")
+    println("Send Data to Workers")
     # sendto(workers(),m,f)
-    # println("Data Distributed")
+    @eval @everywhere m=$m
+    @eval @everywhere f=$f
+    println("Data Distributed")
 
     # for w in workers()
     #     println("Sending data to $w...")
@@ -178,7 +180,9 @@ function simulate_all_mergers(m::InsuranceLogit,
     #     fetch(tag)
     # end
 
-    # @everywhere test = f
+    @everywhere test = f
+    @everywhere test = m
+    println("Test Successful")
 
     # Policy Regime
     if policy=="RA_repeal"
