@@ -166,7 +166,7 @@ function simulate_all_mergers(m::InsuranceLogit,
                             policy="",voucher=true)
 
     # Initialize Firm Data
-    @everywhere f = firmData(m,df,mkt,par_dem,par_cost)
+    f = firmData(m,df,mkt,par_dem,par_cost)
 
     println("Send Data to Workers")
     # sendto(workers(),m,f)
