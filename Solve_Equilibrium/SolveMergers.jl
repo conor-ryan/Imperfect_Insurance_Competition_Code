@@ -169,11 +169,6 @@ function simulate_all_mergers(m::InsuranceLogit,
     # Initialize Firm Data
     f = firmData(m,df,mkt,par_dem,par_cost)
 
-    println("Send Data to Workers")
-    @eval @everywhere m=$m
-    @eval @everywhere f=$f
-    println("Data Distributed")
-
     # for w in workers()
     #     println("Sending data to $w...")
     #     tag = @spawnat w f;
@@ -197,19 +192,28 @@ function simulate_all_mergers(m::InsuranceLogit,
     # Price link Regime
     update_voucher = !voucher
 
+
+
+    # # Solve Baseline Model
+    solve_model!(m,f,sim=sim,voucher=voucher)
+    evaluate_model!(m,f,"All",voucher=voucher)
+    set_voucher!(f,refund=true)
+
+    println("Send Data to Workers")
+    @eval @everywhere m=$m
+    @eval @everywhere f=$f
+    println("Data Distributed")
+
     # Initialize Vectors
     @everywhere J = maximum(m.prods)
     @everywhere prod_vec = zeros(J)
     @everywhere prod_vec[sort(m.prods)] = sort(m.prods)
-    @everywhere P_Base = f.P_j[:]
+    @everywhere P_Base = zeros(J)
     @everywhere S_Base = zeros(J)
 
-    # # Solve Baseline Model
-    # solve_model!(m,f,sim=sim,voucher=voucher)
-    # evaluate_model!(m,f,"All",voucher=voucher)
-    # set_voucher!(f,refund=true)
-    # @everywhere P_Base[:] = f.P_j[:]
-    # @everywhere S_Base[:] = f.S_j[:]
+    # Save Baseline
+    @everywhere P_Base[:] = f.P_j[:]
+    @everywhere S_Base[:] = f.S_j[:]
     #
     # consumer_welfare(m,f,"$(file_stub)_baseline")
     # trash = total_welfare_bymkt(m,f,"$(file_stub)_baseline",update_voucher=update_voucher)
@@ -249,9 +253,6 @@ function simulate_all_mergers(m::InsuranceLogit,
     @eval @everywhere voucher=$voucher
     @eval @everywhere home_directory=$home_directory
     println("Data Distributed")
-
-    println("Evaluate Model")
-    @everywhere evaluate_model!(m,f,"All",voucher=voucher)
 
     @sync @distributed for i in 1:length(merging_party_list)
         shared_markets = shared_market_list[i]
