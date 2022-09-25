@@ -224,6 +224,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     # Iterate through all potential mergers
     unique_firms = sort(unique(f.firm_vector[f.firm_vector.!=""]))
     merging_party_list = Vector{Vector{String}}(undef,0)
+    shared_market_list = Vector{Vector{String}}(undef,0)
     for (f_index,merge_party_2) in enumerate(unique_firms)
         for merge_party_1 in unique_firms[1:(f_index-1)]
             # Merging parties
@@ -235,19 +236,22 @@ function simulate_all_mergers(m::InsuranceLogit,
                 continue
             end
             push!(merging_party_list,merging_parties)
+            push!(shared_market_list,shared_markets)
         end
     end
     println("Send to Iteration Parameters to Workers")
     # sendto(workers(),merging_party_list,file_stub,update_voucher)
     @eval @everywhere merging_party_list=$merging_party_list
+    @eval @everywhere shared_market_list=$shared_market_list
     @eval @everywhere file_stub=$file_stub
     @eval @everywhere update_voucher=$update_voucher
     @eval @everywhere voucher=$voucher
     @eval @everywhere home_directory=$home_directory
     println("Data Distributed")
 
-    for merging_parties in merging_party_list
+    for (i,merging_parties) in enumerate(merging_party_list)
         println(merging_parties)
+        shared_markets = shared_market_list[i]
         ## Set post-merger ownership matrix
         ownerMatrix!(f,merging_parties)
 
