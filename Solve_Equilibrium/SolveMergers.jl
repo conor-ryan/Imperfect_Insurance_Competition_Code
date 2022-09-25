@@ -249,7 +249,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     @eval @everywhere home_directory=$home_directory
     println("Data Distributed")
 
-    @distributed for (i,merging_parties) in enumerate(merging_party_list)
+    @sync @distributed for (i,merging_parties) in enumerate(merging_party_list)
         println(merging_parties)
         shared_markets = shared_market_list[i]
         ## Set post-merger ownership matrix
