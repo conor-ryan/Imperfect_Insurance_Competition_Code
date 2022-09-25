@@ -2,16 +2,16 @@ function MergersMain(rundate,spec,home_directory)
 
     #Load Data
     println("Loading Data...")
-    include("EQ_load.jl")
+    @everywhere include("EQ_load.jl")
 
     # df[:High_small] = df[:HighRisk].*df[:Small]
 
     mark_the_output_date = Dates.today()
     println("Running spec $rundate on $mark_the_output_date")
 
-    file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$spec-$rundate.jld2"
-    @load file p_stg2 p_dem_est cost_spec spec_Dict
-    mc_est = copy(p_stg2)
+    @everywhere file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$spec-$rundate.jld2"
+    @everywhere @load file p_stg2 p_dem_est cost_spec spec_Dict
+    @everywhere mc_est = copy(p_stg2)
     #### Load Estimation Results ####
     # file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/PLL_Estimate_$spec-$rundate-stg1.jld2"
     # @load file p_stg1 spec_Dict
@@ -19,7 +19,7 @@ function MergersMain(rundate,spec,home_directory)
     #### Build Model ####
     println("Rebuild Demand Model...")
     # Structre the data
-    chdf = ChoiceData(df,df_mkt,df_risk,df_transfer;
+    @everywhere     chdf = ChoiceData(df,df_mkt,df_risk,df_transfer;
         product =[:Product_std],
         demoRaw=spec_Dict["demoRaw"],
         prodchars=spec_Dict["prodchars"],
@@ -28,7 +28,7 @@ function MergersMain(rundate,spec,home_directory)
         wgt=[:PERWT])
 
     # Fit into model
-    model = InsuranceLogit(chdf,spec_Dict["haltonDim"])
+    @everywhere model = InsuranceLogit(chdf,spec_Dict["haltonDim"])
 
 
     if length(p_dem_est)!=model.parLength[:All]
@@ -39,7 +39,7 @@ function MergersMain(rundate,spec,home_directory)
 
     println("Rebuild Cost Data...")
 
-    costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk,mom_ra;
+    @everywhere costdf = MC_Data(df,mom_firm,mom_metal,mom_age,mom_age_no,mom_risk,mom_ra;
                     baseSpec=cost_spec,
                     fixedEffects=[:Firm_ST],
                     constMoments=true)
@@ -47,19 +47,19 @@ function MergersMain(rundate,spec,home_directory)
 
     #### Compute Parameter Objects ####
     println("Compute Parameters...")
-    par_dem = parDict(model,p_dem_est,no2Der=true)
-    individual_values!(model,par_dem)
-    individual_shares(model,par_dem)
+    @everywhere par_dem = parDict(model,p_dem_est,no2Der=true)
+    @everywhere individual_values!(model,par_dem)
+    @everywhere individual_shares(model,par_dem)
 
-    par_cost = parMC(mc_est,par_dem,model,costdf)
+    @everywhere par_cost = parMC(mc_est,par_dem,model,costdf)
 
 
-    # println("####################################")
-    # println("#### Solve Policy Baseline  ####")
-    # println("####################################")
-    # filestub = "AllMergers_$spec-$(rundate)_Base"
-    # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
-    #                         filestub,policy="Base")
+    println("####################################")
+    println("#### Solve Policy Baseline  ####")
+    println("####################################")
+    filestub = "AllMergers_$spec-$(rundate)_Base"
+    simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
+                            filestub,policy="Base")
     # println("####################################")
     # println("#### Solve Without Risk Adjustment ####")
     # println("####################################")
@@ -72,18 +72,18 @@ function MergersMain(rundate,spec,home_directory)
     # filestub = "AllMergers_$spec-$(rundate)_Man"
     # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
     #                         filestub,policy="Man_repeal")
-    println("####################################")
-    println("#### Solve Without Risk Adjustment nor Individual Mandate ####")
-    println("####################################")
-    filestub = "AllMergers_$spec-$(rundate)_RAMan"
-    simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
-                            filestub,policy="RAMan_repeal")
-    println("####################################")
-    println("#### Solve Policy Baseline - Price Linked ####")
-    println("####################################")
-    filestub = "AllMergers_PL_$spec-$(rundate)_Base"
-    simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
-                            filestub,policy="Base",voucher=false)
+    # println("####################################")
+    # println("#### Solve Without Risk Adjustment nor Individual Mandate ####")
+    # println("####################################")
+    # filestub = "AllMergers_$spec-$(rundate)_RAMan"
+    # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
+    #                         filestub,policy="RAMan_repeal")
+    # println("####################################")
+    # println("#### Solve Policy Baseline - Price Linked ####")
+    # println("####################################")
+    # filestub = "AllMergers_PL_$spec-$(rundate)_Base"
+    # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
+    #                         filestub,policy="Base",voucher=false)
     # println("####################################")
     # println("#### Solve Without Risk Adjustment - Price Linked ####")
     # println("####################################")
