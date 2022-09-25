@@ -276,9 +276,6 @@ function evaluate_FOC(f::firmData,std_ind::Vector{Int64},merg::String="Base",vou
     MC[std_ind] = inv(dSdp)*(cost_std)
     dSubs[std_ind] = inv(dSdp)*sum(f.dSubdp_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
 
-    println(P_std)
-    println(Mkup)
-    println(MC)
     return P_std, P_RA, Mkup, MC, dSubs
 end
 

@@ -206,7 +206,7 @@ function simulate_all_mergers(m::InsuranceLogit,
 
     # # Solve Baseline Model
     # solve_model!(m,f,sim=sim,voucher=voucher)
-    # evaluate_model!(m,f,"All",voucher=voucher)
+    @everywhere evaluate_model!(m,f,"All",voucher=voucher)
     # set_voucher!(f,refund=true)
     # @everywhere P_Base[:] = f.P_j[:]
     # @everywhere S_Base[:] = f.S_j[:]
