@@ -174,6 +174,24 @@ function solve_SP!(m::InsuranceLogit,f::firmData;
     return nothing
 end
 
+function solve_SP_parallel!(m::InsuranceLogit,f::firmData;
+                sim="SP",merg::String="SP",tol::Float64=1e-12,voucher=false,update_voucher=true)
+
+    println("Send Data to Workers")
+    @eval @everywhere m=$m
+    @eval @everywhere f=$f
+    println("Data Distributed")
+    @everywhere markets = sort(Int.(keys(f.mkt_index)))
+    @everywhere P_res = zeros(length(f.P_j))
+    @distributed for mkt in markets
+        println("Solving for $mkt")
+        solve_model_mkt!(m,f,mkt,sim=sim,merg=merg,tol=tol,voucher=voucher,update_voucher=update_voucher)
+        P_res[f.mkt_index[mkt]] = f.P_j[f.mkt_index[mkt]]
+    end
+    f.P_j[:] = P_res[:]
+    return nothing
+end
+
 
 function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         λ::Float64=0.0,sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=true,update_voucher=false)

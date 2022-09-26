@@ -194,10 +194,37 @@ function simulate_all_mergers(m::InsuranceLogit,
 
 
 
-    # # Solve Baseline Model
-    solve_model!(m,f,sim=sim,voucher=voucher)
+    # ## Solve Baseline Model
+    # solve_model!(m,f,sim=sim,voucher=voucher)
+    # evaluate_model!(m,f,"All",voucher=voucher)
+    # set_voucher!(f,refund=true)
+    #
+    # consumer_welfare(m,f,"$(file_stub)_baseline")
+    # trash = total_welfare_bymkt(m,f,"$(file_stub)_baseline",update_voucher=update_voucher)
+    #
+    # # Output Baseline Model
+    # file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_baseline.csv"
+    # output =  DataFrame(Product=prod_vec,
+    #                     Price=P_Base,
+    #                     Lives=S_Base)
+    # CSV.write(file,output)
+
+
+    ## Solve Baseline Social Planner Problem
+    solve_SP_parallel!(m,f,sim=sim,voucher=voucher)
     evaluate_model!(m,f,"All",voucher=voucher)
-    set_voucher!(f,refund=true)
+    # set_voucher!(f,refund=true)
+
+    consumer_welfare(m,f,"$(file_stub)_SP_baseline")
+    trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_baseline",update_voucher=update_voucher)
+
+    # Output Baseline Model
+    file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_baseline.csv"
+    output =  DataFrame(Product=prod_vec,
+                        Price=P_Base,
+                        Lives=S_Base)
+    CSV.write(file,output)
+
 
     println("Send Data to Workers")
     @eval @everywhere m=$m
@@ -215,15 +242,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     @everywhere P_Base[:] = f.P_j[:]
     @everywhere S_Base[:] = f.S_j[:]
     #
-    # consumer_welfare(m,f,"$(file_stub)_baseline")
-    # trash = total_welfare_bymkt(m,f,"$(file_stub)_baseline",update_voucher=update_voucher)
-    #
-    # # Output Baseline Model
-    # file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_baseline.csv"
-    # output =  DataFrame(Product=prod_vec,
-    #                     Price=P_Base,
-    #                     Lives=S_Base)
-    # CSV.write(file,output)
+
 
 
     # Iterate through all potential mergers
