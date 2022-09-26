@@ -92,19 +92,19 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
     @eval @everywhere markets=$markets
     println("Data Distributed")
 
-    P_res = zeros(length(f.P_j))
+    @everywhere P_res = zeros(length(f.P_j))
     if length(markets) == 0
-        markets = sort(Int.(keys(f.mkt_index)))
+        @everywhere markets = sort(Int.(keys(f.mkt_index)))
     end
-    λ_vec = zeros(length(Int.(keys(f.mkt_index))))
-    for mkt in markets
+    @everywhere λ_vec = zeros(length(Int.(keys(f.mkt_index))))
+    @sync @distributed for mkt in markets
             println("Solving for $mkt")
             println("Profit Target: $(Π_target[mkt])")
             λ = find_λ(m,f,mkt,Π_target[mkt],sim=sim)
             println("Got λ = $λ for market $mkt")
             λ_vec[mkt] = λ
             # solve_model_mkt!(m,f,mkt,λ=λ,sim=sim,merg=merg)
-            # P_res[f.mkt_index[mkt],i] = f.P_j[f.mkt_index[mkt]]
+            P_res[f.mkt_index[mkt]] = f.P_j[f.mkt_index[mkt]]
             # println(f.P_j[f.mkt_index[mkt]])
             # profits = market_profits(m,f)
             # mkt_prof = profits[mkt]
@@ -118,6 +118,7 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
                 println("Improvement in Mean Consumer Welfare: $dcw")
             end
     end
+    f.P_j[:] = P_res[:]
     return markets, λ_vec
 end
 
@@ -230,7 +231,7 @@ function solve_SP_parallel!(m::InsuranceLogit,f::firmData;
     println("Data Distributed")
     @everywhere markets = sort(Int.(keys(f.mkt_index)))
     @everywhere P_res = zeros(length(f.P_j))
-    @distributed for mkt in markets
+    @sync @distributed for mkt in markets
         println("Solving for $mkt")
         solve_model_mkt!(m,f,mkt,sim=sim,merg=merg,tol=tol,voucher=voucher,update_voucher=update_voucher)
         P_res[f.mkt_index[mkt]] = f.P_j[f.mkt_index[mkt]]

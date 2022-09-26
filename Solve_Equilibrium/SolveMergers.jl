@@ -192,7 +192,10 @@ function simulate_all_mergers(m::InsuranceLogit,
     # Price link Regime
     update_voucher = !voucher
 
-
+    # Initialize Vectors
+    J = maximum(m.prods)
+    prod_vec = zeros(J)
+    prod_vec[sort(m.prods)] = sort(m.prods)
 
     # ## Solve Baseline Model
     #println("Solve Baseline Model")
