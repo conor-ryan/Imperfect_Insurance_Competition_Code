@@ -226,8 +226,8 @@ function simulate_all_mergers(m::InsuranceLogit,
     # Output Baseline Model
     file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_baseline.csv"
     output =  DataFrame(Product=prod_vec,
-                        Price=P_Base,
-                        Lives=S_Base)
+                        Price=f.P_j,
+                        Lives=f.S_j)
     CSV.write(file,output)
 
 

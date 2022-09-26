@@ -234,6 +234,7 @@ function solve_SP_parallel!(m::InsuranceLogit,f::firmData;
     @sync @distributed for mkt in markets
         println("Solving for $mkt")
         solve_model_mkt!(m,f,mkt,sim=sim,merg=merg,tol=tol,voucher=voucher,update_voucher=update_voucher)
+        println("Solved $(mkt)!")
         P_res[f.mkt_index[mkt]] = f.P_j[f.mkt_index[mkt]]
     end
     f.P_j[:] = P_res[:]
