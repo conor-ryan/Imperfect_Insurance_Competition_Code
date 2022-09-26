@@ -232,7 +232,7 @@ function simulate_all_mergers(m::InsuranceLogit,
 
 
     ## Solve Baseline Constrained Planner Problem
-    println("Solve Baseline Planner Problem")
+    println("Solve Baseline Current Profit Planner Problem")
     markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits)
     evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
 

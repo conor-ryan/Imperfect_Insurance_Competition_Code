@@ -94,6 +94,7 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
 
     @everywhere P_res = zeros(length(f.P_j))
     if length(markets) == 0
+        println("All Markets")
         @everywhere markets = sort(Int.(keys(f.mkt_index)))
     end
     @everywhere λ_vec = zeros(length(Int.(keys(f.mkt_index))))
