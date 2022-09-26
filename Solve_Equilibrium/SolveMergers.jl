@@ -333,7 +333,7 @@ function simulate_all_mergers(m::InsuranceLogit,
         f.P_j[:] = P_Base[:]
         # Solve model in the affected states
         println("Begin Competitive Equilibrium Solution")
-        solve_model!(m,f,shared_markets,sim=sim,voucher=voucher,update_voucher=update_voucher)
+        solve_model!(m,f,shared_states,sim=sim,voucher=voucher,update_voucher=update_voucher)
         evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
         P_m[:] = f.P_j[:]
         S_m[:] = f.S_j[:]
@@ -354,7 +354,7 @@ function simulate_all_mergers(m::InsuranceLogit,
         ## Solve Profit-Constrained Social Planner Problem
         println("Begin Profit Constrained Planner Solution")
         f.P_j[:] = P_Base_SP_cp
-        markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits,markets=shared_markets)
+        markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,merger_profits,markets=shared_markets)
         evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
 
         consumer_welfare(m,f,"$(file_stub)_SP_cp_$(merging_parties[1])_$(merging_parties[2])")
