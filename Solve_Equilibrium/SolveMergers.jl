@@ -214,9 +214,9 @@ function simulate_all_mergers(m::InsuranceLogit,
     # ## Solve Baseline Model
     println("Solve Baseline Model")
     solve_model_parallel!(m,f,sim=sim,voucher=voucher)
+    P_Base[:] = f.P_j[:]
     evaluate_model!(m,f,"All",voucher=voucher)
     set_voucher!(f,refund=true)
-    P_Base[:] = f.P_j[:]
     println("Base Price: $(f.P_j)")
     println("Base Price: $P_Base")
     #
