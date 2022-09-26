@@ -195,6 +195,7 @@ function simulate_all_mergers(m::InsuranceLogit,
 
 
     # ## Solve Baseline Model
+    #println("Solve Baseline Model")
     # solve_model!(m,f,sim=sim,voucher=voucher)
     # evaluate_model!(m,f,"All",voucher=voucher)
     # set_voucher!(f,refund=true)
@@ -211,6 +212,7 @@ function simulate_all_mergers(m::InsuranceLogit,
 
 
     ## Solve Baseline Social Planner Problem
+    println("Solve Baseline Planner Problem")
     solve_SP_parallel!(m,f,sim=sim,voucher=voucher)
     evaluate_model!(m,f,"All",voucher=voucher)
     # set_voucher!(f,refund=true)
