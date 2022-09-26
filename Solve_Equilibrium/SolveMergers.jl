@@ -209,7 +209,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     prod_vec[sort(m.prods)] = sort(m.prods)
     P_Base = zeros(J)
     P_Base_SP_cp = zeros(J)
-    println("Mean Base Price: $P_Base")
+    println("Base Price: $P_Base")
 
     # ## Solve Baseline Model
     println("Solve Baseline Model")
@@ -217,8 +217,8 @@ function simulate_all_mergers(m::InsuranceLogit,
     evaluate_model!(m,f,"All",voucher=voucher)
     set_voucher!(f,refund=true)
     P_Base[:] = f.P_j[:]
-
-    println("Mean Base Price: $P_Base")
+    println("Base Price: $(f.P_j)")
+    println("Base Price: $P_Base")
     #
     base_profits = market_profits(m,f)
     # base_profits = zeros(length(f.mkt_index))
@@ -277,8 +277,8 @@ function simulate_all_mergers(m::InsuranceLogit,
     @eval @everywhere f=$f
     println("Data Distributed")
 
-    println("Mean Base Price: $P_Base_SP_cp")
-    println("Mean Base Price: $P_Base")
+    println("Base Price: $P_Base_SP_cp")
+    println("Base Price: $P_Base")
 
     # Initialize Vectors
     @everywhere J = maximum(m.prods)
