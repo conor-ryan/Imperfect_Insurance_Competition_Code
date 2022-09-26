@@ -210,8 +210,8 @@ function simulate_all_mergers(m::InsuranceLogit,
     # Output Baseline Model
     file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_baseline.csv"
     output =  DataFrame(Product=prod_vec,
-                        Price=P_Base,
-                        Lives=S_Base)
+                        Price=f.P_j,
+                        Lives=f.S_j)
     CSV.write(file,output)
 
 
@@ -219,7 +219,6 @@ function simulate_all_mergers(m::InsuranceLogit,
     println("Solve Baseline Planner Problem")
     solve_SP_parallel!(m,f,sim=sim,voucher=voucher)
     evaluate_model!(m,f,"All",voucher=voucher)
-    # set_voucher!(f,refund=true)
 
     consumer_welfare(m,f,"$(file_stub)_SP_baseline")
     trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_baseline",update_voucher=update_voucher)
@@ -236,8 +235,6 @@ function simulate_all_mergers(m::InsuranceLogit,
     println("Solve Baseline Planner Problem")
     markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits)
     evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
-
-    # set_voucher!(f,refund=true)
 
     consumer_welfare(m,f,"$(file_stub)_SP_cp_baseline")
     trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_cp_baseline",update_voucher=update_voucher)
