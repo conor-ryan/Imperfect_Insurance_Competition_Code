@@ -220,17 +220,17 @@ function simulate_all_mergers(m::InsuranceLogit,
 
     println("Mean Base Price: $P_Base")
     #
-    # base_profits = market_profits(m,f)
-    # # base_profits = zeros(length(f.mkt_index))
-    # consumer_welfare(m,f,"$(file_stub)_baseline")
-    # trash = total_welfare_bymkt(m,f,"$(file_stub)_baseline",update_voucher=update_voucher)
+    base_profits = market_profits(m,f)
+    # base_profits = zeros(length(f.mkt_index))
+    consumer_welfare(m,f,"$(file_stub)_baseline")
+    trash = total_welfare_bymkt(m,f,"$(file_stub)_baseline",update_voucher=update_voucher)
 
     # Output Baseline Model
     file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_baseline.csv"
-    # output =  DataFrame(Product=prod_vec,
-    #                     Price=f.P_j,
-    #                     Lives=f.S_j)
-    # CSV.write(file,output)
+    output =  DataFrame(Product=prod_vec,
+                        Price=f.P_j,
+                        Lives=f.S_j)
+    CSV.write(file,output)
 
     # output = CSV.read(file,DataFrame)
     # f.P_j = output[!,:Price]
