@@ -163,7 +163,7 @@ end
 
 function check_markets_if_merger(f::firmData,merging_parties)
     shared_markets = 0
-    markets = sort(String.(keys(f.mkt_index)))
+    markets = sort(Int.(keys(f.mkt_index)))
     market_bool = BitVector(undef,length(states))
     for (i,mkt) in enumerate(markets)
         prods = f.mkt_index[mkt]
