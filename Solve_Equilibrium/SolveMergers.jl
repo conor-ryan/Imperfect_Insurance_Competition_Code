@@ -163,10 +163,10 @@ end
 
 function check_markets_if_merger(f::firmData,merging_parties)
     shared_markets = 0
-    markets = sort(String.(keys(f.market_index)))
+    markets = sort(String.(keys(f.mkt_index)))
     market_bool = BitVector(undef,length(states))
     for (i,mkt) in enumerate(markets)
-        prods = f.market_index[mkt]
+        prods = f.mkt_index[mkt]
         market_firms = f.firm_vector[prods]
         market_bool[i] = (merging_parties[1] in market_firms) & (merging_parties[2] in market_firms)
     end
@@ -212,22 +212,28 @@ function simulate_all_mergers(m::InsuranceLogit,
 
     # ## Solve Baseline Model
     println("Solve Baseline Model")
-    solve_model_parallel!(m,f,sim=sim,voucher=voucher)
-    evaluate_model!(m,f,"All",voucher=voucher)
-    set_voucher!(f,refund=true)
-    P_Base[:] = f.P_j[:]
-
-    base_profits = market_profits(m,f)
-    # base_profits = zeros(length(f.mkt_index))
-    consumer_welfare(m,f,"$(file_stub)_baseline")
-    trash = total_welfare_bymkt(m,f,"$(file_stub)_baseline",update_voucher=update_voucher)
+    # solve_model_parallel!(m,f,sim=sim,voucher=voucher)
+    # evaluate_model!(m,f,"All",voucher=voucher)
+    # set_voucher!(f,refund=true)
+    # P_Base[:] = f.P_j[:]
+    #
+    # base_profits = market_profits(m,f)
+    # # base_profits = zeros(length(f.mkt_index))
+    # consumer_welfare(m,f,"$(file_stub)_baseline")
+    # trash = total_welfare_bymkt(m,f,"$(file_stub)_baseline",update_voucher=update_voucher)
 
     # Output Baseline Model
     file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_baseline.csv"
-    output =  DataFrame(Product=prod_vec,
-                        Price=f.P_j,
-                        Lives=f.S_j)
-    CSV.write(file,output)
+    # output =  DataFrame(Product=prod_vec,
+    #                     Price=f.P_j,
+    #                     Lives=f.S_j)
+    # CSV.write(file,output)
+
+    output = CSV.read(file)
+    f.P_j = output[!,:Price]
+    evaluate_model!(m,f,"All",voucher=voucher)
+    set_voucher!(f,refund=true)
+    P_Base[:] = f.P_j[:]
 
     #
     # ## Solve Baseline Social Planner Problem
