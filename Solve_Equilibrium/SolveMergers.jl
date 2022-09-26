@@ -216,9 +216,9 @@ function simulate_all_mergers(m::InsuranceLogit,
     solve_model_parallel!(m,f,sim=sim,voucher=voucher)
     P_Base[:] = f.P_j[:]
     evaluate_model!(m,f,"All",voucher=voucher)
-    set_voucher!(f,refund=true)
-    println("Base Price: $(f.P_j)")
+    println("Model Price: $(f.P_j)")
     println("Base Price: $P_Base")
+    set_voucher!(f,refund=true)
     #
     base_profits = market_profits(m,f)
     # base_profits = zeros(length(f.mkt_index))
