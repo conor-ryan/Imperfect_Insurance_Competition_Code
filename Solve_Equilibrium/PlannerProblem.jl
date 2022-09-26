@@ -80,7 +80,10 @@ function solve_SP_λ!(m::InsuranceLogit,f::firmData,Π_target::Vector{Float64};
 end
 
 function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{Float64};
-                sim="SP",merg::String="SP",tol::Float64=1e-12,voucher=false,update_voucher=true)
+                sim="SP",merg::String="SP",
+                CW_target::Vector{Float64}=Vector{Float64}(undef,0),
+                markets=Vector{Int}(undef,0),
+                tol::Float64=1e-12,voucher=false,update_voucher=true)
 
     println("Send Data to Workers")
     @eval @everywhere m=$m
@@ -91,7 +94,13 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
     @eval @everywhere voucher=$voucher
     @eval @everywhere update_voucher=$update_voucher
     println("Data Distributed")
-    @everywhere markets = sort(Int.(keys(f.mkt_index)))
+    if length(markets) == 0
+        println("All Markets")
+        @everywhere markets = sort(Int.(keys(f.mkt_index)))
+    else
+        @eval @everywhere markets = $markets
+    end
+    
     @everywhere P_res = zeros(length(f.P_j))
     @sync @distributed for mkt in markets
         println("Solving for $mkt")
