@@ -212,10 +212,10 @@ function simulate_all_mergers(m::InsuranceLogit,
 
     # ## Solve Baseline Model
     println("Solve Baseline Model")
-    # solve_model_parallel!(m,f,sim=sim,voucher=voucher)
-    # evaluate_model!(m,f,"All",voucher=voucher)
-    # set_voucher!(f,refund=true)
-    # P_Base[:] = f.P_j[:]
+    solve_model_parallel!(m,f,sim=sim,voucher=voucher)
+    evaluate_model!(m,f,"All",voucher=voucher)
+    set_voucher!(f,refund=true)
+    P_Base[:] = f.P_j[:]
     #
     # base_profits = market_profits(m,f)
     # # base_profits = zeros(length(f.mkt_index))
@@ -229,11 +229,11 @@ function simulate_all_mergers(m::InsuranceLogit,
     #                     Lives=f.S_j)
     # CSV.write(file,output)
 
-    output = CSV.read(file,DataFrame)
-    f.P_j = output[!,:Price]
-    evaluate_model!(m,f,"All",voucher=voucher)
-    set_voucher!(f,refund=true)
-    P_Base[:] = f.P_j[:]
+    # output = CSV.read(file,DataFrame)
+    # f.P_j = output[!,:Price]
+    # evaluate_model!(m,f,"All",voucher=voucher)
+    # set_voucher!(f,refund=true)
+    # P_Base[:] = f.P_j[:]
 
     #
     # ## Solve Baseline Social Planner Problem

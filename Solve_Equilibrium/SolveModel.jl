@@ -116,7 +116,7 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
         err_last = copy(err_new)
         # println(P_last)
     end
-    println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
+    println("Solved $ST at Iteration Count: $itr_cnt, Error: $err_new")
     benchmarks = f.bench_prods[f._prodSTDict[ST]]
     benchmarks = benchmarks[benchmarks.>0]
     println("Benchmark Products: $benchmarks")
