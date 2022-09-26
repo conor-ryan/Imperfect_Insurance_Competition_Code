@@ -229,7 +229,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     #                     Lives=f.S_j)
     # CSV.write(file,output)
 
-    output = CSV.read(file)
+    output = CSV.read(file,DataFrame)
     f.P_j = output[!,:Price]
     evaluate_model!(m,f,"All",voucher=voucher)
     set_voucher!(f,refund=true)
