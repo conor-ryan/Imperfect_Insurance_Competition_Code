@@ -8,6 +8,34 @@ function solve_model!(m::InsuranceLogit,f::firmData;
     return nothing
 end
 
+function solve_model_parallel!(m::InsuranceLogit,f::firmData;
+                sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=false,update_voucher=true,no_policy=false)
+
+    println("Send Data to Workers")
+    @eval @everywhere m=$m
+    @eval @everywhere f=$f
+    @eval @everywhere sim=$sim
+    @eval @everywhere merg=$merg
+    @eval @everywhere tol=$tol
+    @eval @everywhere voucher=$voucher
+    @eval @everywhere update_voucher=$update_voucher
+    @eval @everywhere no_policy=$no_policy
+    println("Data Distributed")
+
+    @everywhere states = sort(String.(keys(f._prodSTDict)))
+    @everywhere P_res = zeros(length(f.P_j))
+
+    @sync @distributed for s in states
+        println("Solving for $s")
+        solve_model_st!(m,f,s,sim=sim,merg=merg,tol=tol,voucher=voucher,update_voucher=update_voucher,no_policy=no_policy)
+        P_res[f._prodSTDict[s]] = f.P_j[f._prodSTDict[s]]
+    end
+    f.P_j[:] = P_res[:]
+    return nothing
+end
+
+
+
 function solve_model!(m::InsuranceLogit,f::firmData,states::Vector{String};
                 sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=false,update_voucher=true,no_policy=false)
     for s in states
