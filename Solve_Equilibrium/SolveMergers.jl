@@ -288,7 +288,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     unique_firms = sort(unique(f.firm_vector[f.firm_vector.!=""]))
     merging_party_list = Vector{Vector{String}}(undef,0)
     shared_state_list = Vector{Vector{String}}(undef,0)
-    shared_market_list = Vector{Vector{String}}(undef,0)
+    shared_market_list = Vector{Vector{Int}}(undef,0)
     for (f_index,merge_party_2) in enumerate(unique_firms)
         for merge_party_1 in unique_firms[1:(f_index-1)]
             # Merging parties
