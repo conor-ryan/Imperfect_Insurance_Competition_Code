@@ -102,7 +102,6 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
     else
         @eval @everywhere markets = $markets
     end
-    println(markets)
     @everywhere P_res = zeros(length(f.P_j))
     @sync @distributed for mkt in markets
         println("Solving for $mkt")
