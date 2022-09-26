@@ -209,6 +209,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     prod_vec[sort(m.prods)] = sort(m.prods)
     P_Base = zeros(J)
     P_Base_SP_cp = zeros(J)
+    println("Mean Base Price: $P_Base")
 
     # ## Solve Baseline Model
     println("Solve Baseline Model")
@@ -216,6 +217,8 @@ function simulate_all_mergers(m::InsuranceLogit,
     evaluate_model!(m,f,"All",voucher=voucher)
     set_voucher!(f,refund=true)
     P_Base[:] = f.P_j[:]
+
+    println("Mean Base Price: $P_Base")
     #
     # base_profits = market_profits(m,f)
     # # base_profits = zeros(length(f.mkt_index))
@@ -273,6 +276,9 @@ function simulate_all_mergers(m::InsuranceLogit,
     @eval @everywhere m=$m
     @eval @everywhere f=$f
     println("Data Distributed")
+
+    println("Mean Base Price: $P_Base_SP_cp")
+    println("Mean Base Price: $P_Base")
 
     # Initialize Vectors
     @everywhere J = maximum(m.prods)
@@ -340,11 +346,15 @@ function simulate_all_mergers(m::InsuranceLogit,
 
         # Output welfare
         ## ADD FIRM 1 FIRM 2 TAGS
+        println("Competitive Consumer Welfare...")
         consumer_welfare(m,f,"$(file_stub)_$(merging_parties[1])_$(merging_parties[2])")
+        println("Competitive Total Welfare...")
         trash = total_welfare_bymkt(m,f,"$(file_stub)_$(merging_parties[1])_$(merging_parties[2])",update_voucher=update_voucher)
+        println("Competitive Profits...")
         merger_profits = market_profits(m,f)
 
         # Output equilibrium
+        println("Output Competitive Results")
         file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_$(merging_parties[1])_$(merging_parties[2]).csv"
         output =  DataFrame(Product=prod_vec,
                             Price=P_m,
@@ -357,7 +367,9 @@ function simulate_all_mergers(m::InsuranceLogit,
         markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,merger_profits,markets=shared_markets)
         evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
 
+        println("SP Consumer Welfare")
         consumer_welfare(m,f,"$(file_stub)_SP_cp_$(merging_parties[1])_$(merging_parties[2])")
+        println("SP Total Welfare")
         trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_cp_$(merging_parties[1])_$(merging_parties[2])",update_voucher=update_voucher)
 
         # Output Baseline Model
