@@ -164,13 +164,13 @@ end
 function check_markets_if_merger(f::firmData,merging_parties)
     shared_markets = 0
     markets = sort(Int.(keys(f.mkt_index)))
-    market_bool = BitVector(undef,length(states))
+    market_bool = BitVector(undef,length(markets))
     for (i,mkt) in enumerate(markets)
         prods = f.mkt_index[mkt]
         market_firms = f.firm_vector[prods]
         market_bool[i] = (merging_parties[1] in market_firms) & (merging_parties[2] in market_firms)
     end
-    return markets[state_bool]
+    return markets[market_bool]
 end
 function simulate_all_mergers(m::InsuranceLogit,
                             df::DataFrame,mkt::DataFrame,par_dem::parDict,par_cost::parMC,
