@@ -103,8 +103,8 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
             println("Profit Target: $(Π_target[mkt])")
             # λ = find_λ(m,f,mkt,Π_target[mkt],sim=sim)
             solve_model_mkt!(m,f,mkt,sim=sim,merg=merg,tol=tol,voucher=voucher,update_voucher=update_voucher)
-            println("Got λ = $λ for market $mkt")
-            λ_vec[mkt] = λ
+            # println("Got λ = $λ for market $mkt")
+            # λ_vec[mkt] = λ
             # solve_model_mkt!(m,f,mkt,λ=λ,sim=sim,merg=merg)
             P_res[f.mkt_index[mkt]] = f.P_j[f.mkt_index[mkt]]
             # println(f.P_j[f.mkt_index[mkt]])
@@ -113,12 +113,12 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
             # println("Profits are $mkt_prof")
 
             # Output Consumer Welfare
-            if length(CW_target)>0
-                cw = calc_cw_mkt(m,f,mkt)
-                dcw = cw-CW_target[mkt]
-                println("Mean Consumer Welfare: $cw")
-                println("Improvement in Mean Consumer Welfare: $dcw")
-            end
+            # if length(CW_target)>0
+            #     cw = calc_cw_mkt(m,f,mkt)
+            #     dcw = cw-CW_target[mkt]
+            #     println("Mean Consumer Welfare: $cw")
+            #     println("Improvement in Mean Consumer Welfare: $dcw")
+            # end
     end
     f.P_j[:] = P_res[:]
     return markets, λ_vec
