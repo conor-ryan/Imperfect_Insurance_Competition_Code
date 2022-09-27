@@ -221,7 +221,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     #
     base_profits = market_profits(m,f)
     # base_profits = zeros(length(f.mkt_index))
-    consumer_welfare(m,f,"$(file_stub)_baseline",spec,rundate)
+    # consumer_welfare(m,f,"$(file_stub)_baseline",spec,rundate)
     trash = total_welfare_bymkt(m,f,"$(file_stub)_baseline",spec,rundate,update_voucher=update_voucher)
 
     # Output Baseline Model
@@ -351,8 +351,8 @@ function simulate_all_mergers(m::InsuranceLogit,
 
         # Output welfare
         ## ADD FIRM 1 FIRM 2 TAGS
-        println("Competitive Consumer Welfare...")
-        consumer_welfare(m,f,"$(file_stub)_$(merging_parties[1])_$(merging_parties[2])",spec,rundate)
+        # println("Competitive Consumer Welfare...")
+        # consumer_welfare(m,f,"$(file_stub)_$(merging_parties[1])_$(merging_parties[2])",spec,rundate)
         println("Competitive Total Welfare...")
         trash = total_welfare_bymkt(m,f,"$(file_stub)_$(merging_parties[1])_$(merging_parties[2])",spec,rundate,update_voucher=update_voucher)
         println("Competitive Profits...")
