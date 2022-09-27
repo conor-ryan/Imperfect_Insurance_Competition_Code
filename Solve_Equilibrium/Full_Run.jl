@@ -14,6 +14,7 @@ addprocs(12)
 @everywhere using ForwardDiff
 @everywhere using NLopt
 @everywhere using FiniteDiff
+@everywhere using SharedArrays
 
 
 ## Check OS Environment
