@@ -23,13 +23,14 @@ function solve_model_parallel!(m::InsuranceLogit,f::firmData;
     println("Data Distributed")
 
     @everywhere states = sort(String.(keys(f._prodSTDict)))
-    @everywhere P_res = zeros(length(f.P_j))
+    P_res = SharedArray{Float64}(length(f.P_j))
 
     @sync @distributed for s in states
         println("Solving for $s")
         solve_model_st!(m,f,s,sim=sim,merg=merg,tol=tol,voucher=voucher,update_voucher=update_voucher,no_policy=no_policy)
         P_res[f._prodSTDict[s]] = f.P_j[f._prodSTDict[s]]
     end
+    println(P_res)
     f.P_j[:] = P_res[:]
     return nothing
 end
