@@ -373,7 +373,7 @@ function simulate_all_mergers(m::InsuranceLogit,
         evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
 
         println("SP Consumer Welfare")
-        consumer_welfare(m,f,"$(file_stub)_SP_cp_$(merging_parties[1])_$(merging_parties[2])",spec,rundate)
+        # consumer_welfare(m,f,"$(file_stub)_SP_cp_$(merging_parties[1])_$(merging_parties[2])",spec,rundate)
         println("SP Total Welfare")
         trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_cp_$(merging_parties[1])_$(merging_parties[2])",spec,rundate,update_voucher=update_voucher)
 
