@@ -215,7 +215,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     solve_model_parallel!(m,f,sim=sim,voucher=voucher)
     P_Base[:] = f.P_j[:]
     evaluate_model!(m,f,"All",voucher=voucher)
-    set_voucher!(f,refund=true)
+    @everywhere set_voucher!(f,refund=true)
     #
     base_profits = market_profits(m,f)
     # consumer_welfare(m,f,"$(file_stub)_baseline",spec,rundate)
@@ -253,7 +253,7 @@ function simulate_all_mergers(m::InsuranceLogit,
 
     ## Solve Baseline Constrained Planner Problem
     println("Solve Baseline Current Profit Planner Problem")
-    markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits)
+    markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits)
     evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
     P_Base_SP_cp[:] = f.P_j[:]
 
