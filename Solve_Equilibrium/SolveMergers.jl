@@ -216,6 +216,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     P_Base[:] = f.P_j[:]
     evaluate_model!(m,f,"All",voucher=voucher)
     set_voucher!(f,refund=true)
+    println("Mean Vouchers: $(mean(f.subsidy_ij_voucher))")
     #
     base_profits = market_profits(m,f)
     # consumer_welfare(m,f,"$(file_stub)_baseline",spec,rundate)

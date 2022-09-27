@@ -95,6 +95,9 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
     @eval @everywhere voucher=$voucher
     @eval @everywhere update_voucher=$update_voucher
     println("Data Distributed")
+
+    @everywhere println("Mean Vouchers: $(mean(f.subsidy_ij_voucher))")
+    @everywhere evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
     if length(markets) == 0
         println("All Markets")
         markets = sort(Int.(keys(f.mkt_index)))
@@ -107,8 +110,6 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
     @sync @distributed for mkt in markets
         println("Solving for $mkt")
         println("Profit Target: $(Π_target[mkt])")
-        println("Starting Prices: $(f.P_j[f.mkt_index[mkt]])")
-        println("Mean Vouchers: $(mean(f.subsidy_ij_voucher[f._perMktDict[mkt]]))")
         λ = find_λ(m,f,mkt,Π_target[mkt],sim=sim)
         println("Got λ = $λ for market $mkt")
         λ_vec[mkt] = λ
