@@ -266,6 +266,7 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
     no_prog = 0
     P_last = zeros(length(f.P_j[:]))
     P_new_last = zeros(length(f.P_j[:]))
+    println("Interior λ: $λ")
     while err_new>tol
         itr_cnt+=1
         # println("Evaluate Model")
@@ -317,6 +318,6 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         err_last = copy(err_new)
         # println(P_last)
     end
-    # println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
+    println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
     return nothing
 end
