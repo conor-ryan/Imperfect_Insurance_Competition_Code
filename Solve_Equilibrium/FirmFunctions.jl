@@ -295,7 +295,6 @@ function predict_price(f::firmData,prod_ind::Vector{Int};sim="Base",merg::String
 
     P_std, P_RA, Mkup, MC, dSubs = evaluate_FOC(f,prod_ind,merg,voucher)
     # println(P_std[f._prodSTDict[ST]])
-
     if sim=="RA"
         P_new = copy(P_std)
     elseif sim=="Base"
@@ -309,6 +308,7 @@ function predict_price(f::firmData,prod_ind::Vector{Int};sim="Base",merg::String
     elseif sim=="SPλ_gov"
         P_new = MC + λ.*Mkup + (1-λ).*dSubs
     end
+    println("Verbose Output: $sim, $λ, $P_new")
     return P_new
 end
 

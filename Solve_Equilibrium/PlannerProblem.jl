@@ -80,7 +80,7 @@ function solve_SP_λ!(m::InsuranceLogit,f::firmData,Π_target::Vector{Float64};
 end
 
 function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{Float64};
-                sim="SP",merg::String="SP",
+                sim="SPλ",merg::String="SP",
                 CW_target::Vector{Float64}=Vector{Float64}(undef,0),
                 markets=Vector{Int}(undef,0),
                 tol::Float64=1e-12,voucher=false,update_voucher=true)
@@ -318,6 +318,6 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         err_last = copy(err_new)
         # println(P_last)
     end
-    println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
+    # println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
     return nothing
 end
