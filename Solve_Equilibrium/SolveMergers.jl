@@ -235,27 +235,27 @@ function simulate_all_mergers(m::InsuranceLogit,
     # P_Base[:] = f.P_j[:]
 
     #
-    ## Solve Baseline Social Planner Problem
-    # println("Solve Baseline Planner Problem")
-    # solve_SP_parallel!(m,f,sim=sim,voucher=voucher,update_voucher=update_voucher)
-    # evaluate_model!(m,f,"All",voucher=voucher)
-    #
-    # # consumer_welfare(m,f,"$(file_stub)_SP_baseline",spec,rundate)
-    # trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_baseline",spec,rundate,update_voucher=update_voucher)
-    #
-    # # Output Baseline SP Model
-    # file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_baseline.csv"
-    # output =  DataFrame(Product=prod_vec,
-    #                     Price=f.P_j,
-    #                     Lives=f.S_j)
-    # CSV.write(file,output)
+    # Solve Baseline Social Planner Problem
+    println("Solve Baseline Planner Problem")
+    solve_SP_parallel!(m,f,sim=sim,voucher=voucher,update_voucher=update_voucher)
+    evaluate_model!(m,f,"All",voucher=voucher)
+
+    # consumer_welfare(m,f,"$(file_stub)_SP_baseline",spec,rundate)
+    trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_baseline",spec,rundate,update_voucher=update_voucher)
+
+    # Output Baseline SP Model
+    file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_baseline.csv"
+    output =  DataFrame(Product=prod_vec,
+                        Price=f.P_j,
+                        Lives=f.S_j)
+    CSV.write(file,output)
 
 
     ## Solve Baseline Constrained Planner Problem
     println("Solve Baseline Current Profit Planner Problem")
     # markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits,markets=[1])
 
-    markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits,markets=[1,2,3])
+    markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits)
     evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
     P_Base_SP_cp[:] = f.P_j[:]
 
@@ -276,10 +276,6 @@ function simulate_all_mergers(m::InsuranceLogit,
     @eval @everywhere m=$m
     @eval @everywhere f=$f
     println("Data Distributed")
-
-    println("Base Price: $P_Base_SP_cp")
-    println("Base Price: $P_Base")
-
     # Initialize Vectors
     @everywhere J = maximum(m.prods)
     @everywhere prod_vec = zeros(J)

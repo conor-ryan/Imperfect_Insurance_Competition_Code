@@ -109,11 +109,11 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
     λ_vec = SharedArray{Float64}(length(markets))
     @sync @distributed for mkt in markets
         println("Solving for $mkt")
-        println("Profit Target: $(Π_target[mkt])")
+        # println("Profit Target: $(Π_target[mkt])")
         profits = market_profits(m,f)
 
         λ = find_λ(m,f,mkt,Π_target[mkt],sim=sim)
-        println("Got λ = $λ for market $mkt")
+        # println("Got λ = $λ for market $mkt")
         λ_vec[mkt] = λ
         # solve_model_mkt!(m,f,mkt,λ=λ,sim=sim,merg=merg)
         P_res[f.mkt_index[mkt]] = f.P_j[f.mkt_index[mkt]]
@@ -210,7 +210,7 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
 
     end
 
-    println("Iteration $cnt, Π error: $err, λ error: $λ_err")
+    println("Got λ = $λ_new in Market $mkt on Iteration $cnt, Π error: $err")
     return λ_new
 end
 
