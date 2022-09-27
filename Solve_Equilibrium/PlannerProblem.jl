@@ -204,7 +204,7 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
         λ_old = copy(λ_new)
         Π_old = copy(Π_new)
         err = abs(Π_new - Π_target)
-        println("Got Profit $Π_new at iteration $cnt with λ=$λ, target $Π_target")
+        println("Got Profit $Π_new at iteration $cnt with λ=$λ_new, target $Π_target")
 
         cw = calc_cw_mkt(m,f,mkt)
         # println(" Mean CW in Mkt: $cw")
