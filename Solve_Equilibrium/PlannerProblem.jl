@@ -103,6 +103,7 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
         @eval @everywhere markets = $markets
     end
     P_res = SharedArray{Float64}(length(f.P_j))
+    λ_vec = SharedArray{Float64}(length(markets))
     @sync @distributed for mkt in markets
         println("Solving for $mkt")
         println("Profit Target: $(Π_target[mkt])")
@@ -150,7 +151,7 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
         if cnt==1
             λ_new = 0.0
         elseif cnt==2
-            λ_new = 1.0
+            λ_new = 0.99999
         elseif cnt<4
             λ_new = (λ_max-λ_min)/2 + λ_min
         elseif (sec_step>λ_min) & (sec_step<λ_max)
@@ -161,7 +162,7 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
             λ_new = (λ_max-λ_min)/2 + λ_min
         end
 
-        # println("Trying λ: $λ_new, $λ_err")
+        println("Trying λ: $λ_new, $λ_err")
         if λ_err >.1
             tol = 1e-12
         else
@@ -197,7 +198,7 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
         λ_old = copy(λ_new)
         Π_old = copy(Π_new)
         err = abs(Π_new - Π_target)
-        # println("Got Profit $Π_new at iteration $cnt, error $err")
+        println("Got Profit $Π_new at iteration $cnt, target $Π_target")
 
         cw = calc_cw_mkt(m,f,mkt)
         # println(" Mean CW in Mkt: $cw")
