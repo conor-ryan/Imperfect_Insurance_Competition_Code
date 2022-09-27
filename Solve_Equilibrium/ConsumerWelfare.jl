@@ -119,7 +119,7 @@ function consumer_welfare_bymkt(d::InsuranceLogit,firm::firmData,type::String)
     return cw_mkt
 end
 
-function consumer_welfare(d::InsuranceLogit,firm::firmData,type::String)
+function consumer_welfare(d::InsuranceLogit,firm::firmData,type::String,spec::String,rundate::String)
     CW_long, CW_r_long, CW_nr_long, people = calc_consumer(d,firm)
 
     file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/consumerWelfare_$type-$spec-$rundate.csv"
@@ -130,7 +130,8 @@ function consumer_welfare(d::InsuranceLogit,firm::firmData,type::String)
     CSV.write(file,output)
 end
 
-function total_welfare_bymkt(d::InsuranceLogit,firm::firmData,type::String;update_voucher=update_voucher)
+function total_welfare_bymkt(d::InsuranceLogit,firm::firmData,type::String,spec::String,rundate::String
+    ;update_voucher=update_voucher)
     markets = sort(Int.(keys(firm.mkt_index)))
     cw_mkt = Vector{Float64}(undef,length(markets))
     gov_mkt = Vector{Float64}(undef,length(markets))

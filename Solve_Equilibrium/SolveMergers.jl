@@ -221,8 +221,8 @@ function simulate_all_mergers(m::InsuranceLogit,
     #
     base_profits = market_profits(m,f)
     # base_profits = zeros(length(f.mkt_index))
-    consumer_welfare(m,f,"$(file_stub)_baseline")
-    trash = total_welfare_bymkt(m,f,"$(file_stub)_baseline",update_voucher=update_voucher)
+    consumer_welfare(m,f,"$(file_stub)_baseline",spec,rundate)
+    trash = total_welfare_bymkt(m,f,"$(file_stub)_baseline",spec,rundate,update_voucher=update_voucher)
 
     # Output Baseline Model
     file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_baseline.csv"
@@ -245,8 +245,8 @@ function simulate_all_mergers(m::InsuranceLogit,
     #
     # println("Model Price: $(f.P_j)")
     #
-    # consumer_welfare(m,f,"$(file_stub)_SP_baseline")
-    # trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_baseline",update_voucher=update_voucher)
+    # consumer_welfare(m,f,"$(file_stub)_SP_baseline",spec,rundate)
+    # trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_baseline",spec,rundate,update_voucher=update_voucher)
     #
     # # Output Baseline Model
     # file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_baseline.csv"
@@ -265,8 +265,8 @@ function simulate_all_mergers(m::InsuranceLogit,
     # println("Model Price: $(f.P_j)")
     # # P_Base_SP_cp = P_Base[:]
     # #
-    # consumer_welfare(m,f,"$(file_stub)_SP_cp_baseline")
-    # trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_cp_baseline",update_voucher=update_voucher)
+    # consumer_welfare(m,f,"$(file_stub)_SP_cp_baseline",spec,rundate)
+    # trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_cp_baseline",spec,rundate,update_voucher=update_voucher)
     #
     # # Output Baseline Model
     # file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_cp_baseline.csv"
@@ -323,6 +323,8 @@ function simulate_all_mergers(m::InsuranceLogit,
     @eval @everywhere update_voucher=$update_voucher
     @eval @everywhere voucher=$voucher
     @eval @everywhere home_directory=$home_directory
+    @eval @everywhere spec=$spec
+    @eval @everywhere rundate=$rundate
     println("Data Distributed")
 
     @sync @distributed for i in 1:length(merging_party_list)
@@ -350,9 +352,9 @@ function simulate_all_mergers(m::InsuranceLogit,
         # Output welfare
         ## ADD FIRM 1 FIRM 2 TAGS
         println("Competitive Consumer Welfare...")
-        consumer_welfare(m,f,"$(file_stub)_$(merging_parties[1])_$(merging_parties[2])")
+        consumer_welfare(m,f,"$(file_stub)_$(merging_parties[1])_$(merging_parties[2])",spec,rundate)
         println("Competitive Total Welfare...")
-        trash = total_welfare_bymkt(m,f,"$(file_stub)_$(merging_parties[1])_$(merging_parties[2])",update_voucher=update_voucher)
+        trash = total_welfare_bymkt(m,f,"$(file_stub)_$(merging_parties[1])_$(merging_parties[2])",spec,rundate,update_voucher=update_voucher)
         println("Competitive Profits...")
         merger_profits = market_profits(m,f)
 
@@ -371,9 +373,9 @@ function simulate_all_mergers(m::InsuranceLogit,
         evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
 
         println("SP Consumer Welfare")
-        consumer_welfare(m,f,"$(file_stub)_SP_cp_$(merging_parties[1])_$(merging_parties[2])")
+        consumer_welfare(m,f,"$(file_stub)_SP_cp_$(merging_parties[1])_$(merging_parties[2])",spec,rundate)
         println("SP Total Welfare")
-        trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_cp_$(merging_parties[1])_$(merging_parties[2])",update_voucher=update_voucher)
+        trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_cp_$(merging_parties[1])_$(merging_parties[2])",spec,rundate,update_voucher=update_voucher)
 
         # Output Baseline Model
         file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_cp_$(merging_parties[1])_$(merging_parties[2]).csv"
