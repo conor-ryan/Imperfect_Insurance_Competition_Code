@@ -236,19 +236,19 @@ function simulate_all_mergers(m::InsuranceLogit,
 
     #
     ## Solve Baseline Social Planner Problem
-    println("Solve Baseline Planner Problem")
-    solve_SP_parallel!(m,f,sim=sim,voucher=voucher)
-    evaluate_model!(m,f,"All",voucher=voucher)
-
-    # consumer_welfare(m,f,"$(file_stub)_SP_baseline",spec,rundate)
-    trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_baseline",spec,rundate,update_voucher=update_voucher)
-
-    # Output Baseline SP Model
-    file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_baseline.csv"
-    output =  DataFrame(Product=prod_vec,
-                        Price=f.P_j,
-                        Lives=f.S_j)
-    CSV.write(file,output)
+    # println("Solve Baseline Planner Problem")
+    # solve_SP_parallel!(m,f,sim=sim,voucher=voucher)
+    # evaluate_model!(m,f,"All",voucher=voucher)
+    #
+    # # consumer_welfare(m,f,"$(file_stub)_SP_baseline",spec,rundate)
+    # trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_baseline",spec,rundate,update_voucher=update_voucher)
+    #
+    # # Output Baseline SP Model
+    # file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_baseline.csv"
+    # output =  DataFrame(Product=prod_vec,
+    #                     Price=f.P_j,
+    #                     Lives=f.S_j)
+    # CSV.write(file,output)
 
 
     ## Solve Baseline Constrained Planner Problem
