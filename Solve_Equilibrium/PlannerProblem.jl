@@ -110,6 +110,9 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
     @sync @distributed for mkt in markets
         println("Solving for $mkt")
         println("Profit Target: $(Π_target[mkt])")
+        profits = market_profits(m,f)
+        println("Profit Current: $(profits[mkt])")
+        
         λ = find_λ(m,f,mkt,Π_target[mkt],sim=sim)
         println("Got λ = $λ for market $mkt")
         λ_vec[mkt] = λ
