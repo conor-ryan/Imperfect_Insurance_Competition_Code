@@ -308,7 +308,7 @@ function predict_price(f::firmData,prod_ind::Vector{Int};sim="Base",merg::String
     elseif sim=="SPλ_gov"
         P_new = MC + λ.*Mkup + (1-λ).*dSubs
     end
-    println("Verbose Output: $sim, $λ, $P_new")
+    # println("Verbose Output: $sim, $λ, $P_new")
     return P_new
 end
 

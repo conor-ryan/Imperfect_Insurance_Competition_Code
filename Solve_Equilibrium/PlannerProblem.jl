@@ -175,6 +175,7 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
             tol = 1e-12
         end
         f.P_j[:] = p_init[:]
+        println(sim)
         solve_model_mkt!(m,f,mkt,λ=λ_new,sim=sim,merg="SP",tol=tol,voucher=true,update_voucher=false)
         println("Price vector ($λ_new): $(f.P_j[f.mkt_index[mkt]])")
         profits = market_profits(m,f)
