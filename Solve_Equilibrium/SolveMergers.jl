@@ -239,41 +239,41 @@ function simulate_all_mergers(m::InsuranceLogit,
 
     #
     ## Solve Baseline Social Planner Problem
-    println("Solve Baseline Planner Problem")
-    solve_SP_parallel!(m,f,sim=sim,voucher=voucher)
-    evaluate_model!(m,f,"All",voucher=voucher)
-
-    println("Model Price: $(f.P_j)")
-
-    consumer_welfare(m,f,"$(file_stub)_SP_baseline")
-    trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_baseline",update_voucher=update_voucher)
-
-    # Output Baseline Model
-    file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_baseline.csv"
-    output =  DataFrame(Product=prod_vec,
-                        Price=f.P_j,
-                        Lives=f.S_j)
-    CSV.write(file,output)
+    # println("Solve Baseline Planner Problem")
+    # solve_SP_parallel!(m,f,sim=sim,voucher=voucher)
+    # evaluate_model!(m,f,"All",voucher=voucher)
+    #
+    # println("Model Price: $(f.P_j)")
+    #
+    # consumer_welfare(m,f,"$(file_stub)_SP_baseline")
+    # trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_baseline",update_voucher=update_voucher)
+    #
+    # # Output Baseline Model
+    # file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_baseline.csv"
+    # output =  DataFrame(Product=prod_vec,
+    #                     Price=f.P_j,
+    #                     Lives=f.S_j)
+    # CSV.write(file,output)
     #
     #
     # ## Solve Baseline Constrained Planner Problem
-    println("Solve Baseline Current Profit Planner Problem")
-    markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits)
-    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
+    # println("Solve Baseline Current Profit Planner Problem")
+    # markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits)
+    # evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
     P_Base_SP_cp[:] = f.P_j[:]
 
-    println("Model Price: $(f.P_j)")
-    # P_Base_SP_cp = P_Base[:]
+    # println("Model Price: $(f.P_j)")
+    # # P_Base_SP_cp = P_Base[:]
+    # #
+    # consumer_welfare(m,f,"$(file_stub)_SP_cp_baseline")
+    # trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_cp_baseline",update_voucher=update_voucher)
     #
-    consumer_welfare(m,f,"$(file_stub)_SP_cp_baseline")
-    trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_cp_baseline",update_voucher=update_voucher)
-
-    # Output Baseline Model
-    file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_cp_baseline.csv"
-    output =  DataFrame(Product=prod_vec,
-                        Price=f.P_j,
-                        Lives=f.S_j)
-    CSV.write(file,output)
+    # # Output Baseline Model
+    # file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_cp_baseline.csv"
+    # output =  DataFrame(Product=prod_vec,
+    #                     Price=f.P_j,
+    #                     Lives=f.S_j)
+    # CSV.write(file,output)
 
     println("Send Data to Workers")
     @eval @everywhere m=$m
