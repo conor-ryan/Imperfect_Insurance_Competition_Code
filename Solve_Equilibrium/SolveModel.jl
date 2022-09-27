@@ -32,6 +32,16 @@ function solve_model_parallel!(m::InsuranceLogit,f::firmData;
     end
     println(P_res)
     f.P_j[:] = P_res[:]
+
+    println("Remove Data from Workers")
+    @eval @everywhere m= nothing
+    @eval @everywhere f= nothing
+    @eval @everywhere sim= nothing
+    @eval @everywhere merg= nothing
+    @eval @everywhere tol= nothing
+    @eval @everywhere voucher= nothing
+    @eval @everywhere update_voucher= nothing
+    @eval @everywhere no_policy= nothing
     return nothing
 end
 
