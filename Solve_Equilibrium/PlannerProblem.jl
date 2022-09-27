@@ -131,7 +131,7 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
         # end
     end
     f.P_j[:] = P_res[:]
-    return nothing
+    return markets, λ_vec
 end
 
 
@@ -174,7 +174,6 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
             tol = 1e-12
         end
         f.P_j[:] = p_init[:]
-        println(sim)
         solve_model_mkt!(m,f,mkt,λ=λ_new,sim=sim,merg="SP",tol=tol,voucher=true,update_voucher=false)
         # println("Price vector ($λ_new): $(f.P_j[f.mkt_index[mkt]])")
         profits = market_profits(m,f)
@@ -266,7 +265,6 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
     no_prog = 0
     P_last = zeros(length(f.P_j[:]))
     P_new_last = zeros(length(f.P_j[:]))
-    println("Interior λ: $λ")
     while err_new>tol
         itr_cnt+=1
         # println("Evaluate Model")
