@@ -69,12 +69,12 @@ function solve_SP_λ!(m::InsuranceLogit,f::firmData,Π_target::Vector{Float64};
             # println("Profits are $mkt_prof")
 
             # Output Consumer Welfare
-            if length(CW_target)>0
-                cw = calc_cw_mkt(m,f,mkt)
-                dcw = cw-CW_target[mkt]
-                println("Mean Consumer Welfare: $cw")
-                println("Improvement in Mean Consumer Welfare: $dcw")
-            end
+            # if length(CW_target)>0
+            #     cw = calc_cw_mkt(m,f,mkt)
+            #     dcw = cw-CW_target[mkt]
+            #     println("Mean Consumer Welfare: $cw")
+            #     println("Improvement in Mean Consumer Welfare: $dcw")
+            # end
     end
     return markets, λ_vec
 end
@@ -161,7 +161,7 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
             λ_new = (λ_max-λ_min)/2 + λ_min
         end
 
-        println("Trying λ: $λ_new, $λ_err")
+        # println("Trying λ: $λ_new, $λ_err")
         if λ_err >.1
             tol = 1e-12
         else
@@ -197,10 +197,10 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
         λ_old = copy(λ_new)
         Π_old = copy(Π_new)
         err = abs(Π_new - Π_target)
-        println("Got Profit $Π_new at iteration $cnt, error $err")
+        # println("Got Profit $Π_new at iteration $cnt, error $err")
 
         cw = calc_cw_mkt(m,f,mkt)
-        println(" Mean CW in Mkt: $cw")
+        # println(" Mean CW in Mkt: $cw")
 
     end
 

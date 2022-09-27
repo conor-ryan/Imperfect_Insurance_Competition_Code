@@ -120,14 +120,14 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
     println("Solved $ST at Iteration Count: $itr_cnt, Error: $err_new")
     benchmarks = f.bench_prods[f._prodSTDict[ST]]
     benchmarks = benchmarks[benchmarks.>0]
-    println("Benchmark Products: $benchmarks")
+    # println("Benchmark Products: $benchmarks")
     benchmarks = f.bench_prods[f._prodSTDict[ST]]
     silver = f.P_j[f._prodSTDict[ST]]
     silver = silver[benchmarks.>0]
-    println("Silver Premiums: $silver")
+    # println("Silver Premiums: $silver")
     obs_silver = P_orig[f._prodSTDict[ST]]
     obs_silver = obs_silver[benchmarks.>0]
-    println("Observed (Previous) Silver Premiums: $obs_silver")
+    # println("Observed (Previous) Silver Premiums: $obs_silver")
     return nothing
 end
 
