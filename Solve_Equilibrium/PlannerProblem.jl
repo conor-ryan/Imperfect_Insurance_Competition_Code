@@ -96,8 +96,8 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
     @eval @everywhere update_voucher=$update_voucher
     println("Data Distributed")
 
-    @everywhere println("Mean Vouchers: $(mean(f.subsidy_ij_voucher))")
-    @everywhere evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
+    # @everywhere println("Mean Vouchers: $(mean(f.subsidy_ij_voucher))")
+    # @everywhere evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
     if length(markets) == 0
         println("All Markets")
         markets = sort(Int.(keys(f.mkt_index)))
@@ -111,7 +111,6 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
         println("Solving for $mkt")
         println("Profit Target: $(Π_target[mkt])")
         profits = market_profits(m,f)
-        println("Profit Current: $(profits[mkt])")
 
         λ = find_λ(m,f,mkt,Π_target[mkt],sim=sim)
         println("Got λ = $λ for market $mkt")
@@ -177,7 +176,7 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
         f.P_j[:] = p_init[:]
         println(sim)
         solve_model_mkt!(m,f,mkt,λ=λ_new,sim=sim,merg="SP",tol=tol,voucher=true,update_voucher=false)
-        println("Price vector ($λ_new): $(f.P_j[f.mkt_index[mkt]])")
+        # println("Price vector ($λ_new): $(f.P_j[f.mkt_index[mkt]])")
         profits = market_profits(m,f)
         Π_new = profits[mkt]
         if (Π_new>Π_target) | (cnt==2)
@@ -205,7 +204,7 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
         λ_old = copy(λ_new)
         Π_old = copy(Π_new)
         err = abs(Π_new - Π_target)
-        println("Got Profit $Π_new at iteration $cnt with λ=$λ_new, target $Π_target")
+        # println("Got Profit $Π_new at iteration $cnt with λ=$λ_new, target $Π_target")
 
         cw = calc_cw_mkt(m,f,mkt)
         # println(" Mean CW in Mkt: $cw")

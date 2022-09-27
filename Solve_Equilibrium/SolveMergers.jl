@@ -216,8 +216,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     P_Base[:] = f.P_j[:]
     evaluate_model!(m,f,"All",voucher=voucher)
     set_voucher!(f,refund=true)
-    println("Mean Vouchers: $(mean(f.subsidy_ij_voucher))")
-    #
+
     base_profits = market_profits(m,f)
     # consumer_welfare(m,f,"$(file_stub)_baseline",spec,rundate)
     trash = total_welfare_bymkt(m,f,"$(file_stub)_baseline",spec,rundate,update_voucher=update_voucher)
@@ -256,7 +255,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     println("Solve Baseline Current Profit Planner Problem")
     # markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits,markets=[1])
 
-    markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits,markets=[1,2,3,4])
+    markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits,markets=[1,2,3,4,5])
     evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
     P_Base_SP_cp[:] = f.P_j[:]
 
