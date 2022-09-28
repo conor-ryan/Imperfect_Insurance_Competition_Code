@@ -89,7 +89,6 @@ for (policy in c("Base","RAMan")){
   rm(welfare,hhi,base_welfare,baseline,firm_share,dHHI)
 }
 
-merger_welfare[dHHI<100,c("policy","merging_parties")]
 
 #### Market Structure Description #####
 ## Firms
@@ -106,15 +105,19 @@ merger_welfare[,chg_Tot_Welfare:=chg_CW+chg_Profit]
 merger_welfare[,chg_Tot_Welfaregov:=chg_CW+chg_Profit+chg_Spending]
 
 
-ggplot(merger_welfare[policy=="Base"]) + 
-  geom_point(aes(x=dHHI,y=chg_CW),color="blue")+ 
-  geom_point(aes(x=dHHI,y=chg_Tot_Welfare),color="red")+ 
-  facet_wrap(~hhi_category,ncol=1)
+ggplot(merger_welfare[policy=="Base"])+ 
+  geom_point(aes(x=dHHI,y=chg_CW),color="blue",shape=16)+ 
+  geom_point(aes(x=dHHI,y=chg_Tot_Welfare),color="red",shape=17) + 
+  geom_errorbar(aes(x=dHHI,ymin=chg_CW,ymax=chg_Tot_Welfare)) +
+  facet_wrap(~hhi_category,ncol=1) + 
+  coord_cartesian(xlim=c(0,1000),ylim=c(-10,10))
 
 ggplot(merger_welfare[policy=="RAMan"]) + 
-  geom_point(aes(x=dHHI,y=chg_CW),color="blue")+ 
-  geom_point(aes(x=dHHI,y=chg_Tot_Welfare),color="red") + 
-  facet_wrap(~hhi_category,ncol=1)
+  geom_point(aes(x=dHHI,y=chg_CW),color="blue",shape=16)+ 
+  geom_point(aes(x=dHHI,y=chg_Tot_Welfare),color="red",shape=17) + 
+  geom_errorbar(aes(x=dHHI,ymin=chg_CW,ymax=chg_Tot_Welfare)) +
+  facet_wrap(~hhi_category,ncol=1) + 
+  coord_cartesian(xlim=c(0,1000),ylim=c(-15,35))
 
 
 ggplot(merger_welfare[policy=="Base"]) + 
