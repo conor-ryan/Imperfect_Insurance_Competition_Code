@@ -670,54 +670,53 @@ function simulate_all_mergers(m::InsuranceLogit,
     # P_Base[:] = f.P_j[:]
 
     #
-    # # Solve Baseline Social Planner Problem
-    # println("Solve Baseline Planner Problem")
-    # solve_SP_parallel!(m,f,sim="SP",voucher=voucher,update_voucher=update_voucher)
-    # evaluate_model!(m,f,"All",voucher=voucher)
+    # Solve Baseline Social Planner Problem
+    println("Solve Baseline Planner Problem")
+    solve_SP_parallel!(m,f,sim="SP",voucher=voucher,update_voucher=update_voucher)
+    evaluate_model!(m,f,"All",voucher=voucher)
+
+    # consumer_welfare(m,f,"$(file_stub)_SP_baseline",spec,rundate)
+    trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_baseline",spec,rundate,update_voucher=update_voucher)
+
+    # Output Baseline SP Model
+    file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_baseline.csv"
+    output =  DataFrame(Product=prod_vec,
+                        Price=f.P_j,
+                        Lives=f.S_j)
+    CSV.write(file,output)
     #
-    # # consumer_welfare(m,f,"$(file_stub)_SP_baseline",spec,rundate)
-    # trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_baseline",spec,rundate,update_voucher=update_voucher)
     #
-    # # Output Baseline SP Model
-    # file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_baseline.csv"
-    # output =  DataFrame(Product=prod_vec,
-    #                     Price=f.P_j,
-    #                     Lives=f.S_j)
-    # CSV.write(file,output)
+    ## Solve Baseline Constrained Planner Problem
+    println("Solve Baseline Current Profit Planner Problem")
+    # markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits,markets=[1])
+
+    markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits)
+    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
+    P_Base_SP_cp[:] = f.P_j[:]
+
+    # println("Model Price: $(f.P_j)")
+    # # P_Base_SP_cp = P_Base[:]
     # #
-    # #
-    # ## Solve Baseline Constrained Planner Problem
-    # println("Solve Baseline Current Profit Planner Problem")
-    # # markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits,markets=[1])
-    #
-    # markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits)
-    # evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
-    # P_Base_SP_cp[:] = f.P_j[:]
-    #
-    # # println("Model Price: $(f.P_j)")
-    # # # P_Base_SP_cp = P_Base[:]
-    # # #
-    # # consumer_welfare(m,f,"$(file_stub)_SP_cp_baseline",spec,rundate)
-    # trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_cp_baseline",spec,rundate,update_voucher=update_voucher)
-    #
-    # # Output Baseline Model
-    # file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_cp_baseline.csv"
-    # output =  DataFrame(Product=prod_vec,
-    #                     Price=f.P_j,
-    #                     Lives=f.S_j)
-    # CSV.write(file,output)
-    #
-    # println("Send Data to Workers")
-    # @eval @everywhere m=$m
-    # @eval @everywhere f=$f
-    # println("Data Distributed")
-    # # Initialize Vectors
-    # @everywhere J = maximum(m.prods)
-    # @everywhere prod_vec = zeros(J)
-    # @everywhere prod_vec[sort(m.prods)] = sort(m.prods)
-    # @eval @everywhere P_Base = $P_Base
-    # @eval @everywhere P_Base_SP_cp = $P_Base_SP_cp
-    #
+    # consumer_welfare(m,f,"$(file_stub)_SP_cp_baseline",spec,rundate)
+    trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_cp_baseline",spec,rundate,update_voucher=update_voucher)
+
+    # Output Baseline Model
+    file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_cp_baseline.csv"
+    output =  DataFrame(Product=prod_vec,
+                        Price=f.P_j,
+                        Lives=f.S_j)
+    CSV.write(file,output)
+
+    println("Send Data to Workers")
+    @eval @everywhere m=$m
+    @eval @everywhere f=$f
+    println("Data Distributed")
+    # Initialize Vectors
+    @everywhere J = maximum(m.prods)
+    @everywhere prod_vec = zeros(J)
+    @everywhere prod_vec[sort(m.prods)] = sort(m.prods)
+    @eval @everywhere P_Base = $P_Base
+    @eval @everywhere P_Base_SP_cp = $P_Base_SP_cp
 
 
 
@@ -797,7 +796,7 @@ function simulate_all_mergers(m::InsuranceLogit,
 
         ## Solve Profit-Constrained Social Planner Problem
         println("Begin Profit Constrained Planner Solution")
-        # f.P_j[:] = P_Base_SP_cp
+        f.P_j[:] = P_Base_SP_cp
         markets_cp, λ_vec_cp = solve_SP_λ!(m,f,merger_profits,markets=shared_markets)
         evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
 
@@ -827,64 +826,3 @@ function sendto(ps::Vector{Int}, args...)
         sendto(p,args)
     end
 end
-
-#
-# addprocs(3)
-#
-# @everywhere
-#
-# sendto
-# Send an arbitrary number of variables to specified processes.
-#
-# New variables are created in the Main module on specified processes. The name will be the key of the keyword argument and the value will be the associated value.
-#
-
-# Examples
-# # creates an integer x and Matrix y on processes 1 and 2
-# sendto([1, 2], x=100, y=rand(2, 3))
-#
-# # create a variable here, then send it everywhere else
-# z = randn(10, 10); sendto(workers(), z=z)
-# getfrom
-# Retrieve an object defined in an arbitrary module on an arbitrary process. Defaults to the Main module.
-#
-# The name of the object to be retrieved should be a symbol.
-#
-# getfrom(p::Int, nm::Symbol; mod=Main) = fetch(@spawnat(p, getfield(mod, nm)))
-# Examples
-# # get an object from named x from Main module on process 2. Name it x
-# x = getfrom(2, :x)
-# passobj
-# Pass an arbitrary number of objects from one process to arbitrary processes. The variable must be defined in the from_mod module of the src process and will be copied under the same name to the to_mod module on each target process.
-#
-# function passobj(src::Int, target::Vector{Int}, nm::Symbol;
-#                  from_mod=Main, to_mod=Main)
-#     r = RemoteRef(src)
-#     @spawnat(src, put!(r, getfield(from_mod, nm)))
-#     for to in target
-#         @spawnat(to, eval(to_mod, Expr(:(=), nm, fetch(r))))
-#     end
-#     nothing
-# end
-#
-#
-# function passobj(src::Int, target::Int, nm::Symbol; from_mod=Main, to_mod=Main)
-#     passobj(src, [target], nm; from_mod=from_mod, to_mod=to_mod)
-# end
-#
-#
-# function passobj(src::Int, target, nms::Vector{Symbol};
-#                  from_mod=Main, to_mod=Main)
-#     for nm in nms
-#         passobj(src, target, nm; from_mod=from_mod, to_mod=to_mod)
-#     end
-# end
-# Examples
-# # pass variable named x from process 2 to all other processes
-# passobj(2, filter(x->x!=2, procs()), :x)
-#
-# # pass variables t, u, v from process 3 to process 1
-# passobj(3, 1, [:t, :u, :v])
-#
-# # Pass a variable from the `Foo` module on process 1 to Main on workers
-# passobj(1, workers(), [:foo]; from_mod=Foo)
