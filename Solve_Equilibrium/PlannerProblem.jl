@@ -149,21 +149,22 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
     λ_new = 0.0
     Π_min = -1e8
     Π_max = 1e8
+    bottom_half_flag=false
     p_init = copy(f.P_j[:])
     while (λ_err>1e-4) & (err>1)
         cnt+=1
         sec_step = (Π_target-intcpt)/slope
         if cnt==1
-            λ_new = 0.0
+            λ_new = 1.0
         elseif cnt==2
-            λ_new = 0.99999
-        elseif cnt<4
-            λ_new = (λ_max-λ_min)/2 + λ_min
+            λ_new = 0.5
+        elseif (cnt==3) & (bottom_half_flag)
+            λ_new = 0.0
         elseif (sec_step>λ_min) & (sec_step<λ_max)
-            # println("Secant Step")
+            println("Secant Step")
             λ_new = sec_step
         else
-            # println("Bisection Step")
+            println("Bisection Step")
             λ_new = (λ_max-λ_min)/2 + λ_min
         end
 
@@ -178,10 +179,14 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
         # println("Price vector ($λ_new): $(f.P_j[f.mkt_index[mkt]])")
         profits = market_profits(m,f)
         Π_new = profits[mkt]
-        if (Π_new>Π_target) | (cnt==2)
+        if (cnt==2) & (Π_new>Π_target)
+            bottom_half_flag=true
+        end
+
+        if (Π_new>Π_target) #| (cnt==2)
             λ_max = copy(λ_new)
             Π_max = copy(Π_new)
-        elseif (Π_new<=Π_target) | (cnt==1)
+        elseif (Π_new<=Π_target) #| (cnt==1)
             λ_min = copy(λ_new)
             Π_min = copy(Π_new)
         end
@@ -203,7 +208,7 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
         λ_old = copy(λ_new)
         Π_old = copy(Π_new)
         err = abs(Π_new - Π_target)
-        # println("Got Profit $Π_new at iteration $cnt with λ=$λ_new, target $Π_target")
+        println("Got Profit $Π_new at iteration $cnt with λ=$λ_new, target $Π_target")
 
         cw = calc_cw_mkt(m,f,mkt)
         # println(" Mean CW in Mkt: $cw")
