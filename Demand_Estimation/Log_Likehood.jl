@@ -178,8 +178,13 @@ function log_likelihood_parallel!(hess::Matrix{Float64},grad::Vector{Float64},
         individual_shares(d,p)
     end
 
+    println("Send Data to Workers")
+    @eval @everywhere m=$m
+    @eval @everywhere f=$f
+    println("Data Distributed")
+
     #shell_full = zeros(Q,N,38)
-    for app in eachperson(d.data)
+    @distributed @sync for app in eachperson(d.data)
         K = length(person(app))
         # if K>k_max
         #     k_max = K
