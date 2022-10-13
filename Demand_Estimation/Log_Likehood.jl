@@ -64,30 +64,6 @@ function log_likelihood!(grad::Vector{Float64},d::InsuranceLogit,p::Array{T};
 end
 
 
-# Calculate Standard Errors
-# Hiyashi, p. 491
-function calc_Avar(d::InsuranceLogit,p::parDict{T}) where T
-    # Calculate μ_ij, which depends only on parameters
-    individual_values!(d,p)
-    individual_shares(d,p)
-
-    Σ = zeros(d.parLength[:All],d.parLength[:All])
-    Pop =sum(weight(d.data).*choice(d.data))
-    grad_obs = Vector{Float64}(undef,d.parLength[:All])
-
-    for app in eachperson(d.data)
-        grad_obs[:].=0
-        ll_obs,pars_relevant = ll_obs_gradient!(grad_obs,app,d,p)
-        S_n = grad_obs*grad_obs'
-        Σ+= S_n
-    end
-
-    Σ = Σ./Pop
-    AsVar = inv(Σ)
-    return AsVar
-end
-
-
 function log_likelihood!(grad::Vector{S},
                             d::InsuranceLogit,p::parDict{T};
                             cont_flag::Bool=false,
@@ -128,6 +104,57 @@ end
 
 
 function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
+                            d::InsuranceLogit,p::parDict{T};
+                            feFlag=-1) where T
+    Q = d.parLength[:All]
+    N = size(d.draws,1)
+    hess[:] .= 0.0
+    grad[:] .= 0.0
+    ll = 0.0
+    Pop =sum(weight(d.data).*choice(d.data))
+
+    #Reset Derivatives
+    p.dSdθ_j[:] .= 0.0
+    p.dRdθ_j[:] .= 0.0
+    p.d2Sdθ_j[:] .= 0.0
+    p.d2Rdθ_j[:] .= 0.0
+
+    if feFlag==1
+        compute_controls!(d,p)
+        individual_shares_norisk(d,p)
+    else
+        individual_values!(d,p)
+        individual_shares(d,p)
+    end
+
+    #shell_full = zeros(Q,N,38)
+    for app in eachperson(d.data)
+        K = length(person(app))
+        # if K>k_max
+        #     k_max = K
+        # end
+        #shell = shell_full[:,:,1:K]
+        ll_obs,pars_relevant = ll_obs_hessian!(hess,grad,app,d,p,feFlag=feFlag)
+
+        ll+=ll_obs
+
+        #add_obs_mat!(hess,grad,hess_obs,grad_obs,Pop,pars_relevant)
+
+    end
+    # if isnan(ll)
+    #     ll = -1e20
+    # end
+    for q in 1:Q
+        grad[q]=grad[q]/Pop
+        for r in 1:Q
+        hess[q,r]=hess[q,r]/Pop
+        end
+    end
+
+    return ll/Pop
+end
+
+function log_likelihood_parallel!(hess::Matrix{Float64},grad::Vector{Float64},
                             d::InsuranceLogit,p::parDict{T};
                             feFlag=-1) where T
     Q = d.parLength[:All]
@@ -257,4 +284,28 @@ function log_likelihood!(thD::Array{Float64,3},
     ll = log_likelihood!(thD,hess,grad,d,params,feFlag=feFlag)
     # convert_δ!(d)
     return ll
+end
+
+
+# Calculate Standard Errors
+# Hiyashi, p. 491
+function calc_Avar(d::InsuranceLogit,p::parDict{T}) where T
+    # Calculate μ_ij, which depends only on parameters
+    individual_values!(d,p)
+    individual_shares(d,p)
+
+    Σ = zeros(d.parLength[:All],d.parLength[:All])
+    Pop =sum(weight(d.data).*choice(d.data))
+    grad_obs = Vector{Float64}(undef,d.parLength[:All])
+
+    for app in eachperson(d.data)
+        grad_obs[:].=0
+        ll_obs,pars_relevant = ll_obs_gradient!(grad_obs,app,d,p)
+        S_n = grad_obs*grad_obs'
+        Σ+= S_n
+    end
+
+    Σ = Σ./Pop
+    AsVar = inv(Σ)
+    return AsVar
 end

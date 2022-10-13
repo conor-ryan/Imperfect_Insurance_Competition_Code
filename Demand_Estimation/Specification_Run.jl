@@ -169,7 +169,7 @@ function run_specification_GMM(filename::String,
     "nested"=>nested,
     "haltonDim"=>haltonDim)
 
-    cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/")
+    cd("$(home_directory)Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/")
     ## Build Log_Likehood Model
     println("Build LL Model")
     # c_ll = ChoiceData(df,df_mkt,df_risk;
@@ -311,7 +311,7 @@ function estimate_demand(filename,rundate,
                     spec_fixedEffects)
     # Load the Data
     println("Loading Data...")
-    codeDir = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Code/Demand_Estimation"
+    codeDir = "$(home_directory)/Research/Imperfect_Insurance_Competition/Code/Demand_Estimation"
     include("$codeDir/load.jl")
 
 
@@ -349,7 +349,7 @@ function run_specification_penalizedlikelihood(filename::String,
     "nested"=>nested,
     "haltonDim"=>haltonDim)
 
-    cd("$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/")
+    cd("$(home_directory)/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/")
 
     # println("Build LL Model - Fixed Effects Starting Point")
     # c_ll = ChoiceData(df,df_mkt,df_risk,df_transfer;

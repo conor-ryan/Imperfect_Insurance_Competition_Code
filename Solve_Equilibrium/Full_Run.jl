@@ -1,6 +1,6 @@
 using Distributed
 println("Add Workers")
-addprocs(12)
+# addprocs(12)
 
 @everywhere using BenchmarkTools
 @everywhere using JLD2
@@ -155,7 +155,7 @@ println("Load Demand Estimation Code...")
 @everywhere include("$codeDir/Demand_Estimation/Specification_Run.jl")
 
 filename = "PLL_Estimate_$spec"
-estimate_demand(filename,rundate,
+estimate_demand(filename,rundate,home_directory,
                     halton_draws,
                     spec_demoRaw,
                     spec_prodchars,
