@@ -155,12 +155,12 @@ println("Load Demand Estimation Code...")
 @everywhere include("$codeDir/Demand_Estimation/Specification_Run.jl")
 
 filename = "PLL_Estimate_$spec"
-# estimate_demand(filename,rundate,
-#                     halton_draws,
-#                     spec_demoRaw,
-#                     spec_prodchars,
-#                     spec_prodchars_σ,
-#                     spec_fixedEffects)
+estimate_demand(filename,rundate,
+                    halton_draws,
+                    spec_demoRaw,
+                    spec_prodchars,
+                    spec_prodchars_σ,
+                    spec_fixedEffects)
 
 
 println("##### Estimation Marginal Cost #####")
