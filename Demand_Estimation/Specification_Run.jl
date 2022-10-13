@@ -303,7 +303,7 @@ function run_specification_GMM(filename::String,
 end
 
 
-function estimate_demand(filename,rundate,
+function estimate_demand(filename,rundate,home_directory,
                     haltonDim,
                     spec_demoRaw,
                     spec_prodchars,
