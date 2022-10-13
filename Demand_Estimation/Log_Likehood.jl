@@ -154,14 +154,15 @@ function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
     return ll/Pop
 end
 
-function log_likelihood_parallel!(hess::Matrix{Float64},grad::Vector{Float64},
+function log_likelihood_parallel!(hess::SharedArray{Float64,2},grad::SharedArray{Float64,1},
                             d::InsuranceLogit,p::parDict{T};
                             feFlag=-1) where T
     Q = d.parLength[:All]
     N = size(d.draws,1)
     hess[:] .= 0.0
-    grad[:] .= 0.0
-    ll = 0.0
+    grad[:] .=0.0
+    ll = SharedArray{Float64,1}(1)
+    ll[1] = 0.0
     Pop =sum(weight(d.data).*choice(d.data))
 
     #Reset Derivatives
@@ -179,8 +180,9 @@ function log_likelihood_parallel!(hess::Matrix{Float64},grad::Vector{Float64},
     end
 
     println("Send Data to Workers")
-    @eval @everywhere m=$m
-    @eval @everywhere f=$f
+    @eval @everywhere d=$d
+    @eval @everywhere p=$p
+    @eval @everywhere feFlag=$feFlag
     println("Data Distributed")
 
     #shell_full = zeros(Q,N,38)
@@ -192,7 +194,7 @@ function log_likelihood_parallel!(hess::Matrix{Float64},grad::Vector{Float64},
         #shell = shell_full[:,:,1:K]
         ll_obs,pars_relevant = ll_obs_hessian!(hess,grad,app,d,p,feFlag=feFlag)
 
-        ll+=ll_obs
+        ll[1]+=ll_obs
 
         #add_obs_mat!(hess,grad,hess_obs,grad_obs,Pop,pars_relevant)
 
@@ -214,6 +216,14 @@ function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
                             d::InsuranceLogit,p::Array{T};feFlag=-1) where T
     params = parDict(d,p,no2Der=true)
     ll = log_likelihood!(hess,grad,d,params,feFlag=feFlag)
+    # convert_δ!(d)
+    return ll
+end
+
+function log_likelihood_parallel!(hess::SharedArray{Float64,2},grad::SharedArray{Float64,1},
+                            d::InsuranceLogit,p::Array{T};feFlag=-1) where T
+    params = parDict(d,p,no2Der=true)
+    ll = log_likelihood_parallel!(hess,grad,d,params,feFlag=feFlag)
     # convert_δ!(d)
     return ll
 end
