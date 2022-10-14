@@ -446,6 +446,8 @@ function run_specification_penalizedlikelihood(filename::String,
     # J = length(m_ll.data.rMoments)
     # W = -Matrix{Float64}(Diagonal(1 ./diag(V))./(pop*J))
     println(diag(W))
+    println(size(diag_sigma))
+    println(size(W))
     # W = - inv(V)
 
     ## Estimate

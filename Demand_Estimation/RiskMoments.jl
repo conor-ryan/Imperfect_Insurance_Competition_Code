@@ -653,7 +653,10 @@ function calc_mom_Avar(d::InsuranceLogit,p0::Vector{Float64})
     # Σ = mean_moments*mean_moments'
     Σ = zeros(mom_length,mom_length)
     Σ_hold = zeros(mom_length,mom_length)
-
+    if any(isnan.(mean_moments))
+        println("Some NaN Moments")
+        println(findall(isnan.(mean_moments)))
+    end
 
     for app in eachperson(d.data)
         g_n[:].= 0.0
@@ -687,6 +690,11 @@ function calc_mom_Avar(d::InsuranceLogit,p0::Vector{Float64})
         # Σ += w_cov.*Σ_hold
         add_Σ(Σ,g_n,idx_nonEmpty,w_cov,Σ_hold)
     end
+    if any(isnan.(Σ))
+        println("Some NaN values in Σ")
+        println(findall(isnan.(Σ)))
+    end
+
 
     # Σ = Σ./(Pop) Currently normalizing all weights in computing COV matrix
     # Σ = Σ./(1-w_cov_sumsq[1])
