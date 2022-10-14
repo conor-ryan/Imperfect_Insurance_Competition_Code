@@ -708,6 +708,10 @@ function calc_mom_Avar(d::InsuranceLogit,p0::Vector{Float64})
     (Q,R) = size(aVar)
     aVar[1:length(d.data.rMoments),1:(num_prods*2)] = risk_Δavar(mean_moments[1:(num_prods*2)],d)
     aVar[(length(d.data.rMoments)+1):Q,(num_prods*2 + 1):R] = Matrix{Float64}(I,d.parLength[:All],d.parLength[:All])
+    if any(isnan.(aVar))
+        println("Some NaN values in aVar")
+        println(findall(isnan.(aVar)))
+    end
 
     S_est = (aVar*Σ*aVar')
 

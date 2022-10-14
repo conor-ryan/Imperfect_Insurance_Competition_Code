@@ -435,12 +435,14 @@ function run_specification_penalizedlikelihood(filename::String,
     S_mom[mom_ind,:] .= 0.0
     S_mom[:,mom_ind] .= 0.0
     S_mom[mom_ind,mom_ind] = diag_sigma[mom_ind,mom_ind]
+    S_diag = Diagonal(diag(S[mom_ind,mom_ind]))
     # W2 = inv(S_mom)
     # W[mom_pars,mom_pars] = W2[:,:]
     println(size(diag_sigma))
     println(size(S_mom))
+    println(size(S_diag))
     println(size(W))
-    W = -inv(diag_sigma)
+    W = -inv(S_diag)
 
 
     # V = risk_moment_bootstrap(m_ll,p_stg1)
