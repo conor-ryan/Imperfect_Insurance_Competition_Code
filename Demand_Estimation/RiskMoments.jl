@@ -621,13 +621,16 @@ function calc_mom_Avar(d::InsuranceLogit,p0::Vector{Float64})
 
 
     risk_moments = Vector{Float64}(undef,num_prods*2)
+    risk_moments[:] .=0.0
     mom_length = length(risk_moments) + d.parLength[:All]
     g_n = Vector{Float64}(undef,mom_length)
+    g_n[:].= 0.0
     mom_counts = Vector{Float64}(undef,mom_length)
     mom_counts[:] .= 0.0
     mean_moments = Vector{Float64}(undef,mom_length)
     mean_moments[:] .= 0.0
     grad_obs = Vector{Float64}(undef,d.parLength[:All])
+    grad_obs[:] .= 0.0
 
     Σ = zeros(mom_length,mom_length)
 
@@ -661,6 +664,7 @@ function calc_mom_Avar(d::InsuranceLogit,p0::Vector{Float64})
     for app in eachperson(d.data)
         g_n[:].= 0.0
         grad_obs[:] .= 0.0
+        risk_moments[:] .=0.0
         w_i = weight(app)[1]
         w_cov = w_i/Pop
         w_cov_sumsq[:] += [w_cov^2]

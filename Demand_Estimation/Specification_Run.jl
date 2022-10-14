@@ -437,7 +437,9 @@ function run_specification_penalizedlikelihood(filename::String,
     S_mom[mom_ind,mom_ind] = diag_sigma[mom_ind,mom_ind]
     # W2 = inv(S_mom)
     # W[mom_pars,mom_pars] = W2[:,:]
-    println(diag(W))
+    println(size(diag_sigma))
+    println(size(S_mom))
+    println(size(W))
     W = -inv(diag_sigma)
 
 
@@ -446,8 +448,6 @@ function run_specification_penalizedlikelihood(filename::String,
     # J = length(m_ll.data.rMoments)
     # W = -Matrix{Float64}(Diagonal(1 ./diag(V))./(pop*J))
     println(diag(W))
-    println(size(diag_sigma))
-    println(size(W))
     # W = - inv(V)
 
     ## Estimate
