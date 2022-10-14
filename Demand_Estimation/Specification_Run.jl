@@ -431,7 +431,7 @@ function run_specification_penalizedlikelihood(filename::String,
     S = calc_mom_Avar(m_ll,p_stg1)
     S_mom = S[mom_pars,mom_pars]
     diag_sigma = Diagonal(diag(S_mom))
-    println(diag_diag_sigma)
+    println(diag(diag_sigma))
     S_mom[mom_ind,:] .= 0.0
     S_mom[:,mom_ind] .= 0.0
     S_mom[mom_ind,mom_ind] = diag_sigma[mom_ind,mom_ind]

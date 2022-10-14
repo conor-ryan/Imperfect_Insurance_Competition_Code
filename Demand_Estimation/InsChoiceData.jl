@@ -714,6 +714,8 @@ mutable struct PersonIterator
     id
 end
 
+
+
 # Construct an iterator to loop over people
 function eachperson(m::ChoiceData)
     #ids = sort(unique(person(m)))
@@ -755,6 +757,7 @@ function Base.iterate(iter::PersonIterator, state=1)
     return (submod, state + 1)
 end
 
+firstindex(iter::PersonIterator) = 1
 
 ###########################################################
 ### Model Object ########
