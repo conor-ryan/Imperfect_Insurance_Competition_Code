@@ -435,7 +435,7 @@ function run_specification_penalizedlikelihood(filename::String,
     S_mom[mom_ind,:] .= 0.0
     S_mom[:,mom_ind] .= 0.0
     S_mom[mom_ind,mom_ind] = diag_sigma[mom_ind,mom_ind]
-    S_diag = Diagonal(diag(S[mom_ind,mom_ind]))
+    S_diag = Matrix(Diagonal(diag(S[mom_ind,mom_ind])))
     # W2 = inv(S_mom)
     # W[mom_pars,mom_pars] = W2[:,:]
     println(size(diag_sigma))
