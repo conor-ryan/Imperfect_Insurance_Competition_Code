@@ -102,8 +102,8 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
     param_dict = parDict(d,p_vec,no2Der=true)
 
     # Initialize Gradient
-    grad_new = similar(p0)
-    hess_new = Matrix{Float64}(undef,length(p0),length(p0))
+    grad_new = SharedArray{Float64}(length(p0))
+    # hess_new = Matrix{Float64}(undef,length(p0),length(p0))
     f_final_val = 0.0
     max_trial_cnt = 0
     p_last = copy(p_vec)
@@ -131,7 +131,7 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
 
 
         # Compute Gradient, holding δ fixed
-        fval = log_likelihood_penalty!(grad_new,d,p_vec,W)
+        fval = log_likelihood_penalty_parallel!(grad_new,d,p_vec,W)
 
 
 
@@ -164,7 +164,7 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
             no_progress = 0
             println("Return: Limit on No Progress")
             p_vec = copy(p_min)
-            fval = log_likelihood_penalty!(grad_new,d,p_vec,W)
+            fval = log_likelihood_penalty_parallel!(grad_new,d,p_vec,W)
             grad_size = maximum(abs.(grad_new))
             step = 1/grad_size
             mistake_thresh = 1.00

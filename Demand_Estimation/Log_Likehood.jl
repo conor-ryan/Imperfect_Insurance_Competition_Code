@@ -101,6 +101,52 @@ function log_likelihood!(grad::Vector{S},
     return ll/Pop
 end
 
+function log_likelihood_parallel!(grad::SharedArray{Float64,1},
+                            d::InsuranceLogit,p::parDict{T};
+                            cont_flag::Bool=false,
+                            feFlag=-1) where {S,T}
+    Q = d.parLength[:All]
+    N = size(d.draws,1)
+    grad[:] .= 0.0
+    ll = 0.0
+    Pop =sum(weight(d.data).*choice(d.data))
+    grad_obs = Vector{Float64}(undef,Q)
+    #Reset Derivatives
+    # p.dSdθ_j[:] .= 0.0
+    # p.dRdθ_j[:] .= 0.0
+    # p.d2Sdθ_j[:] .= 0.0
+    # p.d2Rdθ_j[:] .= 0.0
+
+    if feFlag==1
+        compute_controls!(d,p)
+        individual_shares_norisk(d,p)
+    else
+        individual_values!(d,p)
+        individual_shares(d,p)
+    end
+
+    println("Send Data to Workers")
+    @eval @everywhere d=$d
+    @eval @everywhere p=$p
+    @eval @everywhere feFlag=$feFlag
+    println("Data Distributed")
+
+    #shell_full = zeros(Q,N,38)
+    @sync @distributed for app in eachperson(d.data)
+        ll_obs,pars_relevant = ll_obs_gradient!(grad,app,d,p,feFlag=feFlag)
+        ll[1]+=ll_obs
+    end
+    # if isnan(ll)
+    #     ll = -1e20
+    # end
+    for q in 1:Q
+        grad[q]=grad[q]/Pop
+    end
+    return ll[1]/Pop
+end
+
+
+
 
 
 function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
@@ -110,7 +156,8 @@ function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
     N = size(d.draws,1)
     hess[:] .= 0.0
     grad[:] .= 0.0
-    ll = 0.0
+    ll = SharedArray{Float64,1}(1)
+    ll[1] = 0.0
     Pop =sum(weight(d.data).*choice(d.data))
 
     #Reset Derivatives
@@ -209,7 +256,7 @@ function log_likelihood_parallel!(hess::SharedArray{Float64,2},grad::SharedArray
         end
     end
 
-    return ll/Pop
+    return ll[1]/Pop
 end
 
 function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},

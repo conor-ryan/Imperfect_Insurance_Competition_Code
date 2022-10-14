@@ -36,6 +36,31 @@ function log_likelihood_penalty!(grad::Vector{Float64},d::InsuranceLogit,p::Arra
     return ll + obj
 end
 
+function log_likelihood_penalty_parallel!(grad::SharedArray{Float64,1},d::InsuranceLogit,p::Array{T},W::Matrix{Float64};
+                        cont_flag::Bool=false,
+                        feFlag=-1) where T
+
+    params = parDict(d,p,no2Der=true)
+
+    #Reset Derivatives
+    grad[:].=0.0
+    params.dSdθ_j[:] .= 0.0
+    params.dRdθ_j[:] .= 0.0
+    params.d2Sdθ_j[:] .= 0.0
+    params.d2Rdθ_j[:] .= 0.0
+
+
+    ll = log_likelihood_parallel!(grad,d,params,cont_flag = cont_flag,feFlag=feFlag)
+
+    mom_grad = Matrix{Float64}(undef,length(p),length(d.data.rMoments))
+    mom = calc_risk_moments!(mom_grad,d,params,feFlag=feFlag)
+
+
+    obj = calc_GMM_Obj(mom,W)
+    calc_GMM_Grad!(grad,mom,mom_grad,W)
+
+    return ll + obj
+end
 
 function log_likelihood_penalty!(hess::Matrix{Float64},grad::Vector{Float64},
                             d::InsuranceLogit,p::Array{T},W::Matrix{Float64};feFlag=-1) where T
