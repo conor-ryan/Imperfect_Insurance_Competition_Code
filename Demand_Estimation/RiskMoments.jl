@@ -586,12 +586,6 @@ function riskmom_Avar(moments::Vector{T},d::InsuranceLogit) where T
         mom_value[m] = sum(r_hat_2_j[idx_mom])/sum(s_hat_2_j[idx_mom])
     end
 
-    for (m,idx_mom) in d.data._rMomentDict
-        r_est = sliceMean_wgt(r_hat_unwt_j,s_hat_j,idx_mom)
-        #mom_value[m] = d.data.rMoments[m] - t_est
-        mom_value[m] = r_est
-    end
-
     for (st, st_moms) in d.data._stMomentMap
         st_idx = d.data._stDict[st]
         r_avg = sum(r_hat_2_j[st_idx])/sum(s_hat_2_j[st_idx])
