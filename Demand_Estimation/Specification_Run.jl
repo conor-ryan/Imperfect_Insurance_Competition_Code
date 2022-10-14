@@ -425,11 +425,25 @@ function run_specification_penalizedlikelihood(filename::String,
 
 
     println("#### Estimate GMM Second Stage ####")
-    V = risk_moment_bootstrap(m_ll,p_stg1)
-    pop =sum(weight(m_ll.data).*choice(m_ll.data))
-    J = length(m_ll.data.rMoments)
-    W = -Matrix{Float64}(Diagonal(1 ./diag(V))./(pop*J))
-    println(diag(W))
+
+    mom_pars = vcat(1:length(m_ll.data.rMoments),(length(m_ll.data.rMoments)).+σ_ind)
+    mom_ind = 1:length(m_ll.data.rMoments)
+    S = calc_mom_Avar(m_ll,p_stg1)
+    S_mom = S[mom_pars,mom_pars]
+    diag_sigma = Diagonal(diag(S_mom))
+    S_mom[mom_ind,:] .= 0.0
+    S_mom[:,mom_ind] .= 0.0
+    S_mom[mom_ind,mom_ind] = diag_sigma[mom_ind,mom_ind]
+    # W2 = inv(S_mom)
+    # W[mom_pars,mom_pars] = W2[:,:]
+    W = inv(S_mom[mom_ind,mom_ind])
+
+
+    # V = risk_moment_bootstrap(m_ll,p_stg1)
+    # pop =sum(weight(m_ll.data).*choice(m_ll.data))
+    # J = length(m_ll.data.rMoments)
+    # W = -Matrix{Float64}(Diagonal(1 ./diag(V))./(pop*J))
+    # println(diag(W))
     # W = - inv(V)
 
     ## Estimate
