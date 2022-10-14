@@ -443,7 +443,7 @@ function run_specification_penalizedlikelihood(filename::String,
     println(size(S_diag))
     println(size(W))
     W = -inv(S_diag)
-
+    println(size(W))
 
     # V = risk_moment_bootstrap(m_ll,p_stg1)
     # pop =sum(weight(m_ll.data).*choice(m_ll.data))
