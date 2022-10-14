@@ -431,12 +431,14 @@ function run_specification_penalizedlikelihood(filename::String,
     S = calc_mom_Avar(m_ll,p_stg1)
     S_mom = S[mom_pars,mom_pars]
     diag_sigma = Diagonal(diag(S_mom))
+    println(diag_diag_sigma)
     S_mom[mom_ind,:] .= 0.0
     S_mom[:,mom_ind] .= 0.0
     S_mom[mom_ind,mom_ind] = diag_sigma[mom_ind,mom_ind]
     # W2 = inv(S_mom)
     # W[mom_pars,mom_pars] = W2[:,:]
-    W = -inv(S_mom[mom_ind,mom_ind])
+    println(diag(W))
+    W = -inv(diag_sigma)
 
 
     # V = risk_moment_bootstrap(m_ll,p_stg1)
