@@ -25,7 +25,6 @@ function log_likelihood_penalty!(grad::Vector{Float64},d::InsuranceLogit,p::Arra
 
 
     ll = log_likelihood!(grad,d,params,cont_flag = cont_flag,feFlag=feFlag)
-
     mom_grad = Matrix{Float64}(undef,length(p),length(d.data.rMoments))
     mom = calc_risk_moments!(mom_grad,d,params,feFlag=feFlag)
 
@@ -51,13 +50,13 @@ function log_likelihood_penalty_parallel!(grad::SharedArray{Float64,1},d::Insura
 
 
     ll = log_likelihood_parallel!(grad,d,params,cont_flag = cont_flag,feFlag=feFlag)
-
+    grad_obj = Vector(grad)
     mom_grad = Matrix{Float64}(undef,length(p),length(d.data.rMoments))
     mom = calc_risk_moments!(mom_grad,d,params,feFlag=feFlag)
 
 
     obj = calc_GMM_Obj(mom,W)
-    calc_GMM_Grad!(grad,mom,mom_grad,W)
+    calc_GMM_Grad!(grad_obj,mom,mom_grad,W)
 
     return ll + obj
 end
