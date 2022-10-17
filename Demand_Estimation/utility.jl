@@ -95,6 +95,19 @@ function enforcePosDef(H::Matrix{Float64})
     return H
 end
 
+function enforcePosDef(H::SharedMatrix{Float64})
+    check = issuccess(cholesky(H,check=false))
+    if !check
+        println("Not Convex: Compute Direction of Sufficient Descent") #http://web.stanford.edu/class/cme304/docs/newton-type-methods.pdf
+        E = eigen(H)
+        max_eig_val = minimum(E.values)
+        println("Min Eigenvalue is $max_eig_val")
+        Λ = abs.(Diagonal(E.values))
+        H = E.vectors*Λ*E.vectors'
+    end
+    return H
+end
+
 function enforceNegDef(H::Matrix{Float64})
     check = issuccess(cholesky(-H,check=false))
     if !check
@@ -108,6 +121,18 @@ function enforceNegDef(H::Matrix{Float64})
     return H, check
 end
 
+function enforceNegDef(H::SharedMatrix{Float64})
+    check = issuccess(cholesky(-H,check=false))
+    if !check
+        println("Not Concave: Compute Direction of Sufficient Ascent") #http://web.stanford.edu/class/cme304/docs/newton-type-methods.pdf
+        E = eigen(H)
+        max_eig_val = maximum(E.values)
+        println("Max Eigenvalue is $max_eig_val")
+        Λ = -abs.(Diagonal(E.values))
+        H = E.vectors*Λ*E.vectors'
+    end
+    return H, check
+end
 function boundedUpdate(p_ind::UnitRange{Int64},p::Vector{Float64},
     α::Float64,grad::Vector{Float64},bound::Float64)
     return boundedUpdate(Int.(p_ind),p,α,grad,bound)
