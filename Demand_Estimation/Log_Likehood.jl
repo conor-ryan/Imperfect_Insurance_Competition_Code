@@ -116,7 +116,7 @@ function log_likelihood_parallel!(grad::SharedArray{Float64,1},
     # p.dRdθ_j[:] .= 0.0
     # p.d2Sdθ_j[:] .= 0.0
     # p.d2Rdθ_j[:] .= 0.0
-
+    println("Process Parameters")
     if feFlag==1
         compute_controls!(d,p)
         individual_shares_norisk(d,p)
@@ -125,12 +125,12 @@ function log_likelihood_parallel!(grad::SharedArray{Float64,1},
         individual_shares(d,p)
     end
 
-    # println("Send Data to Workers")
+    println("Send Data to Workers")
     @eval @everywhere d=$d
     @eval @everywhere p=$p
     @eval @everywhere feFlag=$feFlag
     # println("Data Distributed")
-
+    println("Process Gradient")
     #shell_full = zeros(Q,N,38)
     # @sync @distributed for app in eachperson(d.data)
     @sync @distributed for i in d.data._personIDs
@@ -145,6 +145,7 @@ function log_likelihood_parallel!(grad::SharedArray{Float64,1},
     for q in 1:Q
         grad[q]=grad[q]/Pop
     end
+    println("Done")
     return ll[1]/Pop
 end
 
