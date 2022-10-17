@@ -757,9 +757,9 @@ function Base.iterate(iter::PersonIterator, state=1)
     return (submod, state + 1)
 end
 
-function Base.firstindex(iter::PersonIterator)
-    return 1
-end
+# function Base.firstindex(iter::PersonIterator)
+#     return 1
+# end
 
 ###########################################################
 ### Model Object ########

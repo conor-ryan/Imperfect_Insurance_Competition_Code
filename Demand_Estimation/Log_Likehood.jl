@@ -132,7 +132,9 @@ function log_likelihood_parallel!(grad::SharedArray{Float64,1},
     println("Data Distributed")
 
     #shell_full = zeros(Q,N,38)
-    @sync @distributed for app in eachperson(d.data)
+    # @sync @distributed for app in eachperson(d.data)    
+    @sync @distributed for i in d._personIDs
+        app = eachperson(d.data,i)[1]
         ll_obs,pars_relevant = ll_obs_gradient!(grad,app,d,p,feFlag=feFlag)
         ll[1]+=ll_obs
     end
