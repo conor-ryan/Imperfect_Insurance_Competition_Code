@@ -592,7 +592,8 @@ function returnParameterX!(q::Int64,X_mat::Matrix{Float64},
     return X
 end
 
-function ll_obs_hessian!(hess::Matrix{Float64},grad::Vector{Float64},
+function ll_obs_hessian!(hess::Union{Matrix{Float64},SharedMatrix{Float64}},
+                        grad::Union{Vector{Float64},SharedVector{Float64}},
                             app::ChoiceData,d::InsuranceLogit,p::parDict{T};feFlag=-1) where T
 
         ind, r_ind, r_ind_metal, S_ij, wgt, urate, idxitr, X_t, X_0_t, Z, F_t, r_age = unPackChars(app,d)
@@ -737,7 +738,7 @@ end
 
 
 
-function ll_obs_gradient!(grad::Vector{S},
+function ll_obs_gradient!(grad::Union{Vector{S},SharedVector{Float64}},,
                             app::ChoiceData,d::InsuranceLogit,p::parDict{T};feFlag=-1) where {S,T}
 
         ind, r_ind, r_ind_metal, S_ij, wgt, urate, idxitr, X_t, X_0_t, Z, F_t, r_age = unPackChars(app,d)
