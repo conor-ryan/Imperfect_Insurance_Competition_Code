@@ -108,7 +108,7 @@ function log_likelihood_parallel!(grad::SharedArray{Float64,1},
     Q = d.parLength[:All]
     N = size(d.draws,1)
     grad[:] .= 0.0
-    ll = 0.0
+    ll = SharedVector{Float64}(1)
     Pop =sum(weight(d.data).*choice(d.data))
     grad_obs = Vector{Float64}(undef,Q)
     #Reset Derivatives
