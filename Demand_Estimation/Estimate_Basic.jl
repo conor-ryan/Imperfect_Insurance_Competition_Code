@@ -236,10 +236,10 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
     param_dict = parDict(d,p_vec,no2Der=true)
 
     # Initialize Gradient
-    # grad_new = similar(p0)
-    # hess_new = Matrix{Float64}(undef,length(p0),length(p0))
-    grad_new = SharedVector{Float64}(length(p0))
-    hess_new = SharedMatrix{Float64}(length(p0),length(p0))
+    grad_new = similar(p0)
+    hess_new = Matrix{Float64}(undef,length(p0),length(p0))
+    # grad_new = SharedVector{Float64}(length(p0))
+    # hess_new = SharedMatrix{Float64}(length(p0),length(p0))
     Eye = Matrix{Float64}(1.0I,length(p0),length(p0))
     f_final_val = 0.0
     max_trial_cnt = 0
@@ -276,12 +276,12 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         # Compute Gradient, holding δ fixed
         if hess_steps==0
             println("Compute Hessian")
-            fval = log_likelihood_penalty_parallel!(hess_new,grad_new,d,p_vec,W)
+            fval = log_likelihood_penalty!(hess_new,grad_new,d,p_vec,W)
             while any(isnan.(hess_new)) & (trial_cnt<15)
                 println("NA values in Hessian, RUN: Gradient Ascent")
                 p_vec, f_test = gradient_ascent_ll(d,p_vec,W,max_itr=20,strict=true)
                 println("Recompute Hessian")
-                fval = log_likelihood_penalty_parallel!(hess_new,grad_new,d,p_vec,W)
+                fval = log_likelihood_penalty!(hess_new,grad_new,d,p_vec,W)
                 trial_cnt+=1
             end
             trial_cnt = 0

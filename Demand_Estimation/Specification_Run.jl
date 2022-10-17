@@ -459,27 +459,26 @@ function run_specification_penalizedlikelihood(filename::String,
 
 
 
-    # p_init, obj_init = gradient_ascent_ll(m_ll,p0,W,max_itr=20)
-    p_init = copy(p0)
+    p_init, obj_init = gradient_ascent_ll(m_ll,p0,W,max_itr=50)
 
-    println("Test Function Times")
-    grad = SharedVector{Float64}(length(p0))
-    hess = SharedMatrix{Float64}(length(p0),length(p0))
-    @time f = log_likelihood_penalty_parallel!(hess,grad,m_ll,p_init ,W)
-    println("Test 1")
-    @time f = log_likelihood_penalty_parallel!(hess,grad,m_ll,p_init ,W)
-    println("Test 2")
-    @time f = log_likelihood_penalty_parallel!(hess,grad,m_ll,p_init ,W)
-    println("Test 3")
-
-    grad = Vector{Float64}(undef,length(p0))
-    hess = Matrix{Float64}(undef,length(p0),length(p0))
-    @time f = log_likelihood_penalty!(hess,grad,m_ll,p_init ,W)
-    println("Test 1")
-    @time f = log_likelihood_penalty!(hess,grad,m_ll,p_init ,W)
-    println("Test 2")
-    @time f = log_likelihood_penalty!(hess,grad,m_ll,p_init ,W)
-    println("Test 3")
+    # println("Test Function Times")
+    # grad = SharedVector{Float64}(length(p0))
+    # hess = SharedMatrix{Float64}(length(p0),length(p0))
+    # @time f = log_likelihood_penalty_parallel!(hess,grad,m_ll,p_init ,W)
+    # println("Test 1")
+    # @time f = log_likelihood_penalty_parallel!(hess,grad,m_ll,p_init ,W)
+    # println("Test 2")
+    # @time f = log_likelihood_penalty_parallel!(hess,grad,m_ll,p_init ,W)
+    # println("Test 3")
+    #
+    # grad = Vector{Float64}(undef,length(p0))
+    # hess = Matrix{Float64}(undef,length(p0),length(p0))
+    # @time f = log_likelihood_penalty!(hess,grad,m_ll,p_init ,W)
+    # println("Test 1")
+    # @time f = log_likelihood_penalty!(hess,grad,m_ll,p_init ,W)
+    # println("Test 2")
+    # @time f = log_likelihood_penalty!(hess,grad,m_ll,p_init ,W)
+    # println("Test 3")
 
 
     p_stg2, obj_2 = newton_raphson_ll(m_ll,p_init,W)
