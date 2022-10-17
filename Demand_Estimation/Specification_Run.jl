@@ -459,11 +459,12 @@ function run_specification_penalizedlikelihood(filename::String,
 
 
 
-    p_init, obj_init = gradient_ascent_ll(m_ll,p0,W,max_itr=20)
+    # p_init, obj_init = gradient_ascent_ll(m_ll,p0,W,max_itr=20)
+    p_init = copy(p0)
 
     println("Test Function Times")
     grad = SharedVector{Float64}(length(p0))
-    hess = SharedMatrix{Float64}(length(p0))
+    hess = SharedMatrix{Float64}(length(p0),length(p0))
     @time f = log_likelihood_penalty_parallel!(hess,grad,m_ll,p_init ,W)
     println("Test 1")
     @time f = log_likelihood_penalty_parallel!(hess,grad,m_ll,p_init ,W)
