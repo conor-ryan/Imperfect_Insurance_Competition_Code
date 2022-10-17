@@ -489,10 +489,10 @@ function run_specification_penalizedlikelihood(filename::String,
     # @load file p_stg2 obj_2 spec_Dict
 
     println("#### Calculate Standard Errors and Save Results ####")
-    # AsVar, stdErr,t_stat, stars = GMM_var(m_GMM,p_stg2)
+    AsVar, stdErr,t_stat, stars = GMM_var(m_ll,p_stg2)
     # AsVar, stdErr,t_stat, stars = res_process_ll(m_GMM,p_stg2)
 
-    out1 = DataFrame(labels=param_labels,pars=p_stg2)#,se=stdErr,ts=t_stat,sig=stars)
+    out1 = DataFrame(labels=param_labels,pars=p_stg2,se=stdErr,ts=t_stat,sig=stars)
     file1 = "$filename-$rundate.csv"
     CSV.write(file1,out1)
 

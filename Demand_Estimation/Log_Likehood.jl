@@ -160,8 +160,7 @@ function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
     N = size(d.draws,1)
     hess[:] .= 0.0
     grad[:] .= 0.0
-    ll = SharedArray{Float64,1}(1)
-    ll[1] = 0.0
+    ll =  0.0
     Pop =sum(weight(d.data).*choice(d.data))
 
     #Reset Derivatives
