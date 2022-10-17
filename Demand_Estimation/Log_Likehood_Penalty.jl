@@ -91,6 +91,37 @@ function log_likelihood_penalty!(hess::Matrix{Float64},grad::Vector{Float64},
     return ll + obj
 end
 
+function log_likelihood_penalty_parallel!(hess::SharedMatrix{Float64},grad::SharedVector{Float64},
+                            d::InsuranceLogit,p::Array{T},W::Matrix{Float64};feFlag=-1) where T
+
+
+    params = parDict(d,p,no2Der=false)
+
+    #Reset Derivatives
+    hess[:].=0.0
+    grad[:].=0.0
+    params.dSdθ_j[:] .= 0.0
+    params.dRdθ_j[:] .= 0.0
+    params.d2Sdθ_j[:] .= 0.0
+    params.d2Rdθ_j[:] .= 0.0
+
+    ll = log_likelihood!(hess,grad,d,params,feFlag=feFlag)
+    hess_obj = Matrix(hess)
+    grad_obj = Vector(grad)
+    mom_grad = Matrix{Float64}(undef,length(p),length(d.data.rMoments))
+    mom_hess = Array{Float64,3}(undef,length(p),length(p),length(d.data.rMoments))
+    mom = calc_risk_moments!(mom_hess,mom_grad,d,params,feFlag=feFlag)
+
+    # hess_test = Array{Float64,2}(undef,length(p),length(p))
+    # hess_test[:].=0.0
+    obj = calc_GMM_Obj(mom,W)
+
+    calc_GMM_Grad!(grad,mom,mom_grad,W)
+    calc_GMM_Hess!(hess,mom,mom_grad,mom_hess,W)
+    # calc_GMM_Hess!(hess_test,mom,mom_grad,mom_hess,W)
+    return ll + obj
+end
+
 
 function calc_penalty(d::InsuranceLogit,p0::Array{T},W::Matrix{Float64};feFlag::Int64=-1) where T
 

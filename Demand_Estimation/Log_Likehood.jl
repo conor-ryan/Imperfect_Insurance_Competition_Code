@@ -125,11 +125,11 @@ function log_likelihood_parallel!(grad::SharedArray{Float64,1},
         individual_shares(d,p)
     end
 
-    println("Send Data to Workers")
+    # println("Send Data to Workers")
     @eval @everywhere d=$d
     @eval @everywhere p=$p
     @eval @everywhere feFlag=$feFlag
-    println("Data Distributed")
+    # println("Data Distributed")
 
     #shell_full = zeros(Q,N,38)
     # @sync @distributed for app in eachperson(d.data)
@@ -229,25 +229,18 @@ function log_likelihood_parallel!(hess::SharedArray{Float64,2},grad::SharedArray
         individual_shares(d,p)
     end
 
-    println("Send Data to Workers")
+    # println("Send Data to Workers")
     @eval @everywhere d=$d
     @eval @everywhere p=$p
     @eval @everywhere feFlag=$feFlag
-    println("Data Distributed")
-
+    # println("Data Distributed")
     #shell_full = zeros(Q,N,38)
-    @sync @distributed for app in eachperson(d.data)
-        K = length(person(app))
-        # if K>k_max
-        #     k_max = K
-        # end
-        #shell = shell_full[:,:,1:K]
+    # @sync @distributed for app in eachperson(d.data)
+    @sync @distributed for i in d.data._personIDs
+        idxitr = d.data._personDict[i]
+        app = subset(d.data,idxitr)
         ll_obs,pars_relevant = ll_obs_hessian!(hess,grad,app,d,p,feFlag=feFlag)
-
         ll[1]+=ll_obs
-
-        #add_obs_mat!(hess,grad,hess_obs,grad_obs,Pop,pars_relevant)
-
     end
     # if isnan(ll)
     #     ll = -1e20
