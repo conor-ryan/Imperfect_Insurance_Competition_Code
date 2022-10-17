@@ -105,7 +105,7 @@ function log_likelihood_penalty_parallel!(hess::SharedMatrix{Float64},grad::Shar
     params.d2Sdθ_j[:] .= 0.0
     params.d2Rdθ_j[:] .= 0.0
 
-    ll = log_likelihood!(hess,grad,d,params,feFlag=feFlag)
+    ll = log_likelihood_parallel!(hess,grad,d,params,feFlag=feFlag)
     hess_obj = Matrix(hess)
     grad_obj = Vector(grad)
     mom_grad = Matrix{Float64}(undef,length(p),length(d.data.rMoments))
