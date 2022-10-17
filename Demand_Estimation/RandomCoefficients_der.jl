@@ -738,7 +738,7 @@ end
 
 
 
-function ll_obs_gradient!(grad::Union{Vector{S},SharedVector{Float64}},
+function ll_obs_gradient!(grad::Union{Vector{S},SharedVector{S}},
                             app::ChoiceData,d::InsuranceLogit,p::parDict{T};feFlag=-1) where {S,T}
 
         ind, r_ind, r_ind_metal, S_ij, wgt, urate, idxitr, X_t, X_0_t, Z, F_t, r_age = unPackChars(app,d)
