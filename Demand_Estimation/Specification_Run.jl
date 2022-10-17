@@ -457,7 +457,7 @@ function run_specification_penalizedlikelihood(filename::String,
     p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
 
     println("Test Function Times")
-    grad = Vector{Float64}(length(p0))
+    grad = Vector{Float64}(undef,length(p0))
     @time f = log_likelihood_penalty!(grad,m_ll,p0 ,W)
     println("Test 1")
     @time f = log_likelihood_penalty!(grad,m_ll,p0 ,W)
