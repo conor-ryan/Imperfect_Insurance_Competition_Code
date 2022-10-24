@@ -400,8 +400,9 @@ function run_specification_penalizedlikelihood(filename::String,
 
 
     p0 = rand(m_ll.parLength[:All]) .- 0.5
+    p0[ind1] = p_ll[ind1]
     p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
-    # p0[(length(p0)-fe_length):length(p0)] = p_ll[(length(p_ll)-fe_length):length(p_ll)]
+    p0[(length(p0)-fe_length):length(p0)] = p_ll[(length(p_ll)-fe_length):length(p_ll)]
     println("Starting vector: $p0")
 
     println("#### Estimate First Stage ####")
@@ -412,8 +413,8 @@ function run_specification_penalizedlikelihood(filename::String,
     W[4,4] = -5.0
     W[5,5] = -5.0
 
-    # p_init, obj_init = gradient_ascent_ll(m_ll,p0,W,max_itr=50)
-    # p_stg1, obj_1 = newton_raphson_ll(m_ll,p_init,W)
+    p_init, obj_init = gradient_ascent_ll(m_ll,p0,W,max_itr=50)
+    p_stg1, obj_1 = newton_raphson_ll(m_ll,p_init,W)
 
     println("Save First Stage Result")
     file = "$filename-$rundate-stg1.jld2"
