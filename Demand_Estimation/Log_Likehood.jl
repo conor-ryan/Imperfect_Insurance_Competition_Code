@@ -43,7 +43,7 @@ function log_likelihood(d::InsuranceLogit,p::parDict{T};cont_flag=false,feFlag=-
         #     break
         # end
     end
-    return ll
+    return ll/Pop
 end
 
 
@@ -96,9 +96,9 @@ function log_likelihood!(grad::Vector{S},
     #     ll = -1e20
     # end
     for q in 1:Q
-        grad[q]=grad[q]
+        grad[q]=grad[q]/Pop
     end
-    return ll
+    return ll/Pop
 end
 
 function log_likelihood_parallel!(grad::SharedArray{Float64,1},
@@ -143,10 +143,10 @@ function log_likelihood_parallel!(grad::SharedArray{Float64,1},
     #     ll = -1e20
     # end
     for q in 1:Q
-        grad[q]=grad[q]
+        grad[q]=grad[q]/Pop
     end
     println("Done")
-    return ll[1]
+    return ll[1]/Pop
 end
 
 
@@ -195,13 +195,13 @@ function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
     #     ll = -1e20
     # end
     for q in 1:Q
-        grad[q]=grad[q]
+        grad[q]=grad[q]/Pop
         for r in 1:Q
-        hess[q,r]=hess[q,r]
+        hess[q,r]=hess[q,r]/Pop
         end
     end
 
-    return ll
+    return ll/Pop
 end
 
 function log_likelihood_parallel!(hess::SharedArray{Float64,2},grad::SharedArray{Float64,1},
@@ -246,13 +246,13 @@ function log_likelihood_parallel!(hess::SharedArray{Float64,2},grad::SharedArray
     #     ll = -1e20
     # end
     for q in 1:Q
-        grad[q]=grad[q]
+        grad[q]=grad[q]/Pop
         for r in 1:Q
-        hess[q,r]=hess[q,r]
+        hess[q,r]=hess[q,r]/Pop
         end
     end
 
-    return ll[1]
+    return ll[1]/Pop
 end
 
 function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
@@ -322,16 +322,16 @@ function log_likelihood!(thD::Array{Float64,3},
         ll = -1e20
     end
     for q in 1:Q
-        grad[q]=grad[q]
+        grad[q]=grad[q]/Pop
         for r in 1:Q
-            hess[q,r]=hess[q,r]
+            hess[q,r]=hess[q,r]/Pop
             for t in 1:Q
-                thD[q,r,t]=thD[q,r,t]
+                thD[q,r,t]=thD[q,r,t]/Pop
             end
         end
     end
 
-    return ll
+    return ll/Pop
 end
 
 function log_likelihood!(thD::Array{Float64,3},
@@ -363,7 +363,7 @@ function calc_Avar(d::InsuranceLogit,p::parDict{T}) where T
         Σ+= S_n
     end
 
-    Σ = Σ.
+    Σ = Σ./Pop
     AsVar = inv(Σ)
     return AsVar
 end
