@@ -388,12 +388,13 @@ function run_specification_penalizedlikelihood(filename::String,
         prodchars=spec_prodchars,
         prodchars_σ=spec_prodchars_σ,
         fixedEffects=spec_fixedEffects)
-
     param_labels = vcat(String.(spec_demoRaw),String.(spec_prodchars),"Price:" .* String.(spec_demoRaw),"Variance:".*String.(spec_prodchars_σ),c_data.feNames)
 
     m_ll = InsuranceLogit(c_data,haltonDim,nested=nested)
 
     # Initialize Starting Parameters
+
+    fe_length = m_ll.parLength[:FE]
     ind1 = 1:(m_ll.parLength[:γ]*2+m_ll.parLength[:β])
     ind2 = (1 + maximum(ind1) + m_ll.parLength[:σ]):m_ll.parLength[:All]
     σ_ind = (1 + maximum(ind1)):(minimum(ind2)-1)
