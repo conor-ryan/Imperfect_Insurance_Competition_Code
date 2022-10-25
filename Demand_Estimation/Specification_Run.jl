@@ -423,7 +423,7 @@ function run_specification_penalizedlikelihood(filename::String,
 
     # println("Load First Stage Result")
     file = "$filename-$rundate-stg1.jld2"
-    @load file p_stg1 obj_1 spec_Dict
+    # @load file p_stg1 obj_1 spec_Dict
 
 
     println("#### Estimate GMM Second Stage ####")
@@ -446,6 +446,7 @@ function run_specification_penalizedlikelihood(filename::String,
     println(size(W))
     W = -inv(S_diag)
     println(size(W))
+    W = W*10
 
     # V = risk_moment_bootstrap(m_ll,p_stg1)
     # pop =sum(weight(m_ll.data).*choice(m_ll.data))
@@ -461,7 +462,7 @@ function run_specification_penalizedlikelihood(filename::String,
 
 
 
-    p_init, obj_init = gradient_ascent_ll(m_ll,p0,W,max_itr=50)
+    p_init, obj_init = gradient_ascent_ll(m_ll,p_stg1,W,max_itr=50)
 
     # println("Test Function Times")
     # grad = SharedVector{Float64}(length(p0))
