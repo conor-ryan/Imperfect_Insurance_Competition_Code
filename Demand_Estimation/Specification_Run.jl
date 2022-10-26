@@ -379,7 +379,7 @@ function run_specification_penalizedlikelihood(filename::String,
     println("Save LL Result")
     file = "$filename-$rundate-ll.jld2"
     # @save file p_ll spec_Dict
-    @load file p_ll spec_Dict
+    # @load file p_ll spec_Dict
 
     ## Build GMM Model
     println("Build Model")
@@ -400,10 +400,10 @@ function run_specification_penalizedlikelihood(filename::String,
     σ_ind = (1 + maximum(ind1)):(minimum(ind2)-1)
 
 
-    p0 = rand(m_ll.parLength[:All]) .- 0.5
-    p0[ind1] = p_ll[ind1]
-    p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
-    p0[(length(p0)-fe_length):length(p0)] = p_ll[(length(p_ll)-fe_length):length(p_ll)]
+    p0 = rand(m_ll.parLength[:All]).*0.1 .- 0.5
+    # p0[ind1] = p_ll[ind1]
+    # p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
+    # p0[(length(p0)-fe_length):length(p0)] = p_ll[(length(p_ll)-fe_length):length(p_ll)]
     println("Starting vector: $p0")
 
     println("#### Estimate First Stage ####")
