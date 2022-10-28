@@ -187,6 +187,12 @@ function log_likelihood!(hess::Matrix{Float64},grad::Vector{Float64},
         ll_obs,pars_relevant = ll_obs_hessian!(hess,grad,app,d,p,feFlag=feFlag)
 
         ll+=ll_obs
+        # 
+        # if any(isnan.(hess))
+        #     println("NaN Found")
+        #     print(person(app))
+        #     break
+        # end
 
         #add_obs_mat!(hess,grad,hess_obs,grad_obs,Pop,pars_relevant)
 

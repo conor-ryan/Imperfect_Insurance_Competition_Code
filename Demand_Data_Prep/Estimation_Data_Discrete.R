@@ -67,7 +67,7 @@ subsInv <- function(cont,pov_line = 11770,FPL_flag=FALSE){
 eHealth = read.csv("C:/Users/Conor/Documents/Research/eHealth Data/eHealth_2015.csv",stringsAsFactors = FALSE)
 
 # Firm Crosswalk
-firmCrosswalk = read.csv("Intermediate_Output/FirmCrosswalk.csv")
+firmCrosswalk = read.csv("Intermediate_Output/FirmCrosswalk.csv",check.names=F)
 firmCrosswalk = unique(firmCrosswalk[,c("STATE","eHealth_CARRIER_NAME","Firm")])
 eHealth = merge(eHealth,firmCrosswalk,by.x=c("STATE","CARRIER_NAME"),by.y=c("STATE","eHealth_CARRIER_NAME"),all.x=TRUE)
 

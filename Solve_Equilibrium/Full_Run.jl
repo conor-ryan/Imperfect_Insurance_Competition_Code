@@ -34,7 +34,7 @@ spec_demoRaw = [:AgeFE_31_39,
         :Family,
         :LowIncome]
 spec_prodchars=[:Price,:AV]
-spec_prodchars_σ=[:constant,:AV]#,
+spec_prodchars_σ=[:AV]#,
 # # :AK_MODA_HEALTH_PLAN_INC,
 # :AK_PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA,
 # # :GA_AETNA,
