@@ -208,13 +208,14 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
         p_last = copy(p_vec)
         p_vec = copy(p_test)
         grad_last = copy(grad_new)
-        p_vec_disp = p_vec[vcat([6,7,8],[14,15],[9,10,11,12,13])]
+        # p_vec_disp = p_vec[vcat([6,7,8],[14,15],[9,10,11,12,13])]
+        p_vec_disp = p_vec[vcat([5,6],[13,14])]
         f_final_val = fval
         println("Update Parameters to $p_vec_disp")
 
         min_val = minimum(p_vec)
         min_index = findall(p_vec.==min_val)[1]
-        max_val = minimum(p_vec)
+        max_val = maximum(p_vec)
         max_index = findall(p_vec.==min_val)[1]
         println("Max value at $max_index ($max_val)")
         println("Min value at $min_index ($min_val)")

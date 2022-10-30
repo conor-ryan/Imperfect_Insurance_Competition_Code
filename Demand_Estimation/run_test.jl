@@ -54,7 +54,7 @@ spec_demoRaw = [:AgeFE_31_39,
         :Family,
         :LowIncome]
 spec_prodchars=[:Price,:AV]
-spec_prodchars_σ=[:constant,:AV]
+spec_prodchars_σ=[:AV,:AK_MODA_HEALTH_PLAN_INC]
 
 #Structure the data
 # c = ChoiceData(df,df_mkt,df_risk,df_transfer;
