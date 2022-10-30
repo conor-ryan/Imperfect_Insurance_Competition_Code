@@ -212,6 +212,14 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
         f_final_val = fval
         println("Update Parameters to $p_vec_disp")
 
+        min_val = minimum(p_vec)
+        min_index = findall(p_vec.==min_val)[1]
+        max_val = minimum(p_vec)
+        max_index = findall(p_vec.==min_val)[1]
+        println("Max value at $max_index ($max_val)")
+        println("Min value at $min_index ($min_val)")
+
+
 
         println("Gradient Size: $grad_size")
         println("Step Size: $step")

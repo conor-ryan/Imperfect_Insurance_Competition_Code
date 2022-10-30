@@ -127,7 +127,7 @@ names(metal_moments) = c("Product","momentID","R_moment","ST")
 firm_moments = firm_moments[,c("Product","momentID","relative_risk_age_const","ST")]
 names(firm_moments) = c("Product","momentID","T_moment","ST")
 
-
+firm_moments = firm_moments[firm_moments$momentID==6]
 
 
 # risk_moments = rbind(metal_moments,firm_moments)
