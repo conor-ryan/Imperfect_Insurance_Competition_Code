@@ -1,6 +1,6 @@
 rm(list = ls())
 library(data.table)
-library(nleqslv)
+# library(nleqslv)
 library(doBy)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
@@ -64,6 +64,32 @@ firm_data = unique(mkt_data[,c("STATE","Firm","Small")])
 firm_moments = merge(firm_moments,firm_data,by.x=c("ST","Firm"),by.y=c("STATE","Firm"))
 
 
+# Drop At least one firm per state, prioritze those without full Product Menu
+menu_check = merge(firm_moments,mkt_data[,c("STATE","Firm","Product","Market","METAL")],
+                     by.y=c("STATE","Firm"),by.x=c("ST","Firm"))
+menu_check[,Bronze:=METAL=="BRONZE"]
+menu_check[,Silver:=METAL=="SILVER"]
+menu_check[,Gold:=METAL=="GOLD"]
+
+full_menu = menu_check[,list(Bronze=max(Bronze),Silver=max(Silver),Gold=max(Gold)),by=c("Firm","ST","memberMonths")]
+# Dropped Firms
+full_menu[,drop:=0]
+full_menu[Bronze==0|Silver==0|Gold==0,drop:=1]
+
+#If all firms have complete menu, drop smallest
+full_menu[,any_drop:=max(drop),by="ST"]
+full_menu[,smallest:=min(memberMonths),by="ST"]
+full_menu[,smallest:=memberMonths==smallest]
+full_menu[any_drop==0&smallest==TRUE,drop:=1]
+
+
+full_menu[,Firm_ST:=paste(ST,Firm,sep="_")]
+firm_moments[,Firm_ST:=paste(ST,Firm,sep="_")]
+
+
+firm_moments = firm_moments[Firm_ST%in%full_menu$Firm_ST[full_menu$drop==0]]
+
+firm_moments[,c("Firm_ST")]
 
 # firm_moments = firm_moments[HighRisk==1,]
 firm_moments[,momentID:=nrow(metal_moments)+1+(1:nrow(firm_moments))]
@@ -89,8 +115,12 @@ mkt_data$METAL = gsub(" [0-9]+","",mkt_data$METAL)
 
 metal_moments = merge(mkt_data[,c("STATE","Firm","METAL","Product")],metal_moments,
                       by.x=c("METAL"),by.y=c("Metal_std"))
-firm_moments = merge(firm_moments,mkt_data[,c("STATE","Firm","Product")],
+firm_moments = merge(firm_moments,mkt_data[,c("STATE","Firm","Product","Market","METAL")],
                      by.y=c("STATE","Firm"),by.x=c("ST","Firm"))
+
+
+
+
 
 metal_moments = metal_moments[,c("Product","momentID","R_adj","STATE")]
 names(metal_moments) = c("Product","momentID","R_moment","ST")
@@ -98,10 +128,12 @@ firm_moments = firm_moments[,c("Product","momentID","relative_risk_age_const","S
 names(firm_moments) = c("Product","momentID","T_moment","ST")
 
 
+
+
 # risk_moments = rbind(metal_moments,firm_moments)
 risk_moments = rbind(metal_moments,total_moment)
-risk_moments$ST = as.numeric(risk_moments$ST)
-firm_moments$ST = as.numeric(firm_moments$ST)
+risk_moments$ST = as.numeric(as.factor(risk_moments$ST))
+firm_moments$ST = as.numeric(as.factor(firm_moments$ST))
 ## Place Holder
 risk_moments$st_share = 0 
 firm_moments$st_share = 0 
