@@ -875,9 +875,10 @@ shares$Product = as.numeric(shares$Product_Name)
 choices = choices[with(choices,order(Person,Product)),]
 setkey(choices,Person,Product)
 setkey(shares,Product)
+shares[,ST:=as.numeric(as.factor(STATE))]
 
 
-write.csv(shares[,c("Product","Share","lives","Gamma_j","AV")],
+write.csv(shares[,c("Product","Share","lives","Gamma_j","AV","ST")],
           "Intermediate_Output/Estimation_Data/marketData_discrete.csv",row.names=FALSE)
 write.csv(shares,
           "Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv",row.names=FALSE)
@@ -955,7 +956,7 @@ write.csv(choices,"Intermediate_Output/Estimation_Data/descriptiveData_discrete.
 shares[,Metal_std:=gsub(" .*","",METAL)]
 shares[,Product_std:=min(Product),by=c("Firm","Metal_std","Market")]
 
-write.csv(shares[,c("Product","Share","lives","Gamma_j","AV")],
+write.csv(shares[,c("Product","Share","lives","Gamma_j","AV","ST")],
           "Intermediate_Output/Estimation_Data/marketData_discrete.csv",row.names=FALSE)
 write.csv(shares,
           "Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv",row.names=FALSE)

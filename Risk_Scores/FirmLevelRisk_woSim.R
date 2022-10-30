@@ -8,30 +8,30 @@ setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 claims = read.csv("Data/2015_MLR/Part1_2_Summary_Data_Premium_Claims.csv")
 
 
-payments = claims[claims$ROW_LOOKUP_CODE=="FED_RISK_ADJ_NET_PAYMENTS",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1")]
-names(payments) = c("ï..MR_SUBMISSION_TEMPLATE_ID","Payments")
+payments = claims[claims$ROW_LOOKUP_CODE=="FED_RISK_ADJ_NET_PAYMENTS",c("MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1")]
+names(payments) = c("MR_SUBMISSION_TEMPLATE_ID","Payments")
 
-payments_RC = claims[claims$ROW_LOOKUP_CODE=="FED_RISK_ADJ_NET_PAYMENTS",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_RC")]
-names(payments_RC) = c("ï..MR_SUBMISSION_TEMPLATE_ID","Payments_RC")
+payments_RC = claims[claims$ROW_LOOKUP_CODE=="FED_RISK_ADJ_NET_PAYMENTS",c("MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_RC")]
+names(payments_RC) = c("MR_SUBMISSION_TEMPLATE_ID","Payments_RC")
 
-enroll =claims[claims$ROW_LOOKUP_CODE=="NUMBER_OF_LIFE_YEARS",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1")]
-names(enroll) = c("ï..MR_SUBMISSION_TEMPLATE_ID","MLR_lives")
+enroll =claims[claims$ROW_LOOKUP_CODE=="NUMBER_OF_LIFE_YEARS",c("MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1")]
+names(enroll) = c("MR_SUBMISSION_TEMPLATE_ID","MLR_lives")
 
-months =claims[claims$ROW_LOOKUP_CODE=="MEMBER_MONTHS",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1")]
-names(months) = c("ï..MR_SUBMISSION_TEMPLATE_ID","memberMonths")
+months =claims[claims$ROW_LOOKUP_CODE=="MEMBER_MONTHS",c("MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1")]
+names(months) = c("MR_SUBMISSION_TEMPLATE_ID","memberMonths")
 
-months_RC =claims[claims$ROW_LOOKUP_CODE=="MEMBER_MONTHS",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_RC")]
-names(months_RC) = c("ï..MR_SUBMISSION_TEMPLATE_ID","memberMonths_RC")
+months_RC =claims[claims$ROW_LOOKUP_CODE=="MEMBER_MONTHS",c("MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_RC")]
+names(months_RC) = c("MR_SUBMISSION_TEMPLATE_ID","memberMonths_RC")
 
-revenue =claims[claims$ROW_LOOKUP_CODE=="TOTAL_DIRECT_PREMIUM_EARNED",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1")]
-names(revenue) = c("ï..MR_SUBMISSION_TEMPLATE_ID","Revenue")
+revenue =claims[claims$ROW_LOOKUP_CODE=="TOTAL_DIRECT_PREMIUM_EARNED",c("MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1")]
+names(revenue) = c("MR_SUBMISSION_TEMPLATE_ID","Revenue")
 
 
-RA_claims = merge(payments,enroll,by="ï..MR_SUBMISSION_TEMPLATE_ID")
-RA_claims = merge(RA_claims,payments_RC,by="ï..MR_SUBMISSION_TEMPLATE_ID")
-RA_claims = merge(RA_claims,months,by="ï..MR_SUBMISSION_TEMPLATE_ID")
-RA_claims = merge(RA_claims,months_RC,by="ï..MR_SUBMISSION_TEMPLATE_ID")
-RA_claims = merge(RA_claims,revenue,by="ï..MR_SUBMISSION_TEMPLATE_ID")
+RA_claims = merge(payments,enroll,by="MR_SUBMISSION_TEMPLATE_ID")
+RA_claims = merge(RA_claims,payments_RC,by="MR_SUBMISSION_TEMPLATE_ID")
+RA_claims = merge(RA_claims,months,by="MR_SUBMISSION_TEMPLATE_ID")
+RA_claims = merge(RA_claims,months_RC,by="MR_SUBMISSION_TEMPLATE_ID")
+RA_claims = merge(RA_claims,revenue,by="MR_SUBMISSION_TEMPLATE_ID")
 
 
 # Remove non-Individual Market Insurers
@@ -39,10 +39,11 @@ RA_claims$absent1 = is.na(RA_claims$MLR_lives) | RA_claims$MLR_lives==0
 RA_claims = RA_claims[!RA_claims$absent1,]
 
 # Merge in and summarize by Firm Name
-crosswalk = read.csv("Intermediate_Output/FirmCrosswalk.csv")
-crosswalk = unique(crosswalk[,c("ï..MR_SUBMISSION_TEMPLATE_ID","Firm","STATE")])
+crosswalk = read.csv("Intermediate_Output/FirmCrosswalk.csv",check.names = F)
+crosswalk = unique(crosswalk[,c("\xef..MR_SUBMISSION_TEMPLATE_ID","Firm","STATE")])
+names(crosswalk)[1] = "MR_SUBMISSION_TEMPLATE_ID"
 
-RA_claims = merge(RA_claims,crosswalk[,c("ï..MR_SUBMISSION_TEMPLATE_ID","Firm","STATE")],by="ï..MR_SUBMISSION_TEMPLATE_ID")
+RA_claims = merge(RA_claims,crosswalk[,c("MR_SUBMISSION_TEMPLATE_ID","Firm","STATE")],by="MR_SUBMISSION_TEMPLATE_ID")
 RA_claims = summaryBy(MLR_lives+Payments+Payments_RC+Revenue+memberMonths+memberMonths_RC~Firm+STATE,data=RA_claims,FUN=sum,na.rm=TRUE,keep.names=TRUE)
 
 
