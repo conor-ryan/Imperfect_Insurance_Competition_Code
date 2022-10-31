@@ -124,7 +124,7 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
     f_tol_cnt = 0
     x_tol_cnt = 0
 
-    println("Starting Vector: $(p_vec[vcat([6,7,8],[14,15],[9,10,11,12,13])])")
+    println("Starting Vector: $(p_vec[vcat([6,7],[13,14],[8,9,10,11,12])])")
     # Maximize by Newtons Method
     while (cnt<max_itr)
         cnt+=1
@@ -178,7 +178,7 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
         f_test = log_likelihood_penalty(d,p_test,W)
         println("Initial Step Size: $step")
         while ((f_test<fval*mistake_thresh) | isnan(f_test)) & (step>1e-15)
-            p_test_disp = p_test[vcat([6,7,8],[14,15],[9,10,11,12,13])]
+            p_vec_disp = p_test[vcat([6,7],[13,14],[8,9,10,11,12])]
             if trial_cnt==0
                 println("Trial: Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
@@ -208,8 +208,8 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
         p_last = copy(p_vec)
         p_vec = copy(p_test)
         grad_last = copy(grad_new)
-        # p_vec_disp = p_vec[vcat([6,7,8],[14,15],[9,10,11,12,13])]
-        p_vec_disp = p_vec[vcat([6,7],[13,14,15,16,17,18,19,20,21,22])]
+        p_vec_disp = p_vec[vcat([6,7],[13,14],[8,9,10,11,12])]
+        # p_vec_disp = p_vec[vcat([6,7],[13,14,15,16,17,18,19,20,21,22])]
         f_final_val = fval
         println("Update Parameters to $p_vec_disp")
 
@@ -407,7 +407,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         trial_max = 0
         while ((f_test<fval*mistake_thresh) | isnan(f_test)) & (trial_max==0)
             if trial_cnt==0
-                p_test_disp = p_test[vcat([6,7,8],[14,15],[9,10,11,12,13])]
+                p_vec_disp = p_test[vcat([6,7],[13,14],[8,9,10,11,12])]
                 println("Trial (Init): Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
             end
@@ -420,7 +420,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             if ((real_hessian==0) & (step_size>1e-4)) | ((real_hessian==1) & (step_size>x_tol))
                 p_test = p_vec .+ update
                 f_test = log_likelihood_penalty(d,p_test,W)
-                p_test_disp = p_test[vcat([6,7,8],[14,15],[9,10,11,12,13])]
+                p_vec_disp = p_test[vcat([6,7],[13,14],[8,9,10,11,12])]
                 println("Trial (NR): Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
                 trial_cnt+=1
@@ -451,8 +451,8 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         p_vec = copy(p_test)
         grad_last = copy(grad_new)
         H_last = copy(H_k)
-        # p_vec_disp = p_vec[vcat([6,7,8],[14,15],[9,10,11,12,13])]
-        p_vec_disp = p_vec[vcat([6,7],[13,14,15,16,17,18,19,20,21,22])]
+        p_vec_disp = p_vec[vcat([6,7],[13,14],[8,9,10,11,12])]
+        # p_vec_disp = p_vec[vcat([6,7],[13,14,15,16,17,18,19,20,21,22])]
         f_final_val = fval
         println("Update Parameters to $p_vec_disp")
 
