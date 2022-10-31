@@ -96,7 +96,7 @@ function log_likelihood!(grad::Vector{S},
     #     ll = -1e20
     # end
     for q in 1:Q
-        grad[q]=grad[q]
+        grad[q]=grad[q]/Pop
     end
     return ll/Pop
 end
