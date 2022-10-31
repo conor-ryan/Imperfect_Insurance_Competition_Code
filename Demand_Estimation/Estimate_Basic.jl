@@ -178,7 +178,7 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
         f_test = log_likelihood_penalty(d,p_test,W)
         println("Initial Step Size: $step")
         while ((f_test<fval*mistake_thresh) | isnan(f_test)) & (step>1e-15)
-            p_vec_disp = p_test[vcat([6,7],[13,14],[8,9,10,11,12])]
+            p_test_disp = p_test[vcat([6,7],[13,14],[8,9,10,11,12])]
             if trial_cnt==0
                 println("Trial: Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
@@ -282,7 +282,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         cnt+=1
         trial_cnt=0
 
-        # Compute Gradient, holding δ fixed
+        # Hessian Computation and Updating
         if hess_steps==0
             println("Compute Hessian")
             fval = log_likelihood_penalty!(hess_new,grad_new,d,p_vec,W)
@@ -311,6 +311,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             real_hessian=0
         end
 
+        ## Function and Parameter Tolerance Test
         if (cnt==1) | (fval>f_min)
             if (abs(fval-f_min)<f_tol) & (f_tol_flag==1)
                 f_tol_cnt += 1
@@ -327,7 +328,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             no_progress+=1
         end
 
-
+        ## Convergence Criteria
         grad_size = sqrt(mean(grad_new.^2))
         if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1)
             println("Got to Break Point...?")
@@ -337,6 +338,8 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             flag = "converged"
             break
         end
+
+        ## Allowance for wrong direction
         if strict==false
             if grad_size>.1
                 mistake_thresh = 1.25
@@ -345,6 +348,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             end
         end
 
+        ## Compute Update, Avoid NaN values (if possible)
         update = -H_k*grad_new
         if any(isnan.(update))
             println("Step contains NaN")
@@ -371,7 +375,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             NaN_steps = 0
         end
 
-
+        ## Revert Estimation, single gradient ascent step from last progress point
         if no_progress>5
             no_progress = 0
             hess_steps = -1
@@ -385,7 +389,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             # return p_min, fval
         end
 
-        # step_size = maximum(abs.(update))
+        ## Cap Maximum Parameter Update Change
         step_size = maximum(update)
         if (step_size>10) #& (grad_size>0.1)
             update = (update./step_size).*10
@@ -393,6 +397,15 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             val_disp = p_vec[ind]
             println("Max Parameter Adjustment: $ind, $val_disp")
             step_size = maximum(abs.(update))
+        end
+
+        ## Attempt to correct for runaway negative values
+        if any(p_vec.< -100)
+            large_neg_index = findall((p_vec.<-100).&(grad_new.>0))
+            if length(large_neg_index)>0
+                update[large_neg_index] = abs(p_vec[large_neg_index])/2
+                println("Attempting Correction to Large Negative Values: $large_neg_index")
+            end
         end
 
         p_test = p_vec .+ update
@@ -407,7 +420,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         trial_max = 0
         while ((f_test<fval*mistake_thresh) | isnan(f_test)) & (trial_max==0)
             if trial_cnt==0
-                p_vec_disp = p_test[vcat([6,7],[13,14],[8,9,10,11,12])]
+                p_test_disp = p_test[vcat([6,7],[13,14],[8,9,10,11,12])]
                 println("Trial (Init): Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
             end
@@ -420,7 +433,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             if ((real_hessian==0) & (step_size>1e-4)) | ((real_hessian==1) & (step_size>x_tol))
                 p_test = p_vec .+ update
                 f_test = log_likelihood_penalty(d,p_test,W)
-                p_vec_disp = p_test[vcat([6,7],[13,14],[8,9,10,11,12])]
+                p_test_disp = p_test[vcat([6,7],[13,14],[8,9,10,11,12])]
                 println("Trial (NR): Got $f_test at parameters $p_test_disp")
                 println("Previous Iteration at $fval")
                 trial_cnt+=1

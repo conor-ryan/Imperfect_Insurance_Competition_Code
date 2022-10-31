@@ -54,7 +54,16 @@ spec_demoRaw = [:AgeFE_31_39,
         :Family,
         :LowIncome]
 spec_prodchars=[:Price,:AV]
-spec_prodchars_σ=[:AV,:AK_MODA_HEALTH_PLAN_INC]
+spec_prodchars_σ=[:constant,:AV,
+:AK_MODA_HEALTH_PLAN_INC,
+:GA_AETNA,
+:GA_AMBETTER_FROM_PEACH_STATE_HEALTH_PLAN,
+:GA_ASSURANT_HEALTH,
+:GA_BLUE_CROSS_BLUE_SHIELD_OF_GEORGIA,
+:GA_HUMANA,
+:GA_KAISER_PERMANENTE_GA,
+:GA_UNITEDHEALTHCARE_LIFE_INS_CO,
+:GA_UNITEDHEALTHCARE_OF_GEORGIA_INC]
 
 #Structure the data
 # c = ChoiceData(df,df_mkt,df_risk,df_transfer;
