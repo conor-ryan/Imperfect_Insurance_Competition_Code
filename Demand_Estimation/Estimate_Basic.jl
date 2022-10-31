@@ -109,6 +109,7 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
     max_trial_cnt = 0
     p_last = copy(p_vec)
     grad_last = copy(grad_new)
+    step_last = 1.0
     disp_length = min(length(p0),20)
     f_min = -1e3
     p_min  = similar(p_vec)
@@ -159,6 +160,10 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
             g = p_vec - p_last
             y = grad_new - grad_last
             step = abs.(dot(g,g)/dot(g,y))
+            if step==Inf
+                step = 1/grad_size
+            end
+            step = min(step,step_last*100)
         end
 
         if no_progress>10
@@ -207,6 +212,7 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
 
         p_last = copy(p_vec)
         p_vec = copy(p_test)
+        step_last = copy(step)
         grad_last = copy(grad_new)
         p_vec_disp = p_vec[vcat([6,7],[13,14],[8,9,10,11,12])]
         # p_vec_disp = p_vec[vcat([6,7],[13,14,15,16,17,18,19,20,21,22])]
@@ -232,7 +238,7 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
 end
 
 
-function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
+function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
     max_itr=2000,strict=true,Hess_Skip_Steps=25)
     ## Initialize Parameter Vector
     p_vec = p0
@@ -327,6 +333,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         else
             no_progress+=1
         end
+        println("Steps since last improvement: $no_progress")
 
         ## Convergence Criteria
         grad_size = sqrt(mean(grad_new.^2))
@@ -400,24 +407,29 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         end
 
         ## Attempt to correct for runaway negative values
-        if any(p_vec.< -100)
+        if any(p_vec.< -100) & (grad_size>0.001)
             large_neg_index = findall((p_vec.<-100).&(grad_new.>0))
             if length(large_neg_index)>0
-                update[large_neg_index] = abs(p_vec[large_neg_index])/2
+                update[large_neg_index] = abs.(p_vec[large_neg_index])/2
                 println("Attempting Correction to Large Negative Values: $large_neg_index")
             end
         end
 
+        ## Trial Update and Updated FUnction Value
         p_test = p_vec .+ update
         f_test = log_likelihood_penalty(d,p_test,W)
 
+        ## Track steps that use approximated hessian
         if hess_steps<Hess_Skip_Steps
             hess_steps+=1
         else
             hess_steps=0
         end
 
+        ## Check if algorithm can move forward with candidate parameter vector
+        ## Search for better vector if not
         trial_max = 0
+        close_grad_step = 0
         while ((f_test<fval*mistake_thresh) | isnan(f_test)) & (trial_max==0)
             if trial_cnt==0
                 p_test_disp = p_test[vcat([6,7],[13,14],[8,9,10,11,12])]
@@ -438,11 +450,17 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
                 println("Previous Iteration at $fval")
                 trial_cnt+=1
                 # hess_steps=0
-            elseif real_hessian==1
+            elseif (real_hessian==1) & (grad_size>(grad_tol*1e4))
                 hess_steps = 0
                 trial_max = 1
                 println("RUN ROUND OF GRADIENT ASCENT")
                 p_test, f_test = gradient_ascent_ll(d,p_vec,W,max_itr=10,strict=true)
+            elseif (real_hessian==1) & (grad_size<=(grad_tol*1e4))
+                hess_steps = 0
+                trial_max = 1
+                close_grad_step = 1
+                println("RUN ROUND OF GRADIENT ASCENT")
+                p_test, f_test = gradient_ascent_ll(d,p_vec,W,max_itr=5,strict=true)
             else
                 println("No Advancement")
                 hess_steps = 0
@@ -454,7 +472,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
             end
         end
 
-        if real_hessian==1 & hess_steps>0
+        if real_hessian==1 & (hess_steps>0 | close_grad_step==1)
             f_tol_flag = 1
         else
             f_tol_flag = 0
@@ -480,7 +498,6 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         println("Gradient Size: $grad_size")
         println("Step Size: $step_size")
         println("Function Value is $f_test at iteration $cnt")
-        println("Steps since last improvement: $no_progress")
     end
     println("Lowest Function Value is $f_min at $p_min")
     return p_min,f_min,flag
