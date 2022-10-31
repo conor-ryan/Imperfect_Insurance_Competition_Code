@@ -209,7 +209,7 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
         p_vec = copy(p_test)
         grad_last = copy(grad_new)
         # p_vec_disp = p_vec[vcat([6,7,8],[14,15],[9,10,11,12,13])]
-        p_vec_disp = p_vec[vcat([6,7],[13,14,15,16,17,18,19,20,21,22])]
+        p_vec_disp = p_vec[vcat([6,7],[13,14,15])]
         f_final_val = fval
         println("Update Parameters to $p_vec_disp")
 
@@ -452,7 +452,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,
         grad_last = copy(grad_new)
         H_last = copy(H_k)
         # p_vec_disp = p_vec[vcat([6,7,8],[14,15],[9,10,11,12,13])]
-        p_vec_disp = p_vec[vcat([6,7],[13,14,15,16,17,18,19,20,21,22])]
+        p_vec_disp = p_vec[vcat([6,7],[13,14,15])]
         f_final_val = fval
         println("Update Parameters to $p_vec_disp")
 
