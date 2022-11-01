@@ -351,29 +351,29 @@ function run_specification_penalizedlikelihood(filename::String,
 
     cd("$(home_directory)/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/")
 
-    # println("Build LL Model - Fixed Effects Starting Point")
-    # c_ll = ChoiceData(df,df_mkt,df_risk,df_transfer;
-    #     demoRaw=spec_demoRaw,
-    #     prodchars=spec_prodchars,
-    #     prodchars_σ=Vector{Symbol}(undef,0),
-    #     fixedEffects=spec_fixedEffects)
-    #
-    # m_ll = InsuranceLogit(c_ll,1,nested=nested)
-    #
-    # ## Initialize Starting Parameters
-    # γstart = rand(m_ll.parLength[:γ])/10 .-.05
-    # β0start = rand(m_ll.parLength[:β])/10 .-.05
-    # βstart = rand(m_ll.parLength[:γ])/10 .- .05
-    # σstart = rand(m_ll.parLength[:σ])/10 .- .05
-    # FEstart = rand(m_ll.parLength[:FE])/100 .-.005
-    #
-    # fe_length = m_ll.parLength[:FE]
-    # p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
-    # println("#### Estimate LL Starting Point ####")
-    #
-    # ## Estimate
-    # W = zeros(length(m_ll.data.rMoments),length(m_ll.data.rMoments))
-    # p_ll, fval = newton_raphson_ll(m_ll,p0,W)
+    println("Build LL Model - Fixed Effects Starting Point")
+    c_ll = ChoiceData(df,df_mkt,df_risk,df_transfer;
+        demoRaw=spec_demoRaw,
+        prodchars=spec_prodchars,
+        prodchars_σ=Vector{Symbol}(undef,0),
+        fixedEffects=spec_fixedEffects)
+
+    m_ll = InsuranceLogit(c_ll,1,nested=nested)
+
+    ## Initialize Starting Parameters
+    γstart = rand(m_ll.parLength[:γ])/10 .-.05
+    β0start = rand(m_ll.parLength[:β])/10 .-.05
+    βstart = rand(m_ll.parLength[:γ])/10 .- .05
+    σstart = rand(m_ll.parLength[:σ])/10 .- .05
+    FEstart = rand(m_ll.parLength[:FE])/100 .-.005
+
+    fe_length = m_ll.parLength[:FE]
+    p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
+    println("#### Estimate LL Starting Point ####")
+
+    ## Estimate
+    W = zeros(length(m_ll.data.rMoments),length(m_ll.data.rMoments))
+    p_ll, fval = newton_raphson_ll(m_ll,p0,W)
 
 
     println("Save LL Result")
@@ -400,10 +400,10 @@ function run_specification_penalizedlikelihood(filename::String,
     σ_ind = (1 + maximum(ind1)):(minimum(ind2)-1)
 
 
-    p0 = rand(m_ll.parLength[:All]).*1.0 .- 0.5
-    # p0[ind1] = p_ll[ind1]
-    # p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
-    # p0[(length(p0)-fe_length):length(p0)] = p_ll[(length(p_ll)-fe_length):length(p_ll)]
+    # p0 = rand(m_ll.parLength[:All]).*1.0 .- 0.5
+    p0[ind1] = p_ll[ind1]
+    p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
+    p0[(length(p0)-fe_length):length(p0)] = p_ll[(length(p_ll)-fe_length):length(p_ll)]
     println("Starting vector: $p0")
 
     println("#### Estimate First Stage ####")

@@ -82,9 +82,12 @@ full_menu[,smallest:=min(memberMonths),by="ST"]
 full_menu[,smallest:=memberMonths==smallest]
 full_menu[any_drop==0&smallest==TRUE,drop:=1]
 
-
+#Match String
 full_menu[,Firm_ST:=paste(ST,Firm,sep="_")]
 firm_moments[,Firm_ST:=paste(ST,Firm,sep="_")]
+
+# Drop two more very small firms that are a pain to match
+full_menu = full_menu[!Firm_ST%in%c("IL_AETNA")]
 
 
 firm_moments = firm_moments[Firm_ST%in%full_menu$Firm_ST[full_menu$drop==0]]
