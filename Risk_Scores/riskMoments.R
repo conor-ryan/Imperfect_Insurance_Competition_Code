@@ -89,6 +89,8 @@ firm_moments[,Firm_ST:=paste(ST,Firm,sep="_")]
 # Drop two more very small firms that are a pain to match
 full_menu = full_menu[!Firm_ST%in%c("IL_AETNA")]
 
+full_menu = full_menu[ST!="IL"]
+
 
 firm_moments = firm_moments[Firm_ST%in%full_menu$Firm_ST[full_menu$drop==0]]
 

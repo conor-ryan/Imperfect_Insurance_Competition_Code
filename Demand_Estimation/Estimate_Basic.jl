@@ -487,6 +487,10 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
         f_final_val = fval
         println("Update Parameters to $p_vec_disp")
 
+        if (cnt%25==0)
+            println("Full Parameter Vector: $p_min")
+        end
+
         min_val = minimum(p_vec)
         min_index = findall(p_vec.==min_val)[1]
         max_val = maximum(p_vec)

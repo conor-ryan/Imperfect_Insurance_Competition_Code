@@ -142,7 +142,7 @@ param_labels = vcat(String.(spec_demoRaw),String.(spec_prodchars),"Price:" .* St
 
 
 # Fit into model
-m = InsuranceLogit(c,halton_draws)
+m = InsuranceLogit(c,1000)
 
 
 W = -Matrix(1.0I,length(m.data.rMoments),length(m.data.rMoments))
