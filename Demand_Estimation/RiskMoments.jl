@@ -1,3 +1,38 @@
+function print_risk_moments(d::InsuranceLogit,p::parDict{T}) where T
+    wgts = weight(d.data)[1,:]
+    wgts_share = wgts.*p.s_hat
+    num_prods = maximum(d.prods)
+    S_unwt = Vector{T}(undef,num_prods)
+    s_hat_j = Vector{T}(undef,num_prods)
+    r_hat_j = Vector{T}(undef,num_prods)
+    r_hat_unwt_j = Vector{T}(undef,num_prods)
+    a_hat_j = Vector{T}(undef,num_prods)
+
+    ageRate_long = ageRate(d.data)[1,:]
+
+    #prodAvgs!(S_unwt,r_hat_j,a_hat_j,ageRate_long,wgts,wgts_share,d,p)
+    for j in d.prods
+        j_index_all = d.data._productDict[j]
+        S_unwt[j] = sliceSum_wgt(p.s_hat,wgts,j_index_all)
+        #@inbounds @fastmath s_hat_j[j]= (S_unwt[j]/d.lives[j])*d.data.st_share[j]
+        @inbounds s_hat_j[j]= S_unwt[j]
+        r_hat_unwt_j[j] = sliceMean_wgt(p.r_hat,wgts_share,j_index_all)
+    end
+
+    for (st, st_moms) in d.data._stMomentMap
+        st_idx = d.data._stDict[st]
+        r_avg = sliceMean_wgt(r_hat_unwt_j,s_hat_j,st_idx)
+        for m in st_moms
+            idx_mom = d.data._tMomentDict[m]
+            r_est = sliceMean_wgt(r_hat_unwt_j,s_hat_j,idx_mom)
+            println("Moment $m, risk: $r_est")
+        end
+    end
+
+    return nothing
+end
+
+
 function calc_risk_moments(d::InsuranceLogit,p::parDict{T}) where T
     wgts = weight(d.data)[1,:]
     wgts_share = wgts.*p.s_hat
@@ -295,11 +330,13 @@ function calc_tMom_Der!(grad::Matrix{Float64},
         st_idx = d.data._stDict[st]
         s_st = sum(s_hat_j[st_idx])
         r_avg = sliceMean_wgt(r_hat_j,s_hat_j,st_idx)
+        println("State $st, risk: $r_avg")
 
         for m in st_moms
             idx_mom = d.data._tMomentDict[m]
             s_mom = sum(s_hat_j[idx_mom])
             r_mom = sliceMean_wgt(r_hat_j,s_hat_j,idx_mom)
+            println("Moment $m, risk: $r_mom")
             grad_mom[:].=0.0
             grad_st[:].=0.0
             for q in parList
