@@ -103,10 +103,9 @@ setkey(firm_moments,momentID)
 
 
 #### Total Enrolled Moment ####
-total_moment = mkt_data[mkt_data$METAL!="CATASTROPHIC",c("STATE","Firm","Product")]
+total_moment = mkt_data[mkt_data$METAL!="CATASTROPHIC",c("ST","Firm","Product")]
 total_moment$R_moment = 1.448
 total_moment$momentID = max(metal_moments$momentID) + 1
-total_moment$ST = total_moment$STATE
 
 total_moment = total_moment[,c("Product","momentID","R_moment","ST")]
 
@@ -118,18 +117,18 @@ mkt_data$METAL = gsub(" [0-9]+","",mkt_data$METAL)
 
 
 
-metal_moments = merge(mkt_data[,c("STATE","Firm","METAL","Product")],metal_moments,
+metal_moments = merge(mkt_data[,c("STATE","Firm","METAL","Product","ST")],metal_moments,
                       by.x=c("METAL"),by.y=c("Metal_std"))
-firm_moments = merge(firm_moments,mkt_data[,c("STATE","Firm","Product","Market","METAL")],
+firm_moments = merge(firm_moments,mkt_data[,c("STATE","Firm","Product","Market","METAL","ST")],
                      by.y=c("STATE","Firm"),by.x=c("ST","Firm"))
 
 
 
 
 
-metal_moments = metal_moments[,c("Product","momentID","R_adj","STATE")]
+metal_moments = metal_moments[,c("Product","momentID","R_adj","ST")]
 names(metal_moments) = c("Product","momentID","R_moment","ST")
-firm_moments = firm_moments[,c("Product","momentID","relative_risk_age_const","ST")]
+firm_moments = firm_moments[,c("Product","momentID","relative_risk_age_const","ST.y")]
 names(firm_moments) = c("Product","momentID","T_moment","ST")
 
 # firm_moments = firm_moments[firm_moments$ST%in%c("AK","GA")]
@@ -137,13 +136,13 @@ names(firm_moments) = c("Product","momentID","T_moment","ST")
 
 # risk_moments = rbind(metal_moments,firm_moments)
 risk_moments = rbind(metal_moments,total_moment)
-risk_moments$ST = as.numeric(as.factor(risk_moments$ST))
-firm_moments$ST = as.numeric(as.factor(firm_moments$ST))
+# risk_moments$ST = as.numeric(as.factor(risk_moments$ST))
+# firm_moments$ST = as.numeric(as.factor(firm_moments$ST))
 ## Place Holder
 risk_moments$st_share = 0 
 firm_moments$st_share = 0 
 unique(risk_moments[,c("R_moment","momentID")])
-unique(firm_moments[,c("T_moment","momentID")])
+unique(firm_moments[,c("T_moment","momentID","ST")])
 
 # risk_moment_test = read.csv("Intermediate_Output/Estimation_Data/riskMoments.csv")
 # 

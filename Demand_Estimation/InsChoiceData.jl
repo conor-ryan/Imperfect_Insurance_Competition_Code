@@ -429,9 +429,13 @@ function ChoiceData(data_choice::DataFrame,
             rMoments[m] = data_transfer[!,:T_moment][findall(data_transfer[!,:momentID].==m)][1]
         end
 
+        states = sort(unique(data_market[!,:ST]))
+        for s in states
+            _stDict[s] = unique(data_market[!,:Product][findall((data_market[!,:ST].==s).&(data_market[!,:AV].!=0.57))])
+        end
+
         states = sort(unique(data_transfer[!,:ST]))
         for s in states
-            _stDict[s] = unique(data_market[!,:Product][findall(data_market[!,:ST].==s)])
             _stMomentMap[s] = sort(unique(data_transfer[!,:momentID][findall(data_transfer[!,:ST].==s)]))
         end
 

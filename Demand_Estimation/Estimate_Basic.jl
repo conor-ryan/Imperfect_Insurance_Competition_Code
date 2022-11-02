@@ -488,7 +488,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
         println("Update Parameters to $p_vec_disp")
 
         if (cnt%25==0)
-            println("Full Parameter Vector: $p_min")
+            println("Full Parameter Vector: $p_vec")
         end
 
         min_val = minimum(p_vec)
