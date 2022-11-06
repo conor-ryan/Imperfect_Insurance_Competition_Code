@@ -36,7 +36,7 @@ function calc_risk_moments(d::InsuranceLogit,p::parDict{T}) where T
     for (m,idx_mom) in d.data._rMomentDict
         r_est = sliceMean_wgt(r_hat_unwt_j,s_hat_j,idx_mom)
         #mom_value[m] = d.data.rMoments[m] - t_est
-        println("Moment $m, risk: $r_est")
+        # println("Moment $m, risk: $r_est")
         mom_value[m] = r_est
     end
 
@@ -296,13 +296,13 @@ function calc_tMom_Der!(grad::Matrix{Float64},
         st_idx = d.data._stDict[st]
         s_st = sum(s_hat_j[st_idx])
         r_avg = sliceMean_wgt(r_hat_j,s_hat_j,st_idx)
-        println("State $st, risk: $r_avg")
+        # println("State $st, risk: $r_avg")
 
         for m in st_moms
             idx_mom = d.data._tMomentDict[m]
             s_mom = sum(s_hat_j[idx_mom])
             r_mom = sliceMean_wgt(r_hat_j,s_hat_j,idx_mom)
-            println("Moment $m, risk: $r_mom")
+            # println("Moment $m, risk: $r_mom")
             grad_mom[:].=0.0
             grad_st[:].=0.0
             for q in parList
