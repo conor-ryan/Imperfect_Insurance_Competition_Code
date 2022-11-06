@@ -36,7 +36,7 @@ function calc_risk_moments(d::InsuranceLogit,p::parDict{T}) where T
     for (m,idx_mom) in d.data._rMomentDict
         r_est = sliceMean_wgt(r_hat_unwt_j,s_hat_j,idx_mom)
         #mom_value[m] = d.data.rMoments[m] - t_est
-        # println("Moment $m, risk: $r_est")
+        println("Moment $m, risk: $r_est")
         mom_value[m] = r_est
     end
 

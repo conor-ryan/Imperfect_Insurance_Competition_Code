@@ -168,8 +168,8 @@ tx_index = findall(p_est.>10)
 # p_est = rand(m.parLength[:All]).*0.1 .- 0.5
 #
 # p_est[[13,14]] = [0.6,-0.03]
-p_est[13] = 7
-p_est[tx_index].=0.0
+p_est[13] = 10
+# p_est[tx_index].=0.0
 p = parDict(m,p_est,no2Der=false)
 individual_values!(m,p)
 individual_shares(m,p)

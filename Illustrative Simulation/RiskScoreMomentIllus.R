@@ -141,7 +141,7 @@ barplot = rbind(bar_plot1[,c("risk_positive","model","dist")],
                 bar_plot2[,c("risk_positive","model","dist")])
 barplot$risk_positive = factor(barplot$risk_positive,levels=c("Zero","Non-Zero"))
 ### Risk Distribution
-png("Writing/Images/RiskDist_Fit_Log.png",width=2500,height=1500,res=275)
+# png("Writing/Images/RiskDist_Fit_Log.png",width=2500,height=1500,res=275)
 ggplot() +
   geom_histogram(data=acs,aes(x=log(HCC_Silver),weights=PERWT,y=..density..,fill="Model"),binwidth=.3,alpha=0.6)+
   geom_histogram(data=meps,aes(x=log(HCC_Score_Silver),weights=PERWT15F,y=..density..,fill="Data"),binwidth=.3,alpha=0.6)+
@@ -158,7 +158,7 @@ ggplot() +
     legend.position = "right",
     axis.title=element_text(size=14),
     axis.text = element_text(size=14))
-dev.off()
+# dev.off()
 
 ggplot() +
   geom_histogram(data=meps,aes(x=log(HCC_pred_Silver),weights=PERWT15F,y=..density..,fill="Model"),binwidth=.3,alpha=0.6)+
@@ -177,7 +177,7 @@ ggplot() +
     axis.title=element_text(size=14),
     axis.text = element_text(size=14))
 
-png("Writing/Images/RiskDist_Fit_Any.png",width=2500,height=1500,res=275)
+# png("Writing/Images/RiskDist_Fit_Any.png",width=2500,height=1500,res=275)
 ggplot(barplot) + aes(x=risk_positive,y=dist,fill=model) +
   geom_bar(position="dodge",stat="identity") +
   ylab("Probability") +
@@ -193,15 +193,15 @@ ggplot(barplot) + aes(x=risk_positive,y=dist,fill=model) +
     legend.position = "right",
     axis.title=element_text(size=16),
     axis.text = element_text(size=14))
-dev.off()
+# dev.off()
 
-png("Writing/Images/RiskDist_Fit_Positive.png",width=2500,height=1500,res=275)
+# png("Writing/Images/RiskDist_Fit_Positive.png",width=2500,height=1500,res=275)
 ggplot() +
   geom_histogram(data=acs[HCC_Silver>0,],aes(x=HCC_Silver,weights=PERWT,y=..density..,fill="Model"),binwidth=.3,alpha=0.6)+
   geom_histogram(data=meps[meps$HCC_Score_Silver>0,],aes(x=HCC_Score_Silver,weights=PERWT15F,y=..density..,fill="Data"),binwidth=.3,alpha=0.6)+
   ylab("Density") +
   xlab("Risk Score") +
-  coord_cartesian(xlim=c(0,20)) +
+  # coord_cartesian(xlim=c(0,20)) +
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
     strip.background = element_blank(),
     #panel.grid.major = element_line(color=grey(.8)),
@@ -213,4 +213,4 @@ ggplot() +
     legend.position = "none",
     axis.title=element_text(size=16),
     axis.text = element_text(size=14))
-dev.off()
+# dev.off()
