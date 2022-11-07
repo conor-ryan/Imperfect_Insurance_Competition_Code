@@ -58,6 +58,13 @@ metal_moments[,R_adj_est:=(T_norm_data+1)*1.448]
 
 metal_moments[,momentID:=1:nrow(metal_moments)]
 
+#### Total Enrolled Moment ####
+total_moment = mkt_data[mkt_data$METAL!="CATASTROPHIC",c("ST","Firm","Product")]
+total_moment$R_moment = 1.448
+total_moment$momentID = max(metal_moments$momentID) + total_moment$ST
+
+total_moment = total_moment[,c("Product","momentID","R_moment","ST")]
+
 #### Firm Moments ####
 firm_moments = firm_RA[,c("ST","Firm","T_norm_adj","memberMonths","payments_adj","HighRisk","relative_risk_age_const","relative_risk_unadj","relative_risk_adj_term")]
 firm_data = unique(mkt_data[,c("STATE","Firm","Small")])
@@ -94,20 +101,12 @@ full_menu = full_menu[ST!="IL"]
 
 firm_moments = firm_moments[Firm_ST%in%full_menu$Firm_ST[full_menu$drop==0]]
 
-firm_moments[,c("Firm_ST")]
+firm_moments[,paste(paste(":",Firm_ST,sep=""),collapse=",")]
 
 # firm_moments = firm_moments[HighRisk==1,]
-firm_moments[,momentID:=nrow(metal_moments)+1+(1:nrow(firm_moments))]
+firm_moments[,momentID:=max(total_moment$momentID)+(1:nrow(firm_moments))]
 # firm_moments[,momentID:=(1:nrow(firm_moments))]
 setkey(firm_moments,momentID)
-
-
-#### Total Enrolled Moment ####
-total_moment = mkt_data[mkt_data$METAL!="CATASTROPHIC",c("ST","Firm","Product")]
-total_moment$R_moment = 1.448
-total_moment$momentID = max(metal_moments$momentID) + 1
-
-total_moment = total_moment[,c("Product","momentID","R_moment","ST")]
 
 
 ##### Output Moments ####

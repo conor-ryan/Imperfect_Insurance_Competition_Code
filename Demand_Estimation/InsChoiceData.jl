@@ -839,7 +839,7 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
             μ_risk = c_data.rDistribution[mom,3]
             std_risk = sqrt(c_data.rDistribution[mom,4])
 
-            println("Moment $mom, $μ_risk $std_risk")
+            # println("Moment $mom, $μ_risk $std_risk")
 
             ## Windsor threshold
             a = norminvcdf(0.95)*std_risk + μ_risk
