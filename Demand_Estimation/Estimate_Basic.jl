@@ -94,7 +94,10 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
     ## Initialize Parameter Vector
     p_vec = p0
     N = length(p0)
-
+    ind1 = 1:(d.parLength[:γ]*2+d.parLength[:β])
+    ind2 = (1 + maximum(ind1) + d.parLength[:σ]):d.parLength[:All]
+    σ_ind = (1 + maximum(ind1)):(minimum(ind2)-1)
+    search_ind = σ_ind
     cnt = 0
     grad_size = 10000
     f_eval_old = 1.0
@@ -134,6 +137,7 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
 
         # Compute Gradient, holding δ fixed
         fval = log_likelihood_penalty!(grad_new,d,p_vec,W)
+        grad_new = grad_new[search_ind]
 
 
 
@@ -157,7 +161,7 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
         if cnt==1
             step = 1/grad_size
         else
-            g = p_vec - p_last
+            g = p_vec[search_ind] - p_last[search_ind]
             y = grad_new - grad_last
             step = abs.(dot(g,g)/dot(g,y))
             if step==Inf
@@ -177,8 +181,9 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
         end
 
 
-
-        p_test = p_vec .+ step.*grad_new
+        update = zeros(length(p_vec))
+        update[search_ind] = step.*grad_new
+        p_test = p_vec .+ update
 
         f_test = log_likelihood_penalty(d,p_test,W)
         println("Initial Step Size: $step")
@@ -189,8 +194,8 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
                 println("Previous Iteration at $fval")
                 println("Reducing Step Size...")
             end
-            step/= 5
-            p_test = p_vec .+ step.*grad_new
+            update/= 5
+            p_test = p_vec .+ update
             f_test = log_likelihood_penalty(d,p_test,W)
             trial_cnt+=1
         end
@@ -243,7 +248,10 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
     ## Initialize Parameter Vector
     p_vec = p0
     N = length(p0)
-
+    ind1 = 1:(d.parLength[:γ]*2+d.parLength[:β])
+    ind2 = (1 + maximum(ind1) + d.parLength[:σ]):d.parLength[:All]
+    σ_ind = (1 + maximum(ind1)):(minimum(ind2)-1)
+    search_ind = σ_ind
     cnt = 0
     grad_size = 10000
     f_eval_old = 1.0
@@ -304,12 +312,15 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
             # if !check
             #     hess_steps = Hess_Skip_Steps-5
             # end
+            hess_new = hess_new[search_ind,search_ind]
+            grad_new = grad_new[search_ind]
             H_k = inv(hess_new)
             real_hessian=1
         else
             println("BFGS Approximation")
             fval = log_likelihood_penalty!(grad_new,d,p_vec,W)
-            Δxk = p_vec - p_last
+            grad_new = grad_new[search_ind]
+            Δxk = p_vec[search_ind] - p_last[search_ind]
             yk = grad_new - grad_last
             # Δhess =  (yk*yk')./(yk'*Δxk) - (hess_new*Δxk*(hess_new*Δxk)')./(Δxk'*hess_new*Δxk)
             # hess_new = hess_new + (yk*yk')./(yk'*Δxk) - (yk*yk')./(yk'*Δxk) - (hess_new*Δxk*(hess_new*Δxk)')./(Δxk'*hess_new*Δxk)
@@ -356,7 +367,8 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
         end
 
         ## Compute Update, Avoid NaN values (if possible)
-        update = -H_k*grad_new
+        update = zeros(length(p_est))
+        update[search_ind] = -H_k*grad_new
         if any(isnan.(update))
             println("Step contains NaN")
             println(p_vec)
@@ -389,9 +401,10 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
             println("Return: Limit on No Progress")
             p_vec = copy(p_min)
             fval = log_likelihood_penalty!(grad_new,d,p_vec,W)
+            grad_new = grad_new[search_ind]
             grad_size = maximum(abs.(grad_new))
             step = 1/grad_size
-            update =  step.*grad_new
+            update[search_ind] =  step.*grad_new
             mistake_thresh = 1.00
             # return p_min, fval
         end
@@ -399,7 +412,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
         ## Cap Maximum Parameter Update Change
         step_size = maximum(update)
         if (step_size>10) #& (grad_size>0.1)
-            update = (update./step_size).*10
+            update[search_ind] = (update[search_ind]./step_size).*10
             ind = findall(abs.(update).==10)
             val_disp = p_vec[ind]
             println("Max Parameter Adjustment: $ind, $val_disp")
