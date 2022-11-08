@@ -321,7 +321,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
                 trial_cnt+=1
             end
             trial_cnt = 0
-            hess_new, check = enforceNegDef(hess_new)
+            # hess_new, check = enforceNegDef(hess_new)
             # if !check
             #     hess_steps = Hess_Skip_Steps-5
             # end
