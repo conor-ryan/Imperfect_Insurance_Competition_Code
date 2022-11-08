@@ -376,7 +376,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
         end
 
         ## Compute Update, Avoid NaN values (if possible)
-        update = zeros(length(p_est))
+        update = zeros(length(p_vec))
         update[search_ind] = -H_k*grad_new
         if any(isnan.(update))
             println("Step contains NaN")
