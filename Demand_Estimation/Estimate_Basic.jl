@@ -90,14 +90,19 @@ function estimate!(d::InsuranceLogit, p0;method=:LD_TNEWTON_PRECOND_RESTART)
 end
 
 
-function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2000,strict=false)
+function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2000,
+                            strict=false,var_parameters_only=false)
     ## Initialize Parameter Vector
     p_vec = p0
     N = length(p0)
     ind1 = 1:(d.parLength[:γ]*2+d.parLength[:β])
     ind2 = (1 + maximum(ind1) + d.parLength[:σ]):d.parLength[:All]
     σ_ind = (1 + maximum(ind1)):(minimum(ind2)-1)
-    search_ind = σ_ind
+    if var_parameters_only
+        search_ind = σ_ind
+    else
+        search_ind = 1:length(p_vec)
+    end
     cnt = 0
     grad_size = 10000
     f_eval_old = 1.0
@@ -244,14 +249,18 @@ end
 
 
 function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
-    max_itr=2000,strict=true,Hess_Skip_Steps=25)
+    max_itr=2000,strict=true,Hess_Skip_Steps=25,var_parameters_only=false)
     ## Initialize Parameter Vector
     p_vec = p0
     N = length(p0)
     ind1 = 1:(d.parLength[:γ]*2+d.parLength[:β])
     ind2 = (1 + maximum(ind1) + d.parLength[:σ]):d.parLength[:All]
     σ_ind = (1 + maximum(ind1)):(minimum(ind2)-1)
-    search_ind = σ_ind
+    if var_parameters_only
+        search_ind = σ_ind
+    else
+        search_ind = 1:length(p_vec)
+    end
     cnt = 0
     grad_size = 10000
     f_eval_old = 1.0
