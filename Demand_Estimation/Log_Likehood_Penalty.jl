@@ -32,8 +32,6 @@ function log_likelihood_penalty!(grad::Vector{Float64},d::InsuranceLogit,p::Arra
     ll = 0.0
     mom_grad = Matrix{Float64}(undef,length(p),length(d.data.rMoments))
     mom = calc_risk_moments!(mom_grad,d,params,feFlag=feFlag)
-    println(mom)
-    println(mom_grad)
 
     obj = calc_GMM_Obj(mom,W)
     calc_GMM_Grad!(grad,mom,mom_grad,W)
