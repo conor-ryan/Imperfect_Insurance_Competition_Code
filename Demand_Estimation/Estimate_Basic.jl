@@ -112,6 +112,7 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
     # Initialize Gradient
     # grad_new = SharedArray{Float64}(length(p0))
     grad_new = Vector{Float64}(undef,length(p0))
+    grad_hold = Vector{Float64}(undef,length(p0))
     # hess_new = Matrix{Float64}(undef,length(p0),length(p0))
     f_final_val = 0.0
     max_trial_cnt = 0
@@ -141,8 +142,8 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
 
 
         # Compute Gradient, holding δ fixed
-        fval = log_likelihood_penalty!(grad_new,d,p_vec,W)
-        grad_new = grad_new[search_ind]
+        fval = log_likelihood_penalty!(grad_hold,d,p_vec,W)
+        grad_new = grad_hold[search_ind]
 
 
 
@@ -179,7 +180,8 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
             no_progress = 0
             println("Return: Limit on No Progress")
             p_vec = copy(p_min)
-            fval = log_likelihood_penalty!(grad_new,d,p_vec,W)
+            fval = log_likelihood_penalty!(grad_hold,d,p_vec,W)
+            grad_new = grad_hold[search_ind]
             grad_size = maximum(abs.(grad_new))
             step = 1/grad_size
             mistake_thresh = 1.00
@@ -270,6 +272,8 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
     # Initialize Gradient
     grad_new = similar(p0)
     hess_new = Matrix{Float64}(undef,length(p0),length(p0))
+    grad_hold = similar(p0)
+    hess_hold = Matrix{Float64}(undef,length(p0),length(p0))
     # grad_new = SharedVector{Float64}(length(p0))
     # hess_new = SharedMatrix{Float64}(length(p0),length(p0))
     Eye = Matrix{Float64}(1.0I,length(p0),length(p0))
@@ -308,12 +312,12 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
         # Hessian Computation and Updating
         if hess_steps==0
             println("Compute Hessian")
-            fval = log_likelihood_penalty!(hess_new,grad_new,d,p_vec,W)
+            fval = log_likelihood_penalty!(hess_hold,grad_hold,d,p_vec,W)
             while any(isnan.(hess_new)) & (trial_cnt<15)
                 println("NA values in Hessian, RUN: Gradient Ascent")
                 p_vec, f_test = gradient_ascent_ll(d,p_vec,W,max_itr=20,strict=true)
                 println("Recompute Hessian")
-                fval = log_likelihood_penalty!(hess_new,grad_new,d,p_vec,W)
+                fval = log_likelihood_penalty!(hess_hold,grad_hold,d,p_vec,W)
                 trial_cnt+=1
             end
             trial_cnt = 0
@@ -321,14 +325,14 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
             # if !check
             #     hess_steps = Hess_Skip_Steps-5
             # end
-            hess_new = hess_new[search_ind,search_ind]
-            grad_new = grad_new[search_ind]
+            hess_new = hess_hold[search_ind,search_ind]
+            grad_new = grad_hold[search_ind]
             H_k = inv(hess_new)
             real_hessian=1
         else
             println("BFGS Approximation")
-            fval = log_likelihood_penalty!(grad_new,d,p_vec,W)
-            grad_new = grad_new[search_ind]
+            fval = log_likelihood_penalty!(grad_hold,d,p_vec,W)
+            grad_new = grad_hold[search_ind]
             Δxk = p_vec[search_ind] - p_last[search_ind]
             yk = grad_new - grad_last
             # Δhess =  (yk*yk')./(yk'*Δxk) - (hess_new*Δxk*(hess_new*Δxk)')./(Δxk'*hess_new*Δxk)
@@ -409,8 +413,8 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
             hess_steps = -1
             println("Return: Limit on No Progress")
             p_vec = copy(p_min)
-            fval = log_likelihood_penalty!(grad_new,d,p_vec,W)
-            grad_new = grad_new[search_ind]
+            fval = log_likelihood_penalty!(grad_hold,d,p_vec,W)
+            grad_new = grad_hold[search_ind]
             grad_size = maximum(abs.(grad_new))
             step = 1/grad_size
             update[search_ind] =  step.*grad_new

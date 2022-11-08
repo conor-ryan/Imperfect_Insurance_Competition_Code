@@ -6,7 +6,8 @@ function log_likelihood_penalty(d::InsuranceLogit,p::Array{T},W::Matrix{Float64}
     mom = calc_risk_moments(d,p)
 
     obj = calc_GMM_Obj(mom,W)
-    return ll+obj
+    return obj
+    # return ll+obj
 end
 
 
