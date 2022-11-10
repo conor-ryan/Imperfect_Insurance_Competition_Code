@@ -1,7 +1,11 @@
 function log_likelihood_penalty(d::InsuranceLogit,p::Array{T},W::Matrix{Float64}
                                     ;cont_flag=false) where T
     params = parDict(d,p,no2Der=true)
+<<<<<<< HEAD
     ll = log_likelihood(d,params,cont_flag = cont_flag)
+=======
+    # ll = log_likelihood(d,params,cont_flag = cont_flag)
+>>>>>>> parent of 5ba0308... bug
 
     mom = calc_risk_moments(d,p)
 
@@ -24,7 +28,12 @@ function log_likelihood_penalty!(grad::Vector{Float64},d::InsuranceLogit,p::Arra
     params.d2Rdθ_j[:] .= 0.0
 
 
+<<<<<<< HEAD
     ll = log_likelihood!(grad,d,params,cont_flag = cont_flag,feFlag=feFlag)
+=======
+    # ll = log_likelihood!(grad,d,params,cont_flag = cont_flag,feFlag=feFlag)
+    ll = 0.0
+>>>>>>> parent of 5ba0308... bug
     mom_grad = Matrix{Float64}(undef,length(p),length(d.data.rMoments))
     mom = calc_risk_moments!(mom_grad,d,params,feFlag=feFlag)
 
@@ -76,7 +85,12 @@ function log_likelihood_penalty!(hess::Matrix{Float64},grad::Vector{Float64},
     params.d2Sdθ_j[:] .= 0.0
     params.d2Rdθ_j[:] .= 0.0
 
+<<<<<<< HEAD
     ll = log_likelihood!(hess,grad,d,params,feFlag=feFlag)
+=======
+    # ll = log_likelihood!(hess,grad,d,params,feFlag=feFlag)
+    ll = 0.0
+>>>>>>> parent of 5ba0308... bug
 
     mom_grad = Matrix{Float64}(undef,length(p),length(d.data.rMoments))
     mom_hess = Array{Float64,3}(undef,length(p),length(p),length(d.data.rMoments))
