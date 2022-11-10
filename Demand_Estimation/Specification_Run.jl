@@ -351,35 +351,35 @@ function run_specification_penalizedlikelihood(filename::String,
 
     cd("$(home_directory)/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/")
 
-    # println("Build LL Model - Fixed Effects Starting Point")
-    # c_ll = ChoiceData(df,df_mkt,df_risk,df_transfer;
-    #     demoRaw=spec_demoRaw,
-    #     prodchars=spec_prodchars,
-    #     prodchars_σ=Vector{Symbol}(undef,0),
-    #     fixedEffects=spec_fixedEffects)
-    #
-    # m_ll = InsuranceLogit(c_ll,1,nested=nested)
-    #
-    # ## Initialize Starting Parameters
-    # γstart = rand(m_ll.parLength[:γ])/10 .-.05
-    # β0start = rand(m_ll.parLength[:β])/10 .-.05
-    # βstart = rand(m_ll.parLength[:γ])/10 .- .05
-    # σstart = rand(m_ll.parLength[:σ])/10 .- .05
-    # FEstart = rand(m_ll.parLength[:FE])/100 .-.005
-    #
-    # fe_length = m_ll.parLength[:FE]
-    # p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
-    # println("#### Estimate LL Starting Point ####")
-    #
-    # ## Estimate
-    # W = zeros(length(m_ll.data.rMoments),length(m_ll.data.rMoments))
-    # # p_ll, fval = newton_raphson_ll(m_ll,p0,W)
+    println("Build LL Model - Fixed Effects Starting Point")
+    c_ll = ChoiceData(df,df_mkt,df_risk,df_transfer;
+        demoRaw=spec_demoRaw,
+        prodchars=spec_prodchars,
+        prodchars_σ=Vector{Symbol}(undef,0),
+        fixedEffects=spec_fixedEffects)
+
+    m_ll = InsuranceLogit(c_ll,1,nested=nested)
+
+    ## Initialize Starting Parameters
+    γstart = rand(m_ll.parLength[:γ])/10 .-.05
+    β0start = rand(m_ll.parLength[:β])/10 .-.05
+    βstart = rand(m_ll.parLength[:γ])/10 .- .05
+    σstart = rand(m_ll.parLength[:σ])/10 .- .05
+    FEstart = rand(m_ll.parLength[:FE])/100 .-.005
+
+    fe_length = m_ll.parLength[:FE]
+    p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
+    println("#### Estimate LL Starting Point ####")
+
+    ## Estimate
+    W = zeros(length(m_ll.data.rMoments),length(m_ll.data.rMoments))
+    p_ll, fval = newton_raphson_ll(m_ll,p0,W)
 
 
     println("Save LL Result")
     file = "$filename-$rundate-ll.jld2"
     # @save file p_ll spec_Dict
-    @load file p_ll spec_Dict
+    # @load file p_ll spec_Dict
 
     ## Build GMM Model
     println("Build Model")
@@ -415,8 +415,7 @@ function run_specification_penalizedlikelihood(filename::String,
     W[5,5] = -5.0
     W = W.*10
 
-    # p_init, obj_init = gradient_ascent_ll(m_ll,p0,W,max_itr=50,var_parameters_only=true)
-    p_init = p0
+    p_init, obj_init = gradient_ascent_ll(m_ll,p0,W,max_itr=50,var_parameters_only=true)
     p_stg1, obj_1 = newton_raphson_ll(m_ll,p_init,W,var_parameters_only=true)
 
     println("Save First Stage Result")

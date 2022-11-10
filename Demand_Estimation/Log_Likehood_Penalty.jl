@@ -1,15 +1,12 @@
 function log_likelihood_penalty(d::InsuranceLogit,p::Array{T},W::Matrix{Float64}
                                     ;cont_flag=false) where T
     params = parDict(d,p,no2Der=true)
-    # ll = log_likelihood(d,params,cont_flag = cont_flag)
-    individual_values!(d,params)
-    individual_shares(d,params)
+    ll = log_likelihood(d,params,cont_flag = cont_flag)
 
     mom = calc_risk_moments(d,p)
 
     obj = calc_GMM_Obj(mom,W)
-    return obj
-    # return ll+obj
+    return ll+obj
 end
 
 
@@ -28,10 +25,10 @@ function log_likelihood_penalty!(grad::Vector{Float64},d::InsuranceLogit,p::Arra
 
 
     ll = log_likelihood!(grad,d,params,cont_flag = cont_flag,feFlag=feFlag)
-    grad[:].=0.0
-    ll = 0.0
     mom_grad = Matrix{Float64}(undef,length(p),length(d.data.rMoments))
     mom = calc_risk_moments!(mom_grad,d,params,feFlag=feFlag)
+
+
 
     obj = calc_GMM_Obj(mom,W)
     calc_GMM_Grad!(grad,mom,mom_grad,W)
@@ -80,9 +77,6 @@ function log_likelihood_penalty!(hess::Matrix{Float64},grad::Vector{Float64},
     params.d2Rdθ_j[:] .= 0.0
 
     ll = log_likelihood!(hess,grad,d,params,feFlag=feFlag)
-    ll = 0.0
-    hess[:].=0.0
-    grad[:].=0.0
 
     mom_grad = Matrix{Float64}(undef,length(p),length(d.data.rMoments))
     mom_hess = Array{Float64,3}(undef,length(p),length(p),length(d.data.rMoments))
