@@ -378,11 +378,7 @@ function run_specification_penalizedlikelihood(filename::String,
 
     println("Save LL Result")
     file = "$filename-$rundate-ll.jld2"
-<<<<<<< HEAD
-    # @save file p_ll spec_Dict
-=======
     @save file p_ll spec_Dict
->>>>>>> parent of f740a95... load ll result
     # @load file p_ll spec_Dict
 
     ## Build GMM Model
