@@ -378,7 +378,7 @@ function run_specification_penalizedlikelihood(filename::String,
 
     println("Save LL Result")
     file = "$filename-$rundate-ll.jld2"
-    @save file p_ll spec_Dict
+    # @save file p_ll spec_Dict
     # @load file p_ll spec_Dict
 
     ## Build GMM Model
@@ -413,10 +413,10 @@ function run_specification_penalizedlikelihood(filename::String,
     W[3,3] = -5.0
     W[4,4] = -5.0
     W[5,5] = -5.0
-    W = W.*10
+    W = W./10
 
-    p_init, obj_init = gradient_ascent_ll(m_ll,p0,W,max_itr=50,var_parameters_only=true)
-    p_stg1, obj_1 = newton_raphson_ll(m_ll,p_init,W,var_parameters_only=true)
+    p_init, obj_init = gradient_ascent_ll(m_ll,p0,W,max_itr=50)
+    p_stg1, obj_1 = newton_raphson_ll(m_ll,p_init,W)
 
     println("Save First Stage Result")
     file = "$filename-$rundate-stg1.jld2"
