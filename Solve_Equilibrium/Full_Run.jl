@@ -35,7 +35,8 @@ spec_demoRaw = [:AgeFE_31_39,
         :LowIncome]
 spec_prodchars=[:Price,:AV]
 spec_prodchars_σ=[:constant,:AV,
-:AK_MODA_HEALTH_PLAN_INC]
+:AK_MODA_HEALTH_PLAN_INC,
+:IA_COVENTRY_HEALTH_CARE_OF_IOWA_INC,:IA_WELLMARK_BLUE_CROSS_AND_BLUE_SHIELD_OF_IOWA]
 cost_spec = [:AGE,:AV]
 
 rundate = Dates.today()
