@@ -73,7 +73,7 @@ firm_moments = merge(firm_moments,firm_data,by.x=c("ST","Firm"),by.y=c("STATE","
 
 # Drop At least one firm per state, prioritze those without full Product Menu
 menu_check = merge(firm_moments,mkt_data[,c("STATE","Firm","Product","Market","METAL")],
-                     by.y=c("STATE","Firm"),by.x=c("ST","Firm"))
+                   by.y=c("STATE","Firm"),by.x=c("ST","Firm"))
 menu_check[,Bronze:=METAL=="BRONZE"]
 menu_check[,Silver:=METAL=="SILVER"]
 menu_check[,Gold:=METAL=="GOLD"]
@@ -81,7 +81,7 @@ menu_check[,Gold:=METAL=="GOLD"]
 full_menu = menu_check[,list(Bronze=max(Bronze),Silver=max(Silver),Gold=max(Gold)),by=c("Firm","ST","memberMonths")]
 # Dropped Firms
 full_menu[,drop:=0]
-full_menu[Bronze==0|Silver==0|Gold==0,drop:=1]
+# full_menu[Bronze==0|Silver==0|Gold==0,drop:=1]
 
 #If all firms have complete menu, drop smallest
 full_menu[,any_drop:=max(drop),by="ST"]
@@ -94,12 +94,13 @@ full_menu[,Firm_ST:=paste(ST,Firm,sep="_")]
 firm_moments[,Firm_ST:=paste(ST,Firm,sep="_")]
 
 # Drop two more very small firms that are a pain to match
-full_menu = full_menu[!Firm_ST%in%c("IL_AETNA")]
+full_menu = full_menu[ST%in%c("AK")]
 
-full_menu = full_menu[ST!="IL"]
+# full_menu = full_menu[ST!="IL"]
 
 
-firm_moments = firm_moments[Firm_ST%in%full_menu$Firm_ST[full_menu$drop==0]]
+# firm_moments = firm_moments[Firm_ST%in%full_menu$Firm_ST[full_menu$drop==0]]
+firm_moments = firm_moments[Firm_ST%in%full_menu$Firm_ST]
 
 firm_moments[,paste(paste(":",Firm_ST,sep=""),collapse=",")]
 
