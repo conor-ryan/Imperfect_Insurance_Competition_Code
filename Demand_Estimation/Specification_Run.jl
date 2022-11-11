@@ -395,16 +395,27 @@ function run_specification_penalizedlikelihood(filename::String,
     # Initialize Starting Parameters
 
     fe_length = m_ll.parLength[:FE]
-    ind1 = 1:(m_ll.parLength[:γ]*2+m_ll.parLength[:β])
-    ind2 = (1 + maximum(ind1) + m_ll.parLength[:σ]):m_ll.parLength[:All]
-    σ_ind = (1 + maximum(ind1)):(minimum(ind2)-1)
+    ind1 = 1:(length(spec_demoRaw)+length(spec_prodchars)+length(spec_demoRaw))
+    σ_ind = (1 + maximum(ind1)):(1 + maximum(ind1)+length(spec_prodchars_σ))
+    ind2 = (1 + maximum(σ_ind)):(1 + maximum(σ_ind)+length(c_data.feNames))
 
 
     p0 = rand(m_ll.parLength[:All]).*1.0 .- 0.5
     p0[ind1] = p_ll[ind1]
     p0[σ_ind]=zeros(length(σ_ind))#.*0.1 .- .05
-    p0[(length(p0)-fe_length):length(p0)] = p_ll[(length(p_ll)-fe_length):length(p_ll)]
+    p0[ind2] = p_ll[(length(p_ll)-fe_length):length(p_ll)]
     println("Starting vector: $p0")
+
+
+    println("Risk Parameter Experiment")
+    for risk_val in [-1,-0.5,-0.2,0.0,.1,.3,.5,.7,.9,1.5,3.0,6.0,9.0,12.0,15.0]
+        println("Trying Risk Parameters: $risk_val")
+        p0[[25,26]].=risk_val
+        p = parDict(m,p_est,no2Der=false)
+        individual_values!(m,p)
+        individual_shares(m,p)
+        moms = calc_risk_moments(m,p)
+    end
 
     println("#### Estimate First Stage ####")
     W = -Matrix(1.0I,length(m_ll.data.rMoments),length(m_ll.data.rMoments))
@@ -413,7 +424,7 @@ function run_specification_penalizedlikelihood(filename::String,
     W[3,3] = -5.0
     W[4,4] = -5.0
     W[5,5] = -5.0
-    W = W./100
+    W = W./10
 
     p_init, obj_init = gradient_ascent_ll(m_ll,p0,W,max_itr=20)
     p_stg1, obj_1 = newton_raphson_ll(m_ll,p_init,W,grad_tol=1e-10,f_tol=1e-10,x_tol=1e-11)
