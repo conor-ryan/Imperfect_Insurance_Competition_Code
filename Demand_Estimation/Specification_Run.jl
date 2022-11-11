@@ -402,7 +402,7 @@ function run_specification_penalizedlikelihood(filename::String,
 
     p0 = rand(m_ll.parLength[:All]).*1.0 .- 0.5
     p0[ind1] = p_ll[ind1]
-    p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
+    p0[σ_ind]=zeros(length(σ_ind))#.*0.1 .- .05
     p0[(length(p0)-fe_length):length(p0)] = p_ll[(length(p_ll)-fe_length):length(p_ll)]
     println("Starting vector: $p0")
 
