@@ -396,8 +396,8 @@ function run_specification_penalizedlikelihood(filename::String,
 
     fe_length = m_ll.parLength[:FE]
     ind1 = 1:(length(spec_demoRaw)+length(spec_prodchars)+length(spec_demoRaw))
-    σ_ind = (1 + maximum(ind1)):(1 + maximum(ind1)+length(spec_prodchars_σ))
-    ind2 = (1 + maximum(σ_ind)):(1 + maximum(σ_ind)+length(c_data.feNames))
+    σ_ind = (1 + maximum(ind1)):(maximum(ind1)+length(spec_prodchars_σ))
+    ind2 = (1 + maximum(σ_ind)):( maximum(σ_ind)+length(c_data.feNames))
 
 
     p0 = rand(m_ll.parLength[:All]).*1.0 .- 0.5
