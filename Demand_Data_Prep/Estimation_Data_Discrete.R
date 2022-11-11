@@ -832,8 +832,13 @@ shares = shares[shares$s_inside>0,]
 #Drop TX market with only one plan pruchased
 shares = shares[Market!="TX_1_94_1",]
 
+# Drop weird small products with bad risk ratings
+shares = shares[Firm!="AVERA_HEALTH_PLANS"]
+
 # Eliminate the 0 share products from the choice set
 choices = choices[choices$Product%in%shares$Product,]
+
+
 
 ##### Dummy Logit Test ####
 # shares[,regvar:=log(Share) - log(1-s_inside)]

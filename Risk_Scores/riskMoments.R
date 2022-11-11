@@ -97,7 +97,7 @@ firm_moments[,Firm_ST:=paste(ST,Firm,sep="_")]
 full_menu = full_menu[ST%in%c("AK","IA","GA")]
 
 ## Drop some weird plans
-
+full_menu = full_menu[Firm_ST!="IA_AVERA_HEALTH_PLANS"]
 
 # full_menu = full_menu[ST!="IL"]
 
