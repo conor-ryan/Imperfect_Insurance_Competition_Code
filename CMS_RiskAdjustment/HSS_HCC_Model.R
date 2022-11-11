@@ -378,8 +378,8 @@ mepsPers = summaryBy(STEXCH~DUPERSID+PANEL,data=mepsPers,FUN=min,keep.names=TRUE
 
 model_full = merge(model_full,mepsPers,all.x=TRUE,by=c("DUPERSID","PANEL"))
 
-mean_R_Silver = wtd.mean(model_full$R_Score_Silver[!is.na(model_full$STEXCH)],weights=model_full$PERWT15F[!is.na(model_full$STEXCH)])
-mean_HCC_Silver = wtd.mean(model_full$HCC_Score_Silver[!is.na(model_full$STEXCH)],weights=model_full$PERWT15F[!is.na(model_full$STEXCH)])
+mean_R_Silver = wtd.mean(model_full$R_Score_Silver[!is.na(model_full$STEXCH)&model_full$AGE15X<66],weights=model_full$PERWT15F[!is.na(model_full$STEXCH)&model_full$AGE15X<66])
+mean_HCC_Silver = wtd.mean(model_full$HCC_Score_Silver[!is.na(model_full$STEXCH)&model_full$AGE15X<66],weights=model_full$PERWT15F[!is.na(model_full$STEXCH)&model_full$AGE15X<66])
 mean_Age = mean_R_Silver - mean_HCC_Silver
 ## Adjust to match actual mean
 HCC_Adj = (1.615 - mean_Age)/mean_HCC_Silver

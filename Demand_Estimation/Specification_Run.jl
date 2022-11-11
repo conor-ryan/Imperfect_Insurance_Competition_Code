@@ -406,16 +406,16 @@ function run_specification_penalizedlikelihood(filename::String,
     p0[ind2] = p_ll[(length(p_ll)-fe_length+1):length(p_ll)]
     println("Starting vector: $p0")
 
-
-    println("Risk Parameter Experiment")
-    for risk_val in [-1,-0.5,-0.2,0.0,.1,.3,.5,.7,.9,1.5,3.0,6.0,9.0,12.0,15.0]
-        println("Trying Risk Parameters: $risk_val")
-        p0[[25,26]].=risk_val
-        p = parDict(m_ll,p0,no2Der=false)
-        individual_values!(m_ll,p)
-        individual_shares(m_ll,p)
-        moms = calc_risk_moments(m_ll,p)
-    end
+    # 
+    # println("Risk Parameter Experiment")
+    # for risk_val in [-1,-0.5,-0.2,0.0,.1,.3,.5,.7,.9,1.5,3.0,6.0,9.0,12.0,15.0]
+    #     println("Trying Risk Parameters: $risk_val")
+    #     p0[[25,26]].=risk_val
+    #     p = parDict(m_ll,p0,no2Der=false)
+    #     individual_values!(m_ll,p)
+    #     individual_shares(m_ll,p)
+    #     moms = calc_risk_moments(m_ll,p)
+    # end
 
     println("#### Estimate First Stage ####")
     W = -Matrix(1.0I,length(m_ll.data.rMoments),length(m_ll.data.rMoments))

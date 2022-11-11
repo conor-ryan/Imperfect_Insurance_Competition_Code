@@ -53,14 +53,16 @@ setkey(metal_moments,Metal_std)
 #### Metal Moments ####
 # Wakely Numbers
 # metal_moments[,R_adj:= c(0.8434997,1.445666,2.178068,2.973488)]
+report_avg_val = 1.448
+meps_avg_val = 1.288065
 metal_moments[,R_adj:= c(.814,1.503,1.889,2.675)]
-metal_moments[,R_adj_est:=(T_norm_data+1)*1.448]
+metal_moments[,R_adj_est:=(T_norm_data+1)*meps_avg_val]
 
 metal_moments[,momentID:=1:nrow(metal_moments)]
 
 #### Total Enrolled Moment ####
 total_moment = mkt_data[mkt_data$METAL!="CATASTROPHIC",c("ST","Firm","Product")]
-total_moment$R_moment = 1.448
+total_moment$R_moment = meps_avg_val
 total_moment$momentID = max(metal_moments$momentID) + total_moment$ST
 
 total_moment = total_moment[,c("Product","momentID","R_moment","ST")]
