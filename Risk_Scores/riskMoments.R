@@ -96,7 +96,7 @@ full_menu[,Firm_ST:=paste(ST,Firm,sep="_")]
 firm_moments[,Firm_ST:=paste(ST,Firm,sep="_")]
 
 # Drop two more very small firms that are a pain to match
-full_menu = full_menu[ST%in%c("AK","IA","GA","IL","MD","MI","MO")]
+# full_menu = full_menu[ST%in%c("AK","IA","GA","IL","MD","MI","MO")]
 
 ## Drop some weird plans
 
