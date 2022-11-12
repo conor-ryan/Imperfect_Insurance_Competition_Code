@@ -43,17 +43,17 @@ function calc_risk_moments(d::InsuranceLogit,p::parDict{T}) where T
     for (st, st_moms) in d.data._stMomentMap
         st_idx = d.data._stDict[st]
         r_avg = sliceMean_wgt(r_hat_unwt_j,s_hat_j,st_idx)
-        # if st==3
-        #     println("State $st, risk: $r_avg")
-        #     println("State $st, Pop: $(sum(s_hat_j[st_idx]))")
-        # end
+        if st==3
+            println("State $st, risk: $r_avg")
+            println("State $st, Pop: $(sum(s_hat_j[st_idx]))")
+        end
         for m in st_moms
             idx_mom = d.data._tMomentDict[m]
             r_est = sliceMean_wgt(r_hat_unwt_j,s_hat_j,idx_mom)
-            # if st==3
-            #     println("Moment $m, risk: $(r_est-r_avg)")
-            #     println("Moment $m, target: $(d.data.rMoments[m])")
-            # end
+            if st==3
+                println("Moment $m, risk: $(r_est-r_avg)")
+                println("Moment $m, target: $(d.data.rMoments[m])")
+            end
             # mom_value[m] = d.data.rMoments[m] - t_est
             mom_value[m] = r_est - r_avg
         end
