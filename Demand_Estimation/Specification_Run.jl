@@ -406,7 +406,7 @@ function run_specification_penalizedlikelihood(filename::String,
     p0[ind2] = p_ll[(length(p_ll)-fe_length+1):length(p_ll)]
     println("Starting vector: $p0")
 
-    # 
+    #
     # println("Risk Parameter Experiment")
     # for risk_val in [-1,-0.5,-0.2,0.0,.1,.3,.5,.7,.9,1.5,3.0,6.0,9.0,12.0,15.0]
     #     println("Trying Risk Parameters: $risk_val")
@@ -426,8 +426,8 @@ function run_specification_penalizedlikelihood(filename::String,
     W[5,5] = -5.0
     W = W./10
 
-    p_init, obj_init = gradient_ascent_ll(m_ll,p0,W,max_itr=20)
-    p_stg1, obj_1 = newton_raphson_ll(m_ll,p_init,W,grad_tol=1e-10,f_tol=1e-10,x_tol=1e-11)
+    # p_init, obj_init = gradient_ascent_ll(m_ll,p0,W,max_itr=20)
+    # p_stg1, obj_1 = newton_raphson_ll(m_ll,p_init,W,grad_tol=1e-10,f_tol=1e-10,x_tol=1e-11)
 
     println("Save First Stage Result")
     file = "$filename-$rundate-stg1.jld2"
@@ -440,25 +440,25 @@ function run_specification_penalizedlikelihood(filename::String,
 
     println("#### Estimate GMM Second Stage ####")
 
-    mom_pars = vcat(1:length(m_ll.data.rMoments),(length(m_ll.data.rMoments)).+σ_ind)
-    mom_ind = 1:length(m_ll.data.rMoments)
-    S = calc_mom_Avar(m_ll,p_stg1)
-    S_mom = S[mom_pars,mom_pars]
-    diag_sigma = Diagonal(diag(S_mom))
-    println(diag(diag_sigma))
-    S_mom[mom_ind,:] .= 0.0
-    S_mom[:,mom_ind] .= 0.0
-    S_mom[mom_ind,mom_ind] = diag_sigma[mom_ind,mom_ind]
-    S_diag = Matrix(Diagonal(diag(S[mom_ind,mom_ind])))
-    # W2 = inv(S_mom)
-    # W[mom_pars,mom_pars] = W2[:,:]
-    println(size(diag_sigma))
-    println(size(S_mom))
-    println(size(S_diag))
-    println(size(W))
-    W = -inv(S_diag)
-    println(size(W))
-    W = W*10
+    # mom_pars = vcat(1:length(m_ll.data.rMoments),(length(m_ll.data.rMoments)).+σ_ind)
+    # mom_ind = 1:length(m_ll.data.rMoments)
+    # S = calc_mom_Avar(m_ll,p_stg1)
+    # S_mom = S[mom_pars,mom_pars]
+    # diag_sigma = Diagonal(diag(S_mom))
+    # println(diag(diag_sigma))
+    # S_mom[mom_ind,:] .= 0.0
+    # S_mom[:,mom_ind] .= 0.0
+    # S_mom[mom_ind,mom_ind] = diag_sigma[mom_ind,mom_ind]
+    # S_diag = Matrix(Diagonal(diag(S[mom_ind,mom_ind])))
+    # # W2 = inv(S_mom)
+    # # W[mom_pars,mom_pars] = W2[:,:]
+    # println(size(diag_sigma))
+    # println(size(S_mom))
+    # println(size(S_diag))
+    # println(size(W))
+    # W = -inv(S_diag)
+    # println(size(W))
+    # W = W*10
 
     # V = risk_moment_bootstrap(m_ll,p_stg1)
     # pop =sum(weight(m_ll.data).*choice(m_ll.data))
@@ -474,34 +474,13 @@ function run_specification_penalizedlikelihood(filename::String,
 
 
 
-    p_init, obj_init = gradient_ascent_ll(m_ll,p_stg1,W,max_itr=50)
-
-    # println("Test Function Times")
-    # grad = SharedVector{Float64}(length(p0))
-    # hess = SharedMatrix{Float64}(length(p0),length(p0))
-    # @time f = log_likelihood_penalty_parallel!(hess,grad,m_ll,p_init ,W)
-    # println("Test 1")
-    # @time f = log_likelihood_penalty_parallel!(hess,grad,m_ll,p_init ,W)
-    # println("Test 2")
-    # @time f = log_likelihood_penalty_parallel!(hess,grad,m_ll,p_init ,W)
-    # println("Test 3")
-    #
-    # grad = Vector{Float64}(undef,length(p0))
-    # hess = Matrix{Float64}(undef,length(p0),length(p0))
-    # @time f = log_likelihood_penalty!(hess,grad,m_ll,p_init ,W)
-    # println("Test 1")
-    # @time f = log_likelihood_penalty!(hess,grad,m_ll,p_init ,W)
-    # println("Test 2")
-    # @time f = log_likelihood_penalty!(hess,grad,m_ll,p_init ,W)
-    # println("Test 3")
-
-
-    p_stg2, obj_2 = newton_raphson_ll(m_ll,p_init,W)
+    # p_init, obj_init = gradient_ascent_ll(m_ll,p_stg1,W,max_itr=50)
+    # p_stg2, obj_2 = newton_raphson_ll(m_ll,p_init,W)
 
     println("Save Second Stage Result")
     file = "$filename-$rundate-stg2.jld2"
-    @save file p_stg2 obj_2 spec_Dict
-    # @load file p_stg2 obj_2 spec_Dict
+    # @save file p_stg2 obj_2 spec_Dict
+    @load file p_stg2 obj_2 spec_Dict
 
     println("#### Calculate Standard Errors and Save Results ####")
     AsVar, stdErr,t_stat, stars = GMM_var(m_ll,p_stg2)
