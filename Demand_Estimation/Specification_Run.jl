@@ -373,7 +373,7 @@ function run_specification_penalizedlikelihood(filename::String,
 
     ## Estimate
     W = zeros(length(m_ll.data.rMoments),length(m_ll.data.rMoments))
-    p_ll, fval = newton_raphson_ll(m_ll,p0,W)
+    # p_ll, fval = newton_raphson_ll(m_ll,p0,W)
 
 
     println("Save LL Result")
@@ -400,11 +400,11 @@ function run_specification_penalizedlikelihood(filename::String,
     ind2 = (1 + maximum(σ_ind)):( maximum(σ_ind)+length(c_data.feNames))
 
 
-    p0 = rand(m_ll.parLength[:All]).*1.0 .- 0.5
-    p0[ind1] = p_ll[ind1]
-    p0[σ_ind]=zeros(length(σ_ind))#.*0.1 .- .05
-    p0[ind2] = p_ll[(length(p_ll)-fe_length+1):length(p_ll)]
-    println("Starting vector: $p0")
+    # p0 = rand(m_ll.parLength[:All]).*1.0 .- 0.5
+    # p0[ind1] = p_ll[ind1]
+    # p0[σ_ind]=zeros(length(σ_ind))#.*0.1 .- .05
+    # p0[ind2] = p_ll[(length(p_ll)-fe_length+1):length(p_ll)]
+    # println("Starting vector: $p0")
 
     #
     # println("Risk Parameter Experiment")
@@ -468,8 +468,8 @@ function run_specification_penalizedlikelihood(filename::String,
     # W = - inv(V)
 
     ## Estimate
-    p0 = rand(m_ll.parLength[:All]) .- 0.5
-    p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
+    # p0 = rand(m_ll.parLength[:All]) .- 0.5
+    # p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
 
 
 
