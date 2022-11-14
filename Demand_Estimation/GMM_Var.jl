@@ -9,7 +9,7 @@ function GMM_var(d::InsuranceLogit,p_est::Vector{Float64})
     println("Check 2")
     ll = log_likelihood!(hess,grad,d,par)
     println("Check 3")
-    mom_grad = Matrix{Float64}(undef,length(p_est),length(d.data.tMoments))
+    mom_grad = Matrix{Float64}(undef,length(p_est),length(d.data.rMoments))
     mom = calc_risk_moments!(mom_grad,d,par)
 
     G = hcat(mom_grad,hess)
