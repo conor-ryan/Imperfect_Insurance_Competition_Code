@@ -1,11 +1,11 @@
 function GMM_var(d::InsuranceLogit,p_est::Vector{Float64})
     ## Moment Variance
     S =  calc_mom_Avar(d,p_est)
-    println("Check 1")
     ## Derivative of Moments wrt Parameters
     grad = Vector{Float64}(undef,length(p_est))
     hess = Matrix{Float64}(undef,length(p_est),length(p_est))
     par = parDict(d,p_est,no2Der=true)
+    println("Check 1")
     ll = log_likelihood!(hess,grad,d,par)
     println("Check 2")
     mom_grad = Matrix{Float64}(undef,length(p_est),length(d.data.tMoments))
