@@ -54,8 +54,8 @@ cost_spec = [:AGE,:AV]
 rundate = Dates.today()
 # rundate = "2022-11-12"
 println("Running on $rundate")
-spec = "FM"
-spec_fixedEffects=[:Firm_Market]
+spec = "FMC"
+spec_fixedEffects=[:Firm_Market,:Firm_Cat]
 
 println("##### Estimate Demand #####")
 println("Load Demand Estimation Code...")
