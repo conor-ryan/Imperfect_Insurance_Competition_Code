@@ -373,12 +373,12 @@ function run_specification_penalizedlikelihood(filename::String,
 
     ## Estimate
     W = zeros(length(m_ll.data.rMoments),length(m_ll.data.rMoments))
-    # p_ll, fval = newton_raphson_ll(m_ll,p0,W)
+    p_ll, fval = newton_raphson_ll(m_ll,p0,W)
 
 
     println("Save LL Result")
-    # file = "$filename-$rundate-ll.jld2"
-    # @save file p_ll spec_Dict
+    file = "$filename-$rundate-ll.jld2"
+    @save file p_ll spec_Dict
     # @load file p_ll spec_Dict
 
     ## Build GMM Model
@@ -400,11 +400,11 @@ function run_specification_penalizedlikelihood(filename::String,
     ind2 = (1 + maximum(σ_ind)):( maximum(σ_ind)+length(c_data.feNames))
 
 
-    # p0 = rand(m_ll.parLength[:All]).*1.0 .- 0.5
-    # p0[ind1] = p_ll[ind1]
-    # p0[σ_ind]=zeros(length(σ_ind))#.*0.1 .- .05
-    # p0[ind2] = p_ll[(length(p_ll)-fe_length+1):length(p_ll)]
-    # println("Starting vector: $p0")
+    p0 = rand(m_ll.parLength[:All]).*1.0 .- 0.5
+    p0[ind1] = p_ll[ind1]
+    p0[σ_ind]=zeros(length(σ_ind))#.*0.1 .- .05
+    p0[ind2] = p_ll[(length(p_ll)-fe_length+1):length(p_ll)]
+    println("Starting vector: $p0")
 
     #
     # println("Risk Parameter Experiment")
@@ -426,56 +426,56 @@ function run_specification_penalizedlikelihood(filename::String,
     W[5,5] = -5.0
     W = W./10
 
-    # p_init, obj_init = gradient_ascent_ll(m_ll,p0,W,max_itr=20)
-    # p_stg1, obj_1 = newton_raphson_ll(m_ll,p_init,W,grad_tol=1e-10,f_tol=1e-10,x_tol=1e-11)
+    p_init, obj_init = gradient_ascent_ll(m_ll,p0,W,max_itr=20)
+    p_stg1, obj_1 = newton_raphson_ll(m_ll,p_init,W,grad_tol=1e-10,f_tol=1e-10,x_tol=1e-11)
 
     println("Save First Stage Result")
     file = "$filename-$rundate-stg1.jld2"
-    # @save file p_stg1 obj_1 spec_Dict
+    @save file p_stg1 obj_1 spec_Dict
 
     # println("Load First Stage Result")
-    file = "$filename-$rundate-stg1.jld2"
+    # file = "$filename-$rundate-stg1.jld2"
     # @load file p_stg1 obj_1 spec_Dict
 
 
     println("#### Estimate GMM Second Stage ####")
 
-    # mom_pars = vcat(1:length(m_ll.data.rMoments),(length(m_ll.data.rMoments)).+σ_ind)
-    # mom_ind = 1:length(m_ll.data.rMoments)
-    # S = calc_mom_Avar(m_ll,p_stg1)
-    # S_mom = S[mom_pars,mom_pars]
-    # diag_sigma = Diagonal(diag(S_mom))
-    # println(diag(diag_sigma))
-    # S_mom[mom_ind,:] .= 0.0
-    # S_mom[:,mom_ind] .= 0.0
-    # S_mom[mom_ind,mom_ind] = diag_sigma[mom_ind,mom_ind]
-    # S_diag = Matrix(Diagonal(diag(S[mom_ind,mom_ind])))
-    # # W2 = inv(S_mom)
-    # # W[mom_pars,mom_pars] = W2[:,:]
-    # println(size(diag_sigma))
-    # println(size(S_mom))
-    # println(size(S_diag))
-    # println(size(W))
-    # W = -inv(S_diag)
-    # println(size(W))
-    # W = W*10
+    mom_pars = vcat(1:length(m_ll.data.rMoments),(length(m_ll.data.rMoments)).+σ_ind)
+    mom_ind = 1:length(m_ll.data.rMoments)
+    S = calc_mom_Avar(m_ll,p_stg1)
+    S_mom = S[mom_pars,mom_pars]
+    diag_sigma = Diagonal(diag(S_mom))
+    println(diag(diag_sigma))
+    S_mom[mom_ind,:] .= 0.0
+    S_mom[:,mom_ind] .= 0.0
+    S_mom[mom_ind,mom_ind] = diag_sigma[mom_ind,mom_ind]
+    S_diag = Matrix(Diagonal(diag(S[mom_ind,mom_ind])))
+    # W2 = inv(S_mom)
+    # W[mom_pars,mom_pars] = W2[:,:]
+    println(size(diag_sigma))
+    println(size(S_mom))
+    println(size(S_diag))
+    println(size(W))
+    W = -inv(S_diag)
+    println(size(W))
+    W = W*10
 
     # V = risk_moment_bootstrap(m_ll,p_stg1)
     # pop =sum(weight(m_ll.data).*choice(m_ll.data))
     # J = length(m_ll.data.rMoments)
     # W = -Matrix{Float64}(Diagonal(1 ./diag(V))./(pop*J))
-    println(diag(W))
+    # println(diag(W))
     # W = - inv(V)
 
     ## Estimate
-    # p0 = rand(m_ll.parLength[:All]) .- 0.5
-    # p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
+    p0 = rand(m_ll.parLength[:All]) .- 0.5
+    p0[σ_ind]=rand(length(σ_ind)).*0.1 .- .05
 
 
 
 
-    # p_init, obj_init = gradient_ascent_ll(m_ll,p_stg1,W,max_itr=50)
-    # p_stg2, obj_2 = newton_raphson_ll(m_ll,p_init,W)
+    p_init, obj_init = gradient_ascent_ll(m_ll,p_stg1,W,max_itr=50)
+    p_stg2, obj_2 = newton_raphson_ll(m_ll,p_init,W)
 
     println("Save Second Stage Result")
     file = "$filename-$rundate-stg2.jld2"
