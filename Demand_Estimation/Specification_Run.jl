@@ -427,7 +427,7 @@ function run_specification_penalizedlikelihood(filename::String,
     W = W./10
 
     p_init, obj_init = gradient_ascent_ll(m_ll,p0,W,max_itr=20)
-    p_stg1, obj_1 = newton_raphson_ll(m_ll,p_init,W,grad_tol=1e-10,f_tol=1e-10,x_tol=1e-11)
+    p_stg1, obj_1 = newton_raphson_ll(m_ll,p_init,W,grad_tol=1e-10,f_tol=1e-12,x_tol=1e-12)
 
     println("Save First Stage Result")
     file = "$filename-$rundate-stg1.jld2"
@@ -475,12 +475,12 @@ function run_specification_penalizedlikelihood(filename::String,
 
 
     p_init, obj_init = gradient_ascent_ll(m_ll,p_stg1,W,max_itr=50)
-    p_stg2, obj_2 = newton_raphson_ll(m_ll,p_init,W)
+    p_stg2, obj_2 = newton_raphson_ll(m_ll,p_init,W,grad_tol=1e-8,f_tol=1e-12,x_tol=1e-12)
 
     println("Save Second Stage Result")
     file = "$filename-$rundate-stg2.jld2"
-    # @save file p_stg2 obj_2 spec_Dict
-    @load file p_stg2 obj_2 spec_Dict
+    @save file p_stg2 obj_2 spec_Dict
+    # @load file p_stg2 obj_2 spec_Dict
 
     println("#### Calculate Standard Errors and Save Results ####")
     AsVar, stdErr,t_stat, stars = GMM_var(m_ll,p_stg2)

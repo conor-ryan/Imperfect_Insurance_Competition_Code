@@ -338,7 +338,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
 
         ## Convergence Criteria
         grad_size = sqrt(mean(grad_new.^2))
-        if (grad_size<grad_tol) #|(f_tol_cnt>1) | (x_tol_cnt>1)
+        if (grad_size<grad_tol) |(f_tol_cnt>1) | (x_tol_cnt>1)
             println("Got to Break Point")
             println(grad_size)
             println(f_tol_cnt)
@@ -455,13 +455,13 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
                 hess_steps = 0
                 trial_max = 1
                 println("RUN ROUND OF GRADIENT ASCENT")
-                p_test, f_test = gradient_ascent_ll(d,p_vec,W,max_itr=10,strict=true)
+                p_test, f_test = gradient_ascent_ll(d,p_vec,W,max_itr=10,strict=true,grad_tol=grad_tol)
             elseif (real_hessian==1) & (grad_size<=(grad_tol*1e4))
                 hess_steps = 0
                 trial_max = 1
                 close_grad_step = 1
                 println("RUN ROUND OF GRADIENT ASCENT")
-                p_test, f_test = gradient_ascent_ll(d,p_vec,W,max_itr=5,strict=true)
+                p_test, f_test = gradient_ascent_ll(d,p_vec,W,max_itr=5,strict=true,grad_tol=grad_tol)
             else
                 println("No Advancement")
                 hess_steps = 0
