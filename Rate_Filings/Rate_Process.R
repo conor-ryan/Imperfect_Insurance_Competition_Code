@@ -82,7 +82,7 @@ save(metalAvg,file="Intermediate_Output/Average_Claims/allMetalFilings.rData")
 
 
 #### Cost by metal level... ####
-crosswalk = read.csv("Intermediate_Output/FirmCrosswalk.csv")
+crosswalk = read.csv("Intermediate_Output/FirmCrosswalk.csv",check.names=F)
 crosswalk = unique(crosswalk[,c("ISSUER_ID","Firm")])
 
 filings = merge(filings,crosswalk,by="ISSUER_ID",all.x=TRUE)
@@ -167,7 +167,7 @@ for (year in 2015:2017){
 
 
 #### Merge into Existing Firms ####
-crosswalk = read.csv("Intermediate_Output/FirmCrosswalk.csv")
+crosswalk = read.csv("Intermediate_Output/FirmCrosswalk.csv",check.names=F)
 crosswalk = unique(crosswalk[,c("ISSUER_ID","Firm")])
 
 filings = merge(filings,crosswalk,by="ISSUER_ID",all.x=TRUE)
