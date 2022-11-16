@@ -1,7 +1,7 @@
-function estimate_marginal_cost(rundate,spec,cost_spec)
+function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
     # Load the Data
     println("Loading Data...")
-    codeDir = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Code/Firm_Side"
+    codeDir = "$home_directory/Research/Imperfect_Insurance_Competition/Code/Firm_Side"
     include("$codeDir/MC_load.jl")
 
 
@@ -10,7 +10,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
 
     #### Load Demand Estimation Results ####
     println("Rebuild Demand Model...")
-    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/PLL_Estimate_$spec-$rundate-stg2.jld2"
+    file = "$home_directory/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/PLL_Estimate_$spec-$rundate-stg2.jld2"
     @load file p_stg2 spec_Dict
     p_dem_est = copy(p_stg2)
     # p_stg2 = copy(p_stg2)
@@ -98,7 +98,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
     est_init = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4,max_itr=100)
     est_stg1 = estimate_NLOpt(est_init[3],par_est,m,costdf,W,itrFirms=true)
     p_stg1 = fit_firm_moments(est_stg1[3],par_est,m,costdf,itrFirms=true)
-    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$spec-$rundate.jld2"
+    file = "$home_directory/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$spec-$rundate.jld2"
     @save file p_stg1 p_dem_est cost_spec spec_Dict
     # @load file p_stg1 p_dem_est cost_spec spec_Dict
 
@@ -124,7 +124,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
 
     p_stg2 = fit_firm_moments(est_stg2[3],par_est,m,costdf,itrFirms=true)
 
-    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$spec-$rundate.jld2"
+    file = "$home_directory/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$spec-$rundate.jld2"
     @save file p_stg2 p_dem_est cost_spec spec_Dict
     # @load file p_stg2 p_dem_est cost_spec spec_Dict
 
@@ -141,7 +141,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec)
     Avar, se, t_stat, stars = GMM_var(costdf,m,p_stg2,par_est,p_dem_est,W,G_θ)
 
     out1 = DataFrame(pars=p_stg2,se=se,ts=t_stat,sig=stars)
-    file1 = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_$spec-$rundate.csv"
+    file1 = "$home_directory/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_$spec-$rundate.csv"
     CSV.write(file1,out1)
 
     return nothing

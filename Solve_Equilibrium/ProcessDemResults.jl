@@ -8,7 +8,7 @@ function process_demand(rundate,spec)
     mark_the_output_date = Dates.today()
     println("Running spec $rundate on $mark_the_output_date")
 
-    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$spec-$rundate.jld2"
+    file = "$home_directory/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$spec-$rundate.jld2"
     @load file p_stg2 p_dem_est cost_spec spec_Dict
     mc_est = copy(p_stg2)
     #### Load Estimation Results ####
