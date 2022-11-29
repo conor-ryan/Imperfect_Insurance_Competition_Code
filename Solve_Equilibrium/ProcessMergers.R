@@ -4,7 +4,7 @@ library(ggplot2)
 library(scales)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
-run = "2022-11-15"
+run = "2022-03-18"
 spec = "FMC"
 
 ### Base Data 
@@ -15,6 +15,98 @@ names(prodData) = c("ST","Firm","Product","Metal_std","Market")
 load("Intermediate_Output/Simulated_BaseData/simMarketSize.rData")
 prodData = merge(prodData,marketSize,by="Market")
 
+#### Welfare By Market Concentration ####
+conc_welfare = NULL
+for (policy in c("Base","RAMan")){
+  print(policy)
+  filestub = paste("Estimation_Output/AllMergers_",spec,"-",run,"_",policy,"_",sep="")
+  
+  ### Baseline Market Data ####
+  baseline = fread(paste(filestub,"baseline.csv",sep=""))
+  baseline = merge(baseline,prodData,by="Product")
+  baseline[,insideShare:=Lives/sum(Lives),by="Market"]
+  
+  ## Create HHI baseline data
+  firm_share = baseline[,list(share=sum(insideShare*100)),by=c("Market","ST","Firm")]
+  firm_share[,count:=1]
+  firm_share[,markets:=as.numeric(as.factor(Market))]
+  hhi = firm_share[,list(hhi=sum((share)^2),firm_num=sum(count)),by=c("markets","Market","ST")]
+
+  
+  ## Baseline welfare data
+  base_welfare = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_baseline-",spec,"-",run,".csv",sep=""))
+  base_welfare[,tot_Welfare:=CW+Profit]
+  base_welfare[,tot_Welfare_gov:=CW+Profit+Spending]
+  
+  conc_base = merge(base_welfare[,c("markets","tot_Welfare","tot_Welfare_gov")],hhi[,c("Market","markets","hhi")],by="markets")
+  conc_base[,merging_parties:="baseline"]
+  conc_base[,policy:=policy]
+  conc_welfare = rbind(conc_welfare,conc_base)
+  
+  #### Iterate Through Mergers ####
+  merger_welfare_files = list.files("Estimation_Output",pattern=paste("totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,sep=""))
+  merger_price_files = list.files("Estimation_Output",pattern=paste("^AllMergers_",spec,"-",run,"_",policy,sep=""))
+  unique_firms = sort(firm_share[,unique(Firm)])
+  
+  
+  for (i in 1:length(unique_firms)){
+    for (j in 1:(i-1)){
+      if (j==0){next}
+      m1 = unique_firms[j]
+      m2 = unique_firms[i]
+      ## Read in Welfare File
+      merging_party_string = paste(policy,"_",m1,"_",m2,"-",spec,sep="")
+      welfare_file = merger_welfare_files[grepl(merging_party_string,merger_welfare_files)]
+      merging_party_string = paste(policy,"_",m1,"_",m2,".csv",sep="")
+      price_file = merger_price_files[grepl(merging_party_string,merger_price_files)]
+      if (length(welfare_file)==0){next}
+      ## Welfare
+      welfare = fread(paste("Estimation_Output/",welfare_file,sep=""))
+      welfare[,tot_Welfare:=CW+Profit]
+      welfare[,tot_Welfare_gov:=CW+Profit+Spending]
+      
+      dHHI = firm_share[Firm%in%c(m1,m2),list(dHHI=2*prod(share),merger=sum(count)),by="markets"]
+      dHHI[merger<2,dHHI:=0]
+      
+      welfare = merge(welfare,dHHI[,c("markets","dHHI")],by="markets",all.x=TRUE)
+      welfare[is.na(dHHI),dHHI:=0]
+      welfare = welfare[dHHI>0]
+      
+      
+      ## Post-Merger HHI
+      equi = fread(paste("Estimation_Output/",price_file,sep=""))
+      equi = merge(equi,prodData,by="Product")
+      equi[,insideShare:=Lives/sum(Lives),by="Market"]
+      
+      ## Create HHI baseline data
+      temp_share = equi[,list(share=sum(insideShare*100)),by=c("Market","ST","Firm")]
+      temp_share[,count:=1]
+      temp_hhi = temp_share[,list(hhi=sum((share)^2),firm_num=sum(count)),by=c("Market","ST")]
+      temp_hhi[,markets:=as.numeric(as.factor(Market))]
+      
+      temp= merge(welfare[,c("markets","tot_Welfare","tot_Welfare_gov")],temp_hhi[,c("Market","markets","hhi")],by="markets",all.x=TRUE)
+      temp[,merging_parties:=paste(unique_firms[j],unique_firms[i],sep="-")]
+      temp[,policy:=policy]
+      
+      
+      conc_welfare = rbind(conc_welfare,temp)
+      rm(temp,temp_hhi,temp_share,equi,welfare,dHHI)
+    }
+  }
+  rm(welfare,hhi,base_welfare,baseline,firm_share,dHHI)
+}
+
+
+### Regression Analysis
+
+conc_welfare[,hhi_bucket:=floor(hhi/100)*100]
+conc_welfare[hhi>9000,hhi_bucket:=9000]
+conc_welfare[,hhi_bucket:=as.factor(hhi_bucket)]
+conc_welfare[,hhi_2:=hhi^2]
+conc_welfare[,hhi_3:=hhi^3]
+
+
+conc_welfare[policy=="Base"&hhi<9000,summary(lm(tot_Welfare~Market+hhi+hhi))]
 
 #### Merger Welfare Data ####
 merger_welfare = NULL
@@ -99,6 +191,7 @@ merger_welfare[policy=="Base",quantile(hhi,probs=c(.1,.25,.5,.75,.9))]
 # merger_welfare[policy=="Base",quantiles(firm_num,probs=c(.1,.25,.5,.75,.9))]
 ## Delta HHI
 merger_welfare[policy=="Base",quantile(dHHI,probs=c(.1,.25,.5,.75,.9,.99))]
+
 
 #### Welfare Effect Merger Plot #####
 merger_welfare[,chg_Tot_Welfare:=chg_CW+chg_Profit]
