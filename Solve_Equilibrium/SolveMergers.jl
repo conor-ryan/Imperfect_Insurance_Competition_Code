@@ -761,7 +761,7 @@ function simulate_all_mergers(m::InsuranceLogit,
         println(merging_parties)
 
         ## Set post-merger ownership matrix
-        # ownerMatrix!(f,merging_parties)
+        ownerMatrix!(f,merging_parties)
 
         ## Initialize save vectors
         P_m=  zeros(J)
