@@ -72,12 +72,12 @@ function MergersMain(rundate,spec,home_directory)
     # filestub = "AllMergers_$spec-$(rundate)_Man"
     # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
     #                         filestub,policy="Man_repeal")
-    println("####################################")
-    println("#### Solve Without Risk Adjustment nor Individual Mandate ####")
-    println("####################################")
-    filestub = "AllMergers_$spec-$(rundate)_RAMan"
-    simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
-                            filestub,policy="RAMan_repeal")
+    # println("####################################")
+    # println("#### Solve Without Risk Adjustment nor Individual Mandate ####")
+    # println("####################################")
+    # filestub = "AllMergers_$spec-$(rundate)_RAMan"
+    # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
+    #                         filestub,policy="RAMan_repeal")
     # println("####################################")
     # println("#### Solve Policy Baseline - Price Linked ####")
     # println("####################################")
@@ -694,7 +694,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
     P_Base_SP_cp[:] = f.P_j[:]
 
-    # println("Model Price: $(f.P_j)")
+
     # # P_Base_SP_cp = P_Base[:]
     # #
     # consumer_welfare(m,f,"$(file_stub)_SP_cp_baseline",spec,rundate)
@@ -718,7 +718,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     @eval @everywhere P_Base = $P_Base
     @eval @everywhere P_Base_SP_cp = $P_Base_SP_cp
 
-
+    println("Model Price: $P_Base")
 
     # Iterate through all potential mergers
     unique_firms = sort(unique(f.firm_vector[f.firm_vector.!=""]))
@@ -761,7 +761,7 @@ function simulate_all_mergers(m::InsuranceLogit,
         println(merging_parties)
 
         ## Set post-merger ownership matrix
-        ownerMatrix!(f,merging_parties)
+        # ownerMatrix!(f,merging_parties)
 
         ## Initialize save vectors
         P_m=  zeros(J)
