@@ -38,7 +38,8 @@ for (policy in c("Base","RAMan")){
   base_welfare[,tot_Welfare:=CW+Profit]
   base_welfare[,tot_Welfare_gov:=CW+Profit+Spending]
   
-  conc_base = merge(base_welfare[,c("markets","tot_Welfare","tot_Welfare_gov")],hhi[,c("Market","markets","hhi")],by="markets")
+  conc_base = merge(base_welfare[,c("markets","tot_Welfare","tot_Welfare_gov")],hhi[,c("Market","markets","hhi","firm_num")],by="markets")
+  conc_base[,dHHI:=0]
   conc_base[,merging_parties:="baseline"]
   conc_base[,policy:=policy]
   conc_welfare = rbind(conc_welfare,conc_base)
@@ -70,13 +71,14 @@ for (policy in c("Base","RAMan")){
       
       welfare = merge(welfare,dHHI[,c("markets","dHHI")],by="markets",all.x=TRUE)
       welfare[is.na(dHHI),dHHI:=0]
-      welfare = welfare[dHHI>0]
+      welfare = welfare[dHHI>100]
       
       
       ## Post-Merger HHI
       equi = fread(paste("Estimation_Output/",price_file,sep=""))
       equi = merge(equi,prodData,by="Product")
       equi[,insideShare:=Lives/sum(Lives),by="Market"]
+      equi[Firm%in%c(m1,m2),Firm:=m1]
       
       ## Create HHI baseline data
       temp_share = equi[,list(share=sum(insideShare*100)),by=c("Market","ST","Firm")]
@@ -84,7 +86,7 @@ for (policy in c("Base","RAMan")){
       temp_hhi = temp_share[,list(hhi=sum((share)^2),firm_num=sum(count)),by=c("Market","ST")]
       temp_hhi[,markets:=as.numeric(as.factor(Market))]
       
-      temp= merge(welfare[,c("markets","tot_Welfare","tot_Welfare_gov")],temp_hhi[,c("Market","markets","hhi")],by="markets",all.x=TRUE)
+      temp= merge(welfare[,c("markets","tot_Welfare","tot_Welfare_gov","dHHI")],temp_hhi[,c("Market","markets","hhi","firm_num")],by="markets",all.x=TRUE)
       temp[,merging_parties:=paste(unique_firms[j],unique_firms[i],sep="-")]
       temp[,policy:=policy]
       
@@ -104,9 +106,9 @@ conc_welfare[hhi>9000,hhi_bucket:=9000]
 conc_welfare[,hhi_bucket:=as.factor(hhi_bucket)]
 conc_welfare[,hhi_2:=hhi^2]
 conc_welfare[,hhi_3:=hhi^3]
+conc_welfare[,firmFactor:=as.factor(firm_num)]
 
-
-conc_welfare[policy=="Base"&hhi<9000,summary(lm(tot_Welfare~Market+hhi+hhi))]
+conc_welfare[policy=="RAMan",summary(lm(tot_Welfare~Market+firmFactor))]
 
 #### Merger Welfare Data ####
 merger_welfare = NULL
