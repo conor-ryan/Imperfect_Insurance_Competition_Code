@@ -241,8 +241,8 @@ function wtp_value!(wtp_nr::Vector{Float64},wtp_r::Matrix{Float64},
     β_i= calc_indCoeffs(p,r_ind)
 
     α = (β_0+β_z)[1]
-    β_AV_nr = (β_0 + β_z)[3]
-    β_AV_r = β_i[2,:]
+    β_AV_nr = (β_0 + β_z)[2]
+    β_AV_r = β_i[1,:]
 
 
     ## Willingness to Pay
