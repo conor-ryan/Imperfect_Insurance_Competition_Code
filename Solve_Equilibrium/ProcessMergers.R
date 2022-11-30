@@ -4,7 +4,7 @@ library(ggplot2)
 library(scales)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
-run = "2022-03-18"
+run = "2022-11-15"
 spec = "FMC"
 
 ### Base Data 
@@ -270,6 +270,8 @@ for (policy in c("Base","RAMan")){
   baseline = fread(paste(filestub,"baseline.csv",sep=""))
   baseline = merge(baseline,prodData,by="Product")
   baseline[,insideShare:=Lives/sum(Lives),by="Market"]
+  
+  print(baseline[,mean(Price),by="Metal_std"])
   
   ## Create HHI baseline data
   firm_share = baseline[,list(share=sum(insideShare*100)),by=c("Market","ST","Firm")]
