@@ -1,4 +1,4 @@
-function process_demand(rundate,spec)
+function process_demand(rundate,spec,home_directory)
     #Load Data
     println("Loading Data...")
     include("EQ_load.jl")
