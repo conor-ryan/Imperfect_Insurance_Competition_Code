@@ -4,7 +4,7 @@ library(ggplot2)
 library(scales)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
-run = "2022-03-18"
+run = "2022-11-15"
 spec = "FMC"
 
 ### Base Data 
@@ -108,7 +108,7 @@ conc_welfare[,hhi_2:=hhi^2]
 conc_welfare[,hhi_3:=hhi^3]
 conc_welfare[,firmFactor:=as.factor(firm_num)]
 
-conc_welfare[policy=="RAMan",summary(lm(tot_Welfare~Market+firmFactor))]
+conc_welfare[policy=="Base",summary(lm(tot_Welfare_gov~Market+firmFactor))]
 
 #### Merger Welfare Data ####
 merger_welfare = NULL
