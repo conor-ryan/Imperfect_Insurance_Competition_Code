@@ -103,7 +103,7 @@ println("Load Marginal Cost Estimation Code...")
 # estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
 
 @everywhere include("ProcessDemResults.jl")
-# process_demand(rundate,spec,home_directory)
+process_demand(rundate,spec,home_directory)
 
 
 println("##### Solve Equilibrium #####")
