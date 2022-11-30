@@ -15,6 +15,16 @@ names(prodData) = c("ST","Firm","Product","Metal_std","Market")
 load("Intermediate_Output/Simulated_BaseData/simMarketSize.rData")
 prodData = merge(prodData,marketSize,by="Market")
 
+
+policy = "RAMan"
+filestub = paste("Estimation_Output/AllMergers_",spec,"-",run,"_",policy,"_",sep="")
+
+### Baseline Market Data ####
+test2 = fread(paste(filestub,"baseline.csv",sep=""))
+test2 = merge(test2,prodData,by="Product")
+
+
+
 #### Welfare By Market Concentration ####
 conc_welfare = NULL
 for (policy in c("Base","RAMan")){
