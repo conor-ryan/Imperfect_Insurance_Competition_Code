@@ -63,7 +63,7 @@ function MergersMain(rundate,spec,home_directory)
     println("####################################")
     println("#### Solve Without Risk Adjustment ####")
     println("####################################")
-    filestub = "AllMergers_$spec-$(rundate)_RA"
+    filestub = "test_AllMergers_$spec-$(rundate)_RA"
     simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
                             filestub,policy="RA_repeal")
     # println("####################################")
