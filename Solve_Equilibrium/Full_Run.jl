@@ -100,7 +100,7 @@ println("Load Marginal Cost Estimation Code...")
 @everywhere include("$codeDir/Firm_Side/MC_optimization.jl")
 @everywhere include("$codeDir/Firm_Side/Firm_Inner_Loop.jl")
 @everywhere include("$codeDir/Firm_Side/SpecRunMC.jl")
-estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
+# estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
 
 @everywhere include("ProcessDemResults.jl")
 process_demand(rundate,spec,home_directory)
