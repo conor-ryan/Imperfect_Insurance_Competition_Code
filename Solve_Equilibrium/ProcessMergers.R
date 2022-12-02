@@ -408,11 +408,11 @@ dev.off()
 ##### Decomposition  Data ####
 
 base_welfare = NULL
-for (policy in c("Base","RAMan")){
+for (policy in c("Base","RA")){
   print(policy)
-  baseline_CP = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_SP_cp_baseline-",spec,"-",run,".csv",sep=""))
-  baseline_Comp = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_baseline-",spec,"-",run,".csv",sep=""))
-  baseline_SP = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_SP_baseline-",spec,"-",run,".csv",sep=""))
+  baseline_CP = fread(paste("Estimation_Output/totalWelfare_bymkt_test_AllMergers_",spec,"-",run,"_",policy,"_SP_cp_baseline-",spec,"-",run,".csv",sep=""))
+  baseline_Comp = fread(paste("Estimation_Output/totalWelfare_bymkt_test_AllMergers_",spec,"-",run,"_",policy,"_baseline-",spec,"-",run,".csv",sep=""))
+  baseline_SP = fread(paste("Estimation_Output/totalWelfare_bymkt_test_AllMergers_",spec,"-",run,"_",policy,"_SP_baseline-",spec,"-",run,".csv",sep=""))
   
   
   
