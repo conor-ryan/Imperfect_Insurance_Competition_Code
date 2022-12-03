@@ -43,7 +43,7 @@ for (policy in c("Base","RAMan")){
   base_welfare = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_baseline-",spec,"-",run,".csv",sep=""))
   
   #### Iterate Through Mergers ####
-  merger_files = list.files("Estimation_Output",pattern=paste("totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,sep=""))
+  merger_files = list.files("Estimation_Output/",pattern=paste("totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,sep=""))
   unique_firms = sort(firm_share[,unique(Firm)])
   
   
@@ -92,13 +92,13 @@ for (policy in c("Base","RAMan")){
 
 #### Market Structure Description #####
 ## Firms
-merger_welfare[policy=="Base",quantile(firm_num,probs=c(.1,.25,.5,.75,.9))]
-## Pre-HHI
-merger_welfare[policy=="Base",quantile(hhi,probs=c(.1,.25,.5,.75,.9))]
-## Post-HHI
-# merger_welfare[policy=="Base",quantiles(firm_num,probs=c(.1,.25,.5,.75,.9))]
-## Delta HHI
-merger_welfare[policy=="Base",quantile(dHHI,probs=c(.1,.25,.5,.75,.9,.99))]
+# merger_welfare[policy=="Base",quantile(firm_num,probs=c(.1,.25,.5,.75,.9))]
+# ## Pre-HHI
+# merger_welfare[policy=="Base",quantile(hhi,probs=c(.1,.25,.5,.75,.9))]
+# ## Post-HHI
+# # merger_welfare[policy=="Base",quantiles(firm_num,probs=c(.1,.25,.5,.75,.9))]
+# ## Delta HHI
+# merger_welfare[policy=="Base",quantile(dHHI,probs=c(.1,.25,.5,.75,.9,.99))]
 
 #### Welfare Effect Merger Plot #####
 merger_welfare[,chg_Tot_Welfare:=chg_CW+chg_Profit]
@@ -189,7 +189,7 @@ for (policy in c("Base","RAMan")){
                             labels=c("HHI < 3500","HHI > 3500"))]
   
   #### Iterate Through Mergers ####
-  merger_files = list.files("Estimation_Output",pattern=paste("^AllMergers_",spec,"-",run,"_",policy,sep=""))
+  merger_files = list.files("Estimation_Output/",pattern=paste("^AllMergers_",spec,"-",run,"_",policy,sep=""))
   unique_firms = sort(firm_share[,unique(Firm)])
   
   
@@ -326,7 +326,7 @@ merger_welfare_SP = NULL
 for (policy in c("Base","RAMan")){
   print(policy)
   #### Iterate Through Mergers ####
-  merger_files = list.files("Estimation_Output",pattern=paste("totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,sep=""))
+  merger_files = list.files("Estimation_Output/",pattern=paste("totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,sep=""))
   merger_SP_CP_files = merger_files[grepl("_SP_",merger_files)]
   merger_base_files = merger_files[!grepl("_SP_",merger_files)]
   
