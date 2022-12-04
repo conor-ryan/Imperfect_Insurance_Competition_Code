@@ -257,15 +257,6 @@ function solve_SP_parallel!(m::InsuranceLogit,f::firmData;
         P_res[f.mkt_index[mkt]] = f.P_j[f.mkt_index[mkt]]
     end
     f.P_j[:] = P_res[:]
-    println("Remove Data from Workers")
-    @eval @everywhere m=nothing
-    @eval @everywhere f=nothing
-    @eval @everywhere sim=nothing
-    @eval @everywhere merg=nothing
-    @eval @everywhere tol=nothing
-    @eval @everywhere voucher=nothing
-    @eval @everywhere update_voucher=nothing
-    println("Data Distributed")
     return nothing
 end
 
