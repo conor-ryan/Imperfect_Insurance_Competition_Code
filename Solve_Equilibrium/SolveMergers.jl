@@ -663,6 +663,9 @@ function simulate_all_mergers(m::InsuranceLogit,
                         Lives=f.S_j)
     CSV.write(file,output)
 
+    println("Total Voucher: $(sum(f.subsidy_ij))")
+    println("Total Fixed Voucher: $(sum(f.subsidy_ij_voucher))")
+
     # output = CSV.read(file,DataFrame)
     # f.P_j = output[!,:Price]
     # evaluate_model!(m,f,"All",voucher=voucher)
@@ -684,6 +687,9 @@ function simulate_all_mergers(m::InsuranceLogit,
                         Price=f.P_j,
                         Lives=f.S_j)
     CSV.write(file,output)
+
+    println("Total Voucher: $(sum(f.subsidy_ij))")
+    println("Total Fixed Voucher: $(sum(f.subsidy_ij_voucher))")
     #
     #
     # ## Solve Baseline Constrained Planner Problem
@@ -711,6 +717,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     f.P_j[:] = P_Base[:]
     evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
     println("Baseline set at $P_Base")
+    println("###############")
     println("Baseline set at $(f.P_j)")
 
 
@@ -778,6 +785,8 @@ function simulate_all_mergers(m::InsuranceLogit,
         ## Reset to pre-merger baseline
         f.P_j[:] = P_Base[:]
         evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
+        println("Total Voucher: $(sum(f.subsidy_ij))")
+        println("Total Fixed Voucher: $(sum(f.subsidy_ij_voucher))")
         # Solve model in the affected states
         println("Begin Competitive Equilibrium Solution")
         solve_model!(m,f,shared_states,sim=sim,voucher=voucher,update_voucher=update_voucher)
