@@ -829,10 +829,24 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
             any = 1 - c_data.rDistribution[mom,2]
             μ_risk = c_data.rDistribution[mom,3]
             std_risk = sqrt(c_data.rDistribution[mom,4])
+
+            # println("Moment $mom, $μ_risk $std_risk")
+
+            ## Windsor threshold
+            a = norminvcdf(0.95)*std_risk + μ_risk
+
             for ind in 1:haltonDim
                 d = (draws[ind])
                 log_r = norminvcdf(d)*std_risk + μ_risk
-                risk_draws[ind,mom] = exp(log_r)
+
+                ## Truncate/Windsorize
+                if log_r>=a
+                    val = exp((std_risk^2)/2 + μ_risk)*normcdf(std_risk - (a-μ_risk)/std_risk)/(1-normcdf((a-μ_risk)/std_risk))
+                else
+                    val = exp(log_r)
+                end
+
+                risk_draws[ind,mom] = val
                 # if draws[ind]<any
                 #     risk_draws[ind,mom] = 0
                 # else
@@ -845,6 +859,7 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
     else
         risk_draws = draws
     end
+
 
 
     # Initialize Empty value prediction objects
