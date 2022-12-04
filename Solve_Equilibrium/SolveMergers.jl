@@ -72,12 +72,12 @@ function MergersMain(rundate,spec,home_directory)
     # filestub = "AllMergers_$spec-$(rundate)_Man"
     # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
     #                         filestub,policy="Man_repeal")
-    println("####################################")
-    println("#### Solve Without Risk Adjustment nor Individual Mandate ####")
-    println("####################################")
-    filestub = "AllMergers_$spec-$(rundate)_RAMan"
-    simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
-                            filestub,policy="RAMan_repeal")
+    # println("####################################")
+    # println("#### Solve Without Risk Adjustment nor Individual Mandate ####")
+    # println("####################################")
+    # filestub = "AllMergers_$spec-$(rundate)_RAMan"
+    # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
+    #                         filestub,policy="RAMan_repeal")
     # println("####################################")
     # println("#### Solve Policy Baseline - Price Linked ####")
     # println("####################################")
@@ -707,6 +707,12 @@ function simulate_all_mergers(m::InsuranceLogit,
                         Lives=f.S_j)
     CSV.write(file,output)
 
+    ### Reset to Baseline
+    f.P_j[:] = P_Base[:]
+    evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
+
+
+
     println("Send Data to Workers")
     @eval @everywhere m=$m
     @eval @everywhere f=$f
@@ -754,7 +760,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     @eval @everywhere rundate=$rundate
     println("Data Distributed")
 
-    @sync @distributed for i in 1:length(merging_party_list)
+    @sync @distributed for i in 1:length(merging_party_list[1:12])
         shared_markets = shared_market_list[i]
         shared_states = shared_state_list[i]
         merging_parties = merging_party_list[i]
@@ -769,6 +775,7 @@ function simulate_all_mergers(m::InsuranceLogit,
 
         ## Reset to pre-merger baseline
         f.P_j[:] = P_Base[:]
+        evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
         # Solve model in the affected states
         println("Begin Competitive Equilibrium Solution")
         solve_model!(m,f,shared_states,sim=sim,voucher=voucher,update_voucher=update_voucher)
