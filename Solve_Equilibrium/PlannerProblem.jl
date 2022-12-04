@@ -240,22 +240,28 @@ function solve_SP_parallel!(m::InsuranceLogit,f::firmData;
     println("Send Data to Workers")
     @eval @everywhere m=$m
     @eval @everywhere f=$f
-    @eval @everywhere sim=$sim
-    @eval @everywhere merg=$merg
-    @eval @everywhere tol=$tol
-    @eval @everywhere voucher=$voucher
-    @eval @everywhere update_voucher=$update_voucher
+    @eval @everywhere sim_SP_run=$sim
+    @eval @everywhere merg_SP_run=$merg
+    @eval @everywhere tol_SP_run=$tol
+    @eval @everywhere voucher_SP_run=$voucher
+    @eval @everywhere update_voucher_SP_run=$update_voucher
     println("Data Distributed")
     @everywhere markets = sort(Int.(keys(f.mkt_index)))
     P_res = SharedArray{Float64}(length(f.P_j))
-    println("Parameters: voucher: $voucher, update_voucher: $update_voucher,  sim: $sim")
+    println("Parameters: voucher: $voucher_SP_run, update_voucher: $update_voucher_SP_run,  sim: $sim_SP_run")
     @sync @distributed for mkt in markets
         # println("Solving for $mkt")
-        println("Parameters: voucher: $voucher, update_voucher: $update_voucher,  sim: $sim")
-        solve_model_mkt!(m,f,mkt,sim=sim,merg=merg,tol=tol,voucher=voucher,update_voucher=update_voucher)
+        println("Parameters: voucher: $voucher_SP_run, update_voucher: $update_voucher_SP_run,  sim: $sim_SP_run")
+        solve_model_mkt!(m,f,mkt,sim=sim_SP_run,merg=merg_SP_run,tol=tol_SP_run,voucher=voucher_SP_run,update_voucher=update_voucher_SP_run)
         println("Solved $(mkt)!")
         P_res[f.mkt_index[mkt]] = f.P_j[f.mkt_index[mkt]]
     end
+    println("Remove Data from Workers")
+    @eval @everywhere sim_SP_run=nothing
+    @eval @everywhere merg_SP_run=nothing
+    @eval @everywhere tol_SP_run=nothing
+    @eval @everywhere voucher_SP_run=nothing
+    @eval @everywhere update_voucher_SP_run=nothing
     f.P_j[:] = P_res[:]
     return nothing
 end
