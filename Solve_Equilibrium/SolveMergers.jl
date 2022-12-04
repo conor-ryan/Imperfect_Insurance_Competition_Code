@@ -675,7 +675,6 @@ function simulate_all_mergers(m::InsuranceLogit,
     #
     # Solve Baseline Social Planner Problem
     println("Solve Baseline Planner Problem")
-    println("Parameters: voucher: $voucher, update_voucher: $update_voucher,  sim: $sim")
     solve_SP_parallel!(m,f,voucher=voucher,update_voucher=update_voucher)
     evaluate_model!(m,f,"All",voucher=voucher)
 
@@ -767,6 +766,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     @eval @everywhere home_directory=$home_directory
     @eval @everywhere spec=$spec
     @eval @everywhere rundate=$rundate
+    @eval @everywhere sim=$sim
     println("Data Distributed")
 
     # @sync @distributed for i in 1:length(merging_party_list[1:12])
