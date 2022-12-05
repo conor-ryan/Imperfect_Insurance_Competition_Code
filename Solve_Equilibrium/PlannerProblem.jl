@@ -89,11 +89,6 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
     @eval @everywhere m=$m
     @eval @everywhere f=$f
     @eval @everywhere Π_target=$Π_target
-    @eval @everywhere sim=$sim
-    @eval @everywhere merg=$merg
-    @eval @everywhere tol=$tol
-    @eval @everywhere voucher=$voucher
-    @eval @everywhere update_voucher=$update_voucher
     println("Data Distributed")
 
     # @everywhere println("Mean Vouchers: $(mean(f.subsidy_ij_voucher))")
@@ -112,7 +107,7 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
         # println("Profit Target: $(Π_target[mkt])")
         profits = market_profits(m,f)
 
-        λ = find_λ(m,f,mkt,Π_target[mkt],sim=sim)
+        λ = find_λ(m,f,mkt,Π_target[mkt])
         # println("Got λ = $λ for market $mkt")
         λ_vec[mkt] = λ
         # solve_model_mkt!(m,f,mkt,λ=λ,sim=sim,merg=merg)
@@ -131,6 +126,8 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
         # end
     end
     f.P_j[:] = P_res[:]
+    println("Remove Data from Workers")
+    @eval @everywhere Π_target=nothing
     return markets, λ_vec
 end
 
