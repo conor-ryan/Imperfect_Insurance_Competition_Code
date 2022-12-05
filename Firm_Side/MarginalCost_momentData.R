@@ -30,23 +30,24 @@ firmFilings=firmFilings[Year==2015,]
 MLR_Data = read.csv("Data/2015_MLR/Part1_2_Summary_Data_Premium_Claims.csv")
 
 
-claims = MLR_Data[MLR_Data$ROW_LOOKUP_CODE=="TOTAL_INCURRED_CLAIMS_PT2",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1")]
-names(claims) = c("ï..MR_SUBMISSION_TEMPLATE_ID","Claims")
+claims = MLR_Data[MLR_Data$ROW_LOOKUP_CODE=="TOTAL_INCURRED_CLAIMS_PT2",c("MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1")]
+names(claims) = c("MR_SUBMISSION_TEMPLATE_ID","Claims")
 
-enroll =MLR_Data[MLR_Data$ROW_LOOKUP_CODE=="MEMBER_MONTHS",c("ï..MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1")]
-names(enroll) = c("ï..MR_SUBMISSION_TEMPLATE_ID","MLR_lives")
+enroll =MLR_Data[MLR_Data$ROW_LOOKUP_CODE=="MEMBER_MONTHS",c("MR_SUBMISSION_TEMPLATE_ID","CMM_INDIVIDUAL_Q1")]
+names(enroll) = c("MR_SUBMISSION_TEMPLATE_ID","MLR_lives")
 
-claims = merge(claims,enroll,by="ï..MR_SUBMISSION_TEMPLATE_ID")
+claims = merge(claims,enroll,by="MR_SUBMISSION_TEMPLATE_ID")
 
 # Remove non-Individual Market Insurers
 claims$absent1 = is.na(claims$MLR_lives) | claims$MLR_lives==0
-claims = claims[!claims$absent1,c("ï..MR_SUBMISSION_TEMPLATE_ID","Claims","MLR_lives")]
+claims = claims[!claims$absent1,c("MR_SUBMISSION_TEMPLATE_ID","Claims","MLR_lives")]
 
 # Merge in and summarize by Firm Name
-crosswalk = read.csv("Intermediate_Output/FirmCrosswalk.csv")
-crosswalk = unique(crosswalk[,c("ï..MR_SUBMISSION_TEMPLATE_ID","Firm","STATE")])
+crosswalk = read.csv("Intermediate_Output/FirmCrosswalk.csv",check.names=F)
+crosswalk = unique(crosswalk[,c("\xef..MR_SUBMISSION_TEMPLATE_ID","Firm","STATE")])
+names(crosswalk) = c("MR_SUBMISSION_TEMPLATE_ID","Firm","STATE")
 
-claims = merge(claims,crosswalk[,c("ï..MR_SUBMISSION_TEMPLATE_ID","Firm","STATE")],by="ï..MR_SUBMISSION_TEMPLATE_ID")
+claims = merge(claims,crosswalk[,c("MR_SUBMISSION_TEMPLATE_ID","Firm","STATE")],by="MR_SUBMISSION_TEMPLATE_ID")
 claims = summaryBy(MLR_lives+Claims~Firm+STATE,data=claims,FUN=sum,na.rm=TRUE,keep.names=TRUE)
 
 claims$AvgCost = with(claims,Claims/MLR_lives)

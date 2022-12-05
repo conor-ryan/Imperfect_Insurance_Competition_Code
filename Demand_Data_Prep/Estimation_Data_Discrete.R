@@ -67,7 +67,7 @@ subsInv <- function(cont,pov_line = 11770,FPL_flag=FALSE){
 eHealth = read.csv("C:/Users/Conor/Documents/Research/eHealth Data/eHealth_2015.csv",stringsAsFactors = FALSE)
 
 # Firm Crosswalk
-firmCrosswalk = read.csv("Intermediate_Output/FirmCrosswalk.csv")
+firmCrosswalk = read.csv("Intermediate_Output/FirmCrosswalk.csv",check.names=F)
 firmCrosswalk = unique(firmCrosswalk[,c("STATE","eHealth_CARRIER_NAME","Firm")])
 eHealth = merge(eHealth,firmCrosswalk,by.x=c("STATE","CARRIER_NAME"),by.y=c("STATE","eHealth_CARRIER_NAME"),all.x=TRUE)
 
@@ -832,8 +832,13 @@ shares = shares[shares$s_inside>0,]
 #Drop TX market with only one plan pruchased
 shares = shares[Market!="TX_1_94_1",]
 
+# Drop weird small products with bad risk ratings
+shares = shares[Firm!="AVERA_HEALTH_PLANS"]
+
 # Eliminate the 0 share products from the choice set
 choices = choices[choices$Product%in%shares$Product,]
+
+
 
 ##### Dummy Logit Test ####
 # shares[,regvar:=log(Share) - log(1-s_inside)]
@@ -875,9 +880,10 @@ shares$Product = as.numeric(shares$Product_Name)
 choices = choices[with(choices,order(Person,Product)),]
 setkey(choices,Person,Product)
 setkey(shares,Product)
+shares[,ST:=as.numeric(as.factor(STATE))]
 
 
-write.csv(shares[,c("Product","Share","lives","Gamma_j","AV")],
+write.csv(shares[,c("Product","Share","lives","Gamma_j","AV","ST")],
           "Intermediate_Output/Estimation_Data/marketData_discrete.csv",row.names=FALSE)
 write.csv(shares,
           "Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv",row.names=FALSE)
@@ -936,26 +942,26 @@ setkey(shares,Product)
 
 
 write.csv(choices[,.SD,.SDcols=c("Person","Firm","Market","Product","S_ij","S_raw_ij","N","Price",
-                     "Market_Firm","Market_Cat","Firm_ST","Firm_Market_Cat","Firm_Market_Age","Firm_Market_Cat_Age","drop_FMC","drop_FMCA",
-                     "PriceDiff",#"MedDeductDiff","ExcOOPDiff","HighDiff",
-                     "MedDeduct","ExcOOP","High","AV","AV_old","HighRisk","Small","High_small",
-                     "Family","Age","LowIncome","AGE","HighIncome","IncomeCts",
-                     "METAL","numericST",
-                     "ageRate_avg","HCC_age","SilvHCC_Age",
-                     "mean_HCC_Platinum","mean_HCC_Gold","mean_HCC_Silver","mean_HCC_Bronze","mean_HCC_Catastrophic",
-                     "Rtype","Any_HCC",
-                     "var_HCC_Platinum","var_HCC_Gold","var_HCC_Silver","var_HCC_Bronze","var_HCC_Catastrophic",
-                     "F0_Y0_LI0","F0_Y0_LI1","F0_Y1_LI0","F0_Y1_LI1",
-                     "F1_Y0_LI0","F1_Y0_LI1","F1_Y1_LI0","F1_Y1_LI1",
-                     "AgeFE_18_30","AgeFE_31_39","AgeFE_40_51","AgeFE_52_64",
-                     "unins_rate",firm_list)],
+                                 "Market_Firm","Market_Cat","Firm_ST","Firm_Market_Cat","Firm_Market_Age","Firm_Market_Cat_Age","drop_FMC","drop_FMCA",
+                                 "PriceDiff",#"MedDeductDiff","ExcOOPDiff","HighDiff",
+                                 "MedDeduct","ExcOOP","High","AV","AV_old","HighRisk","Small","High_small",
+                                 "Family","Age","LowIncome","AGE","HighIncome","IncomeCts",
+                                 "METAL","numericST",
+                                 "ageRate_avg","HCC_age","SilvHCC_Age",
+                                 "mean_HCC_Platinum","mean_HCC_Gold","mean_HCC_Silver","mean_HCC_Bronze","mean_HCC_Catastrophic",
+                                 "Rtype","Any_HCC",
+                                 "var_HCC_Platinum","var_HCC_Gold","var_HCC_Silver","var_HCC_Bronze","var_HCC_Catastrophic",
+                                 "F0_Y0_LI0","F0_Y0_LI1","F0_Y1_LI0","F0_Y1_LI1",
+                                 "F1_Y0_LI0","F1_Y0_LI1","F1_Y1_LI0","F1_Y1_LI1",
+                                 "AgeFE_18_30","AgeFE_31_39","AgeFE_40_51","AgeFE_52_64",
+                                 "unins_rate",firm_list)],
           "Intermediate_Output/Estimation_Data/estimationData_discrete.csv",row.names=FALSE)
 write.csv(choices,"Intermediate_Output/Estimation_Data/descriptiveData_discrete.csv",row.names=FALSE)
 
 shares[,Metal_std:=gsub(" .*","",METAL)]
 shares[,Product_std:=min(Product),by=c("Firm","Metal_std","Market")]
 
-write.csv(shares[,c("Product","Share","lives","Gamma_j","AV")],
+write.csv(shares[,c("Product","Share","lives","Gamma_j","AV","ST")],
           "Intermediate_Output/Estimation_Data/marketData_discrete.csv",row.names=FALSE)
 write.csv(shares,
           "Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv",row.names=FALSE)
