@@ -18,7 +18,7 @@ prodData = merge(prodData,marketSize,by="Market")
 
 #### Merger Welfare Data ####
 merger_welfare = NULL
-for (policy in c("Base","RAMan")){
+for (policy in c("RAMan")){
   print(policy)
   filestub = paste("Estimation_Output/AllMergers_",spec,"-",run,"_",policy,"_",sep="")
   
@@ -117,27 +117,27 @@ plotdf = rbind(plotdf1,plotdf2)
 
 
 # png("Writing/Images/Base_WelfareEffect.png",width=2500,height=1500,res=275)
-ggplot(plotdf[policy=="Base"])+
-  geom_point(aes(x=dHHI,y=value,color=label,shape=label),size=2.5)+
-  # geom_point(aes(x=dHHI,y=chg_Tot_Welfare,color="Total Welfare",shape ="Total Welfare"),size=2) +
-  scale_shape_manual(values=c(16,17)) +
-  geom_errorbar(aes(x=dHHI,ymin=chg_CW,ymax=value)) +
-  guides(color = guide_legend(override.aes = list(size = 5))) +
-  # facet_wrap(~hhi_category,ncol=1) +
-  geom_abline(slope=0,intercept=0) +
-  xlab("Predicted Change in HHI")+
-  ylab("Dollars Per-Person Per-Month")+
-  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
-    strip.background = element_blank(),
-    strip.text = element_text(size=14),
-    legend.background = element_rect(color=grey(.5)),
-    legend.title = element_blank(),
-    legend.text = element_text(size=14),
-    legend.key.width = unit(.05,units="npc"),
-    legend.key = element_rect(color="transparent",fill="transparent"),
-    legend.position = "bottom",
-    axis.title=element_text(size=14),
-    axis.text = element_text(size=16))
+# ggplot(plotdf[policy=="Base"])+
+#   geom_point(aes(x=dHHI,y=value,color=label,shape=label),size=2.5)+
+#   # geom_point(aes(x=dHHI,y=chg_Tot_Welfare,color="Total Welfare",shape ="Total Welfare"),size=2) +
+#   scale_shape_manual(values=c(16,17)) +
+#   geom_errorbar(aes(x=dHHI,ymin=chg_CW,ymax=value)) +
+#   guides(color = guide_legend(override.aes = list(size = 5))) +
+#   # facet_wrap(~hhi_category,ncol=1) +
+#   geom_abline(slope=0,intercept=0) +
+#   xlab("Predicted Change in HHI")+
+#   ylab("Dollars Per-Person Per-Month")+
+#   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+#     strip.background = element_blank(),
+#     strip.text = element_text(size=14),
+#     legend.background = element_rect(color=grey(.5)),
+#     legend.title = element_blank(),
+#     legend.text = element_text(size=14),
+#     legend.key.width = unit(.05,units="npc"),
+#     legend.key = element_rect(color="transparent",fill="transparent"),
+#     legend.position = "bottom",
+#     axis.title=element_text(size=14),
+#     axis.text = element_text(size=16))
 # dev.off()
 
 
@@ -167,7 +167,7 @@ ggplot(plotdf[policy=="RAMan"])+
 
 #### Merger Price-Effect Data ####
 merger_effects = NULL
-for (policy in c("Base","RAMan")){
+for (policy in c("RAMan")){
   print(policy)
   filestub = paste("Estimation_Output/AllMergers_",spec,"-",run,"_",policy,"_",sep="")
   
@@ -231,48 +231,48 @@ for (policy in c("Base","RAMan")){
 
 merger_effects[,Metal_std:=factor(Metal_std,levels=c("CATASTROPHIC","BRONZE","SILVER","GOLD","PLATINUM"))]
 
-ggplot(merger_effects[policy=="Base"]) + 
-  aes(x=Metal_std,y=Price_Effect_percent) + 
-  geom_boxplot(outlier.shape=NA) + 
-  coord_cartesian(ylim=c(-.025,.125))  +
-  ylab("Change in Monthly Premium")+
-  xlab("")+
-  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
-    title=element_text(hjust=0,size=18),
-    strip.background = element_blank(),
-    strip.text = element_text(size=14),
-    legend.background = element_rect(color=grey(.5)),
-    legend.title = element_blank(),
-    legend.text = element_text(size=14),
-    legend.key.width = unit(.05,units="npc"),
-    legend.key = element_rect(color="transparent",fill="transparent"),
-    legend.position = "bottom",
-    axis.title=element_text(size=14),
-    axis.text = element_text(size=16))
-
-# png("Writing/Images/BasePriceEffect_HHHI1000.png",width=2500,height=1500,res=275)
-ggplot(merger_effects[policy=="Base"&dHHI>1000]) + 
-  aes(x=Metal_std,y=Price_Effect_percent) + 
-  geom_abline(intercept=0,slope=0) + 
-  geom_boxplot(outlier.shape=NA) + 
-  coord_cartesian(ylim=c(-.1,.25))  +
-  scale_y_continuous(label=percent) +
-  ylab("Percent Change in Monthly Premium")+
-  xlab("")+
-  ggtitle("Price Effect With Selection Regulations") + 
-  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
-    title=element_text(hjust=0,size=16),
-    strip.background = element_blank(),
-    strip.text = element_text(size=14),
-    legend.background = element_rect(color=grey(.5)),
-    legend.title = element_blank(),
-    legend.text = element_text(size=14),
-    legend.key.width = unit(.05,units="npc"),
-    legend.key = element_rect(color="transparent",fill="transparent"),
-    legend.position = "bottom",
-    axis.title=element_text(size=16),
-    axis.text = element_text(size=16))
-# dev.off()
+# ggplot(merger_effects[policy=="Base"]) + 
+#   aes(x=Metal_std,y=Price_Effect_percent) + 
+#   geom_boxplot(outlier.shape=NA) + 
+#   coord_cartesian(ylim=c(-.025,.125))  +
+#   ylab("Change in Monthly Premium")+
+#   xlab("")+
+#   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+#     title=element_text(hjust=0,size=18),
+#     strip.background = element_blank(),
+#     strip.text = element_text(size=14),
+#     legend.background = element_rect(color=grey(.5)),
+#     legend.title = element_blank(),
+#     legend.text = element_text(size=14),
+#     legend.key.width = unit(.05,units="npc"),
+#     legend.key = element_rect(color="transparent",fill="transparent"),
+#     legend.position = "bottom",
+#     axis.title=element_text(size=14),
+#     axis.text = element_text(size=16))
+# 
+# # png("Writing/Images/BasePriceEffect_HHHI1000.png",width=2500,height=1500,res=275)
+# ggplot(merger_effects[policy=="Base"&dHHI>1000]) + 
+#   aes(x=Metal_std,y=Price_Effect_percent) + 
+#   geom_abline(intercept=0,slope=0) + 
+#   geom_boxplot(outlier.shape=NA) + 
+#   coord_cartesian(ylim=c(-.1,.25))  +
+#   scale_y_continuous(label=percent) +
+#   ylab("Percent Change in Monthly Premium")+
+#   xlab("")+
+#   ggtitle("Price Effect With Selection Regulations") + 
+#   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+#     title=element_text(hjust=0,size=16),
+#     strip.background = element_blank(),
+#     strip.text = element_text(size=14),
+#     legend.background = element_rect(color=grey(.5)),
+#     legend.title = element_blank(),
+#     legend.text = element_text(size=14),
+#     legend.key.width = unit(.05,units="npc"),
+#     legend.key = element_rect(color="transparent",fill="transparent"),
+#     legend.position = "bottom",
+#     axis.title=element_text(size=16),
+#     axis.text = element_text(size=16))
+# # dev.off()
 
 # png("Writing/Images/RAManPriceEffect_HHHI1000.png",width=2500,height=1500,res=275)
 ggplot(merger_effects[policy=="RAMan"&dHHI>1000]) + 
@@ -301,7 +301,7 @@ ggplot(merger_effects[policy=="RAMan"&dHHI>1000]) +
 ##### Decomposition  Data ####
 
 base_welfare = NULL
-for (policy in c("Base","RAMan")){
+for (policy in c("RAMan")){
   print(policy)
   baseline_CP = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_SP_cp_baseline-",spec,"-",run,".csv",sep=""))
   baseline_Comp = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_baseline-",spec,"-",run,".csv",sep=""))
@@ -323,7 +323,7 @@ merger_welfare = merge(merger_welfare,base_welfare,by=c("markets","policy"),all.
 
 
 merger_welfare_SP = NULL
-for (policy in c("Base","RAMan")){
+for (policy in c("RAMan")){
   print(policy)
   #### Iterate Through Mergers ####
   merger_files = list.files("Estimation_Output/",pattern=paste("totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,sep=""))

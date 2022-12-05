@@ -769,7 +769,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     @eval @everywhere sim=$sim
     println("Data Distributed")
 
-    @sync @distributed for i in 1:length(merging_party_list[1:36])
+    @sync @distributed for i in 1:length(merging_party_list)
     # for i in 1:length(merging_party_list[1:12])
         shared_markets = shared_market_list[i]
         shared_states = shared_state_list[i]
