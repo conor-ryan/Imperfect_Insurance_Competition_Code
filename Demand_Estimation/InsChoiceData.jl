@@ -429,13 +429,9 @@ function ChoiceData(data_choice::DataFrame,
             rMoments[m] = data_transfer[!,:T_moment][findall(data_transfer[!,:momentID].==m)][1]
         end
 
-        states = sort(unique(data_market[!,:ST]))
-        for s in states
-            _stDict[s] = unique(data_market[!,:Product][findall((data_market[!,:ST].==s).&(data_market[!,:AV].!=0.57))])
-        end
-
         states = sort(unique(data_transfer[!,:ST]))
         for s in states
+            _stDict[s] = unique(data_transfer[!,:Product][findall(data_transfer[!,:ST].==s)])
             _stMomentMap[s] = sort(unique(data_transfer[!,:momentID][findall(data_transfer[!,:ST].==s)]))
         end
 
@@ -718,8 +714,6 @@ mutable struct PersonIterator
     id
 end
 
-
-
 # Construct an iterator to loop over people
 function eachperson(m::ChoiceData)
     #ids = sort(unique(person(m)))
@@ -761,9 +755,6 @@ function Base.iterate(iter::PersonIterator, state=1)
     return (submod, state + 1)
 end
 
-# function Base.firstindex(iter::PersonIterator)
-#     return 1
-# end
 
 ###########################################################
 ### Model Object ########
@@ -838,24 +829,10 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
             any = 1 - c_data.rDistribution[mom,2]
             μ_risk = c_data.rDistribution[mom,3]
             std_risk = sqrt(c_data.rDistribution[mom,4])
-
-            # println("Moment $mom, $μ_risk $std_risk")
-
-            ## Windsor threshold
-            a = norminvcdf(0.95)*std_risk + μ_risk
-
             for ind in 1:haltonDim
                 d = (draws[ind])
                 log_r = norminvcdf(d)*std_risk + μ_risk
-
-                ## Truncate/Windsorize
-                if log_r>=a
-                    val = exp((std_risk^2)/2 + μ_risk)*normcdf(std_risk - (a-μ_risk)/std_risk)/(1-normcdf((a-μ_risk)/std_risk))
-                else
-                    val = exp(log_r)
-                end
-
-                risk_draws[ind,mom] = val
+                risk_draws[ind,mom] = exp(log_r)
                 # if draws[ind]<any
                 #     risk_draws[ind,mom] = 0
                 # else

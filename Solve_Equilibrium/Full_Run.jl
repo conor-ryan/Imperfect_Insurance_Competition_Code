@@ -1,6 +1,6 @@
 using Distributed
 println("Add Workers")
-addprocs(12)
+# addprocs(12)
 
 @everywhere using BenchmarkTools
 @everywhere using JLD2
@@ -49,10 +49,10 @@ spec_prodchars_σ=[:AV,
 :OR_BRIDGESPAN,:OR_HEALTH_NET_OF_OREGON,:OR_HEALTH_REPUBLIC_INSURANCE,:OR_KAISER_FOUNDATION_HEALTH_PLAN_OF_THE_NW,:OR_LIFEWISE_HEALTH_PLAN_OF_OREGON,:OR_MODA_HEALTH_PLAN_INC,:OR_PACIFICSOURCE_HEALTH_PLANS,:OR_PROVIDENCE_HEALTH_PLAN,:OR_REGENCE_BLUECROSS_BLUESHIELD_OF_OREGON,
 :TX_AETNA_LIFE_INSURANCE_COMPANY,:TX_ALL_SAVERS_INSURANCE_COMPANY,:TX_AMBETTER_FROM_SUPERIOR_HEALTHPLAN,:TX_ASSURANT_HEALTH,:TX_BLUE_CROSS_AND_BLUE_SHIELD_OF_TEXAS,:TX_CIGNA_HEALTH_AND_LIFE_INSURANCE_COMPANY,:TX_FIRSTCARE,:TX_HUMANA,:TX_MOLINA_HEALTH_CARE,:TX_SCOTT__WHITE_HEALTH_PLAN,:TX_UNITEDHEALTHCARE_LIFE_INS_CO,
 :UT_ALTIUS_HEALTH_PLANS,:UT_ARCHES_HEALTH_PLAN,:UT_BRIDGESPAN,:UT_HUMANA,:UT_MOLINA_HEALTH_CARE,:UT_REGENCE_BLUECROSS_BLUESHIELD_OF_UTAH,:UT_SELECTHEALTH,:UT_UNITEDHEALTHCARE_LIFE_INS_CO]
-cost_spec = [:AGE,:AV]
+cost_spec = [:AGE,:AV_std]
 
-# rundate = Dates.today()
-rundate = "2022-03-18"
+rundate = Dates.today()
+# rundate = "2022-03-18"
 spec = "FMC"
 spec_fixedEffects=[:Market_Firm,:Market_Cat]
 println("Running $spec on $rundate")
@@ -83,12 +83,12 @@ println("Load Demand Estimation Code...")
 @everywhere include("$codeDir/Demand_Estimation/Specification_Run.jl")
 
 filename = "PLL_Estimate_$spec"
-# estimate_demand(filename,rundate,home_directory,
-#                     halton_draws,
-#                     spec_demoRaw,
-#                     spec_prodchars,
-#                     spec_prodchars_σ,
-#                     spec_fixedEffects)
+estimate_demand(filename,rundate,home_directory,
+                    halton_draws,
+                    spec_demoRaw,
+                    spec_prodchars,
+                    spec_prodchars_σ,
+                    spec_fixedEffects)
 
 
 println("##### Estimation Marginal Cost #####")
@@ -100,7 +100,7 @@ println("Load Marginal Cost Estimation Code...")
 @everywhere include("$codeDir/Firm_Side/MC_optimization.jl")
 @everywhere include("$codeDir/Firm_Side/Firm_Inner_Loop.jl")
 @everywhere include("$codeDir/Firm_Side/SpecRunMC.jl")
-# estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
+estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
 
 @everywhere include("ProcessDemResults.jl")
 process_demand(rundate,spec,home_directory)
@@ -117,4 +117,4 @@ println("Load Equilibrium Code...")
 @everywhere include("PlannerProblem.jl")
 @everywhere include("SolveMergers.jl")
 
-MergersMain(rundate,spec,home_directory)
+# MergersMain(rundate,spec,home_directory)
