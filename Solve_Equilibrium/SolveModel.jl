@@ -57,6 +57,7 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
     P_new_last = zeros(length(f.P_j[:]))
     P_orig = copy(f.P_j[:])
     # println(f.P_j[f._prodSTDict[ST]])
+    println("Parameters: voucher: $voucher, update_voucher: $update_voucher, no_policy: $no_policy, sim: $sim, merg: $merg")
     while (err_new>tol) & (!isnan(err_new))
         itr_cnt+=1
         # println("Evaluate Model")
