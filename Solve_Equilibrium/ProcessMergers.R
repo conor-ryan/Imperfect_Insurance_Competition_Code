@@ -4,7 +4,7 @@ library(ggplot2)
 library(scales)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
-run = "2022-11-15"
+run = "2022-12-06"
 spec = "FMC"
 
 ### Base Data 
@@ -27,7 +27,7 @@ test2 = merge(test2,prodData,by="Product")
 
 #### Welfare By Market Concentration ####
 conc_welfare = NULL
-for (policy in c("Base","RAMan")){
+for (policy in c("RAMan")){
   print(policy)
   filestub = paste("Estimation_Output/AllMergers_",spec,"-",run,"_",policy,"_",sep="")
   
@@ -118,11 +118,11 @@ conc_welfare[,hhi_2:=hhi^2]
 conc_welfare[,hhi_3:=hhi^3]
 conc_welfare[,firmFactor:=as.factor(firm_num)]
 
-conc_welfare[policy=="Base",summary(lm(tot_Welfare_gov~Market+firmFactor))]
+conc_welfare[policy=="RAMan",summary(lm(tot_Welfare~Market+firmFactor))]
 
 #### Merger Welfare Data ####
 merger_welfare = NULL
-for (policy in c("Base","RAMan")){
+for (policy in c("RAMan")){
   print(policy)
   filestub = paste("Estimation_Output/AllMergers_",spec,"-",run,"_",policy,"_",sep="")
   
@@ -272,7 +272,7 @@ dev.off()
 
 #### Merger Price-Effect Data ####
 merger_effects = NULL
-for (policy in c("Base","RAMan")){
+for (policy in c("RAMan")){
   print(policy)
   filestub = paste("Estimation_Output/AllMergers_",spec,"-",run,"_",policy,"_",sep="")
   
@@ -329,7 +329,7 @@ for (policy in c("Base","RAMan")){
       
       postmerge = merge(postmerge,dHHI[,c("Market","dHHI")],by="Market",all.x=TRUE)
       postmerge[is.na(dHHI),dHHI:=0]
-      postmerge = postmerge[dHHI>100]
+      postmerge = postmerge[dHHI>0]
       merger_effects = rbind(merger_effects,postmerge)
     }
   }
@@ -408,11 +408,11 @@ dev.off()
 ##### Decomposition  Data ####
 
 base_welfare = NULL
-for (policy in c("Base","RA")){
+for (policy in c("RAMan")){
   print(policy)
-  baseline_CP = fread(paste("Estimation_Output/totalWelfare_bymkt_test_AllMergers_",spec,"-",run,"_",policy,"_SP_cp_baseline-",spec,"-",run,".csv",sep=""))
-  baseline_Comp = fread(paste("Estimation_Output/totalWelfare_bymkt_test_AllMergers_",spec,"-",run,"_",policy,"_baseline-",spec,"-",run,".csv",sep=""))
-  baseline_SP = fread(paste("Estimation_Output/totalWelfare_bymkt_test_AllMergers_",spec,"-",run,"_",policy,"_SP_baseline-",spec,"-",run,".csv",sep=""))
+  baseline_CP = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_SP_cp_baseline-",spec,"-",run,".csv",sep=""))
+  baseline_Comp = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_baseline-",spec,"-",run,".csv",sep=""))
+  baseline_SP = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_SP_baseline-",spec,"-",run,".csv",sep=""))
   
   
   
@@ -430,7 +430,7 @@ merger_welfare = merge(merger_welfare,base_welfare,by=c("markets","policy"),all.
 
 
 merger_welfare_SP = NULL
-for (policy in c("Base","RAMan")){
+for (policy in c("RAMan")){
   print(policy)
   #### Iterate Through Mergers ####
   merger_files = list.files("Estimation_Output",pattern=paste("totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,sep=""))
