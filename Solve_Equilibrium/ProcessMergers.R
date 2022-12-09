@@ -27,7 +27,7 @@ test2 = merge(test2,prodData,by="Product")
 
 #### Welfare By Market Concentration ####
 conc_welfare = NULL
-for (policy in c("RAMan")){
+for (policy in c("RAMan","Base","RA","Man")){
   print(policy)
   filestub = paste("Estimation_Output/AllMergers_",spec,"-",run,"_",policy,"_",sep="")
   
@@ -111,7 +111,7 @@ for (policy in c("RAMan")){
 
 ### Regression Analysis
 
-conc_welfare[,hhi_bucket:=floor(hhi/100)*100]
+conc_welfare[,hhi_bucket:=floor(hhi/500)*500]
 conc_welfare[hhi>9000,hhi_bucket:=9000]
 conc_welfare[,hhi_bucket:=as.factor(hhi_bucket)]
 conc_welfare[,hhi_2:=hhi^2]
@@ -119,10 +119,13 @@ conc_welfare[,hhi_3:=hhi^3]
 conc_welfare[,firmFactor:=as.factor(firm_num)]
 
 conc_welfare[policy=="RAMan",summary(lm(tot_Welfare~Market+firmFactor))]
+conc_welfare[policy=="Base",summary(lm(tot_Welfare~Market+firmFactor))]
+conc_welfare[policy=="RA",summary(lm(tot_Welfare~Market+firmFactor))]
+conc_welfare[policy=="Man",summary(lm(tot_Welfare~Market+firmFactor))]
 
 #### Merger Welfare Data ####
 merger_welfare = NULL
-for (policy in c("RAMan")){
+for (policy in c("RAMan","Base","RA","Man")){
   print(policy)
   filestub = paste("Estimation_Output/AllMergers_",spec,"-",run,"_",policy,"_",sep="")
   
@@ -408,7 +411,7 @@ dev.off()
 ##### Decomposition  Data ####
 
 base_welfare = NULL
-for (policy in c("RAMan")){
+for (policy in c("Base","RA","Man","RAMan")){
   print(policy)
   baseline_CP = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_SP_cp_baseline-",spec,"-",run,".csv",sep=""))
   baseline_Comp = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_baseline-",spec,"-",run,".csv",sep=""))
@@ -430,10 +433,10 @@ merger_welfare = merge(merger_welfare,base_welfare,by=c("markets","policy"),all.
 
 
 merger_welfare_SP = NULL
-for (policy in c("RAMan")){
+for (policy in c("Base","RA","Man","RAMan")){
   print(policy)
   #### Iterate Through Mergers ####
-  merger_files = list.files("Estimation_Output",pattern=paste("totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,sep=""))
+  merger_files = list.files("Estimation_Output",pattern=paste("totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_",sep=""))
   merger_SP_CP_files = merger_files[grepl("_SP_",merger_files)]
   merger_base_files = merger_files[!grepl("_SP_",merger_files)]
   

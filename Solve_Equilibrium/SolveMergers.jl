@@ -54,52 +54,46 @@ function MergersMain(rundate,spec,home_directory)
     par_cost = parMC(mc_est,par_dem,model,costdf)
 
 
+    filestub = "AllMergers_$spec-$(rundate)"
     # println("####################################")
     # println("#### Solve Policy Baseline  ####")
     # println("####################################")
-    # filestub = "AllMergers_$spec-$(rundate)_Base"
     # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
     #                         filestub,policy="Base")
     # println("####################################")
     # println("#### Solve Without Risk Adjustment ####")
     # println("####################################")
-    # filestub = "AllMergers_$spec-$(rundate)_RA"
     # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
     #                         filestub,policy="RA_repeal")
     # println("####################################")
     # println("#### Solve Without Individual Mandate ####")
     # println("####################################")
-    # filestub = "AllMergers_$spec-$(rundate)_Man"
     # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
     #                         filestub,policy="Man_repeal")
     println("####################################")
     println("#### Solve Without Risk Adjustment nor Individual Mandate ####")
     println("####################################")
-    filestub = "AllMergers_$spec-$(rundate)_RAMan"
     simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
                             filestub,policy="RAMan_repeal")
+    # filestub = "AllMergers_PL_$spec-$(rundate)"
     # println("####################################")
     # println("#### Solve Policy Baseline - Price Linked ####")
     # println("####################################")
-    # filestub = "AllMergers_PL_$spec-$(rundate)_Base"
     # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
     #                         filestub,policy="Base",voucher=false)
     # println("####################################")
     # println("#### Solve Without Risk Adjustment - Price Linked ####")
     # println("####################################")
-    # filestub = "AllMergers_PL_$spec-$(rundate)_RA"
     # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
     #                         filestub,policy="RA_repeal",voucher=false)
     # println("####################################")
     # println("#### Solve Without Individual Mandate - Price Linked ####")
     # println("####################################")
-    # filestub = "AllMergers_PL_$spec-$(rundate)_Man"
     # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
     #                         filestub,policy="Man_repeal",voucher=false)
     # println("####################################")
     # println("#### Solve Without Risk Adjustment nor Individual Mandate - Price Linked ####")
     # println("####################################")
-    # filestub = "AllMergers_PL_$spec-$(rundate)_RAMan"
     # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
     #                         filestub,policy="RAMan_repeal",voucher=false)
 
@@ -495,49 +489,49 @@ function MergersMain3(rundate,spec,home_directory)
     # println("####################################")
     # println("#### Solve Policy Baseline  ####")
     # println("####################################")
-    # filestub = "AllMergers_$spec-$(rundate)_Base"
+    # filestub = "AllMergers_$spec-$(rundate)"
     # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
     #                         filestub,policy="Base")
     # println("####################################")
     # println("#### Solve Without Risk Adjustment ####")
     # println("####################################")
-    # filestub = "AllMergers_$spec-$(rundate)_RA"
+    # filestub = "AllMergers_$spec-$(rundate)"
     # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
     #                         filestub,policy="RA_repeal")
     # println("####################################")
     # println("#### Solve Without Individual Mandate ####")
     # println("####################################")
-    # filestub = "AllMergers_$spec-$(rundate)_Man"
+    # filestub = "AllMergers_$spec-$(rundate)"
     # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
     #                         filestub,policy="Man_repeal")
     # println("####################################")
     # println("#### Solve Without Risk Adjustment nor Individual Mandate ####")
     # println("####################################")
-    # filestub = "AllMergers_$spec-$(rundate)_RAMan"
+    # filestub = "AllMergers_$spec-$(rundate)"
     # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
     #                         filestub,policy="RAMan_repeal")
     println("####################################")
     println("#### Solve Policy Baseline - Price Linked ####")
     println("####################################")
-    filestub = "AllMergers_PL_$spec-$(rundate)_Base"
+    filestub = "AllMergers_PL_$spec-$(rundate)"
     simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
                             filestub,policy="Base",voucher=false)
     # println("####################################")
     # println("#### Solve Without Risk Adjustment - Price Linked ####")
     # println("####################################")
-    # filestub = "AllMergers_PL_$spec-$(rundate)_RA"
+    # filestub = "AllMergers_PL_$spec-$(rundate)"
     # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
     #                         filestub,policy="RA_repeal",voucher=false)
     # println("####################################")
     # println("#### Solve Without Individual Mandate - Price Linked ####")
     # println("####################################")
-    # filestub = "AllMergers_PL_$spec-$(rundate)_Man"
+    # filestub = "AllMergers_PL_$spec-$(rundate)"
     # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
     #                         filestub,policy="Man_repeal",voucher=false)
     println("####################################")
     println("#### Solve Without Risk Adjustment nor Individual Mandate - Price Linked ####")
     println("####################################")
-    filestub = "AllMergers_PL_$spec-$(rundate)_RAMan"
+    filestub = "AllMergers_PL_$spec-$(rundate)"
     simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
                             filestub,policy="RAMan_repeal",voucher=false)
 
@@ -609,32 +603,31 @@ function check_markets_if_merger(f::firmData,merging_parties)
 end
 function simulate_all_mergers(m::InsuranceLogit,
                             df::DataFrame,mkt::DataFrame,par_dem::parDict,par_cost::parMC,
-                            file_stub;
+                            file_stub_short;
                             policy="",voucher=true)
 
     # Initialize Firm Data
     f = firmData(m,df,mkt,par_dem,par_cost)
 
-    # for w in workers()
-    #     println("Sending data to $w...")
-    #     tag = @spawnat w f;
-    #     fetch(tag)
-    # end
+
 
 
     # Policy Regime
     if policy=="RA_repeal"
         @everywhere sim="RA"
+        policy = "RA"
     elseif policy=="Man_repeal"
         @everywhere sim = "Base"
         f.data[:,f.index[:Mandate]].=0.0
+        policy = "Man"
     elseif policy=="RAMan_repeal"
         @everywhere sim = "RA"
         f.data[:,f.index[:Mandate]].=0.0
+        policy = "RAMan"
     else
         @everywhere sim = "Base"
     end
-
+    file_stub = "$(file_stub_short)_$policy"
     # Price link Regime
     update_voucher = !voucher
 
@@ -647,10 +640,23 @@ function simulate_all_mergers(m::InsuranceLogit,
 
     # ## Solve Baseline Model
     println("Solve Baseline Model")
-    solve_model_parallel!(m,f,sim=sim,voucher=voucher)
-    P_Base[:] = f.P_j[:]
-    evaluate_model!(m,f,"All",voucher=voucher)
-    set_voucher!(f,refund=true)
+    if policy=="Base" # Solve baseline model with vouchers adjusting on prices
+        solve_model_parallel!(m,f,sim=sim,voucher=voucher)
+        P_Base[:] = f.P_j[:]
+        evaluate_model!(m,f,"All",voucher=voucher)
+        set_voucher!(f,refund=true)
+    else
+        # Set Vouchers from Baseline Model
+        file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub_short)_Base_baseline.csv"
+        output = CSV.read(file,DataFrame)
+        f.P_j = output[!,:Price]
+        evaluate_model!(m,f,"All",voucher=voucher)
+        set_voucher!(f,refund=true)
+
+        solve_model_parallel!(m,f,sim=sim,voucher=voucher,update_voucher)
+        P_Base[:] = f.P_j[:]
+        evaluate_model!(m,f,"All",voucher=voucher,update_voucher)
+    end
 
     base_profits = market_profits(m,f)
     # consumer_welfare(m,f,"$(file_stub)_baseline",spec,rundate)
@@ -665,12 +671,6 @@ function simulate_all_mergers(m::InsuranceLogit,
 
     println("Total Voucher: $(sum(f.subsidy_ij))")
     println("Total Fixed Voucher: $(sum(f.subsidy_ij_voucher))")
-
-    # output = CSV.read(file,DataFrame)
-    # f.P_j = output[!,:Price]
-    # evaluate_model!(m,f,"All",voucher=voucher)
-    # set_voucher!(f,refund=true)
-    # P_Base[:] = f.P_j[:]
 
     #
     # Solve Baseline Social Planner Problem
