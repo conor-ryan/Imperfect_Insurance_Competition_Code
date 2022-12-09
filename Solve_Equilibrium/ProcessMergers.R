@@ -201,7 +201,7 @@ for (policy in c("RAMan","Base","RA","Man")){
 ## Firms
 merger_welfare[policy=="Base",quantile(firm_num,probs=c(.1,.25,.5,.75,.9))]
 ## Pre-HHI
-merger_welfare[policy=="Base",quantile(hhi,probs=c(.1,.25,.5,.75,.9))]
+merger_welfare[policy=="Man",quantile(hhi,probs=c(.1,.25,.5,.75,.9))]
 ## Post-HHI
 # merger_welfare[policy=="Base",quantiles(firm_num,probs=c(.1,.25,.5,.75,.9))]
 ## Delta HHI
@@ -518,7 +518,7 @@ ggplot(plotdf[policy=="RAMan"&label%in%c("Total Welfare Effect")]) +
 dev.off()
 
 png("Writing/Images/RAManWelfareSorting.png",width=2500,height=1500,res=275)
-ggplot(plotdf[policy=="RAMan"&label%in%c("Total Welfare Effect","Pre-Merger Cost of Inefficient Sorting")]) +
+ggplot(plotdf[policy=="Man"&label%in%c("Total Welfare Effect","Pre-Merger Cost of Inefficient Sorting")]) +
   aes(x=chg_rank,y=value) + geom_bar(stat="identity",color=grey(0.5),fill=grey(0.5)) + 
   facet_wrap(~label,ncol=1,scales="free")  + 
   ylab("Dollars Per-Person Per-Month")+
@@ -538,7 +538,7 @@ dev.off()
 
 
 png("Writing/Images/RAManWelfareDecomp.png",width=2500,height=1500,res=275)
-ggplot(plotdf[policy=="RAMan"&label%in%c("Total Welfare Effect","Change due to Sorting","Change due to Markups")]) + 
+ggplot(plotdf[policy=="RA"&label%in%c("Total Welfare Effect","Change due to Sorting","Change due to Markups")]) + 
   aes(x=chg_rank,y=value,fill=color,color=color) + geom_bar(stat="identity",position="dodge") + 
   facet_wrap(~facet,ncol=1)  +  
   scale_fill_discrete(limits = c("Change due to Sorting","Change due to Markups")) +

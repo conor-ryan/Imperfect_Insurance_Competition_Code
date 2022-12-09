@@ -653,7 +653,7 @@ function simulate_all_mergers(m::InsuranceLogit,
         evaluate_model!(m,f,"All",voucher=voucher)
         set_voucher!(f,refund=true)
 
-        solve_model_parallel!(m,f,sim=sim,voucher=voucher,update_voucher)
+        solve_model_parallel!(m,f,sim=sim,voucher=voucher,update_voucher=update_voucher)
         P_Base[:] = f.P_j[:]
         evaluate_model!(m,f,"All",voucher=voucher,update_voucher)
     end
