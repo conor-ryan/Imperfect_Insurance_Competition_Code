@@ -5,8 +5,11 @@ rm(list=ls())
 source("Code/2015_Premiums/ChoiceSets.R")
   
 ###### Base Demand Data ######
-# rm(list=ls())
+rm(list=ls())
 source("Code/Simulation/ACS_Prep.R")
+
+rm(list=ls())
+source("Code/CMS_RiskAdjustment/HSS_HCC_Model.R")
 
 rm(list=ls())
 source("Code/MEPS_Moments/MEPS_Moments.R")

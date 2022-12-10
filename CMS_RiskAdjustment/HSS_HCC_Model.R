@@ -12,6 +12,9 @@ mapdig[,ICD9_num:=as.numeric(gsub("V|E","",ICD9))]
 mapdig[,ICD9_min:=min(ICD9_num),by="trunc_ICD9"]
 mapdig = mapdig[ICD9_num==ICD9_min,]
 
+#### CC code map (manual)
+CC_HCC = as.data.table(read.csv("Code/CMS_RiskAdjustment/HHS-HCC/MEPS_to_HCC_CCMap.csv"))
+
 
 #### Classify ICD-9 Codes into HCCs ####
 
@@ -69,6 +72,14 @@ meps_med = merge(meps_med,meps_full,by=c("DUID","PID","DUPERSID","PANEL"),all.x=
 meps_med = merge(meps_med,mapdig[,c("trunc_ICD9","ICD9")],by.x="ICD9CODX",by.y="trunc_ICD9",all.x=TRUE)
 
 meps_med = merge(meps_med,crosswalk,by.x="ICD9",by.y="ICD9",all.x=TRUE)
+
+meps_med = merge(meps_med,CC_HCC[,c("MEPS_CC","HCC")],by.x="CCCODEX",by.y="MEPS_CC",all.x=TRUE)
+
+# Code Mycoses conservatively 
+meps_med[CCCODEX==4&ICD9CODX==112&is.na(CC),CC:=3]
+meps_med[CCCODEX==4&ICD9CODX!=112,HCC:=NA]
+
+meps_med[is.na(CC),CC:=HCC]
 
 meps_med[,keep_sex:=TRUE]
 meps_med[,keep_age:=(is.na(Age_Min)) | (AGE15X>=Age_Min & AGE15X<=Age_Max)]
@@ -332,11 +343,10 @@ for (n in 1:nrow(coeffs)){
       model_full[[score_var]][model_full$model==mod] + 
       model_full[[var]][model_full$model==mod]*beta
   }
-
   # new_mean = mean(model_full$R_Score_Bronze)
   # mean_diff = new_mean - old_mean
   # old_mean = new_mean
-  # if (mean_diff>.1){
+  # if (mean_diff>.05){
   #   print(var)
   #   print(new_mean)
   #   print(mean_diff)

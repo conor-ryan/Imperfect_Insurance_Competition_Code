@@ -54,15 +54,16 @@ setkey(metal_moments,Metal_std)
 # Wakely Numbers
 # metal_moments[,R_adj:= c(0.8434997,1.445666,2.178068,2.973488)]
 report_avg_val = 1.448
-meps_avg_val = 1.288065
+claims_avg_val = metalClaims[!is.na(T_norm_data)&!noVar,sum(R_est*EXP_MM)/sum(EXP_MM)]
+# meps_avg_val = 1.288065
 metal_moments[,R_adj:= c(.814,1.503,1.889,2.675)]
-metal_moments[,R_adj_est:=(T_norm_data+1)*meps_avg_val]
+metal_moments[,R_adj_est:=(T_norm_data+1)*report_avg_val]
 
 metal_moments[,momentID:=1:nrow(metal_moments)]
 
 #### Total Enrolled Moment ####
 total_moment = mkt_data[mkt_data$METAL!="CATASTROPHIC",c("ST","Firm","Product")]
-total_moment$R_moment = meps_avg_val
+total_moment$R_moment = claims_avg_val
 total_moment$momentID = max(metal_moments$momentID) + total_moment$ST
 
 total_moment = total_moment[,c("Product","momentID","R_moment","ST")]
@@ -130,7 +131,7 @@ firm_moments = merge(firm_moments,mkt_data[,c("STATE","Firm","Product","Market",
 
 
 
-metal_moments = metal_moments[,c("Product","momentID","R_adj","ST")]
+metal_moments = metal_moments[,c("Product","momentID","R_est","ST")]
 names(metal_moments) = c("Product","momentID","R_moment","ST")
 firm_moments = firm_moments[,c("Product","momentID","relative_risk_age_const","ST.y")]
 names(firm_moments) = c("Product","momentID","T_moment","ST")
