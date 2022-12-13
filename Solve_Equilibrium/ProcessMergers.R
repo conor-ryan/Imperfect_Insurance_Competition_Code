@@ -4,7 +4,7 @@ library(ggplot2)
 library(scales)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
-run = "2022-12-06"
+run = "2022-12-10"
 spec = "FMC"
 
 ### Base Data 
@@ -16,18 +16,18 @@ load("Intermediate_Output/Simulated_BaseData/simMarketSize.rData")
 prodData = merge(prodData,marketSize,by="Market")
 
 
-policy = "RAMan"
-filestub = paste("Estimation_Output/AllMergers_",spec,"-",run,"_",policy,"_",sep="")
-
-### Baseline Market Data ####
-test2 = fread(paste(filestub,"baseline.csv",sep=""))
-test2 = merge(test2,prodData,by="Product")
-
+# policy = "RAMan"
+# filestub = paste("Estimation_Output/AllMergers_",spec,"-",run,"_",policy,"_",sep="")
+# 
+# ### Baseline Market Data ####
+# test2 = fread(paste(filestub,"baseline.csv",sep=""))
+# test2 = merge(test2,prodData,by="Product")
+# 
 
 
 #### Welfare By Market Concentration ####
 conc_welfare = NULL
-for (policy in c("RAMan","Base","RA","Man")){
+for (policy in c("Base")){
   print(policy)
   filestub = paste("Estimation_Output/AllMergers_",spec,"-",run,"_",policy,"_",sep="")
   
@@ -125,7 +125,7 @@ conc_welfare[policy=="Man",summary(lm(tot_Welfare~Market+firmFactor))]
 
 #### Merger Welfare Data ####
 merger_welfare = NULL
-for (policy in c("RAMan","Base","RA","Man")){
+for (policy in c("Base")){
   print(policy)
   filestub = paste("Estimation_Output/AllMergers_",spec,"-",run,"_",policy,"_",sep="")
   
