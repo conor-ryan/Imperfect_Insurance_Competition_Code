@@ -27,7 +27,7 @@ prodData = merge(prodData,marketSize,by="Market")
 
 #### Welfare By Market Concentration ####
 conc_welfare = NULL
-for (policy in c("Base")){
+for (policy in c("Base","RAMan")){
   print(policy)
   filestub = paste("Estimation_Output/AllMergers_",spec,"-",run,"_",policy,"_",sep="")
   
@@ -125,7 +125,7 @@ conc_welfare[policy=="Man",summary(lm(tot_Welfare~Market+firmFactor))]
 
 #### Merger Welfare Data ####
 merger_welfare = NULL
-for (policy in c("Base")){
+for (policy in c("Base","RAMan")){
   print(policy)
   filestub = paste("Estimation_Output/AllMergers_",spec,"-",run,"_",policy,"_",sep="")
   
@@ -275,7 +275,7 @@ dev.off()
 
 #### Merger Price-Effect Data ####
 merger_effects = NULL
-for (policy in c("RAMan")){
+for (policy in c("Base","RAMan")){
   print(policy)
   filestub = paste("Estimation_Output/AllMergers_",spec,"-",run,"_",policy,"_",sep="")
   
@@ -411,7 +411,7 @@ dev.off()
 ##### Decomposition  Data ####
 
 base_welfare = NULL
-for (policy in c("Base","RA","Man","RAMan")){
+for (policy in c("Base","RAMan")){
   print(policy)
   baseline_CP = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_SP_cp_baseline-",spec,"-",run,".csv",sep=""))
   baseline_Comp = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_baseline-",spec,"-",run,".csv",sep=""))
