@@ -55,11 +55,11 @@ function MergersMain(rundate,spec,home_directory)
 
 
     filestub = "AllMergers_$spec-$(rundate)"
-    println("####################################")
-    println("#### Solve Policy Baseline  ####")
-    println("####################################")
-    simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
-                            filestub,policy="Base")
+    # println("####################################")
+    # println("#### Solve Policy Baseline  ####")
+    # println("####################################")
+    # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
+    #                         filestub,policy="Base")
     # println("####################################")
     # println("#### Solve Without Risk Adjustment ####")
     # println("####################################")
@@ -649,7 +649,7 @@ function simulate_all_mergers(m::InsuranceLogit,
         # Set Vouchers from Baseline Model
         file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub_short)_Base_baseline.csv"
         output = CSV.read(file,DataFrame)
-        f.P_j = output[!,:Price]
+        f.P_j[:] = output[!,:Price]
         evaluate_model!(m,f,"All",voucher=voucher)
         set_voucher!(f,refund=true)
 
