@@ -117,4 +117,4 @@ println("Load Equilibrium Code...")
 @everywhere include("PlannerProblem.jl")
 @everywhere include("SolveMergers.jl")
 
-MergersMain(rundate,spec,home_directory)
+# MergersMain(rundate,spec,home_directory)
