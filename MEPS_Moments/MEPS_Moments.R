@@ -10,9 +10,9 @@ mepsFull = read.csv("Data/2015_MEPS/MEPS_Full_2015.csv")
 
 
 #### Distribution of Risk Scores  ####
-meps = mepsFull[mepsFull$UNINS15==2,c("HIEUIDX","DUPERSID","PID","PANEL","AGELAST","AGE15X","TTLP15X","POVLEV15","OFFER31X","OFFER42X","OFFER53X",
+meps = mepsFull[,c("HIEUIDX","DUPERSID","PID","PANEL","AGELAST","AGE15X","TTLP15X","POVLEV15","OFFER31X","OFFER42X","OFFER53X",
                    "TRIEV15","MCREV15","MCDEV15","OPAEV15","OPBEV15","ADSMOK42","REGION15",
-                   "INSCOV15","INSURC15","PERWT15F")]
+                  "UNINS15","INSCOV15","INSURC15","PERWT15F")]
 
 meps_risk = read.csv("Intermediate_Output/MEPS_Moments/meps_risk_scores.csv")
 
@@ -23,23 +23,24 @@ meps = merge(meps,meps_risk,by=c("DUPERSID","PANEL"))#,all.x=TRUE)
 
 
 # 
-# mepsPers = read.csv("Data/2015_MEPS/MEPS_Person_2015.csv")
-# ## Non Group Coverage
-# mepsPers = mepsPers[mepsPers$PRIVCAT%in%c(2,3,5,6,99),]
-# # #Not Through Employer or Association 
-# mepsPers = mepsPers[mepsPers$CMJINS!=1,]
-# mepsPers = mepsPers[mepsPers$TYPEFLAG%in%c(5,6,7,11,12,13,21),]
-# 
-# mepsPers = mepsPers[mepsPers$STEXCH!=-1,]
-# 
-# mepsPers = summaryBy(STEXCH~DUPERSID+PANEL,data=mepsPers,FUN=min,keep.names=TRUE)
-# 
-# meps = merge(meps,mepsPers,by=c("DUPERSID","PANEL"),all.x=TRUE)
-# meps = merge(meps,meps_risk,by=c("DUPERSID","PANEL"),all.x=TRUE)
+mepsPers = read.csv("Data/2015_MEPS/MEPS_Person_2015.csv")
+## Non Group Coverage
+mepsPers = mepsPers[mepsPers$PRIVCAT%in%c(2,3,5,6,99),]
+# #Not Through Employer or Association
+mepsPers = mepsPers[mepsPers$CMJINS!=1,]
+mepsPers = mepsPers[mepsPers$TYPEFLAG%in%c(5,6,7,11,12,13,21),]
+
+mepsPers = mepsPers[mepsPers$STEXCH!=-1,]
+
+mepsPers = summaryBy(STEXCH~DUPERSID+PANEL,data=mepsPers,FUN=min,keep.names=TRUE)
+
+meps = merge(meps,mepsPers,by=c("DUPERSID","PANEL"),all.x=TRUE)
+
 # 
 # ## Keep Non-Group Only
-meps = meps[meps$AGE15X<66,]
-# meps = meps[!is.na(meps$STEXCH),]
+meps = meps[meps$AGE15X<65,] # Under 65
+meps=meps[meps$AGE15X>=0,]
+meps = meps[!is.na(meps$STEXCH)|meps$INSCOV15==3,] #Non Group or Uninsured
 # 
 # ## Age of HoH
 meps$HoH_Age = ave(meps$AGE15X,meps$HIEUIDX,FUN=max)
@@ -47,15 +48,6 @@ meps$Count = 1
 meps$HoH_Count = ave(meps$Count,meps$HIEUIDX,FUN=sum)
 # 
 # 
-# meps$EmpOffer = with(meps,OFFER31X==1|OFFER42X==1|OFFER53X==1)
-# meps$PrivateCov = with(meps,INSCOV15==1&TRIEV15==2&MCREV15==2&MCDEV15==2&OPAEV15==2&OPBEV15==2)
-# meps$Uninsured = with(meps,INSCOV15==3)
-# meps$InMarket = ((meps$PrivateCov&!meps$EmpOffer)|meps$Uninsured)&meps$AGELAST<65
-# meps$Smoking = with(meps,as.numeric(ADSMOK42==1))
-# #meps = meps[meps$InMarket,]
-# meps = meps[!meps$Uninsured&meps$AGE15X<66,]
-meps=meps[meps$AGE15X>=0,]
-
 meps$Age_Cat = 0
 meps$Age_Cat[meps$HoH_Age>45] = 1
 
@@ -63,15 +55,6 @@ meps$Inc_Cat = 0
 meps$Inc_Cat[meps$POVLEV15>=400] = 1
 
 
-# ggplot(meps) + 
-#   aes(x=HCC_Score_Silver,weights=PERWT15F,y=..density..) + 
-#   geom_histogram()
-# 
-# 
-# ggplot(meps) + 
-#   aes(x=log(HCC_Score_Silver+.001),weights=PERWT15F,y=..density..) + 
-#   geom_histogram() + 
-#   facet_grid(Inc_Cat~Age_Cat) 
 
 score_vars = names(meps)[grep("HCC_Score",names(meps))]
 for (var in score_vars){

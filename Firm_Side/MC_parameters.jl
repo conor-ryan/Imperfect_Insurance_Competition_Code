@@ -576,17 +576,22 @@ function transferMoment(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     wgts = weight(d.data)[:]
     wgts_ins = p.s_hat_ins.*wgts
     wgts_share = p.pars.s_hat.*wgts
-    T_total = 0
-    S_total = 0
-    for j in c._raMomentDict[1]
-        idx = d.data._productDict[j]
-        PC = sliceMean_wgt(p.C_pool,wgts_ins,idx)
-        AC = sliceMean_wgt(p.C_cap,wgts_share,idx)
-        S_j = sliceSum_wgt(p.pars.s_hat,wgts,idx)
-        T_total+= S_j*(PC-AC)
-        S_total+= S_j
+
+    avgTransfer = zeros(length(keys(c._raMomentDict)))
+    for (m,m_idx) in c._raMomentDict
+        T_total = 0
+        S_total = 0
+        for j in m_idx
+            idx = d.data._productDict[j]
+            PC = sliceMean_wgt(p.C_pool,wgts_ins,idx)
+            AC = sliceMean_wgt(p.C_cap,wgts_share,idx)
+            S_j = sliceSum_wgt(p.pars.s_hat,wgts,idx)
+            T_total+= S_j*(PC-AC)
+            S_total+= S_j
+        end
+        avgTransfer[m] = (T_total/S_total)/10
     end
-    avgTransfer = (T_total/S_total)/10
+
     return avgTransfer
 end
 

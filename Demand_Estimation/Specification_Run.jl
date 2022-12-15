@@ -427,7 +427,7 @@ function run_specification_penalizedlikelihood(filename::String,
     W = W./10
 
     p_init, obj_init = gradient_ascent_ll(m_ll,p0,W,max_itr=20)
-    p_stg1, obj_1 = newton_raphson_ll(m_ll,p_init,W,grad_tol=1e-10,f_tol=1e-12,x_tol=1e-12)
+    p_stg1, obj_1 = newton_raphson_ll(m_ll,p_init,W,grad_tol=1e-9,f_tol=1e-10,x_tol=1e-10)
 
     println("Save First Stage Result")
     file = "$filename-$rundate-stg1.jld2"
@@ -475,7 +475,7 @@ function run_specification_penalizedlikelihood(filename::String,
 
 
     p_init, obj_init = gradient_ascent_ll(m_ll,p_stg1,W,max_itr=50)
-    p_stg2, obj_2 = newton_raphson_ll(m_ll,p_init,W,grad_tol=1e-8,f_tol=1e-12,x_tol=1e-12)
+    p_stg2, obj_2 = newton_raphson_ll(m_ll,p_init,W,grad_tol=1e-9,f_tol=1e-10,x_tol=1e-10)
 
     println("Save Second Stage Result")
     file = "$filename-$rundate-stg2.jld2"
