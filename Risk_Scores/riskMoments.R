@@ -98,7 +98,7 @@ full_menu[,Firm_ST:=paste(ST,Firm,sep="_")]
 firm_moments[,Firm_ST:=paste(ST,Firm,sep="_")]
 
 # Drop one very small firm that is very difficult to match
-full_menu = full_menu[Firm!="HEALTH_NET_OF_OREGON"]
+# full_menu = full_menu[Firm!="HEALTH_NET_OF_OREGON"]
 
 ## Drop some weird plans
 

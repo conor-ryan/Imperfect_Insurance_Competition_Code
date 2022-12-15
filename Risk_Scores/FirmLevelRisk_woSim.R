@@ -106,7 +106,7 @@ firm_RA[QHP_diff<0,MM_compliant_est:=MM_compliant+MM_noncompliant]
 firm_RA[QHP_diff>=0,MM_compliant_est:=(RA_MM-sum(MM_compliant))*noncompliant_share+MM_compliant,by="ST"]
 
 
-firm_RA[,T_norm:=-Payments/(MM_compliant_est*RA_prem)]
+firm_RA[,T_norm:=Payments/(MM_compliant_est*RA_prem)]
 firm_RA[Payments==0,T_norm:=0]
 
 ### Average Risk Assuming Balanced Age Distribution
@@ -123,7 +123,7 @@ firm_RA[,payments_adj:=Payments]
 firm_RA[Firm=="OTHER",payments_adj:=0]
 firm_RA[,payments_adj_net:=sum(payments_adj),by="ST"]
 firm_RA[Firm=="OTHER",payments_adj:=-payments_adj_net]
-firm_RA[,T_norm_adj:=-payments_adj/(memberMonths*RA_prem)]
+firm_RA[,T_norm_adj:=payments_adj/(memberMonths*RA_prem)]
 
 # Set avg_prem everywhere
 firm_RA[,MLR_avg_prem:=max(MLR_avg_prem,na.rm=TRUE),by="ST"]

@@ -141,13 +141,13 @@ load(firmRiskFile)
 firms = unique(prod_data[,c("Firm","STATE","Small")])
 firm_RA = merge(firm_RA,firms,by.x=c("Firm","ST"),by.y=c("Firm","STATE"))
 
-RAmom = firm_RA[,list(memberMonths=sum(memberMonths),payments=sum(payments_adj)),by=c("HighRisk")]
-RAmom[,avgTransfer:=payments/memberMonths]
+RAmom = firm_RA[,list(memberMonths=sum(memberMonths),payments=sum(payments_adj)),by=c("ST","Firm")]
+RAmom[,avgTransfer:=-payments/memberMonths]
 
-RAmom = merge(firm_RA[,c("Firm","ST","HighRisk")],RAmom[,c("HighRisk","avgTransfer")],by="HighRisk")
-RAmom = RAmom[HighRisk==1,]
+# RAmom = merge(firm_RA[,c("Firm","ST","HighRisk")],RAmom[,c("HighRisk","avgTransfer")],by="HighRisk")
+# RAmom = RAmom[HighRisk==1,]
 RAmom[,avgTransfer:=avgTransfer/10]
-RAmom[,M_num:=1]
+RAmom[,M_num:=1:nrow(RAmom)]
 
 
 #### All Moments ####
