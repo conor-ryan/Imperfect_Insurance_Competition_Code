@@ -173,11 +173,11 @@ function MergersMain0(rundate,spec,home_directory)
     # println("####################################")
     # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
     #                         filestub,policy="Man_repeal")
-    # println("####################################")
-    # println("#### Solve Without Risk Adjustment nor Individual Mandate ####")
-    # println("####################################")
-    # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
-    #                         filestub,policy="RAMan_repeal")
+    println("####################################")
+    println("#### Solve Without Risk Adjustment nor Individual Mandate ####")
+    println("####################################")
+    simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
+                            filestub,policy="RAMan_repeal")
     # filestub = "AllMergers_PL_$spec-$(rundate)"
     # println("####################################")
     # println("#### Solve Policy Baseline - Price Linked ####")
