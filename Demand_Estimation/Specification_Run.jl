@@ -433,9 +433,9 @@ function run_specification_penalizedlikelihood(filename::String,
     # file = "$filename-$rundate-stg1.jld2"
     # @save file p_stg1 obj_1 spec_Dict
 
-    # println("Load First Stage Result")
-    # file = "$filename-$rundate-stg1.jld2"
-    # @load file p_stg1 obj_1 spec_Dict
+    println("Load First Stage Result")
+    file = "$filename-$rundate-stg1.jld2"
+    @load file p_stg1 obj_1 spec_Dict
 
 
     println("#### Estimate GMM Second Stage ####")

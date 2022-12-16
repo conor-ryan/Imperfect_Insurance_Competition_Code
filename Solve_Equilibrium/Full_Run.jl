@@ -51,8 +51,8 @@ spec_prodchars_σ=[:AV,
 :UT_ALTIUS_HEALTH_PLANS,:UT_ARCHES_HEALTH_PLAN,:UT_BRIDGESPAN,:UT_HUMANA,:UT_MOLINA_HEALTH_CARE,:UT_REGENCE_BLUECROSS_BLUESHIELD_OF_UTAH,:UT_SELECTHEALTH,:UT_UNITEDHEALTHCARE_LIFE_INS_CO]
 cost_spec = [:AGE,:AV_std]
 
-rundate = Dates.today()
-# rundate = "2022-12-10"
+# rundate = Dates.today()
+rundate = "2022-12-15"
 spec = "FMC"
 spec_fixedEffects=[:Market_Firm,:Market_Cat]
 println("Running $spec on $rundate")
