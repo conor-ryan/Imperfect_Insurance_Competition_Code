@@ -2,7 +2,7 @@ function MergersMain(rundate,spec,home_directory)
 
     #Load Data
     println("Loading Data...")
-    include("EQ_load.jl")
+    include("$(home_directory)/Research/Imperfect_Insurance_Competition/Code/Solve_Equilibrium/EQ_load.jl")
 
     # df[:High_small] = df[:HighRisk].*df[:Small]
 

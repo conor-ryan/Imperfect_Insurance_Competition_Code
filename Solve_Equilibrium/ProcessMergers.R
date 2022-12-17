@@ -120,8 +120,8 @@ conc_welfare[,firmFactor:=as.factor(firm_num)]
 
 conc_welfare[policy=="RAMan",summary(lm(tot_Welfare~Market+firmFactor))]
 conc_welfare[policy=="Base",summary(lm(tot_Welfare~Market+firmFactor))]
-conc_welfare[policy=="RA",summary(lm(tot_Welfare~Market+firmFactor))]
-conc_welfare[policy=="Man",summary(lm(tot_Welfare~Market+firmFactor))]
+# conc_welfare[policy=="RA",summary(lm(tot_Welfare~Market+firmFactor))]
+# conc_welfare[policy=="Man",summary(lm(tot_Welfare~Market+firmFactor))]
 
 #### Merger Welfare Data ####
 merger_welfare = NULL
@@ -199,13 +199,13 @@ for (policy in c("Base","RAMan")){
 
 #### Market Structure Description #####
 ## Firms
-merger_welfare[policy=="Base",quantile(firm_num,probs=c(.1,.25,.5,.75,.9))]
+# merger_welfare[policy=="Base",quantile(firm_num,probs=c(.1,.25,.5,.75,.9))]
 ## Pre-HHI
-merger_welfare[policy=="Man",quantile(hhi,probs=c(.1,.25,.5,.75,.9))]
+# merger_welfare[policy=="Man",quantile(hhi,probs=c(.1,.25,.5,.75,.9))]
 ## Post-HHI
 # merger_welfare[policy=="Base",quantiles(firm_num,probs=c(.1,.25,.5,.75,.9))]
 ## Delta HHI
-merger_welfare[policy=="Base",quantile(dHHI,probs=c(.1,.25,.5,.75,.9,.99))]
+# merger_welfare[policy=="Base",quantile(dHHI,probs=c(.1,.25,.5,.75,.9,.99))]
 
 
 #### Welfare Effect Merger Plot #####
@@ -411,7 +411,7 @@ dev.off()
 ##### Decomposition  Data ####
 
 base_welfare = NULL
-for (policy in c("Base","RAMan")){
+for (policy in c("Base","RAMan","RA")){
   print(policy)
   baseline_CP = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_SP_cp_baseline-",spec,"-",run,".csv",sep=""))
   baseline_Comp = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_baseline-",spec,"-",run,".csv",sep=""))
@@ -518,7 +518,7 @@ ggplot(plotdf[policy=="RAMan"&label%in%c("Total Welfare Effect")]) +
 dev.off()
 
 png("Writing/Images/RAManWelfareSorting.png",width=2500,height=1500,res=275)
-ggplot(plotdf[policy=="Man"&label%in%c("Total Welfare Effect","Pre-Merger Cost of Inefficient Sorting")]) +
+ggplot(plotdf[policy=="RAMan"&label%in%c("Total Welfare Effect","Pre-Merger Cost of Inefficient Sorting")]) +
   aes(x=chg_rank,y=value) + geom_bar(stat="identity",color=grey(0.5),fill=grey(0.5)) + 
   facet_wrap(~label,ncol=1,scales="free")  + 
   ylab("Dollars Per-Person Per-Month")+
