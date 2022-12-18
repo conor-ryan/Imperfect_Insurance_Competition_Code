@@ -468,9 +468,9 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
                 p_test = copy(p_vec)
                 break
             end
-            if step_size<1e-8
-                hess_steps=0
-            end
+            # if step_size<1e-8
+            #     hess_steps=0
+            # end
         end
 
         if (real_hessian==1) & (hess_steps>0 | close_grad_step==1)
