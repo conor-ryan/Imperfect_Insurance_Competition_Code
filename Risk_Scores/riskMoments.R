@@ -65,7 +65,7 @@ metal_moments[,momentID:=1:nrow(metal_moments)]
 #### Total Enrolled Moment ####
 total_moment = mkt_data[mkt_data$METAL!="CATASTROPHIC",c("ST","Firm","Product")]
 total_moment$R_moment = report_avg_val
-total_moment$momentID = max(metal_moments$momentID) + total_moment$ST
+total_moment$momentID = max(metal_moments$momentID) + 1#total_moment$ST
 
 total_moment = total_moment[,c("Product","momentID","R_moment","ST")]
 
