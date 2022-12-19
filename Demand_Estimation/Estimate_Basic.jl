@@ -320,12 +320,12 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
 
         ## Function and Parameter Tolerance Test
         if (cnt==1) | (fval>=f_min)
-            if (abs(fval-f_min)<f_tol) & (f_tol_flag==1)
+            if (abs(fval-f_min)<f_tol) & (real_hessian==1)
                 f_tol_cnt += 1
             end
-            if (maximum(abs.(p_vec - p_min))<x_tol) & (f_tol_flag==1)
-                x_tol_cnt += 1
-            end
+            # if (maximum(abs.(p_vec - p_min))<x_tol) & (real_hessian==1)
+            #     x_tol_cnt += 1
+            # end
 
             f_min = copy(fval)
             p_min[:] = p_vec[:]
@@ -443,7 +443,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
                 update/= 200
             end
             step_size = maximum(abs.(update))
-            if ((real_hessian==0) & (step_size>1e-4)) | ((real_hessian==1) & (step_size>1e-13))
+            if ((real_hessian==0) & (step_size>1e-4)) | ((real_hessian==1) & (step_size>1e-15))
                 p_test = p_vec .+ update
                 f_test = log_likelihood_penalty(d,p_test,W)
                 p_test_disp = p_test[disp_vec]
@@ -471,14 +471,17 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
             # if step_size<1e-8
             #     hess_steps=0
             # end
+            if (step_size<x_tol) & (real_hessian==1)
+                x_tol_cnt +=1
+            end
         end
 
-        if (real_hessian==1) & (hess_steps>0 | close_grad_step==1)
-            f_tol_flag = 1
-            println("Checking ftol")
-        else
-            f_tol_flag = 0
-        end
+        # if (real_hessian==1) & (hess_steps>0 | close_grad_step==1)
+        #     f_tol_flag = 1
+        #     println("Checking ftol")
+        # else
+        #     f_tol_flag = 0
+        # end
 
         p_last = copy(p_vec)
         p_vec = copy(p_test)
