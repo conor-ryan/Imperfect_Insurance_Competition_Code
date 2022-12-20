@@ -4,8 +4,8 @@ library(ggplot2)
 library(scales)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
-run = "2022-12-15"
-spec = "FMC"
+run = "2022-12-18"
+spec = "FM"
 
 ### Base Data 
 prodData = as.data.table(read.csv("Intermediate_Output/Equilibrium_Data/estimated_prodData_full.csv"))
@@ -411,7 +411,7 @@ dev.off()
 ##### Decomposition  Data ####
 
 base_welfare = NULL
-for (policy in c("Base","RAMan","RA")){
+for (policy in c("Base","RA")){
   print(policy)
   baseline_CP = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_SP_cp_baseline-",spec,"-",run,".csv",sep=""))
   baseline_Comp = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_baseline-",spec,"-",run,".csv",sep=""))
