@@ -76,10 +76,10 @@ meps_med = merge(meps_med,crosswalk,by.x="ICD9",by.y="ICD9",all.x=TRUE)
 meps_med = merge(meps_med,CC_HCC[,c("MEPS_CC","HCC")],by.x="CCCODEX",by.y="MEPS_CC",all.x=TRUE)
 
 # Code Mycoses conservatively
-# meps_med[CCCODEX==4&ICD9CODX==112&is.na(CC),HCC:=3]
-# meps_med[CCCODEX==4&ICD9CODX!=112,HCC:=NA]
+meps_med[CCCODEX==4&ICD9CODX==112&is.na(CC)&!is.na(HCC),HCC:=3]
+meps_med[CCCODEX==4&ICD9CODX!=112,HCC:=NA]
 
-# meps_med[is.na(CC),CC:=HCC]
+meps_med[is.na(CC),CC:=HCC]
 
 meps_med[,keep_sex:=TRUE]
 meps_med[,keep_age:=(is.na(Age_Min)) | (AGE15X>=Age_Min & AGE15X<=Age_Max)]
