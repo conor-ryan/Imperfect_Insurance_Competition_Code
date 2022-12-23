@@ -40,7 +40,8 @@ meps = merge(meps,mepsPers,by=c("DUPERSID","PANEL"),all.x=TRUE)
 # ## Keep Non-Group Only
 meps = meps[meps$AGE15X<65,] # Under 65
 meps=meps[meps$AGE15X>=0,]
-meps = meps[!is.na(meps$STEXCH)|meps$INSCOV15==3,] #Non Group or Uninsured
+# meps = meps[!is.na(meps$STEXCH)|meps$INSCOV15==3,] #Non Group or Uninsured
+# meps = meps[meps$INSCOV15!=3,]
 # 
 # ## Age of HoH
 meps$HoH_Age = ave(meps$AGE15X,meps$HIEUIDX,FUN=max)
