@@ -27,7 +27,7 @@ prodData = merge(prodData,marketSize,by="Market")
 
 #### Welfare By Market Concentration ####
 conc_welfare = NULL
-for (policy in c("Base","RA")){
+for (policy in c("Base","RAMan")){
   print(policy)
   filestub = paste("Estimation_Output/AllMergers_",spec,"-",run,"_",policy,"_",sep="")
   
@@ -120,12 +120,12 @@ conc_welfare[,firmFactor:=as.factor(firm_num)]
 
 conc_welfare[policy=="RAMan",summary(lm(tot_Welfare~Market+firmFactor))]
 conc_welfare[policy=="Base",summary(lm(tot_Welfare~Market+firmFactor))]
-conc_welfare[policy=="RA",summary(lm(tot_Welfare~Market+firmFactor))]
+# conc_welfare[policy=="RA",summary(lm(tot_Welfare~Market+firmFactor))]
 # conc_welfare[policy=="Man",summary(lm(tot_Welfare~Market+firmFactor))]
 
 #### Merger Welfare Data ####
 merger_welfare = NULL
-for (policy in c("Base","RA")){
+for (policy in c("Base","RAMan")){
   print(policy)
   filestub = paste("Estimation_Output/AllMergers_",spec,"-",run,"_",policy,"_",sep="")
   
@@ -411,7 +411,7 @@ dev.off()
 ##### Decomposition  Data ####
 
 base_welfare = NULL
-for (policy in c("Base","RA","RAMan")){
+for (policy in c("Base","RAMan")){
   print(policy)
   baseline_CP = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_SP_cp_baseline-",spec,"-",run,".csv",sep=""))
   baseline_Comp = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_baseline-",spec,"-",run,".csv",sep=""))
@@ -433,7 +433,7 @@ merger_welfare = merge(merger_welfare,base_welfare,by=c("markets","policy"),all.
 
 
 merger_welfare_SP = NULL
-for (policy in c("Base","RA")){
+for (policy in c("Base","RAMan")){
   print(policy)
   #### Iterate Through Mergers ####
   merger_files = list.files("Estimation_Output",pattern=paste("totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_",sep=""))
@@ -500,7 +500,7 @@ plotdf[!label%in%c("Change due to Sorting","Change due to Markups"),color:=NA]
 
 
 png("Writing/Images/RAManWelfareDist.png",width=2500,height=1500,res=275)
-ggplot(plotdf[policy=="RA"&label%in%c("Total Welfare Effect")]) + 
+ggplot(plotdf[policy=="RAMan"&label%in%c("Total Welfare Effect")]) + 
   aes(x=chg_rank,y=value) + geom_bar(stat="identity",color=grey(0.5),fill=grey(0.5)) + 
   ylab("Dollars Per-Person Per-Month")+
   xlab("")+
@@ -538,7 +538,7 @@ dev.off()
 
 
 png("Writing/Images/RAManWelfareDecomp.png",width=2500,height=1500,res=275)
-ggplot(plotdf[policy=="RA"&label%in%c("Total Welfare Effect","Change due to Sorting","Change due to Markups")]) + 
+ggplot(plotdf[policy=="RAMan"&label%in%c("Total Welfare Effect","Change due to Sorting","Change due to Markups")]) + 
   aes(x=chg_rank,y=value,fill=color,color=color) + geom_bar(stat="identity",position="dodge") + 
   facet_wrap(~facet,ncol=1)  +  
   scale_fill_discrete(limits = c("Change due to Sorting","Change due to Markups")) +
