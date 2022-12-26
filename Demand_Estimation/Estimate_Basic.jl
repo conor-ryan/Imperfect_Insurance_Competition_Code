@@ -462,8 +462,9 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
                 hess_steps = 0
                 trial_max = 1
                 close_grad_step = 1
-                println("RUN ROUND OF GRADIENT ASCENT at Minimum")
-                p_test, f_test = gradient_ascent_ll(d,p_min,W,max_itr=5,strict=true,grad_tol=grad_tol)
+                println("Real Hessian Finds No Better Point")
+                p_test = p_vec .+ update
+                f_test = log_likelihood_penalty(d,p_test,W)
             else
                 println("No Advancement")
                 hess_steps = 0
