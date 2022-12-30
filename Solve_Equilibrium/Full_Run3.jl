@@ -52,8 +52,8 @@ spec_prodchars_σ=[:AV,
 cost_spec = [:AGE,:AV_std]
 
 # rundate = Dates.today()
-rundate = "2022-12-06"
-spec = "FMC"
+rundate = "2022-12-23"
+spec = "FM"
 spec_fixedEffects=[:Market_Firm,:Market_Cat]
 println("Running $spec on $rundate")
 
