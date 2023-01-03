@@ -4,8 +4,8 @@ library(ggplot2)
 library(scales)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
-run = "2022-12-21"
-spec = "FM"
+run = "2022-12-26"
+spec = "FMC"
 
 ### Base Data 
 prodData = as.data.table(read.csv("Intermediate_Output/Equilibrium_Data/estimated_prodData_full.csv"))
@@ -118,10 +118,10 @@ conc_welfare[,hhi_2:=hhi^2]
 conc_welfare[,hhi_3:=hhi^3]
 conc_welfare[,firmFactor:=as.factor(firm_num)]
 
-conc_welfare[policy=="RAMan",summary(lm(tot_Welfare~Market+firmFactor))]
-conc_welfare[policy=="Base",summary(lm(tot_Welfare~Market+firmFactor))]
-# conc_welfare[policy=="RA",summary(lm(tot_Welfare~Market+firmFactor))]
-# conc_welfare[policy=="Man",summary(lm(tot_Welfare~Market+firmFactor))]
+conc_welfare[policy=="RAMan"&(dHHI>100|merging_parties=="baseline"),summary(lm(tot_Welfare~Market+firmFactor))]
+conc_welfare[policy=="Base"&(dHHI>100|merging_parties=="baseline"),summary(lm(tot_Welfare~Market+firmFactor))]
+conc_welfare[policy=="RA",summary(lm(tot_Welfare~Market+firmFactor))]
+# conc_welfare[policy=="PL",summary(lm(tot_Welfare~Market+firmFactor))]
 
 #### Merger Welfare Data ####
 merger_welfare = NULL
@@ -365,7 +365,7 @@ ggplot(merger_effects[policy=="Base"&dHHI>1000]) +
   aes(x=Metal_std,y=Price_Effect_percent) + 
   geom_abline(intercept=0,slope=0) + 
   geom_boxplot(outlier.shape=NA) + 
-  coord_cartesian(ylim=c(-.1,.25))  +
+  coord_cartesian(ylim=c(-.25,.25))  +
   scale_y_continuous(label=percent) +
   ylab("Percent Change in Monthly Premium")+
   xlab("")+
@@ -389,7 +389,7 @@ ggplot(merger_effects[policy=="RAMan"&dHHI>1000]) +
   aes(x=Metal_std,y=Price_Effect_percent) + 
   geom_abline(intercept=0,slope=0) + 
   geom_boxplot(outlier.shape=NA) + 
-  coord_cartesian(ylim=c(-.7,.25))  +
+  coord_cartesian(ylim=c(-.25,.25))  +
   scale_y_continuous(label=percent) +
   ylab("Percent Change in Monthly Premium")+
   xlab("")+
@@ -464,40 +464,49 @@ merger_welfare = merge(merger_welfare,merger_welfare_SP,by=c("markets","merging_
 
 
 ##### Welfare Decomposition #####
-
-merger_welfare[,chg_rank:= rank(chg_Tot_Welfare,ties.method="first"),by=policy]
-merger_welfare[,dMarkup:=Tot_Welfare_merge_cp - Welfare_baseline_CP]
-merger_welfare[,dSorting:=chg_Tot_Welfare - dMarkup]
+big_mergers = merger_welfare[dHHI>500]
+big_mergers[,chg_rank:= rank(chg_Tot_Welfare,ties.method="first"),by=policy]
+big_mergers[,sorting_rank:= rank(sorting_cost,ties.method="first"),by=policy]
+big_mergers[,dMarkup:=Tot_Welfare_merge_cp - Welfare_baseline_CP]
+big_mergers[,dSorting:=chg_Tot_Welfare - dMarkup]
 
 ## Smooth out non-ordered variables
-merger_welfare[,chg_rank_bucket:=floor(chg_rank/10)]
-merger_welfare[,sorting_cost_smooth:=-mean(sorting_cost,na.rm=TRUE),by=c("chg_rank_bucket","policy")]
-merger_welfare[,dSorting_smooth:=mean(dSorting,na.rm=TRUE),by=c("chg_rank_bucket","policy")]
-merger_welfare[,dMarkup_smooth:=mean(dMarkup,na.rm=TRUE),by=c("chg_rank_bucket","policy")]
+big_mergers[,chg_rank_bucket:=floor(chg_rank/10)]
+big_mergers[,sorting_rank_bucket:=floor(sorting_rank/10)]
+big_mergers[sorting_rank==max(sorting_rank),sorting_rank_bucket:=max(sorting_rank_bucket)-1]# Group max into previous group
+
+big_mergers[,sorting_cost_smooth:=mean(sorting_cost,na.rm=TRUE),by=c("sorting_rank_bucket","policy")]
+big_mergers[,dSorting_smooth:=mean(dSorting,na.rm=TRUE),by=c("sorting_rank_bucket","policy")]
+big_mergers[,dMarkup_smooth:=mean(dMarkup,na.rm=TRUE),by=c("sorting_rank_bucket","policy")]
+big_mergers[,dWelfare_smooth:=mean(chg_Tot_Welfare,na.rm=TRUE),by=c("sorting_rank_bucket","policy")]
+big_mergers[,hhi_smooth:=mean(hhi,na.rm=TRUE),by=c("sorting_rank_bucket","policy")]
 
 
-plot_df1 = merger_welfare[,c("chg_rank","policy","chg_Tot_Welfare")]
+plot_df1 = big_mergers[,c("sorting_cost_smooth","policy","dWelfare_smooth")]
 names(plot_df1)[3] = "value"
 plot_df1[,label:="Total Welfare Effect"]
-plot_df2 = merger_welfare[,c("chg_rank","policy","sorting_cost_smooth")]
+plot_df2 = big_mergers[,c("sorting_cost_smooth","policy","hhi_smooth")]
 names(plot_df2)[3] = "value"
-plot_df2[,label:="Pre-Merger Cost of Inefficient Sorting"]
-plot_df3 = merger_welfare[,c("chg_rank","policy","dMarkup_smooth")]
+plot_df2[,label:="Pre-Merger HHI"]
+plot_df3 = big_mergers[,c("sorting_cost_smooth","policy","dMarkup_smooth")]
 names(plot_df3)[3] = "value"
 plot_df3[,label:="Change due to Markups"]
-plot_df4 = merger_welfare[,c("chg_rank","policy","dSorting_smooth")]
+plot_df4 = big_mergers[,c("sorting_cost_smooth","policy","dSorting_smooth")]
 names(plot_df4)[3] = "value"
 plot_df4[,label:="Change due to Sorting"]
 plotdf = rbind(plot_df1,plot_df2,plot_df3,plot_df4)
 
-plotdf[,label:= factor(label,levels=c("Total Welfare Effect","Pre-Merger Cost of Inefficient Sorting","Change due to Sorting","Change due to Markups"))]
+plotdf[,label:= factor(label,levels=c("Total Welfare Effect","Pre-Merger HHI","Change due to Sorting","Change due to Markups"))]
 plotdf[,facet:=label]
 plotdf[label%in%c("Change due to Sorting","Change due to Markups"),facet:="Decomposition"]
 plotdf[,color:=label]
 plotdf[!label%in%c("Change due to Sorting","Change due to Markups"),color:=NA]
 
+ggplot(plotdf[policy=="RAMan"&label!="Pre-Merger HHI"]) + 
+  aes(x=sorting_cost_smooth,y=value,color=label) + geom_point(alpha = 0.5) + geom_smooth(se=FALSE)
 
-
+ggplot(plotdf[policy=="Base"&label!="Pre-Merger HHI"]) + 
+  aes(x=sorting_cost_smooth,y=value,color=label) + geom_point(alpha = 0.5) + geom_smooth(se=FALSE)
 
 png("Writing/Images/RAManWelfareDist.png",width=2500,height=1500,res=275)
 ggplot(plotdf[policy=="RAMan"&label%in%c("Total Welfare Effect")]) + 
