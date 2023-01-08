@@ -168,11 +168,11 @@ function MergersMain0(rundate,spec,home_directory)
     # println("####################################")
     # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
     #                         filestub,policy="RA_repeal")
-    # println("####################################")
-    # println("#### Solve Without Individual Mandate ####")
-    # println("####################################")
-    # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
-    #                         filestub,policy="Man_repeal")
+    println("####################################")
+    println("#### Solve Without Individual Mandate ####")
+    println("####################################")
+    simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
+                            filestub,policy="Man_repeal")
     println("####################################")
     println("#### Solve Without Risk Adjustment nor Individual Mandate ####")
     println("####################################")
@@ -788,6 +788,18 @@ function simulate_all_mergers(m::InsuranceLogit,
         output =  DataFrame(Product=prod_vec,
                             Price=P_m,
                             Lives=S_m)
+        CSV.write(file,output)
+
+        println("Resolve Pre-merger Baseline")
+        ownerMatrix!(f)
+        solve_model!(m,f,shared_states,sim=sim,voucher=voucher,update_voucher=update_voucher)
+        evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
+        P_pre[:] = f.P_j[:]
+        S_pre[:] = f.S_j[:]
+        file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_PRE_$(merging_parties[1])_$(merging_parties[2]).csv"
+        output =  DataFrame(Product=prod_vec,
+                            Price=P_pre,
+                            Lives=S_pre)
         CSV.write(file,output)
 
         ## Solve Profit-Constrained Social Planner Problem

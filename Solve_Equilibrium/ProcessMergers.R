@@ -4,8 +4,8 @@ library(ggplot2)
 library(scales)
 setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
 
-run = "2022-12-26"
-spec = "FMC"
+run = "2022-12-23"
+spec = "FM"
 
 ### Base Data 
 prodData = as.data.table(read.csv("Intermediate_Output/Equilibrium_Data/estimated_prodData_full.csv"))
@@ -27,7 +27,7 @@ prodData = merge(prodData,marketSize,by="Market")
 
 #### Welfare By Market Concentration ####
 conc_welfare = NULL
-for (policy in c("Base","RAMan","Man","RA", "PL")){
+for (policy in c("Base","RAMan","Man","RA")){
   if (policy=="PL"){
     spec_temp = paste("PL","FMC",sep="_")
     policy_temp="Base"
@@ -129,7 +129,7 @@ conc_welfare[policy=="RAMan"&(dHHI>100|merging_parties=="baseline"),summary(lm(t
 conc_welfare[policy=="Base"&(dHHI>100|merging_parties=="baseline"),summary(lm(tot_Welfare~firmFactor+Market))]
 conc_welfare[policy=="RA"&(dHHI>100|merging_parties=="baseline"),summary(lm(tot_Welfare~firmFactor+Market))]
 conc_welfare[policy=="Man"&(dHHI>100|merging_parties=="baseline"),summary(lm(tot_Welfare~firmFactor+Market))]
-conc_welfare[policy=="PL"&(dHHI>100|merging_parties=="baseline"),summary(lm(tot_Welfare~firmFactor+Market))]
+# conc_welfare[policy=="PL"&(dHHI>100|merging_parties=="baseline"),summary(lm(tot_Welfare~firmFactor+Market))]
 
 #### Merger Welfare Data ####
 merger_welfare = NULL
@@ -351,7 +351,7 @@ ggplot(plotdf[policy=="PL"])+
 
 #### Merger Price-Effect Data ####
 merger_effects = NULL
-for (policy in c("Base","RAMan","RA","Man","PL")){
+for (policy in c("Base","RAMan","RA","Man")){
   print(policy)
   if (policy=="PL"){
     spec_temp = paste("PL","FMC",sep="_")
