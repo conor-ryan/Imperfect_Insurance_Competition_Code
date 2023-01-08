@@ -27,9 +27,16 @@ prodData = merge(prodData,marketSize,by="Market")
 
 #### Welfare By Market Concentration ####
 conc_welfare = NULL
-for (policy in c("Base","RAMan")){
+for (policy in c("Base","RAMan","Man","RA", "PL")){
+  if (policy=="PL"){
+    spec_temp = paste("PL","FMC",sep="_")
+    policy_temp="Base"
+  }else{
+    spec_temp = spec
+    policy_temp = policy
+  }
   print(policy)
-  filestub = paste("Estimation_Output/AllMergers_",spec,"-",run,"_",policy,"_",sep="")
+  filestub = paste("Estimation_Output/AllMergers_",spec_temp,"-",run,"_",policy_temp,"_",sep="")
   
   ### Baseline Market Data ####
   baseline = fread(paste(filestub,"baseline.csv",sep=""))
@@ -44,7 +51,7 @@ for (policy in c("Base","RAMan")){
 
   
   ## Baseline welfare data
-  base_welfare = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_baseline-",spec,"-",run,".csv",sep=""))
+  base_welfare = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,"_baseline-",spec,"-",run,".csv",sep=""))
   base_welfare[,tot_Welfare:=CW+Profit]
   base_welfare[,tot_Welfare_gov:=CW+Profit+Spending]
   
@@ -55,8 +62,8 @@ for (policy in c("Base","RAMan")){
   conc_welfare = rbind(conc_welfare,conc_base)
   
   #### Iterate Through Mergers ####
-  merger_welfare_files = list.files("Estimation_Output",pattern=paste("totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,sep=""))
-  merger_price_files = list.files("Estimation_Output",pattern=paste("^AllMergers_",spec,"-",run,"_",policy,sep=""))
+  merger_welfare_files = list.files("Estimation_Output",pattern=paste("totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,sep=""))
+  merger_price_files = list.files("Estimation_Output",pattern=paste("^AllMergers_",spec_temp,"-",run,"_",policy_temp,sep=""))
   unique_firms = sort(firm_share[,unique(Firm)])
   
   
@@ -66,9 +73,9 @@ for (policy in c("Base","RAMan")){
       m1 = unique_firms[j]
       m2 = unique_firms[i]
       ## Read in Welfare File
-      merging_party_string = paste(policy,"_",m1,"_",m2,"-",spec,sep="")
+      merging_party_string = paste(policy_temp,"_",m1,"_",m2,"-",spec,sep="")
       welfare_file = merger_welfare_files[grepl(merging_party_string,merger_welfare_files)]
-      merging_party_string = paste(policy,"_",m1,"_",m2,".csv",sep="")
+      merging_party_string = paste(policy_temp,"_",m1,"_",m2,".csv",sep="")
       price_file = merger_price_files[grepl(merging_party_string,merger_price_files)]
       if (length(welfare_file)==0){next}
       ## Welfare
@@ -118,16 +125,24 @@ conc_welfare[,hhi_2:=hhi^2]
 conc_welfare[,hhi_3:=hhi^3]
 conc_welfare[,firmFactor:=as.factor(firm_num)]
 
-conc_welfare[policy=="RAMan"&(dHHI>100|merging_parties=="baseline"),summary(lm(tot_Welfare~Market+firmFactor))]
-conc_welfare[policy=="Base"&(dHHI>100|merging_parties=="baseline"),summary(lm(tot_Welfare~Market+firmFactor))]
-conc_welfare[policy=="RA",summary(lm(tot_Welfare~Market+firmFactor))]
-# conc_welfare[policy=="PL",summary(lm(tot_Welfare~Market+firmFactor))]
+conc_welfare[policy=="RAMan"&(dHHI>100|merging_parties=="baseline"),summary(lm(tot_Welfare~firmFactor+Market))]
+conc_welfare[policy=="Base"&(dHHI>100|merging_parties=="baseline"),summary(lm(tot_Welfare~firmFactor+Market))]
+conc_welfare[policy=="RA"&(dHHI>100|merging_parties=="baseline"),summary(lm(tot_Welfare~firmFactor+Market))]
+conc_welfare[policy=="Man"&(dHHI>100|merging_parties=="baseline"),summary(lm(tot_Welfare~firmFactor+Market))]
+conc_welfare[policy=="PL"&(dHHI>100|merging_parties=="baseline"),summary(lm(tot_Welfare~firmFactor+Market))]
 
 #### Merger Welfare Data ####
 merger_welfare = NULL
-for (policy in c("Base","RAMan")){
+for (policy in c("Base","RAMan","Man","RA")){
   print(policy)
-  filestub = paste("Estimation_Output/AllMergers_",spec,"-",run,"_",policy,"_",sep="")
+  if (policy=="PL"){
+    spec_temp = paste("PL","FMC",sep="_")
+    policy_temp="Base"
+  }else{
+    spec_temp = spec
+    policy_temp = policy
+  }
+  filestub = paste("Estimation_Output/AllMergers_",spec_temp,"-",run,"_",policy_temp,"_",sep="")
   
   ### Baseline Market Data ####
   baseline = fread(paste(filestub,"baseline.csv",sep=""))
@@ -147,10 +162,10 @@ for (policy in c("Base","RAMan")){
                             labels=c("HHI < 3500","HHI > 3500"))]
   
   ## Baseline welfare data
-  base_welfare = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_baseline-",spec,"-",run,".csv",sep=""))
+  base_welfare = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,"_baseline-",spec,"-",run,".csv",sep=""))
   
   #### Iterate Through Mergers ####
-  merger_files = list.files("Estimation_Output",pattern=paste("totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,sep=""))
+  merger_files = list.files("Estimation_Output",pattern=paste("totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,sep=""))
   unique_firms = sort(firm_share[,unique(Firm)])
   
   
@@ -160,7 +175,7 @@ for (policy in c("Base","RAMan")){
       m1 = unique_firms[j]
       m2 = unique_firms[i]
       ## Read in Welfare File
-      merging_party_string = paste(policy,"_",m1,"_",m2,"-",spec,sep="")
+      merging_party_string = paste(policy_temp,"_",m1,"_",m2,"-",spec,sep="")
       file = merger_files[grepl(merging_party_string,merger_files)]
       if (length(file)==0){next}
       welfare = fread(paste("Estimation_Output/",file,sep=""))
@@ -223,6 +238,9 @@ plotdf2[,label:="Total Welfare"]
 plotdf = rbind(plotdf1,plotdf2)
 
 
+ggplot(merger_welfare[policy=="RA"]) + aes(x=chg_Profit,y=chg_Tot_Welfare) + 
+  geom_point()
+
 
 png("Writing/Images/Base_WelfareEffect.png",width=2500,height=1500,res=275)
 ggplot(plotdf[policy=="Base"])+
@@ -271,13 +289,78 @@ ggplot(plotdf[policy=="RAMan"])+
     axis.text = element_text(size=16))
 dev.off()
 
+ggplot(plotdf[policy=="Man"])+ 
+  geom_point(aes(x=dHHI,y=value,color=label,shape=label),size=2.5)+
+  scale_shape_manual(values=c(16,17)) +
+  geom_errorbar(aes(x=dHHI,ymin=chg_CW,ymax=value)) +
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+  geom_abline(slope=0,intercept=0) +
+  xlab("Predicted Change in HHI")+
+  ylab("Dollars Per-Person Per-Month")+
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    strip.text = element_text(size=14),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title = element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "bottom",
+    axis.title=element_text(size=14),
+    axis.text = element_text(size=16))
 
+ggplot(plotdf[policy=="RA"])+ 
+  geom_point(aes(x=dHHI,y=value,color=label,shape=label),size=2.5)+
+  scale_shape_manual(values=c(16,17)) +
+  geom_errorbar(aes(x=dHHI,ymin=chg_CW,ymax=value)) +
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+  geom_abline(slope=0,intercept=0) +
+  xlab("Predicted Change in HHI")+
+  ylab("Dollars Per-Person Per-Month")+
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    strip.text = element_text(size=14),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title = element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "bottom",
+    axis.title=element_text(size=14),
+    axis.text = element_text(size=16))
+
+ggplot(plotdf[policy=="PL"])+ 
+  geom_point(aes(x=dHHI,y=value,color=label,shape=label),size=2.5)+
+  scale_shape_manual(values=c(16,17)) +
+  geom_errorbar(aes(x=dHHI,ymin=chg_CW,ymax=value)) +
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+  geom_abline(slope=0,intercept=0) +
+  xlab("Predicted Change in HHI")+
+  ylab("Dollars Per-Person Per-Month")+
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    strip.text = element_text(size=14),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title = element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "bottom",
+    axis.title=element_text(size=14),
+    axis.text = element_text(size=16))
 
 #### Merger Price-Effect Data ####
 merger_effects = NULL
-for (policy in c("Base","RAMan")){
+for (policy in c("Base","RAMan","RA","Man","PL")){
   print(policy)
-  filestub = paste("Estimation_Output/AllMergers_",spec,"-",run,"_",policy,"_",sep="")
+  if (policy=="PL"){
+    spec_temp = paste("PL","FMC",sep="_")
+    policy_temp="Base"
+  }else{
+    spec_temp = spec
+    policy_temp = policy
+  }
+  filestub = paste("Estimation_Output/AllMergers_",spec_temp,"-",run,"_",policy_temp,"_",sep="")
   
   ### Baseline Market Data ####
   baseline = fread(paste(filestub,"baseline.csv",sep=""))
@@ -299,7 +382,7 @@ for (policy in c("Base","RAMan")){
                             labels=c("HHI < 3500","HHI > 3500"))]
   
   #### Iterate Through Mergers ####
-  merger_files = list.files("Estimation_Output",pattern=paste("^AllMergers_",spec,"-",run,"_",policy,sep=""))
+  merger_files = list.files("Estimation_Output",pattern=paste("^AllMergers_",spec_temp,"-",run,"_",policy_temp,sep=""))
   unique_firms = sort(firm_share[,unique(Firm)])
   
   
@@ -309,7 +392,7 @@ for (policy in c("Base","RAMan")){
       m1 = unique_firms[j]
       m2 = unique_firms[i]
       ## Read in Welfare File
-      merging_party_string = paste(policy,"_",m1,"_",m2,".csv",sep="")
+      merging_party_string = paste(policy_temp,"_",m1,"_",m2,".csv",sep="")
       file = merger_files[grepl(merging_party_string,merger_files)]
       if (length(file)==0){next}
       postmerge = fread(paste("Estimation_Output/",file,sep=""))
@@ -408,14 +491,86 @@ ggplot(merger_effects[policy=="RAMan"&dHHI>1000]) +
     axis.text = element_text(size=16))
 dev.off()
 
-##### Decomposition  Data ####
+ggplot(merger_effects[policy=="RA"&dHHI>1000]) + 
+  aes(x=Metal_std,y=Price_Effect_percent) + 
+  geom_abline(intercept=0,slope=0) + 
+  geom_boxplot(outlier.shape=NA) + 
+  coord_cartesian(ylim=c(-.25,.25))  +
+  scale_y_continuous(label=percent) +
+  ylab("Percent Change in Monthly Premium")+
+  xlab("")+
+  ggtitle("Price Effect Without Selection Regulations") + 
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    title=element_text(hjust=0,size=16),
+    strip.background = element_blank(),
+    strip.text = element_text(size=14),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title = element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "bottom",
+    axis.title=element_text(size=16),
+    axis.text = element_text(size=16))
 
+ggplot(merger_effects[policy=="Man"&dHHI>1000]) + 
+  aes(x=Metal_std,y=Price_Effect_percent) + 
+  geom_abline(intercept=0,slope=0) + 
+  geom_boxplot(outlier.shape=NA) + 
+  coord_cartesian(ylim=c(-.25,.25))  +
+  scale_y_continuous(label=percent) +
+  ylab("Percent Change in Monthly Premium")+
+  xlab("")+
+  ggtitle("Price Effect Without Selection Regulations") + 
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    title=element_text(hjust=0,size=16),
+    strip.background = element_blank(),
+    strip.text = element_text(size=14),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title = element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "bottom",
+    axis.title=element_text(size=16),
+    axis.text = element_text(size=16))
+
+ggplot(merger_effects[policy=="PL"&dHHI>1000]) + 
+  aes(x=Metal_std,y=Price_Effect_percent) + 
+  geom_abline(intercept=0,slope=0) + 
+  geom_boxplot(outlier.shape=NA) + 
+  coord_cartesian(ylim=c(-.25,.25))  +
+  scale_y_continuous(label=percent) +
+  ylab("Percent Change in Monthly Premium")+
+  xlab("")+
+  ggtitle("Price Effect Without Selection Regulations") + 
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    title=element_text(hjust=0,size=16),
+    strip.background = element_blank(),
+    strip.text = element_text(size=14),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title = element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "bottom",
+    axis.title=element_text(size=16),
+    axis.text = element_text(size=16))
+
+##### Decomposition  Data ####
 base_welfare = NULL
-for (policy in c("Base","RAMan")){
+for (policy in c("Base","RAMan","Man","RA","PL")){
   print(policy)
-  baseline_CP = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_SP_cp_baseline-",spec,"-",run,".csv",sep=""))
-  baseline_Comp = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_baseline-",spec,"-",run,".csv",sep=""))
-  baseline_SP = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_SP_baseline-",spec,"-",run,".csv",sep=""))
+  if (policy=="PL"){
+    spec_temp = paste("PL","FMC",sep="_")
+    policy_temp="Base"
+  }else{
+    spec_temp = spec
+    policy_temp = policy
+  }
+  baseline_CP = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,"_SP_cp_baseline-",spec,"-",run,".csv",sep=""))
+  baseline_Comp = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,"_baseline-",spec,"-",run,".csv",sep=""))
+  baseline_SP = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,"_SP_baseline-",spec,"-",run,".csv",sep=""))
   
   
   
@@ -433,10 +588,17 @@ merger_welfare = merge(merger_welfare,base_welfare,by=c("markets","policy"),all.
 
 
 merger_welfare_SP = NULL
-for (policy in c("Base","RAMan")){
+for (policy in c("Base","RAMan","Man","RA","PL")){
   print(policy)
+  if (policy=="PL"){
+    spec_temp = paste("PL",spec,sep="_")
+    policy_temp="Base"
+  }else{
+    spec_temp = spec
+    policy_temp = policy
+  }
   #### Iterate Through Mergers ####
-  merger_files = list.files("Estimation_Output",pattern=paste("totalWelfare_bymkt_AllMergers_",spec,"-",run,"_",policy,"_",sep=""))
+  merger_files = list.files("Estimation_Output",pattern=paste("totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,"_",sep=""))
   merger_SP_CP_files = merger_files[grepl("_SP_",merger_files)]
   merger_base_files = merger_files[!grepl("_SP_",merger_files)]
   
@@ -507,6 +669,16 @@ ggplot(plotdf[policy=="RAMan"&label!="Pre-Merger HHI"]) +
 
 ggplot(plotdf[policy=="Base"&label!="Pre-Merger HHI"]) + 
   aes(x=sorting_cost_smooth,y=value,color=label) + geom_point(alpha = 0.5) + geom_smooth(se=FALSE)
+
+ggplot(plotdf[policy=="RA"&label!="Pre-Merger HHI"]) + 
+  geom_point(aes(x=sorting_cost_smooth,y=value,color=label),alpha = 0.5) + geom_histogram(aes(x=sorting_cost_smooth)) + geom_smooth(aes(x=sorting_cost_smooth,y=value,color=label),se=FALSE) +ggtitle("Mandate Only")
+
+ggplot(plotdf[policy=="Man"&label!="Pre-Merger HHI"]) + 
+   geom_point(aes(x=sorting_cost_smooth,y=value,color=label),alpha = 0.5) + geom_histogram(aes(x=sorting_cost_smooth)) + geom_smooth(aes(x=sorting_cost_smooth,y=value,color=label),se=FALSE) +ggtitle("Risk Adj Only")
+
+ggplot(plotdf[policy=="PL"&label!="Pre-Merger HHI"]) + 
+  aes(x=sorting_cost_smooth,y=value,color=label) + geom_point(alpha = 0.5) + geom_smooth(se=FALSE)
+
 
 png("Writing/Images/RAManWelfareDist.png",width=2500,height=1500,res=275)
 ggplot(plotdf[policy=="RAMan"&label%in%c("Total Welfare Effect")]) + 

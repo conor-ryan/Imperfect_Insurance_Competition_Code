@@ -148,7 +148,7 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
     Π_max = 1e8
     bottom_half_flag=false
     p_init = copy(f.P_j[:])
-    while (λ_err>1e-3) & (err>1)
+    while (err>1e-10)
         cnt+=1
         sec_step = (Π_target-intcpt)/slope
         if cnt==1
@@ -204,7 +204,8 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
         end
         λ_old = copy(λ_new)
         Π_old = copy(Π_new)
-        err = abs(Π_new - Π_target)
+        Π_err = abs(Π_new - Π_target)
+        err = Π_err/Π_target
         # println("Got Profit $Π_new at iteration $cnt with λ=$λ_new, target $Π_target")
 
         cw = calc_cw_mkt(m,f,mkt)
