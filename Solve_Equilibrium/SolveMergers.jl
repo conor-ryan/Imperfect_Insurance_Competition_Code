@@ -777,9 +777,10 @@ function simulate_all_mergers(m::InsuranceLogit,
         ## ADD FIRM 1 FIRM 2 TAGS
         # println("Competitive Consumer Welfare...")
         # consumer_welfare(m,f,"$(file_stub)_$(merging_parties[1])_$(merging_parties[2])",spec,rundate)
-        println("Competitive Total Welfare...")
-        trash = total_welfare_bymkt(m,f,"$(file_stub)_$(merging_parties[1])_$(merging_parties[2])",spec,rundate,update_voucher=update_voucher)
-        println("Competitive Profits...")
+        
+        # println("Competitive Total Welfare...")
+        # trash = total_welfare_bymkt(m,f,"$(file_stub)_$(merging_parties[1])_$(merging_parties[2])",spec,rundate,update_voucher=update_voucher)
+        # println("Competitive Profits...")
 
 
         # Output equilibrium
@@ -801,6 +802,7 @@ function simulate_all_mergers(m::InsuranceLogit,
                             Price=P_pre,
                             Lives=S_pre)
         CSV.write(file,output)
+        println("Saved Resolved File at $file")
 
         # ## Solve Profit-Constrained Social Planner Problem
         # println("Begin Profit Constrained Planner Solution")
