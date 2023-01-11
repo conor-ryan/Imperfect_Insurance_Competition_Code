@@ -694,10 +694,6 @@ function simulate_all_mergers(m::InsuranceLogit,
     ### Reset to Baseline
     f.P_j[:] = P_Base[:]
     evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
-    println("Baseline set at $P_Base")
-    println("###############")
-    println("Baseline set at $(f.P_j)")
-
 
     println("Send Data to Workers")
     @eval @everywhere m=$m
@@ -777,7 +773,7 @@ function simulate_all_mergers(m::InsuranceLogit,
         ## ADD FIRM 1 FIRM 2 TAGS
         # println("Competitive Consumer Welfare...")
         # consumer_welfare(m,f,"$(file_stub)_$(merging_parties[1])_$(merging_parties[2])",spec,rundate)
-        
+
         # println("Competitive Total Welfare...")
         # trash = total_welfare_bymkt(m,f,"$(file_stub)_$(merging_parties[1])_$(merging_parties[2])",spec,rundate,update_voucher=update_voucher)
         # println("Competitive Profits...")
@@ -792,6 +788,8 @@ function simulate_all_mergers(m::InsuranceLogit,
         CSV.write(file,output)
 
         println("Resolve Pre-merger Baseline")
+        P_pre=  zeros(J)
+        S_pre =  zeros(J)
         ownerMatrix!(f)
         solve_model!(m,f,shared_states,sim=sim,voucher=voucher,update_voucher=update_voucher)
         evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
