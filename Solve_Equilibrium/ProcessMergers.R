@@ -351,7 +351,7 @@ ggplot(plotdf[policy=="PL"])+
 
 #### Merger Price-Effect Data ####
 merger_effects = NULL
-for (policy in c("Base","RAMan","RA","Man")){
+for (policy in c("Man")){
   print(policy)
   if (policy=="PL"){
     spec_temp = paste("PL","FMC",sep="_")
@@ -416,6 +416,12 @@ for (policy in c("Base","RAMan","RA","Man")){
       postmerge = merge(postmerge,dHHI[,c("Market","dHHI")],by="Market",all.x=TRUE)
       postmerge[is.na(dHHI),dHHI:=0]
       postmerge = postmerge[dHHI>0]
+      
+      postmerge[Firm%in%c(m1,m2),Firm:=merging_parties]
+      postmerge[,parties_indicator:=as.numeric(Firm==merging_parties)]
+      postmerge[,pre_profit_firm:=sum(Profit),by=c("Firm","Market")]
+      postmerge[,post_profit_firm:=sum(Profit_merge),by=c("Firm","Market")]
+      
       merger_effects = rbind(merger_effects,postmerge)
     }
   }

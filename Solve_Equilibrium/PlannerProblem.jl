@@ -59,9 +59,9 @@ function product_profits(d::InsuranceLogit,f::firmData;sim="Base")
         end
     end
 
-    if sim=="Base"
+    if sim=="RA"
         Profit = Revenue - f.C_j
-    elseif sim=="RA"
+    elseif sim=="Base"
         Profit = Revenue - f.PC_j
     end
 

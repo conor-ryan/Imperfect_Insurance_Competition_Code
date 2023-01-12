@@ -330,7 +330,7 @@ function foc_error(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.
     # println(tot_err)
     # println(P_new[prod_ind])
 
-    dprof = predict_dprof(f,prod_ind,sim=sim,merg=merg,λ=λ,voucher=voucher)
+    # dprof = predict_dprof(f,prod_ind,sim=sim,merg=merg,λ=λ,voucher=voucher)
     # println("Profit Derivatives: $(dprof[prod_ind])")
 
     non_prods = .!(inlist(Int.(1:length(P_new)),prod_ind))
