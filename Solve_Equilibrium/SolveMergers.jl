@@ -635,6 +635,7 @@ function simulate_all_mergers(m::InsuranceLogit,
         P_Base[:] = f.P_j[:]
         evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
     end
+    prod_profits = product_profits(m,f,sim=sim)
 
     base_profits = market_profits(m,f)
     # consumer_welfare(m,f,"$(file_stub)_baseline",spec,rundate)
@@ -644,7 +645,8 @@ function simulate_all_mergers(m::InsuranceLogit,
     file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_baseline.csv"
     output =  DataFrame(Product=prod_vec,
                         Price=f.P_j,
-                        Lives=f.S_j)
+                        Lives=f.S_j,
+                        Profit = prod_profits)
     CSV.write(file,output)
 
     println("Total Voucher: $(sum(f.subsidy_ij))")
@@ -743,8 +745,8 @@ function simulate_all_mergers(m::InsuranceLogit,
     @eval @everywhere sim=$sim
     println("Data Distributed")
 
-    # @sync @distributed for i in 1:length(merging_party_list)
-    @sync @distributed for i in 1:length(merging_party_list[1:12])
+    @sync @distributed for i in 1:length(merging_party_list)
+    # @sync @distributed for i in 1:length(merging_party_list[1:12])
         shared_markets = shared_market_list[i]
         shared_states = shared_state_list[i]
         merging_parties = merging_party_list[i]
@@ -764,6 +766,7 @@ function simulate_all_mergers(m::InsuranceLogit,
         println("Begin Competitive Equilibrium Solution")
         solve_model!(m,f,shared_states,sim=sim,voucher=voucher,update_voucher=update_voucher)
         evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
+        prod_profits = product_profits(m,f,sim=sim)
         merger_profits = market_profits(m,f)
         println(merger_profits[shared_markets])
         P_m[:] = f.P_j[:]
@@ -784,7 +787,8 @@ function simulate_all_mergers(m::InsuranceLogit,
         file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_$(merging_parties[1])_$(merging_parties[2]).csv"
         output =  DataFrame(Product=prod_vec,
                             Price=P_m,
-                            Lives=S_m)
+                            Lives=S_m,
+                            Profit=prod_profits)
         CSV.write(file,output)
 
         println("Resolve Pre-merger Baseline")
