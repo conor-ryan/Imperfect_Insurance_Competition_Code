@@ -133,7 +133,7 @@ conc_welfare[policy=="Man"&(dHHI>100|merging_parties=="baseline"),summary(lm(tot
 
 #### Merger Welfare Data ####
 merger_welfare = NULL
-for (policy in c("Base","RAMan","Man","RA")){
+for (policy in c("RAMan","Man")){
   print(policy)
   if (policy=="PL"){
     spec_temp = paste("PL","FMC",sep="_")
@@ -351,7 +351,7 @@ ggplot(plotdf[policy=="PL"])+
 
 #### Merger Price-Effect Data ####
 merger_effects = NULL
-for (policy in c("Man")){
+for (policy in c("Man","RAMan")){
   print(policy)
   if (policy=="PL"){
     spec_temp = paste("PL","FMC",sep="_")
