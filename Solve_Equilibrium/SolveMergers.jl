@@ -55,21 +55,21 @@ function MergersMain(rundate,spec,home_directory)
 
 
     filestub = "AllMergers_$spec-$(rundate)"
-    # println("####################################")
-    # println("#### Solve Policy Baseline  ####")
-    # println("####################################")
-    # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
-    #                         filestub,policy="Base")
-    # println("####################################")
-    # println("#### Solve Without Risk Adjustment ####")
-    # println("####################################")
-    # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
-    #                         filestub,policy="RA_repeal")
-    # println("####################################")
-    # println("#### Solve Without Individual Mandate ####")
-    # println("####################################")
-    # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
-    #                         filestub,policy="Man_repeal")
+    println("####################################")
+    println("#### Solve Policy Baseline  ####")
+    println("####################################")
+    simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
+                            filestub,policy="Base")
+    println("####################################")
+    println("#### Solve Without Risk Adjustment ####")
+    println("####################################")
+    simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
+                            filestub,policy="RA_repeal")
+    println("####################################")
+    println("#### Solve Without Individual Mandate ####")
+    println("####################################")
+    simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
+                            filestub,policy="Man_repeal")
     println("####################################")
     println("#### Solve Without Risk Adjustment nor Individual Mandate ####")
     println("####################################")
@@ -745,11 +745,20 @@ function simulate_all_mergers(m::InsuranceLogit,
     @eval @everywhere sim=$sim
     println("Data Distributed")
 
-    @sync @distributed for i in 1:length(merging_party_list)
+    @sync @distributed for i in eachindex(merging_party_list)
     # @sync @distributed for i in 1:length(merging_party_list[1:12])
         shared_markets = shared_market_list[i]
         shared_states = shared_state_list[i]
         merging_parties = merging_party_list[i]
+
+        ### Only GA MergersMain
+        if !("GA" in shared_states)
+            println("Non-GA Merger")
+        else
+            shared_states = ["GA"]
+        end
+
+
         println(merging_parties)
 
         ## Set post-merger ownership matrix
@@ -767,8 +776,8 @@ function simulate_all_mergers(m::InsuranceLogit,
         solve_model!(m,f,shared_states,sim=sim,voucher=voucher,update_voucher=update_voucher)
         evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
         prod_profits = product_profits(m,f,sim=sim)
-        merger_profits = market_profits(m,f)
-        println(merger_profits[shared_markets])
+        # merger_profits = market_profits(m,f)
+        # println(merger_profits[shared_markets])
         P_m[:] = f.P_j[:]
         S_m[:] = f.S_j[:]
 
@@ -797,12 +806,14 @@ function simulate_all_mergers(m::InsuranceLogit,
         ownerMatrix!(f)
         solve_model!(m,f,shared_states,sim=sim,voucher=voucher,update_voucher=update_voucher)
         evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
+        prod_profits = product_profits(m,f,sim=sim)
         P_pre[:] = f.P_j[:]
         S_pre[:] = f.S_j[:]
         file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_PRE_$(merging_parties[1])_$(merging_parties[2]).csv"
         output =  DataFrame(Product=prod_vec,
                             Price=P_pre,
-                            Lives=S_pre)
+                            Lives=S_pre,
+                            Profit=prod_profits)
         CSV.write(file,output)
         println("Saved Resolved File at $file")
 
