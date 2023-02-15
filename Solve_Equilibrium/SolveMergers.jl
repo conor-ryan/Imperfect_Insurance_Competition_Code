@@ -741,7 +741,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     @eval @everywhere update_voucher=$update_voucher
     @eval @everywhere voucher=$voucher
     @eval @everywhere home_directory=$home_directory
-    @eval @everywhere spec=$specs
+    @eval @everywhere spec=$spec
     @eval @everywhere rundate=$rundate
     @eval @everywhere sim=$sim
     println("Data Distributed")
