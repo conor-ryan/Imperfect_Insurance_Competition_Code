@@ -2,7 +2,7 @@ rm(list = ls())
 library(data.table)
 library(ggplot2)
 library(scales)
-setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
+setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
 
 run = "2022-12-26"
 spec = "FMC"
@@ -23,6 +23,102 @@ prodData = merge(prodData,marketSize,by="Market")
 # test2 = fread(paste(filestub,"baseline.csv",sep=""))
 # test2 = merge(test2,prodData,by="Product")
 # 
+
+#### Testing ####
+
+#### Merger Price-Effect Data ####
+merger_effects = NULL
+for (policy in c("Base","RA","Man","RAMan")){
+  print(policy)
+  if (policy=="PL"){
+    spec_temp = paste("PL","FMC",sep="_")
+    policy_temp="Base"
+  }else{
+    spec_temp = spec
+    policy_temp = policy
+  }
+  filestub = paste("Estimation_Output/AllMergers_",spec_temp,"-",run,"_",policy_temp,"_",sep="")
+  
+  ### Baseline Market Data ####
+  baseline = fread(paste(filestub,"baseline.csv",sep=""))
+  baseline = merge(baseline,prodData,by="Product")
+  baseline[,insideShare:=Lives/sum(Lives),by="Market"]
+  
+  print(baseline[,mean(Price),by="Metal_std"])
+  
+  ## Create HHI baseline data
+  firm_share = baseline[,list(share=sum(insideShare*100)),by=c("Market","ST","Firm")]
+  firm_share[,count:=1]
+  hhi = firm_share[,list(hhi=sum((share)^2),firm_num=sum(count)),by=c("Market","ST")]
+  hhi[,markets:=as.numeric(as.factor(Market))]
+  
+  hhi[,hhi_category:=0]
+  hhi[hhi>=3500,hhi_category:=1]
+  # hhi[hhi>=4000,hhi_category:=2] "2850 < HHI < 4000",
+  hhi[,hhi_category:=factor(hhi_category,levels=c(0,1),
+                            labels=c("HHI < 3500","HHI > 3500"))]
+  
+  #### Iterate Through Mergers ####
+  merger_files = list.files("Estimation_Output",pattern=paste("^AllMergers_",spec_temp,"-",run,"_",policy_temp,sep=""))
+  merger_files_pre_eq = list.files("Estimation_Output",pattern=paste("^AllMergers_",spec_temp,"-",run,"_",policy_temp,sep=""))
+  unique_firms = sort(firm_share[,unique(Firm)])
+  
+  for (i in 1:length(unique_firms)){
+    for (j in 1:(i-1)){
+      if (j==0){next}
+      m1 = unique_firms[j]
+      m2 = unique_firms[i]
+      ## Read in File
+      merging_party_string = paste(policy_temp,"_",m1,"_",m2,".csv",sep="")
+      file = merger_files[grepl(merging_party_string,merger_files)]
+      if (length(file)==0){next}
+      postmerge = fread(paste("Estimation_Output/",file,sep=""))
+      names(postmerge)[2:length(names(postmerge))] = paste(names(postmerge)[2:length(names(postmerge))],"merge",sep="_")
+    
+      merging_party_pre_string = paste(policy_temp,"_PRE_",m1,"_",m2,".csv",sep="")
+      file = merger_files[grepl(merging_party_pre_string,merger_files)]
+      premerge = fread(paste("Estimation_Output/",file,sep=""))
+      names(premerge)[2:length(names(premerge))] = paste(names(premerge)[2:length(names(premerge))],"premerge",sep="_")
+        
+      # Merge in HHI and Baseline Data
+      postmerge = merge(baseline,postmerge,by="Product")
+      postmerge = merge(postmerge,premerge,by="Product")
+      postmerge = merge(hhi,postmerge,by=c("Market","ST"))
+      
+      #Compute Change variables
+      postmerge[,Price_Effect:=Price_merge-Price]
+      postmerge[,Price_Effect_percent:=(Price_merge-Price)/Price]
+      
+      postmerge[,merging_parties:= paste(unique_firms[j],unique_firms[i],sep="-")]
+      postmerge[,policy:=policy]
+      
+      #
+      dHHI = firm_share[Firm%in%c(m1,m2),list(dHHI=2*prod(share),merger=sum(count)),by="Market"]
+      dHHI[merger<2,dHHI:=0]
+      
+      postmerge = merge(postmerge,dHHI[,c("Market","dHHI")],by="Market",all.x=TRUE)
+      postmerge[is.na(dHHI),dHHI:=0]
+      postmerge = postmerge[dHHI>0]
+      
+      postmerge[Firm%in%c(m1,m2),Firm:=merging_parties]
+      postmerge[,parties_indicator:=as.numeric(Firm==merging_parties)]
+      postmerge[,pre_profit_firm:=sum(Profit),by=c("Firm","Market")]
+      postmerge[,post_profit_firm:=sum(Profit_merge),by=c("Firm","Market")]
+      
+      merger_effects = rbind(merger_effects,postmerge)
+    }
+  }
+  rm(postmerge,hhi,baseline,firm_share,dHHI,merger_files)
+}
+
+## Equilibrium Stability
+merger_effects = merger_effects[grepl("GA",Market)]
+ggplot(merger_effects) + aes(x=Price,y=Price_premerge) + geom_point(alpha=0.5) + geom_smooth(method="lm",se=FALSE) + geom_abline(intercept=0,slope=1)
+
+merger_effects[,profit_effect:=post_profit_firm-pre_profit_firm]
+
+
+
 
 
 #### Welfare By Market Concentration ####
