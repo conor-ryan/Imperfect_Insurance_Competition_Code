@@ -723,7 +723,8 @@ function simulate_all_mergers(m::InsuranceLogit,
             # Skip if merging parties do not operate in same state
             shared_states = check_states_if_merger(f,merging_parties)
             shared_markets = check_markets_if_merger(f,merging_parties)
-            if length(shared_markets)==0
+            # Only GA Mergers
+            if (length(shared_markets)==0) | ( !("GA" in shared_states))
                 continue
             end
             push!(merging_party_list,merging_parties)
@@ -740,20 +741,20 @@ function simulate_all_mergers(m::InsuranceLogit,
     @eval @everywhere update_voucher=$update_voucher
     @eval @everywhere voucher=$voucher
     @eval @everywhere home_directory=$home_directory
-    @eval @everywhere spec=$spec
+    @eval @everywhere spec=$specs
     @eval @everywhere rundate=$rundate
     @eval @everywhere sim=$sim
     println("Data Distributed")
 
-    @sync @distributed for i in eachindex(merging_party_list)
-    # @sync @distributed for i in 1:length(merging_party_list[1:12])
+    # @sync @distributed for i in eachindex(merging_party_list)
+    @sync @distributed for i in eachindex(merging_party_list[1:12])
         shared_markets = shared_market_list[i]
         shared_states = shared_state_list[i]
         merging_parties = merging_party_list[i]
 
         ### Only GA MergersMain
         if !("GA" in shared_states)
-            println("Non-GA Merger")
+            # println("Non-GA Merger")
             continue
         else
             shared_states = ["GA"]
