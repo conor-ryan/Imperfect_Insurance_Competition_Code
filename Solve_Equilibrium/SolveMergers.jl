@@ -758,7 +758,7 @@ function simulate_all_mergers(m::InsuranceLogit,
             shared_states = ["GA"]
         end
 
-
+ 
         println(merging_parties)
 
         ## Set post-merger ownership matrix
