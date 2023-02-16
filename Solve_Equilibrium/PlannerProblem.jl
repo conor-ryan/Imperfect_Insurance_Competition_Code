@@ -265,7 +265,7 @@ function solve_SP!(m::InsuranceLogit,f::firmData;
 end
 
 function solve_SP_parallel!(m::InsuranceLogit,f::firmData;
-                sim="SP",merg::String="SP",tol::Float64=1e-12,voucher=false,update_voucher=true)
+                sim="SP",merg::String="SP",tol::Float64=1e-12,markets=Vector{Int}(undef,0),voucher=false,update_voucher=true)
     println("Send Data to Workers")
     @eval @everywhere m=$m
     @eval @everywhere f=$f
@@ -275,7 +275,14 @@ function solve_SP_parallel!(m::InsuranceLogit,f::firmData;
     @eval @everywhere voucher_SP_run=$voucher
     @eval @everywhere update_voucher_SP_run=$update_voucher
     println("Data Distributed")
-    @everywhere markets = sort(Int.(keys(f.mkt_index)))
+
+    if length(markets) == 0
+        println("All Markets")
+        @everywhere markets = sort(Int.(keys(f.mkt_index)))
+    else
+        @eval @everywhere markets = $markets
+    end
+
     P_res = SharedArray{Float64}(length(f.P_j))
     println("Parameters: voucher: $voucher_SP_run, update_voucher: $update_voucher_SP_run,  sim: $sim_SP_run")
     @sync @distributed for mkt in markets
