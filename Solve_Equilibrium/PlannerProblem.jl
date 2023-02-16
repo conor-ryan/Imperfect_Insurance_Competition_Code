@@ -196,12 +196,6 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
             λ_new = (λ_max-λ_min)/2 + λ_min
         end
 
-        # println("Trying λ: $λ_new, $λ_err")
-        if λ_err >.1
-            tol = 1e-12
-        else
-            tol = 1e-12
-        end
         f.P_j[:] = p_init[:]
         solve_model_mkt!(m,f,mkt,λ=λ_new,sim=sim,merg="SP",tol=tol,voucher=true,update_voucher=false)
         # println("Price vector ($λ_new): $(f.P_j[f.mkt_index[mkt]])")

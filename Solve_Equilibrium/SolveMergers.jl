@@ -681,7 +681,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits,markets=[4,5,6,7,8,9,10,11,12,13,14])
     evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
     P_Base_SP_cp[:] = f.P_j[:]
-    
+    println("Done")
     # println("Model Price: $(f.P_j)")
     # # P_Base_SP_cp = P_Base[:]
     # #
