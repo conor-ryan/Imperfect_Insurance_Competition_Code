@@ -25,6 +25,45 @@ prodData = merge(prodData,marketSize,by="Market")
 # 
 
 #### Testing ####
+#### Baseline Data
+basedata = NULL
+for (policy in c("Base","RA","Man","RAMan")){
+  print(policy)
+  if (policy=="PL"){
+    spec_temp = paste("PL","FMC",sep="_")
+    policy_temp="Base"
+  }else{
+    spec_temp = spec
+    policy_temp = policy
+  }
+  filestub = paste("Estimation_Output/AllMergers_",spec_temp,"-",run,"_",policy_temp,"_",sep="")
+  
+  ### Baseline Market Data ####
+  baseline = fread(paste(filestub,"baseline.csv",sep=""))
+  baseline = merge(baseline,prodData,by="Product")
+  baseline[,insideShare:=Lives/sum(Lives),by="Market"]
+  
+  
+  
+  ## Create HHI baseline data
+  firm_share = baseline[,list(share=sum(insideShare*100)),by=c("Market","ST","Firm")]
+  firm_share[,count:=1]
+  hhi = firm_share[,list(hhi=sum((share)^2),firm_num=sum(count)),by=c("Market","ST")]
+  hhi[,markets:=as.numeric(as.factor(Market))]
+  
+  hhi[,hhi_category:=0]
+  hhi[hhi>=3500,hhi_category:=1]
+  # hhi[hhi>=4000,hhi_category:=2] "2850 < HHI < 4000",
+  hhi[,hhi_category:=factor(hhi_category,levels=c(0,1),
+                            labels=c("HHI < 3500","HHI > 3500"))]
+  baseline = merge(baseline,hhi,by=c("Market"))
+  baseline = baseline[grepl("GA",Market)]
+  baseline[,policy:=policy]
+  print(baseline[,mean(Price),by="Metal_std"])
+  basedata = rbind(basedata,baseline)
+  rm(baseline,hhi)
+}
+
 
 #### Merger Price-Effect Data ####
 merger_effects = NULL

@@ -136,7 +136,7 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
     @sync @distributed for mkt in markets
         println("Solving for $mkt")
         # println("Profit Target: $(Π_target[mkt])")
-        profits = market_profits(m,f)
+        # profits = market_profits(m,f)
 
         λ = find_λ(m,f,mkt,Π_target[mkt])
         # println("Got λ = $λ for market $mkt")
@@ -168,7 +168,7 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
     err = 1e4
     cnt = 0
     λ_err = 1.0
-    tol = 1e-3
+    tol = 1e-6
     λ_err = 0.5
     Π_old = 0
     λ_old = 1.0
@@ -179,7 +179,7 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
     Π_max = 1e8
     bottom_half_flag=false
     p_init = copy(f.P_j[:])
-    while (err>1e-10)
+    while (err>tol)
         cnt+=1
         sec_step = (Π_target-intcpt)/slope
         if cnt==1
