@@ -683,7 +683,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits,markets=[4,5,6,7,8,9,10,11,12,13,14])
     evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
     P_Base_SP_cp[:] = f.P_j[:]
-    println("Done")
+
     # println("Model Price: $(f.P_j)")
     # # P_Base_SP_cp = P_Base[:]
     # #
@@ -752,10 +752,13 @@ function simulate_all_mergers(m::InsuranceLogit,
 
     # @sync @distributed for i in eachindex(merging_party_list)
     # @sync @distributed for i in eachindex(merging_party_list[1:12])
-        i = findall(merging_party_list.==["AETNA","HUMANA"])[1]
-        shared_markets = shared_market_list[i]
-        shared_states = shared_state_list[i]
-        merging_parties = merging_party_list[i]
+        # shared_markets = shared_market_list[i]
+        # shared_states = shared_state_list[i]
+        # merging_parties = merging_party_list[i]
+
+        shared_markets = [4,5,6,7,8,9,10,11,12,13,14]
+        shared_states = ["GA"]
+        merging_parties = ["AETNA","HUMANA"]
 
         ### Only GA MergersMain
         if !("GA" in shared_states)
