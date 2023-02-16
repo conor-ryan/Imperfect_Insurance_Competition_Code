@@ -132,7 +132,7 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
         @eval @everywhere markets = $markets
     end
     P_res = SharedArray{Float64}(length(f.P_j))
-    λ_vec = SharedArray{Float64}(length(markets))
+    λ_vec = SharedArray{Float64}(max(markets))
     @sync @distributed for mkt in markets
         println("Solving for $mkt")
         # println("Profit Target: $(Π_target[mkt])")
