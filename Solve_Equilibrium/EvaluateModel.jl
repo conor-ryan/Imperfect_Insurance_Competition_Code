@@ -611,7 +611,7 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
     end
 
     #Average Real and Risk Adjusted Costs
-    firm.C_j = firm.C_j./firm.S_j + firm.ω_j
+    firm.C_j = firm.C_j./firm.S_j .+ firm.ω_j
     firm.PC_j = firm.C_j .- TotTransfer
 
     return nothing

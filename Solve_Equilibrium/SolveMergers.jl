@@ -586,10 +586,13 @@ function simulate_all_mergers(m::InsuranceLogit,
 
     # Initialize Firm Data
     f = firmData(m,df,mkt,par_dem,par_cost)
-    checkMargin(m,f,"$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_Margins.csv")
+    if policy=="Base"
+        checkMargin(m,f,"$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub_short)_Margins.csv")
+    end
     setMarginCostAdjust!(m,f)
-    checkMargin(m,f,"$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_Margins_Targeted.csv")
-
+    if policy=="Base"
+        checkMargin(m,f,"$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub_short)_Margins_Targeted.csv")
+    end
 
 
     # Policy Regime
