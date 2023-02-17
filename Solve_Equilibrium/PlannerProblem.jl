@@ -345,8 +345,8 @@ function find_λ_st(m::InsuranceLogit,f::firmData,ST::String,
         f.P_j[:] = p_init[:]
         solve_model_st!(m,f,ST,λ_new,sim=sim,merg="SP",tol=tol,voucher=true,update_voucher=false)
 
-        profits = market_profits(m,f)
-        Π_new = profits[mkt]
+        profits = state_profits(m,f)
+        Π_new = profits[ST]
         if (cnt==2) & (Π_new>Π_target)
             bottom_half_flag=true
         end
@@ -377,6 +377,7 @@ function find_λ_st(m::InsuranceLogit,f::firmData,ST::String,
         Π_old = copy(Π_new)
         Π_err = abs(Π_new - Π_target)
         err = Π_err/Π_target
+        println("Got Profit $Π_new at iteration $cnt with λ=$λ_new, target $Π_target")
 
 
     end
