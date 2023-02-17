@@ -235,7 +235,7 @@ function setMarginCostAdjust!(m::InsuranceLogit,f::firmData)
     evaluate_model!(m,f,"All",foc_check=true)
     Mkup,MR,MC_std,MC_RA = prof_margin(f)
     
-    f.ω_j[firm.prods] = MR .- MC_RA
+    f.ω_j[f.prods] = MR .- MC_RA
     return nothing
 end
 
