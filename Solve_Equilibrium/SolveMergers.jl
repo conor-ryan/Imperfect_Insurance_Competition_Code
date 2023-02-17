@@ -640,6 +640,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     prod_profits = product_profits(m,f,sim=sim)
 
     base_profits = market_profits(m,f)
+    base_profits_st =state_profits(m,f)
     # consumer_welfare(m,f,"$(file_stub)_baseline",spec,rundate)
     trash = total_welfare_bymkt(m,f,"$(file_stub)_baseline",spec,rundate,update_voucher=update_voucher)
 
@@ -680,7 +681,8 @@ function simulate_all_mergers(m::InsuranceLogit,
     
     # markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits)
     # GA Only
-    markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits,markets=[4,5,6,7,8,9,10,11,12,13,14])
+    # markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits,markets=[4,5,6,7,8,9,10,11,12,13,14])
+    markets_cp, λ_vec_cp = solve_SP_λ_parallel_st!(m,f,base_profits)
     evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
     P_Base_SP_cp[:] = f.P_j[:]
 
