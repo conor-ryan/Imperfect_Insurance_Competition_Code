@@ -4,8 +4,8 @@ library(ggplot2)
 library(scales)
 setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
 
-run = "2022-12-26"
-spec = "FMC"
+run = "2022-12-21"
+spec = "FM"
 
 ### Base Data 
 prodData = as.data.table(read.csv("Intermediate_Output/Equilibrium_Data/estimated_prodData_full.csv"))
@@ -141,8 +141,8 @@ for (policy in c("Base","RA","Man","RAMan")){
       
       postmerge[Firm%in%c(m1,m2),Firm:=merging_parties]
       postmerge[,parties_indicator:=as.numeric(Firm==merging_parties)]
-      postmerge[,pre_profit_firm:=sum(Profit),by=c("Firm","Market")]
-      postmerge[,post_profit_firm:=sum(Profit_merge),by=c("Firm","Market")]
+      postmerge[,pre_profit_firm:=sum(Profit),by=c("Firm","ST")]
+      postmerge[,post_profit_firm:=sum(Profit_merge),by=c("Firm","ST")]
       
       merger_effects = rbind(merger_effects,postmerge)
     }
@@ -268,7 +268,7 @@ conc_welfare[policy=="Man"&(dHHI>100|merging_parties=="baseline"),summary(lm(tot
 
 #### Merger Welfare Data ####
 merger_welfare = NULL
-for (policy in c("RAMan","Man")){
+for (policy in c("Base","RA","RAMan")){
   print(policy)
   if (policy=="PL"){
     spec_temp = paste("PL","FMC",sep="_")
@@ -339,13 +339,21 @@ for (policy in c("RAMan","Man")){
       
       welfare = merge(welfare,dHHI[,c("Market","dHHI")],by="Market",all.x=TRUE)
       welfare[is.na(dHHI),dHHI:=0]
-      welfare = welfare[dHHI>100]
+      # welfare = welfare[dHHI>100]
       merger_welfare = rbind(merger_welfare,welfare)
     }
   }
   rm(welfare,hhi,base_welfare,baseline,firm_share,dHHI)
 }
 
+mw_state = merger_welfare[,list(chg_CW=sum(Population*chg_CW)/sum(Population),
+                                chg_Profit=sum(Population*chg_Profit)/sum(Population),
+                                chg_Spending=sum(Population*chg_Spending)/sum(Population),
+                                chg_RA_transfers = sum(chg_RA_transfers),
+                                chg_Insured = sum(chg_Insured),
+                                dHHI = sum(dHHI*Population)/sum(Population)),
+                          by=c("ST","merging_parties","policy")]
+mw_state = mw_state[dHHI>0]
 
 #### Market Structure Description #####
 ## Firms
@@ -360,6 +368,7 @@ for (policy in c("RAMan","Man")){
 
 #### Welfare Effect Merger Plot #####
 merger_welfare[,chg_Tot_Welfare:=chg_CW+chg_Profit]
+mw_state[,chg_Tot_Welfare:=chg_CW+chg_Profit]
 merger_welfare[,chg_Tot_Welfaregov:=chg_CW+chg_Profit+chg_Spending]
 
 
@@ -373,7 +382,7 @@ plotdf2[,label:="Total Welfare"]
 plotdf = rbind(plotdf1,plotdf2)
 
 
-ggplot(merger_welfare[policy=="RA"]) + aes(x=chg_Profit,y=chg_Tot_Welfare) + 
+ggplot(merger_welfare[policy=="RA"]) + aes(x=dHHI,y=chg_Tot_Welfare) + 
   geom_point()
 
 

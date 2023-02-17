@@ -828,23 +828,23 @@ function simulate_all_mergers(m::InsuranceLogit,
         # CSV.write(file,output)
         # println("Saved Resolved File at $file")
 
-        ## Solve Profit-Constrained Social Planner Problem
-        println("Begin Profit Constrained Planner Solution")
-        f.P_j[:] = P_Base_SP_cp
-        markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,merger_profits,markets=shared_markets)
-        evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
+        # ## Solve Profit-Constrained Social Planner Problem
+        # println("Begin Profit Constrained Planner Solution")
+        # f.P_j[:] = P_Base_SP_cp
+        # markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,merger_profits,markets=shared_markets)
+        # evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
         
-        # println("SP Consumer Welfare")
-        # consumer_welfare(m,f,"$(file_stub)_SP_cp_$(merging_parties[1])_$(merging_parties[2])",spec,rundate)
-        println("SP Total Welfare")
-        trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_cp_$(merging_parties[1])_$(merging_parties[2])",spec,rundate,update_voucher=update_voucher)
+        # # println("SP Consumer Welfare")
+        # # consumer_welfare(m,f,"$(file_stub)_SP_cp_$(merging_parties[1])_$(merging_parties[2])",spec,rundate)
+        # println("SP Total Welfare")
+        # trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_cp_$(merging_parties[1])_$(merging_parties[2])",spec,rundate,update_voucher=update_voucher)
         
-        # Output Baseline Model
-        file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_cp_$(merging_parties[1])_$(merging_parties[2]).csv"
-        output =  DataFrame(Product=prod_vec,
-                            Price=f.P_j,
-                            Lives=f.S_j)
-        CSV.write(file,output)
+        # # Output Baseline Model
+        # file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_cp_$(merging_parties[1])_$(merging_parties[2]).csv"
+        # output =  DataFrame(Product=prod_vec,
+        #                     Price=f.P_j,
+        #                     Lives=f.S_j)
+        # CSV.write(file,output)
     # end
     return nothing
 end
