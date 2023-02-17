@@ -38,10 +38,10 @@ function market_profits(d::InsuranceLogit,f::firmData)
 end
 
 function state_profits(d::InsuranceLogit,f::firmData;sim="Base")
-    prod_profits = product_profits(m,f,sim=sim)
+    prod_profits = product_profits(d,f,sim=sim)
     st_profits = Dict{String,Float64}()
     for (st,prod_ind) in f._prodSTDict
-        st_profits[st] = sum(prod_profits)[prod_ind]
+        st_profits[st] = sum(prod_profits[prod_ind])
     end
     return st_profits
 end

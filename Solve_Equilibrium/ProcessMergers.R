@@ -4,8 +4,8 @@ library(ggplot2)
 library(scales)
 setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
 
-run = "2022-12-21"
-spec = "FM"
+run = "2022-12-26"
+spec = "FMC"
 
 ### Base Data 
 prodData = as.data.table(read.csv("Intermediate_Output/Equilibrium_Data/estimated_prodData_full.csv"))
@@ -27,7 +27,7 @@ prodData = merge(prodData,marketSize,by="Market")
 #### Testing ####
 #### Baseline Data
 basedata = NULL
-for (policy in c("Base","RA","Man","RAMan")){
+for (policy in c("Base","RA","Man")){
   print(policy)
   if (policy=="PL"){
     spec_temp = paste("PL","FMC",sep="_")
@@ -64,8 +64,43 @@ for (policy in c("Base","RA","Man","RAMan")){
   rm(baseline,hhi)
 }
 
+base_welfare = NULL
+for (policy in c("Base","RA")){
+  print(policy)
+  if (policy=="PL"){
+    spec_temp = paste("PL","FMC",sep="_")
+    policy_temp="Base"
+  }else{
+    spec_temp = spec
+    policy_temp = policy
+  }
+  baseline_CP = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,"_SP_cp_baseline-",spec,"-",run,".csv",sep=""))
+  baseline_Comp = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,"_baseline-",spec,"-",run,".csv",sep=""))
+  baseline_SP = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,"_SP_baseline-",spec,"-",run,".csv",sep=""))
+  
+  
+  
+  baseline_CP[,Welfare_baseline_CP:=CW+Profit]
+  baseline_Comp[,Welfare_baseline_Comp:=CW+Profit]
+  baseline_SP[,Welfare_baseline_SP:=CW+Profit]
+  
+  welfare = merge(baseline_CP[,c("markets","Welfare_baseline_CP")],baseline_Comp[,c("markets","Welfare_baseline_Comp","Profit","RA_transfers","Population")],by="markets")
+  welfare = merge(welfare,baseline_SP[,c("markets","Welfare_baseline_SP")],by="markets")
+  welfare[,sorting_cost:=Welfare_baseline_CP-Welfare_baseline_Comp]
+  welfare[,policy:=policy]
+  base_welfare = rbind(base_welfare,welfare)
+}
+base_welfare = base_welfare[markets%in%basedata$markets]
+setkey(base_welfare,markets,policy)
 
-#### Merger Price-Effect Data ####
+test = base_welfare[,list(SP=sum(Welfare_baseline_SP*Population)/sum(Population),
+                   CP=sum(Welfare_baseline_CP*Population)/sum(Population),
+                   Comp = sum(Welfare_baseline_Comp*Population)/sum(Population),
+                   Profit = sum(Profit*Population)/sum(Population)),by="policy"]
+test[,markup:=SP-CP]
+test[,sorting:=CP-Comp]
+
+### Merger Price-Effect Data 
 merger_effects = NULL
 for (policy in c("Base","RA","Man","RAMan")){
   print(policy)
