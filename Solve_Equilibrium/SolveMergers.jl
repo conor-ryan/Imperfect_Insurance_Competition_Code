@@ -60,21 +60,21 @@ function MergersMain(rundate,spec,home_directory)
     println("####################################")
     simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
                             filestub,policy="Base")
-    println("####################################")
-    println("#### Solve Without Risk Adjustment ####")
-    println("####################################")
-    simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
-                            filestub,policy="RA_repeal")
-    println("####################################")
-    println("#### Solve Without Individual Mandate ####")
-    println("####################################")
-    simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
-                            filestub,policy="Man_repeal")
-    println("####################################")
-    println("#### Solve Without Risk Adjustment nor Individual Mandate ####")
-    println("####################################")
-    simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
-                            filestub,policy="RAMan_repeal")
+    # println("####################################")
+    # println("#### Solve Without Risk Adjustment ####")
+    # println("####################################")
+    # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
+    #                         filestub,policy="RA_repeal")
+    # println("####################################")
+    # println("#### Solve Without Individual Mandate ####")
+    # println("####################################")
+    # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
+    #                         filestub,policy="Man_repeal")
+    # println("####################################")
+    # println("#### Solve Without Risk Adjustment nor Individual Mandate ####")
+    # println("####################################")
+    # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
+    #                         filestub,policy="RAMan_repeal")
     # filestub = "AllMergers_PL_$spec-$(rundate)"
     # println("####################################")
     # println("#### Solve Policy Baseline - Price Linked ####")
@@ -619,6 +619,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     # ## Solve Baseline Model
     println("Solve Baseline Model")
     if policy=="Base" # Solve baseline model with vouchers adjusting on prices
+        checkMargin(m,f,"$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub_short)_Base_Marigins.csv")
         # solve_model_parallel!(m,f,sim=sim,voucher=voucher)
         solve_model!(m,f,sim=sim,voucher=voucher)
         P_Base[:] = f.P_j[:]

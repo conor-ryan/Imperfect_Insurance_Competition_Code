@@ -75,15 +75,23 @@ for (policy in c("Base","RA","Man","RAMan")){
   basedata = rbind(basedata,baseline)
   rm(baseline,hhi)
 }
-ggplot(basedata[policy=="Man"]) + aes(x=Price,y=Price_CP) + geom_point() + geom_abline()
-ggplot(basedata[policy=="RAMan"]) + aes(x=Price,y=Price_CP) + geom_point() + geom_abline()
-ggplot(basedata[policy=="RA"]) + aes(x=Price,y=Price_CP) + geom_point() + geom_abline()
-ggplot(basedata[policy=="Base"]) + aes(x=Price,y=Price_CP) + geom_point() + geom_abline()
 
-ggplot(basedata[policy=="Man"]) + aes(x=Price,y=Price_SP) + geom_point() + geom_abline()
-ggplot(basedata[policy=="RAMan"]) + aes(x=Price,y=Price_SP) + geom_point() + geom_abline()
-ggplot(basedata[policy=="RA"]) + aes(x=Price,y=Price_SP) + geom_point() + geom_abline()
-ggplot(basedata[policy=="Base"]) + aes(x=Price,y=Price_SP) + geom_point() + geom_abline()
+
+ggplot(basedata[policy=="Base"])+ 
+  geom_point(aes(x=Price,y=Price_CP),color="blue") +
+  geom_point(aes(x=Price,y=Price_SP)) + geom_abline()
+
+ggplot(basedata[policy=="RA"])+ 
+  geom_point(aes(x=Price,y=Price_CP),color="blue") +
+  geom_point(aes(x=Price,y=Price_SP)) + geom_abline()
+
+ggplot(basedata[policy=="Man"])+ 
+  geom_point(aes(x=Price,y=Price_CP),color="blue") +
+  geom_point(aes(x=Price,y=Price_SP)) + geom_abline()
+
+ggplot(basedata[policy=="RAMan"])+ 
+  geom_point(aes(x=Price,y=Price_CP),color="blue") +
+  geom_point(aes(x=Price,y=Price_SP)) + geom_abline()
 
 
 
@@ -107,7 +115,7 @@ for (policy in c("Base","RA","Man","RAMan")){
   baseline_Comp[,Welfare_baseline_Comp:=CW+Profit]
   baseline_SP[,Welfare_baseline_SP:=CW+Profit]
   
-  welfare = merge(baseline_CP[,c("markets","Welfare_baseline_CP")],baseline_Comp[,c("markets","Welfare_baseline_Comp","Profit","RA_transfers","Population")],by="markets")
+  welfare = merge(baseline_CP[,c("markets","Welfare_baseline_CP")],baseline_Comp[,c("markets","Welfare_baseline_Comp","Profit","RA_transfers","Population","Insured")],by="markets")
   welfare = merge(welfare,baseline_SP[,c("markets","Welfare_baseline_SP")],by="markets")
   welfare[,sorting_cost:=Welfare_baseline_CP-Welfare_baseline_Comp]
   welfare[,policy:=policy]
@@ -119,6 +127,7 @@ setkey(base_welfare,markets,policy)
 test = base_welfare[,list(SP=sum(Welfare_baseline_SP*Population)/sum(Population),
                    CP=sum(Welfare_baseline_CP*Population)/sum(Population),
                    Comp = sum(Welfare_baseline_Comp*Population)/sum(Population),
+                   Transfers = sum(RA_transfers),
                    Profit = sum(Profit*Population)/sum(Population)),by="policy"]
 test[,markup:=SP-CP]
 test[,sorting:=CP-Comp]
@@ -172,14 +181,14 @@ for (policy in c("Base","RA","Man","RAMan")){
       postmerge = fread(paste("Estimation_Output/",file,sep=""))
       names(postmerge)[2:length(names(postmerge))] = paste(names(postmerge)[2:length(names(postmerge))],"merge",sep="_")
     
-      merging_party_pre_string = paste(policy_temp,"_PRE_",m1,"_",m2,".csv",sep="")
-      file = merger_files[grepl(merging_party_pre_string,merger_files)]
-      premerge = fread(paste("Estimation_Output/",file,sep=""))
-      names(premerge)[2:length(names(premerge))] = paste(names(premerge)[2:length(names(premerge))],"premerge",sep="_")
-        
+      # merging_party_pre_string = paste(policy_temp,"_PRE_",m1,"_",m2,".csv",sep="")
+      # file = merger_files[grepl(merging_party_pre_string,merger_files)]
+      # premerge = fread(paste("Estimation_Output/",file,sep=""))
+      # names(premerge)[2:length(names(premerge))] = paste(names(premerge)[2:length(names(premerge))],"premerge",sep="_")
+      #   
       # Merge in HHI and Baseline Data
       postmerge = merge(baseline,postmerge,by="Product")
-      postmerge = merge(postmerge,premerge,by="Product")
+      # postmerge = merge(postmerge,premerge,by="Product")
       postmerge = merge(hhi,postmerge,by=c("Market","ST"))
       
       #Compute Change variables
@@ -213,6 +222,99 @@ merger_effects = merger_effects[grepl("GA",Market)]
 ggplot(merger_effects) + aes(x=Price,y=Price_premerge) + geom_point(alpha=0.5) + geom_smooth(method="lm",se=FALSE) + geom_abline(intercept=0,slope=1)
 
 merger_effects[,profit_effect:=post_profit_firm-pre_profit_firm]
+
+## Merger Welfare Effects
+merger_welfare = NULL
+for (policy in c("Base","Man","RA","RAMan")){
+  print(policy)
+  if (policy=="PL"){
+    spec_temp = paste("PL","FMC",sep="_")
+    policy_temp="Base"
+  }else{
+    spec_temp = spec
+    policy_temp = policy
+  }
+  filestub = paste("Estimation_Output/AllMergers_",spec_temp,"-",run,"_",policy_temp,"_",sep="")
+  
+  ### Baseline Market Data ####
+  baseline = fread(paste(filestub,"baseline.csv",sep=""))
+  baseline = merge(baseline,prodData,by="Product")
+  baseline[,insideShare:=Lives/sum(Lives),by="Market"]
+  
+  ## Create HHI baseline data
+  firm_share = baseline[,list(share=sum(insideShare*100)),by=c("Market","ST","Firm")]
+  firm_share[,count:=1]
+  hhi = firm_share[,list(hhi=sum((share)^2),firm_num=sum(count)),by=c("Market","ST")]
+  hhi[,markets:=as.numeric(as.factor(Market))]
+  
+  hhi[,hhi_category:=0]
+  hhi[hhi>=3500,hhi_category:=1]
+  # hhi[hhi>=4000,hhi_category:=2] "2850 < HHI < 4000",
+  hhi[,hhi_category:=factor(hhi_category,levels=c(0,1),
+                            labels=c("HHI < 3500","HHI > 3500"))]
+  
+  ## Baseline welfare data
+  base_welfare = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,"_baseline-",spec,"-",run,".csv",sep=""))
+  
+  #### Iterate Through Mergers ####
+  merger_files = list.files("Estimation_Output",pattern=paste("totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,sep=""))
+  unique_firms = sort(firm_share[,unique(Firm)])
+  
+  
+  for (i in 1:length(unique_firms)){
+    for (j in 1:(i-1)){
+      if (j==0){next}
+      m1 = unique_firms[j]
+      m2 = unique_firms[i]
+      ## Read in Welfare File
+      merging_party_string = paste(policy_temp,"_",m1,"_",m2,"-",spec,sep="")
+      file = merger_files[grepl(merging_party_string,merger_files)]
+      if (length(file)==0){next}
+      welfare = fread(paste("Estimation_Output/",file,sep=""))
+      names(welfare)[2:length(names(welfare))] = paste(names(welfare)[2:length(names(welfare))],"merge",sep="_")
+      
+      # Merge in HHI and Baseline Data
+      welfare = merge(hhi,welfare,by="markets")
+      welfare = merge(base_welfare,welfare,by="markets")
+      
+      #Compute Change variables
+      welfare[,chg_CW:=CW_merge-CW]
+      welfare[,chg_Profit:=Profit_merge-Profit]
+      welfare[,chg_Spending:=Spending_merge-Spending]
+      welfare[,chg_RA_transfers:=RA_transfers_merge-RA_transfers]
+      welfare[,chg_Insured:=Insured_merge-Insured]
+      
+      merge_vars = names(welfare)[grepl("merge",names(welfare))]
+      welfare[,c(merge_vars):=NULL]
+      
+      welfare[,merging_parties:= paste(unique_firms[j],unique_firms[i],sep="-")]
+      welfare[,policy:=policy]
+      
+      #
+      dHHI = firm_share[Firm%in%c(m1,m2),list(dHHI=2*prod(share),merger=sum(count)),by="Market"]
+      dHHI[merger<2,dHHI:=0]
+      
+      welfare = merge(welfare,dHHI[,c("Market","dHHI")],by="Market",all.x=TRUE)
+      welfare[is.na(dHHI),dHHI:=0]
+      # welfare = welfare[dHHI>100]
+      merger_welfare = rbind(merger_welfare,welfare)
+    }
+  }
+  rm(welfare,hhi,base_welfare,baseline,firm_share,dHHI)
+}
+merger_welfare = merger_welfare[grepl("GA",Market)]
+
+test = merger_welfare[,list(chg_CW=sum(chg_CW*Population)/sum(Population),
+                          chg_Profit=sum(chg_Profit*Population)/sum(Population),
+                          chg_Spending = sum(chg_Spending*Population)/sum(Population),
+                          chg_Insured = sum(chg_Insured),
+                          chg_RA = sum(chg_RA_transfers)),by="policy"]
+
+test[,chg_totWelfare:=chg_CW+chg_Profit]
+
+ggplot(merger_effects[policy=="RAMan"&parties_indicator==1]) + aes(x=Price,y=Price_merge) + geom_abline() + geom_point()
+
+
 
 
 
