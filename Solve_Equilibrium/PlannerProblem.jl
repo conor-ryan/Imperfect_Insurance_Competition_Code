@@ -382,7 +382,7 @@ function find_λ_st(m::InsuranceLogit,f::firmData,ST::String,
 
     end
 
-    println("Got λ = $λ_new in Market $mkt on Iteration $cnt, Π error: $err")
+    println("Got λ = $λ_new in State $ST on Iteration $cnt, Π error: $err")
     return λ_new
 end
 

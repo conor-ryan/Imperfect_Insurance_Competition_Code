@@ -534,20 +534,8 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
     non_catas = firm.prods[.!(inlist(firm.prods,firm.catas_prods))]
 
 
+    #Complete Computation of Pooled Cost Avg and Derivatives
     firm.PC_j[prod_ind] = firm.PC_j[prod_ind]./firm.Mkt_j[prod_ind]#.*firm.S_j
-
-    # firm.Mkt_j = firm.poolMat*firm.S_j
-    TotalCosts = firm.C_j[:]
-    TotalCosts[firm.catas_prods].=0.0
-    PooledCosts = (firm.PC_j[:].*firm.S_j[:])
-    PooledCosts[firm.catas_prods].=0.0
-
-    TotalCosts = firm.poolMat*TotalCosts
-    PooledCosts = firm.poolMat*PooledCosts
-    firm.Adj_j = zeros(length(firm.PC_j))
-    # firm.Adj_j[non_catas] = (TotalCosts./PooledCosts)[non_catas]
-    firm.Adj_j[firm.prods] = (TotalCosts./PooledCosts)[firm.prods]
-
 
     for j in prod_ind, k in prod_ind
         firm.dCdp_pl_j[j,k] = (firm.dCdp_pl_j[j,k]/firm.Mkt_j[k]*firm.S_j[k] +
@@ -555,28 +543,76 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
                                        (firm.dMdp_j[j,k]/firm.Mkt_j[k])*firm.PC_j[k]*firm.S_j[k])
     end
 
-    # dAdj_dp = firm.poolMat
+    # Catastrophic plans don't have a pooled cost
+    firm.dCdp_pl_j[:,firm.catas_prods] = firm.dCdp_j[:,firm.catas_prods]
+    firm.PC_j[firm.catas_prods] = firm.C_j[firm.catas_prods]./firm.S_j[firm.catas_prods]
+
+
+
+    # Total Pooled Avg Cost per Market
+    TotalCost = firm.C_j[:]
+    TotalCost[firm.catas_prods].=0.0
+
+    #Total Pooled Lives
+    TotalLives = firm.S_j[:]
+    TotalLives[firm.catas_prods].=0.0
+    poolMat = firm.poolMat[prod_ind,prod_ind]
+
+    TotalAvgCost = zeros(length(firm.PC_j))
+    TotalLives[prod_ind] = (poolMat*TotalLives[prod_ind])
+    TotalAvgCost[prod_ind] =  (poolMat*TotalCost[prod_ind])./TotalLives[prod_ind]
+
+    #Derivatives of Pooled Lives and Cost
+    dLives = copy(firm.dSdp_j)
+    dLives[:,firm.catas_prods].=0.0
+    dLives = sum(dLives,dims=2)
+
+    dAvgCost = zeros(length(firm.PC_j))
     dC_pool = copy(firm.dCdp_j)
     dC_pool[:,firm.catas_prods].=0.0
+    dAvgCost[prod_ind] = (sum(dC_pool,dims=2)[prod_ind])./TotalLives[prod_ind] + TotalAvgCost[prod_ind].*(dLives[prod_ind]./TotalLives[prod_ind]) 
 
-    dPC_pool = copy(firm.dCdp_pl_j)
-    dPC_pool[:,firm.catas_prods].=0.0
+    #Create Transfer Index
+    Transfer = zeros(length(firm.PC_j))
+    Transfer[prod_ind] = (firm.PC_j[prod_ind].*firm.S_j[prod_ind]./firm.C_j[prod_ind])#.*TotalAvgCost[firm.prods]
 
-    dAdj_dp = zeros(length(firm.PC_j))
-    dAdj_dp[prod_ind] = (sum(dC_pool,dims=2)./PooledCosts - (sum(dPC_pool,dims=2)./PooledCosts).*firm.Adj_j)[prod_ind]
-    dAdj_dp = dAdj_dp.*firm.poolMat
-
+    #Derivative of Transfer Index
+    dTransfer = zeros(length(firm.PC_j),length(firm.PC_j))
     for j in prod_ind, k in prod_ind
-        firm.dCdp_pl_j[j,k] = firm.Adj_j[k]*firm.dCdp_pl_j[j,k] + dAdj_dp[j,k]*firm.PC_j[k]*firm.S_j[k]
+        dTransfer[j,k] = (firm.dCdp_pl_j[j,k]./firm.C_j[k] - (firm.dCdp_j[j,k]/firm.C_j[k])*Transfer[k])
+    end
+    Transfer[firm.catas_prods].=0.0
+
+    # Difference Out Mean Index (Budget Neutrality)
+    Γ = zeros(length(firm.PC_j))
+    Γ[prod_ind] = poolMat*(Transfer[prod_ind].*firm.S_j[prod_ind])./TotalLives[prod_ind]
+    Γ[firm.catas_prods].=0.0
+
+    dΓ = zeros(length(firm.PC_j))
+    for j in prod_ind, k in prod_ind
+        dΓ[k] += (dTransfer[j,k]*firm.S_j[k] + Transfer[k]*firm.dSdp_j[j,k])/TotalLives[k]
+    end
+    dΓ[prod_ind] = dΓ[prod_ind] + (dLives[prod_ind]./TotalLives[prod_ind]).*Γ[prod_ind]
+
+
+    #Compute Total Risk Adjustment Transfer and Derivative 
+    TotTransfer = zeros(length(firm.PC_j))
+    TotTransfer[prod_ind] = (Γ[prod_ind] - Transfer[prod_ind]).*TotalAvgCost[prod_ind]
+
+    dTotTransfer = zeros(length(firm.PC_j),length(firm.PC_j))
+    for j in prod_ind, k in prod_ind
+        dTransfer[j,k] = (dΓ[j] - dTransfer[j,k])*TotalAvgCost[k] + (Γ[k] - Transfer[k])*dAvgCost[j]
     end
 
-    firm.dCdp_pl_j[:,firm.catas_prods] = firm.dCdp_j[:,firm.catas_prods]
 
-    firm.PC_j[firm.prods] = firm.PC_j[firm.prods].*firm.S_j[firm.prods]
-    firm.PC_j[firm.prods] = firm.PC_j[firm.prods].*firm.Adj_j[firm.prods]
-    firm.PC_j[firm.catas_prods] = firm.C_j[firm.catas_prods]#./firm.S_j[firm.catas_prods]
+    #Compute Actual Marginal Cost with Transfers
+    for j in prod_ind, k in prod_ind
+        firm.dCdp_pl_j[j,k] = firm.dCdp_j[j,k] - firm.dSdp_j[j,k]*TotTransfer[k] - firm.S_j[k]*dTotTransfer[j,k]
+    end
+
+    #Average Real and Risk Adjusted Costs
     firm.C_j = firm.C_j./firm.S_j
-    firm.PC_j = firm.PC_j./firm.S_j
+    firm.PC_j = firm.C_j - TotTransfer
 
     return nothing
 end

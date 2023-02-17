@@ -1,6 +1,6 @@
 using Distributed
 println("Add Workers")
-addprocs(11)
+# addprocs(11)
 
 @everywhere using BenchmarkTools
 @everywhere using JLD2
@@ -17,14 +17,14 @@ addprocs(11)
 @everywhere using SharedArrays
 
 
-## Check OS Environment
-if occursin(r"cxr5626",homedir())
-        @everywhere home_directory = "$(homedir())/work"
+# ## Check OS Environment
+if occursin(r"Users",homedir())
+        @everywhere home_directory = "$(homedir())/Dropbox"
 else
-        @everywhere home_directory = "$(homedir())/Documents"
+        @everywhere home_directory = "$(homedir())/work"
 end
 
-@everywhere codeDir = "$(home_directory)/Research/Imperfect_Insurance_Competition/Code/"
+@everywhere codeDir = "$(homedir())/Research/Imperfect_Insurance_Competition/Code/"
 
 ##### Set Specification ####
 halton_draws = 500
