@@ -586,7 +586,9 @@ function simulate_all_mergers(m::InsuranceLogit,
 
     # Initialize Firm Data
     f = firmData(m,df,mkt,par_dem,par_cost)
+    checkMargin(m,f,"$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_Margins.csv")
     setMarginCostAdjust!(m,f)
+    checkMargin(m,f,"$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_Margins_Targeted.csv")
 
 
 
@@ -619,7 +621,6 @@ function simulate_all_mergers(m::InsuranceLogit,
     # ## Solve Baseline Model
     println("Solve Baseline Model")
     if policy=="Base" # Solve baseline model with vouchers adjusting on prices
-        checkMargin(m,f,"$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub_short)_Base_Marigins.csv")
         # solve_model_parallel!(m,f,sim=sim,voucher=voucher)
         solve_model!(m,f,sim=sim,voucher=voucher)
         P_Base[:] = f.P_j[:]

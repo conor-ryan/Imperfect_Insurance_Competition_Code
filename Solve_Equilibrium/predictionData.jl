@@ -130,6 +130,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     C_j = Vector{Float64}(undef,J)
     PC_j = Vector{Float64}(undef,J)
     ω_j = zeros(J)
+    println("Length $(length(ω_j))")
 
     hix_cnt = Vector{Float64}(undef,J)
     hix_cnt[prod_std] = Float64.(mkt[:,:count_hix_prod])
