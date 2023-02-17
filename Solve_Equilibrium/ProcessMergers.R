@@ -27,7 +27,7 @@ prodData = merge(prodData,marketSize,by="Market")
 #### Testing ####
 #### Baseline Data
 basedata = NULL
-for (policy in c("Base","RA")){
+for (policy in c("Base","RA","Man","RAMan")){
   print(policy)
   if (policy=="PL"){
     spec_temp = paste("PL","FMC",sep="_")
@@ -43,12 +43,19 @@ for (policy in c("Base","RA")){
   baseline = merge(baseline,prodData,by="Product")
   baseline[,insideShare:=Lives/sum(Lives),by="Market"]
   
-  filestub = paste("Estimation_Output/AllMergers_",spec_temp,"-",run,"_",policy_temp,"_SP_cp",sep="")
+
   
   ### Baseline Market Data ####
+  filestub = paste("Estimation_Output/AllMergers_",spec_temp,"-",run,"_",policy_temp,"_SP_cp_",sep="")
   baseline_cp = fread(paste(filestub,"baseline.csv",sep=""))
   names(baseline_cp)[2:length(baseline_cp)] = paste(names(baseline_cp)[2:length(baseline_cp)],"CP",sep="_")
   baseline = merge(baseline,baseline_cp,by="Product")
+  
+  ### Baseline Market Data ####
+  filestub = paste("Estimation_Output/AllMergers_",spec_temp,"-",run,"_",policy_temp,"_SP_",sep="")
+  baseline_sp = fread(paste(filestub,"baseline.csv",sep=""))
+  names(baseline_sp)[2:length(baseline_sp)] = paste(names(baseline_sp)[2:length(baseline_sp)],"SP",sep="_")
+  baseline = merge(baseline,baseline_sp,by="Product")
   
   ## Create HHI baseline data
   firm_share = baseline[,list(share=sum(insideShare*100)),by=c("Market","ST","Firm")]
@@ -68,9 +75,20 @@ for (policy in c("Base","RA")){
   basedata = rbind(basedata,baseline)
   rm(baseline,hhi)
 }
+ggplot(basedata[policy=="Man"]) + aes(x=Price,y=Price_CP) + geom_point() + geom_abline()
+ggplot(basedata[policy=="RAMan"]) + aes(x=Price,y=Price_CP) + geom_point() + geom_abline()
+ggplot(basedata[policy=="RA"]) + aes(x=Price,y=Price_CP) + geom_point() + geom_abline()
+ggplot(basedata[policy=="Base"]) + aes(x=Price,y=Price_CP) + geom_point() + geom_abline()
+
+ggplot(basedata[policy=="Man"]) + aes(x=Price,y=Price_SP) + geom_point() + geom_abline()
+ggplot(basedata[policy=="RAMan"]) + aes(x=Price,y=Price_SP) + geom_point() + geom_abline()
+ggplot(basedata[policy=="RA"]) + aes(x=Price,y=Price_SP) + geom_point() + geom_abline()
+ggplot(basedata[policy=="Base"]) + aes(x=Price,y=Price_SP) + geom_point() + geom_abline()
+
+
 
 base_welfare = NULL
-for (policy in c("Base","RA")){
+for (policy in c("Base","RA","Man","RAMan")){
   print(policy)
   if (policy=="PL"){
     spec_temp = paste("PL","FMC",sep="_")
