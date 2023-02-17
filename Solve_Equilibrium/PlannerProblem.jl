@@ -217,8 +217,8 @@ function solve_SP_λ_st!(m::InsuranceLogit, f::firmData, Π_target::Dict{String,
         println("All Markets")
         states = sort(String.(keys(f._prodSTDict)))
     end
-    P_res = Array{Float64}(length(f.P_j))
-    λ_vec = Array{Float64}(length(states))
+    P_res = Vector{Float64}(undef,length(f.P_j))
+    λ_vec = Vector{Float64}(undef,length(states))
     for st in states
         println("Solving for $st")
         λ = find_λ_st(m, f, st, Π_target[st])
