@@ -1,6 +1,6 @@
 using Distributed
 println("Add Workers")
-# addprocs(11)
+addprocs(11)
 
 @everywhere using BenchmarkTools
 @everywhere using JLD2
