@@ -27,7 +27,7 @@ prodData = merge(prodData,marketSize,by="Market")
 #### Testing ####
 #### Baseline Data
 basedata = NULL
-for (policy in c("Base","RA","Man")){
+for (policy in c("Base","RA")){
   print(policy)
   if (policy=="PL"){
     spec_temp = paste("PL","FMC",sep="_")
@@ -43,7 +43,12 @@ for (policy in c("Base","RA","Man")){
   baseline = merge(baseline,prodData,by="Product")
   baseline[,insideShare:=Lives/sum(Lives),by="Market"]
   
+  filestub = paste("Estimation_Output/AllMergers_",spec_temp,"-",run,"_",policy_temp,"_SP_cp",sep="")
   
+  ### Baseline Market Data ####
+  baseline_cp = fread(paste(filestub,"baseline.csv",sep=""))
+  names(baseline_cp)[2:length(baseline_cp)] = paste(names(baseline_cp)[2:length(baseline_cp)],"CP",sep="_")
+  baseline = merge(baseline,baseline_cp,by="Product")
   
   ## Create HHI baseline data
   firm_share = baseline[,list(share=sum(insideShare*100)),by=c("Market","ST","Firm")]
