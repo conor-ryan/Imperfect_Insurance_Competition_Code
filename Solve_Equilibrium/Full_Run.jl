@@ -21,10 +21,10 @@ addprocs(11)
 if occursin(r"Users",homedir())
         @everywhere home_directory = "$(homedir())/Dropbox"
 else
-        @everywhere home_directory = "$(homedir())/work"
+        @everywhere home_directory = "$(homedir())/work/"
 end
 
-@everywhere codeDir = "$(homedir())/Research/Imperfect_Insurance_Competition/Code/"
+@everywhere codeDir = "$(home_directory)/Research/Imperfect_Insurance_Competition/Code/"
 
 ##### Set Specification ####
 halton_draws = 500
