@@ -30,7 +30,7 @@ mutable struct firmData
     Mkt_j::Vector{Float64} # Average Revenue
     C_j::Vector{Float64} # Average Cost
     PC_j::Vector{Float64} # Pooled Average Cost
-    Adj_j::Vector{Float64} # Pooled Average Cost
+    ω_j::Vector{Float64} # Marginal Cost Error
 
 
     hix_cnt::Vector{Float64} # Firm Product Weight (Hix)
@@ -129,7 +129,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     Mkt_j = Vector{Float64}(undef,J)
     C_j = Vector{Float64}(undef,J)
     PC_j = Vector{Float64}(undef,J)
-    Adj_j = Vector{Float64}(undef,J)
+    ω_j = zeros(J)
 
     hix_cnt = Vector{Float64}(undef,J)
     hix_cnt[prod_std] = Float64.(mkt[:,:count_hix_prod])
@@ -242,7 +242,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     data,index,
     P_ij,Rev_ij,subsidy_ij,subsidy_ij_voucher,zero_ij,
     δ_nonprice,δ_price,s_pred,c_pred,c_pool,
-    P_j,SA_j,S_j,Mkt_j,C_j,PC_j,Adj_j,
+    P_j,SA_j,S_j,Mkt_j,C_j,PC_j,ω_j,
     hix_cnt,bench_base,
     dSdp_j,dSAdp_j,dRdp_j,dCdp_j,dMdp_j,dMAdp_j,dCdp_pl_j,dSubdp_j,
     prod_std,catas_prods,bench_prods,_productDict,

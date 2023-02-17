@@ -231,6 +231,15 @@ function checkMargin(m::InsuranceLogit,f::firmData,file::String)
     return nothing
 end
 
+function setMarginCostAdjust!(m::InsuranceLogit,f::firmData)
+    evaluate_model!(m,f,"All",foc_check=true)
+    Mkup,MR,MC_std,MC_RA = prof_margin(f)
+    
+    f.ω_j = MR - MC_RA
+    return nothing
+end
+
+
 function calc_avgR(m::InsuranceLogit,f::firmData)
     R_j = zeros(maximum(m.prods))
     wgts = weight(m.data)[:]

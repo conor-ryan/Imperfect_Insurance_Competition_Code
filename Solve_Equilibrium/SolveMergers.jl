@@ -586,7 +586,7 @@ function simulate_all_mergers(m::InsuranceLogit,
 
     # Initialize Firm Data
     f = firmData(m,df,mkt,par_dem,par_cost)
-
+    setMarginCostAdjust!(m,f)
 
 
 

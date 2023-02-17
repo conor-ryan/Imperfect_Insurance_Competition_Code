@@ -531,8 +531,6 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
         end
     end
 
-    non_catas = firm.prods[.!(inlist(firm.prods,firm.catas_prods))]
-
 
     #Complete Computation of Pooled Cost Avg and Derivatives
     firm.PC_j[prod_ind] = firm.PC_j[prod_ind]./firm.Mkt_j[prod_ind]#.*firm.S_j
@@ -605,13 +603,14 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
     end
 
 
-    #Compute Actual Marginal Cost with Transfers
+    #Compute Actual Marginal Costs with Transfers and Adjustment 
     for j in prod_ind, k in prod_ind
+        firm.dCdp_j[j,k] = firm.dCdp_j + firm.dSdp_j[k]*firm.ω_j[k]
         firm.dCdp_pl_j[j,k] = firm.dCdp_j[j,k] - firm.dSdp_j[j,k]*TotTransfer[k] - firm.S_j[k]*dTotTransfer[j,k]
     end
 
     #Average Real and Risk Adjusted Costs
-    firm.C_j = firm.C_j./firm.S_j
+    firm.C_j = firm.C_j./firm.S_j + firm.ω_j
     firm.PC_j = firm.C_j .- TotTransfer
 
     return nothing
@@ -702,61 +701,46 @@ function update_shares(d::InsuranceLogit,firm::firmData,
         end
     end
 
-    non_catas = firm.prods[.!(inlist(firm.prods,firm.catas_prods))]
 
-
+    #Complete Computation of Pooled Cost Avg and Derivatives
     firm.PC_j[prod_ind] = firm.PC_j[prod_ind]./firm.Mkt_j[prod_ind]#.*firm.S_j
 
-    # firm.Mkt_j = firm.poolMat*firm.S_j
-    TotalCosts = firm.C_j[:]
-    TotalCosts[firm.catas_prods].=0.0
-    PooledCosts = (firm.PC_j[:].*firm.S_j[:])
-    PooledCosts[firm.catas_prods].=0.0
+    # Catastrophic plans don't have a pooled cost
+    firm.PC_j[firm.catas_prods] = firm.C_j[firm.catas_prods]./firm.S_j[firm.catas_prods]
 
-    TotalCosts = firm.poolMat*TotalCosts
-    PooledCosts = firm.poolMat*PooledCosts
-    firm.Adj_j = zeros(length(firm.PC_j))
-    # firm.Adj_j[non_catas] = (TotalCosts./PooledCosts)[non_catas]
-    firm.Adj_j[firm.prods] = (TotalCosts./PooledCosts)[firm.prods]
+    # Total Pooled Avg Cost per Market
+    TotalCost = firm.C_j[:]
+    TotalCost[firm.catas_prods].=0.0
 
+    #Total Pooled Lives
+    TotalLives = firm.S_j[:]
+    TotalLives[firm.catas_prods].=0.0
+    poolMat = firm.poolMat[prod_ind,prod_ind]
 
-    firm.PC_j[firm.prods] = firm.PC_j[firm.prods].*firm.S_j[firm.prods]
-    firm.PC_j[firm.prods] = firm.PC_j[firm.prods].*firm.Adj_j[firm.prods]
-    firm.PC_j[firm.catas_prods] = firm.C_j[firm.catas_prods]#./firm.S_j[firm.catas_prods]
-    firm.C_j = firm.C_j./firm.S_j
-    firm.PC_j = firm.PC_j./firm.S_j
+    TotalAvgCost = zeros(length(firm.PC_j))
+    TotalLives[prod_ind] = (poolMat*TotalLives[prod_ind])
+    TotalAvgCost[prod_ind] =  (poolMat*TotalCost[prod_ind])./TotalLives[prod_ind]
+
+    #Create Transfer Index
+    Transfer = zeros(length(firm.PC_j))
+    Transfer[prod_ind] = (firm.PC_j[prod_ind].*firm.S_j[prod_ind]./firm.C_j[prod_ind])
+    Transfer[firm.catas_prods].=0.0
+
+    # Difference Out Mean Index (Budget Neutrality)
+    Γ = zeros(length(firm.PC_j))
+    Γ[prod_ind] = poolMat*(Transfer[prod_ind].*firm.S_j[prod_ind])./TotalLives[prod_ind]
+    Γ[firm.catas_prods].=0.0
+
+    #Compute Total Risk Adjustment Transfer and Derivative 
+    TotTransfer = zeros(length(firm.PC_j))
+    TotTransfer[prod_ind] = (Γ[prod_ind] - Transfer[prod_ind]).*TotalAvgCost[prod_ind]
+
+    #Average Real and Risk Adjusted Costs
+    firm.C_j = firm.C_j./firm.S_j + firm.ω_j
+    firm.PC_j = firm.C_j .- TotTransfer
 
     return nothing
 end
-
-
-# function evaluate_model!(m::InsuranceLogit,f::firmData;foc_check=false)
-#     #Clear Derivative Values
-#     f.dSdp_j[:].=0.0
-#     f.dSAdp_j[:].=0.0
-#     f.dMdp_j[:].=0.0
-#     f.dRdp_j[:].=0.0
-#     f.dCdp_j[:].=0.0
-#     f.dCdp_pl_j[:].=0.0
-#     f.PC_j[:].=0.0
-#     f.S_j[:].=0.0
-#     f.C_j[:].=0.0
-#     f.SA_j[:].=0.0
-#     f.Adj_j[:].=0.0
-#     f.Mkt_j[:].=0.0
-#
-#     if foc_check==false
-#         premPaid!(firm)
-#     else
-#         f.Rev_ij = f[:Rev_foc]
-#         f.P_ij   = price(m.data)
-#         f.zero_ij = Float64.((f.P_ij .+ f[:Mandate]/1000 .- 1e-6).<0.0)
-#     end
-#
-#     compute_price!(m,f)
-#     update_derivatives(m,f)
-#     return nothing
-# end
 
 
 function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;
@@ -774,7 +758,6 @@ function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;
     f.S_j[:].=0.0
     f.C_j[:].=0.0
     f.SA_j[:].=0.0
-    f.Adj_j[:].=0.0
     f.Mkt_j[:].=0.0
     if !voucher
         update_voucher = true
@@ -808,7 +791,6 @@ function evaluate_model!(m::InsuranceLogit,f::firmData,mkt::Int;
     f.S_j[:].=0.0
     f.C_j[:].=0.0
     f.SA_j[:].=0.0
-    f.Adj_j[:].=0.0
     f.Mkt_j[:].=0.0
     if !voucher
         update_voucher = true
