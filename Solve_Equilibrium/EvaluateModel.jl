@@ -604,6 +604,7 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
 
 
     #Compute Actual Marginal Costs with Transfers and Adjustment 
+    println(length(firm.ω_j))
     for j in prod_ind, k in prod_ind
         firm.dCdp_j[j,k] = firm.dCdp_j[j,k] + firm.dSdp_j[j,k]*firm.ω_j[k]
         firm.dCdp_pl_j[j,k] = firm.dCdp_j[j,k] - firm.dSdp_j[j,k]*TotTransfer[k] - firm.S_j[k]*dTotTransfer[j,k]
