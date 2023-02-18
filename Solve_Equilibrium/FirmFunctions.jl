@@ -263,12 +263,12 @@ end
 function setMarginCostAdjust!(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All",foc_check=true)
     Mkup,MR,MC_std,MC_RA,ω = prof_margin(f)
-    # f.ω_j[f.prods] = ω
+    f.ω_j[f.prods] = ω
 
     for (m,prod_ind) in f.mkt_index
         lives = f.S_j[prod_ind]
         own_mat = f.ownMat[prod_ind,prod_ind]
-        firm_error = own_mat*(lives.*ω[prod_ind])
+        firm_error = own_mat*(lives.*f.ω_j[prod_ind])
         firm_lives = own_mat*(lives)
         f.ω_j[prod_ind] = firm_error./firm_lives
     end
