@@ -234,6 +234,32 @@ function checkMargin(m::InsuranceLogit,f::firmData,file::String)
     return nothing
 end
 
+function testMarginModel(m::InsuranceLogit,f::firmData,file::String)
+    evaluate_model!(m,f,"All")
+    Mkup,MR,MC_std,MC_RA,ω = prof_margin(f)
+    avgCost = f.C_j[f.prods]
+    pooledCost = f.PC_j[f.prods]
+    lives = f.S_j[f.prods]
+    ageRate = f.SA_j[f.prods]./lives
+    P_obs = f.P_j[f.prods]
+    avgR = calc_avgR(m,f)
+
+    output =  DataFrame(Product=f.prods,
+                        P_obs = P_obs,
+                        Mkup = Mkup,
+                        MR = MR,
+                        MC_std = MC_std,
+                        MC_RA = MC_RA,
+                        avgCost = avgCost,
+                        pooledCost = pooledCost,
+                        lives=lives,
+                        avgR = avgR,
+                        ageRate=ageRate)
+
+    CSV.write(file,output)
+    return nothing
+end
+
 function setMarginCostAdjust!(m::InsuranceLogit,f::firmData)
     evaluate_model!(m,f,"All",foc_check=true)
     Mkup,MR,MC_std,MC_RA,ω = prof_margin(f)
