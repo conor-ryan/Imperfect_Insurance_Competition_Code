@@ -172,21 +172,24 @@ function prof_margin(f::firmData,std_ind::Union{Vector{Int64},Missing}=missing)
     if ismissing(std_ind)
         std_ind = f.prods
     end
-    dSdp = (f.dSAdp_j.*f.ownMat)[std_ind,std_ind]
+    dSdp_rev = (f.dSAdp_j.*f.ownMat)[std_ind,std_ind]
+    dSdp = (f.dSdp_j.*f.ownMat)[std_ind,std_ind]
 
     # MR = inv(dSdp)*sum(f.dRdp_j.*f.ownMat,dims=2)[std_ind]
-    Mkup = -inv(dSdp)*f.SA_j[std_ind]
-    MR = f.P_j[std_ind] .- inv(dSdp)*f.SA_j[std_ind]
+    Mkup = -inv(dSdp_rev)*f.SA_j[std_ind]
+    MR = f.P_j[std_ind] .- inv(dSdp_rev)*f.SA_j[std_ind]
 
     cost_std = sum(f.dCdp_j[std_ind,std_ind].*f.ownMat[std_ind,std_ind],dims=2) + dSdp*f.ω_j[std_ind]
     cost_pl = sum(f.dCdp_pl_j[std_ind,std_ind].*f.ownMat[std_ind,std_ind],dims=2) + dSdp*f.ω_j[std_ind]
 
-    MC_std = inv(dSdp)*cost_std 
-    MC_RA = inv(dSdp)*cost_pl 
+    MC_std = inv(dSdp_rev)*cost_std 
+    MC_RA = inv(dSdp_rev)*cost_pl 
+
+    ω = inv(dSdp)*(dSdp_rev*f.P_j[std_ind]-f.SA_j[std_ind] - cost_pl)
     # MR = -sum(f.dRdp_j.*f.ownMat,dims=2)[std_ind]
     # MC_std = -sum(f.dCdp_j.*f.ownMat,dims=2)[std_ind]
     # MC_RA = -sum(f.dCdp_pl_j.*f.ownMat,dims=2)[std_ind]
-    return Mkup, MR,MC_std[:],MC_RA[:]
+    return Mkup, MR,MC_std[:],MC_RA[:],ω
 end
 
 function prof_margin_raw(f::firmData,std_ind::Union{Vector{Int64},Missing}=missing)
@@ -207,7 +210,7 @@ end
 
 function checkMargin(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All",foc_check=true)
-    Mkup,MR,MC_std,MC_RA = prof_margin(f)
+    Mkup,MR,MC_std,MC_RA,ω = prof_margin(f)
     avgCost = f.C_j[f.prods]
     pooledCost = f.PC_j[f.prods]
     lives = f.S_j[f.prods]
@@ -233,9 +236,9 @@ end
 
 function setMarginCostAdjust!(m::InsuranceLogit,f::firmData)
     evaluate_model!(m,f,"All",foc_check=true)
-    Mkup,MR,MC_std,MC_RA = prof_margin(f)
+    Mkup,MR,MC_std,MC_RA,ω = prof_margin(f)
     
-    f.ω_j[f.prods] = MR .- MC_RA
+    f.ω_j[f.prods] = ω
     return nothing
 end
 
