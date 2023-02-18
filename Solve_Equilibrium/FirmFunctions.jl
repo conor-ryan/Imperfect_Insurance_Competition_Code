@@ -174,15 +174,15 @@ function prof_margin(f::firmData,std_ind::Union{Vector{Int64},Missing}=missing)
     end
     dSdp = (f.dSAdp_j.*f.ownMat)[std_ind,std_ind]
 
-    MR = inv(dSdp)*sum(f.dRdp_j.*f.ownMat,dims=2)[std_ind]
+    # MR = inv(dSdp)*sum(f.dRdp_j.*f.ownMat,dims=2)[std_ind]
     Mkup = -inv(dSdp)*f.SA_j[std_ind]
-    # MR = -inv(dSdp)*f.SA_j[std_ind]
+    MR = f.P_j[std_ind] .- inv(dSdp)*f.SA_j[std_ind]
 
-    cost_std = sum(f.dCdp_j[std_ind,std_ind].*f.ownMat[std_ind,std_ind],dims=2)
-    cost_pl = sum(f.dCdp_pl_j[std_ind,std_ind].*f.ownMat[std_ind,std_ind],dims=2)
+    cost_std = sum(f.dCdp_j[std_ind,std_ind].*f.ownMat[std_ind,std_ind],dims=2) + dSdp*f.ω_j[std_ind]
+    cost_pl = sum(f.dCdp_pl_j[std_ind,std_ind].*f.ownMat[std_ind,std_ind],dims=2) + dSdp*f.ω_j[std_ind]
 
-    MC_std = inv(dSdp)*cost_std
-    MC_RA = inv(dSdp)*cost_pl
+    MC_std = inv(dSdp)*cost_std 
+    MC_RA = inv(dSdp)*cost_pl 
     # MR = -sum(f.dRdp_j.*f.ownMat,dims=2)[std_ind]
     # MC_std = -sum(f.dCdp_j.*f.ownMat,dims=2)[std_ind]
     # MC_RA = -sum(f.dCdp_pl_j.*f.ownMat,dims=2)[std_ind]
