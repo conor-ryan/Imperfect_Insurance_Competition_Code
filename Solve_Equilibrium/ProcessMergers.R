@@ -24,10 +24,23 @@ prodData = merge(prodData,marketSize,by="Market")
 # test2 = merge(test2,prodData,by="Product")
 # 
 
-margins = fread("Estimation_Output/AllMergers_FMC-2022-12-26_Base_Marigins.csv")
+margins = fread("Estimation_Output/AllMergers_FMC-2022-12-26_Margins.csv")
 ggplot(margins) + aes(x=MR,y=MC_RA) + geom_point() + geom_abline() + geom_smooth(method="lm")
 margins[,omega:=MR-MC_RA]
 margins[,error_ratio:=omega/MC_RA]
+summary(margins)
+
+margins = fread("Estimation_Output/AllMergers_FMC-2022-12-26_Margins_Targeted.csv")
+ggplot(margins) + aes(x=MR,y=MC_RA) + geom_point() + geom_abline() + geom_smooth(method="lm")
+margins[,omega:=MR-MC_RA]
+margins[,error_ratio:=omega/MC_RA]
+summary(margins)
+
+margins = fread("Estimation_Output/AllMergers_FMC-2022-12-26_Margins_Model.csv")
+ggplot(margins) + aes(x=MR,y=MC_RA) + geom_point() + geom_abline() + geom_smooth(method="lm")
+margins[,omega:=MR-MC_RA]
+margins[,error_ratio:=omega/MC_RA]
+summary(margins)
 
 #### Testing ####
 #### Baseline Data
