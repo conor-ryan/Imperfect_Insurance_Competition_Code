@@ -278,6 +278,7 @@ function setMarginCostAdjust!(m::InsuranceLogit,f::firmData,file::String)
     MR = MR,
     MC_std = MC_std,
     MC_RA = MC_RA,
+    Lives = f.S_j[f.prods],
     omega = f.ω_j[f.prods])
     CSV.write(file,output)
     return nothing
