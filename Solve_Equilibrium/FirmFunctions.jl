@@ -273,7 +273,7 @@ function setMarginCostAdjust!(m::InsuranceLogit,f::firmData,file::String)
         f.ω_j[prod_ind] = firm_error./firm_lives
     end
     output =  DataFrame(Product=f.prods,
-    P_obs = P_obs,
+    P_obs = f.P_j[f.prods],
     Mkup = Mkup,
     MR = MR,
     MC_std = MC_std,
