@@ -189,7 +189,7 @@ function prof_margin(f::firmData,std_ind::Union{Vector{Int64},Missing}=missing)
     # MR = -sum(f.dRdp_j.*f.ownMat,dims=2)[std_ind]
     # MC_std = -sum(f.dCdp_j.*f.ownMat,dims=2)[std_ind]
     # MC_RA = -sum(f.dCdp_pl_j.*f.ownMat,dims=2)[std_ind]
-    return Mkup, MR,MC_std[:],MC_RA[:],ω
+    return Mkup, MR,MC_std[:],MC_RA[:],ω[:]
 end
 
 function prof_margin_raw(f::firmData,std_ind::Union{Vector{Int64},Missing}=missing)
