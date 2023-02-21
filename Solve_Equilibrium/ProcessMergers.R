@@ -31,7 +31,7 @@ margins[,error_ratio:=omega/MC_RA]
 summary(margins)
 
 margins = fread("Estimation_Output/AllMergers_FMC-2022-12-26_Margins_Set.csv")
-ggplot(margins) + aes(x=MR,y=MC_RA+omega,size=Lives) + geom_point() + geom_abline() + geom_smooth(method="lm")
+ggplot(margins) + aes(x=MR,y=MC_RA,size=Lives) + geom_point() + geom_abline() + geom_smooth(method="lm")
 summary(margins)
 
 margins = fread("Estimation_Output/AllMergers_FMC-2022-12-26_Margins_Targeted.csv")
@@ -41,7 +41,7 @@ margins[,error_ratio:=omega/MC_RA]
 summary(margins)
 
 margins = fread("Estimation_Output/AllMergers_FMC-2022-12-26_Margins_Model.csv")
-ggplot(margins) + aes(x=MR,y=MC_RA) + geom_point() + geom_abline() + geom_smooth(method="lm")
+ggplot(margins) + aes(x=MR,y=MC_RA,) + geom_point() + geom_abline() + geom_smooth(method="lm")
 margins[,omega:=MR-MC_RA]
 margins[,error_ratio:=omega/MC_RA]
 summary(margins)
@@ -91,7 +91,7 @@ for (policy in c("Base","RA","Man","RAMan")){
   hhi[,hhi_category:=factor(hhi_category,levels=c(0,1),
                             labels=c("HHI < 3500","HHI > 3500"))]
   baseline = merge(baseline,hhi,by=c("Market"))
-  baseline = baseline[grepl("GA",Market)]
+  # baseline = baseline[grepl("GA",Market)]
   baseline[,policy:=policy]
   print(baseline[,mean(Price),by="Metal_std"])
   basedata = rbind(basedata,baseline)
