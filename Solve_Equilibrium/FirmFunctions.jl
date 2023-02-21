@@ -254,7 +254,8 @@ function testMarginModel(m::InsuranceLogit,f::firmData,file::String)
                         pooledCost = pooledCost,
                         lives=lives,
                         avgR = avgR,
-                        ageRate=ageRate)
+                        ageRate=ageRate,
+                        omega = ω)
 
     CSV.write(file,output)
     return nothing

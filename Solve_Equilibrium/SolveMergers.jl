@@ -625,8 +625,8 @@ function simulate_all_mergers(m::InsuranceLogit,
     # ## Solve Baseline Model
     println("Solve Baseline Model")
     if policy=="Base" # Solve baseline model with vouchers adjusting on prices
-        # solve_model_parallel!(m,f,sim=sim,voucher=voucher)
-        solve_model!(m,f,sim=sim,voucher=voucher)
+        solve_model_parallel!(m,f,sim=sim,voucher=voucher)
+        # solve_model!(m,f,sim=sim,voucher=voucher)
         P_Base[:] = f.P_j[:]
         evaluate_model!(m,f,"All",voucher=voucher)
         set_voucher!(f,refund=true)
@@ -638,8 +638,8 @@ function simulate_all_mergers(m::InsuranceLogit,
         evaluate_model!(m,f,"All",voucher=voucher)
         set_voucher!(f,refund=true)
 
-        # solve_model_parallel!(m,f,sim=sim,voucher=voucher,update_voucher=update_voucher)
-        solve_model!(m,f,sim=sim,voucher=voucher)
+        solve_model_parallel!(m,f,sim=sim,voucher=voucher,update_voucher=update_voucher)
+        # solve_model!(m,f,sim=sim,voucher=voucher)
         P_Base[:] = f.P_j[:]
         evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
     end
@@ -744,19 +744,19 @@ function simulate_all_mergers(m::InsuranceLogit,
             push!(shared_market_list,shared_markets)
         end
     end
-    println("Send to Iteration Parameters to Workers")
-    # sendto(workers(),merging_party_list,file_stub,update_voucher)
-    @eval @everywhere merging_party_list=$merging_party_list
-    @eval @everywhere shared_state_list=$shared_state_list
-    @eval @everywhere shared_market_list=$shared_market_list
-    @eval @everywhere file_stub=$file_stub
-    @eval @everywhere update_voucher=$update_voucher
-    @eval @everywhere voucher=$voucher
-    @eval @everywhere home_directory=$home_directory
-    @eval @everywhere spec=$spec
-    @eval @everywhere rundate=$rundate
-    @eval @everywhere sim=$sim
-    println("Data Distributed")
+    # println("Send to Iteration Parameters to Workers")
+    # # sendto(workers(),merging_party_list,file_stub,update_voucher)
+    # @eval @everywhere merging_party_list=$merging_party_list
+    # @eval @everywhere shared_state_list=$shared_state_list
+    # @eval @everywhere shared_market_list=$shared_market_list
+    # @eval @everywhere file_stub=$file_stub
+    # @eval @everywhere update_voucher=$update_voucher
+    # @eval @everywhere voucher=$voucher
+    # @eval @everywhere home_directory=$home_directory
+    # @eval @everywhere spec=$spec
+    # @eval @everywhere rundate=$rundate
+    # @eval @everywhere sim=$sim
+    # println("Data Distributed")
 
     # @sync @distributed for i in eachindex(merging_party_list)
     # @sync @distributed for i in eachindex(merging_party_list[1:12])
