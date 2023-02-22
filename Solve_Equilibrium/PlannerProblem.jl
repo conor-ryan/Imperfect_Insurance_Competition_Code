@@ -453,7 +453,7 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
     itr_cnt = 0
 
     stp = zeros(length(f.P_j[:]))
-    initial_stp = 0.001
+    initial_stp = 0.05
     stp[:].=initial_stp
 
     dProf_last = zeros(length(f.P_j[:]))
@@ -475,7 +475,7 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         dProf[ChokePrice].= 0.0
         prod_ind_ne = prod_ind[f.S_j[prod_ind].>exit_thresh]
 
-        stp[prod_ind_ne] = stp[prod_ind_ne].*(1.2)
+        stp[prod_ind_ne] = stp[prod_ind_ne].*(1.1)
         slow_down = ((dProf_last.>0.0) .& (dProf.<0.0)) .| ((dProf_last.<0.0) .& (dProf.>0.0))
 
         stp[slow_down].=initial_stp
