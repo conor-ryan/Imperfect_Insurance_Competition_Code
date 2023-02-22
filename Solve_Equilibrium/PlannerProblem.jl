@@ -264,7 +264,7 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
         end
 
         f.P_j[:] = p_init[:]
-        solve_model_mkt!(m,f,mkt,λ=λ_new,sim=sim,merg="SP",tol=tol,voucher=true,update_voucher=false)
+        solve_model_mkt!(m,f,mkt,λ=λ_new,tol=tol,voucher=true,update_voucher=false)
         # println("Price vector ($λ_new): $(f.P_j[f.mkt_index[mkt]])")
         profits = market_profits(m,f)
         Π_new = profits[mkt]
@@ -486,7 +486,7 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         dProf_last[:] = copy(dProf[:])
         
         err_new = sum(dProf[prod_ind_ne].^2)/length(prod_ind_ne)
-        println("Market: $mkt, Iteration Count: $itr_cnt, Error: $err_new, Mean Step: $(mean(stp[prod_ind_ne]))")
+        # println("Market: $mkt, Iteration Count: $itr_cnt, Error: $err_new, Mean Step: $(mean(stp[prod_ind_ne]))")
     end
     println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
     return nothing
