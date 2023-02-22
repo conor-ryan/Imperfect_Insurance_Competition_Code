@@ -453,8 +453,8 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
     itr_cnt = 0
 
     stp = zeros(length(f.P_j[:]))
-    initial_stp = 0.001
-    stp[:].=initial_stp
+    initial_stp = 0.0001
+    stp[:].=0.001
 
     dProf_last = zeros(length(f.P_j[:]))
     prod_ind = f.mkt_index[mkt]
