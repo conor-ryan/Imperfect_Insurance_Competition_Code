@@ -664,8 +664,8 @@ function simulate_all_mergers(m::InsuranceLogit,
 
     # Solve Baseline Social Planner Problem
     println("Solve Baseline Planner Problem")
-    # solve_SP_parallel!(m,f,voucher=voucher,update_voucher=update_voucher,markets=[4,5,6,7,8,9,10,11,12,13,14])
-    solve_SP!(m,f,voucher=voucher,update_voucher=update_voucher)
+    solve_SP_parallel!(m,f,voucher=voucher,update_voucher=update_voucher,markets=[4,5,6,7,8,9,10,11,12,13,14])
+    # solve_SP!(m,f,voucher=voucher,update_voucher=update_voucher)
     evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
 
     # consumer_welfare(m,f,"$(file_stub)_SP_baseline",spec,rundate)

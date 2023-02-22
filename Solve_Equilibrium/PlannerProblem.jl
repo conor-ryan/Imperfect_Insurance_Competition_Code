@@ -122,7 +122,7 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
                 sim="SPλ",merg::String="SP",
                 CW_target::Vector{Float64}=Vector{Float64}(undef,0),
                 markets=Vector{Int}(undef,0),
-                tol::Float64=1e-12,voucher=false,update_voucher=true)
+                tol::Float64=1e-8,voucher=false,update_voucher=true)
 
     println("Send Data to Workers")
     @eval @everywhere m=$m
@@ -176,7 +176,7 @@ function solve_SP_λ_parallel_st!(m::InsuranceLogit, f::firmData, Π_target::Dic
     sim="SPλ", merg::String="SP",
     CW_target::Vector{Float64}=Vector{Float64}(undef, 0),
     states=Vector{String}(undef, 0),
-    tol::Float64=1e-12, voucher=false, update_voucher=true)
+    tol::Float64=1e-8, voucher=false, update_voucher=true)
 
     println("Send Data to Workers")
     @eval @everywhere m = $m
@@ -392,7 +392,7 @@ function find_λ_st(m::InsuranceLogit,f::firmData,ST::String,
 end
 
 function solve_SP!(m::InsuranceLogit,f::firmData;
-                sim="SP",merg::String="SP",tol::Float64=1e-12,voucher=false,update_voucher=true)
+                sim="SP",merg::String="SP",tol::Float64=1e-8,voucher=false,update_voucher=true)
     # P_res = zeros(length(f.P_j))
     markets = sort(Int.(keys(f.mkt_index)))
     for mkt in markets
@@ -408,7 +408,7 @@ function solve_SP!(m::InsuranceLogit,f::firmData;
 end
 
 function solve_SP_parallel!(m::InsuranceLogit,f::firmData;
-                sim="SP",merg::String="SP",tol::Float64=1e-12,markets=Vector{Int}(undef,0),voucher=false,update_voucher=true)
+                sim="SP",merg::String="SP",tol::Float64=1e-8,markets=Vector{Int}(undef,0),voucher=false,update_voucher=true)
     println("Send Data to Workers")
     @eval @everywhere m=$m
     @eval @everywhere f=$f
@@ -453,7 +453,7 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
     itr_cnt = 0
 
     stp = zeros(length(f.P_j[:]))
-    initial_stp = 0.0001
+    initial_stp = 0.001
     stp[:].=0.001
 
     dProf_last = zeros(length(f.P_j[:]))
@@ -475,7 +475,7 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         dProf[ChokePrice].= 0.0
         prod_ind_ne = prod_ind[f.S_j[prod_ind].>exit_thresh]
 
-        stp[prod_ind_ne] = stp[prod_ind_ne].*(1.5)
+        stp[prod_ind_ne] = stp[prod_ind_ne].*(1.2)
         slow_down = ((dProf_last.>0.0) .& (dProf.<0.0)) .| ((dProf_last.<0.0) .& (dProf.>0.0))
 
         stp[slow_down].=initial_stp
@@ -486,7 +486,7 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         dProf_last[:] = copy(dProf[:])
         
         err_new = sum(dProf[prod_ind_ne].^2)/length(prod_ind_ne)
-        println("Iteration Count: $itr_cnt, Error: $err_new, Mean Step: $(mean(stp[prod_ind_ne]))")
+        # println("Iteration Count: $itr_cnt, Error: $err_new, Mean Step: $(mean(stp[prod_ind_ne]))")
     end
     println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
     return nothing
