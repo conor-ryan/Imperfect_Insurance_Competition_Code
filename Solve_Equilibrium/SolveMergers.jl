@@ -662,20 +662,20 @@ function simulate_all_mergers(m::InsuranceLogit,
     println("Total Fixed Voucher: $(sum(f.subsidy_ij_voucher))")
 
 
-    # # Solve Baseline Social Planner Problem
-    # println("Solve Baseline Planner Problem")
-    # solve_SP_parallel!(m,f,voucher=voucher,update_voucher=update_voucher,markets=[4,5,6,7,8,9,10,11,12,13,14])
-    # evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
+    # Solve Baseline Social Planner Problem
+    println("Solve Baseline Planner Problem")
+    solve_SP_parallel!(m,f,voucher=voucher,update_voucher=update_voucher,markets=[4,5,6,7,8,9,10,11,12,13,14])
+    evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
 
-    # # consumer_welfare(m,f,"$(file_stub)_SP_baseline",spec,rundate)
-    # trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_baseline",spec,rundate,update_voucher=update_voucher)
+    # consumer_welfare(m,f,"$(file_stub)_SP_baseline",spec,rundate)
+    trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_baseline",spec,rundate,update_voucher=update_voucher)
 
-    # # Output Baseline SP Model
-    # file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_baseline.csv"
-    # output =  DataFrame(Product=prod_vec,
-    #                     Price=f.P_j,
-    #                     Lives=f.S_j)
-    # CSV.write(file,output)
+    # Output Baseline SP Model
+    file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_baseline.csv"
+    output =  DataFrame(Product=prod_vec,
+                        Price=f.P_j,
+                        Lives=f.S_j)
+    CSV.write(file,output)
 
     println("Total Voucher: $(sum(f.subsidy_ij))")
     println("Total Fixed Voucher: $(sum(f.subsidy_ij_voucher))")
@@ -685,9 +685,9 @@ function simulate_all_mergers(m::InsuranceLogit,
     println("Solve Baseline Current Profit Planner Problem")
     # markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits,markets=[1])
     
-    markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits)
+    # markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits)
     # GA Only
-    # markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits,markets=[4,5,6,7,8,9,10,11,12,13,14])
+    markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits,markets=[4,5,6,7,8,9,10,11,12,13,14])
     # markets_cp, λ_vec_cp = solve_SP_λ_st!(m,f,base_profits_st,states=["GA"])
     evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
     P_Base_SP_cp[:] = f.P_j[:]
