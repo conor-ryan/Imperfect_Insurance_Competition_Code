@@ -495,7 +495,7 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         # println("dProf: $(round.(dProf[prod_ind]))")
         # println("Step: $(round.(stp[prod_ind],digits=4))")
     end
-    println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
+    # println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
     return nothing
 end
 
