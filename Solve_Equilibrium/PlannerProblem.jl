@@ -449,15 +449,16 @@ end
 function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         λ::Float64=0.0,tol::Float64=1e-12,voucher=true,update_voucher=false)
     err_new = 1
-    err_last = 1
+
     itr_cnt = 0
+
     stp = zeros(length(f.P_j[:]))
     initial_stp = 0.001
     stp[:].=initial_stp
-    no_prog_cnt = 0
-    no_prog = 0
+
     dProf_last = zeros(length(f.P_j[:]))
-    P_new_last = zeros(length(f.P_j[:]))
+    prod_ind = f.mkt_index[mkt]
+
     while err_new>tol
         itr_cnt+=1
         # println("Evaluate Model")
@@ -469,14 +470,9 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
 
         ### 0 Market Share
         exit_thresh = 1.0
-        ProdExit = f.S_j.< exit_thresh
         choke_point = 0.5
         ChokePrice = f.S_j.< choke_point
         dProf[ChokePrice] .= 0.0
-
-
-        
-
 
         stp = stp.*(1.2)
         slow_down = ((dProf_last.>0.0) .& (dProf.<0.0)) | ((dProf_last.<0.0) .& (dProf.>0.0))
