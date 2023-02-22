@@ -445,3 +445,39 @@ function foc_error(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.
 
     return foc_err, err_new, tot_err, P_new
 end
+
+function foc_error_planner(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base",voucher::Bool=false)
+
+    P_new = predict_price(f,prod_ind,sim=sim,merg=merg,λ=λ,voucher=voucher)
+    tot_err = (P_new[prod_ind] - f.P_j[prod_ind])./100
+
+    non_prods = .!(inlist(Int.(1:length(P_new)),prod_ind))
+
+    ### 0 Market Share
+    exit_thresh = 1.0
+    ProdExit = f.S_j.< exit_thresh
+    choke_point = 0.5
+    ChokePrice = f.S_j.< choke_point
+    P_new[ChokePrice] = min.(f.P_j[ChokePrice],P_new[ChokePrice])
+
+    if any(ProdExit[prod_ind])
+        exited = length(findall(ProdExit[prod_ind]))
+        choked = length(findall(ChokePrice[prod_ind]))
+        all = length(prod_ind)
+    end
+
+    ## Error in Prices
+    prod_ind_ne = prod_ind[f.S_j[prod_ind].>exit_thresh]
+    foc_err = (P_new[prod_ind_ne] - f.P_j[prod_ind_ne])./100
+
+
+    err_new = sum(foc_err.^2)/length(prod_ind_ne)
+    tot_err = sum(tot_err.^2)/length(prod_ind)
+
+    ### New Prices
+    P_new[non_prods] = f.P_j[non_prods]
+    P_update = f.P_j.*(1-stp) + stp.*P_new
+    P_update[non_prods] = f.P_j[non_prods]
+
+    return foc_err, err_new, tot_err, P_new
+end
