@@ -662,21 +662,21 @@ function simulate_all_mergers(m::InsuranceLogit,
     println("Total Fixed Voucher: $(sum(f.subsidy_ij_voucher))")
 
 
-    # # Solve Baseline Social Planner Problem
-    # println("Solve Baseline Planner Problem")
-    # solve_SP_parallel!(m,f,voucher=voucher,update_voucher=update_voucher,markets=[4,5,6,7,8,9,10,11,12,13,14])
-    # # solve_SP!(m,f,voucher=voucher,update_voucher=update_voucher)
-    # evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
+    # Solve Baseline Social Planner Problem
+    println("Solve Baseline Planner Problem")
+    solve_SP_parallel!(m,f,voucher=voucher,update_voucher=update_voucher,markets=[4,5,6,7,8,9,10,11,12,13,14])
+    # solve_SP!(m,f,voucher=voucher,update_voucher=update_voucher)
+    evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
 
-    # # consumer_welfare(m,f,"$(file_stub)_SP_baseline",spec,rundate)
-    # trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_baseline",spec,rundate,update_voucher=update_voucher)
+    # consumer_welfare(m,f,"$(file_stub)_SP_baseline",spec,rundate)
+    trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_baseline",spec,rundate,update_voucher=update_voucher)
 
-    # # Output Baseline SP Model
-    # file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_baseline.csv"
-    # output =  DataFrame(Product=prod_vec,
-    #                     Price=f.P_j,
-    #                     Lives=f.S_j)
-    # CSV.write(file,output)
+    # Output Baseline SP Model
+    file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_baseline.csv"
+    output =  DataFrame(Product=prod_vec,
+                        Price=f.P_j,
+                        Lives=f.S_j)
+    CSV.write(file,output)
 
     # println("Total Voucher: $(sum(f.subsidy_ij))")
     # println("Total Fixed Voucher: $(sum(f.subsidy_ij_voucher))")
