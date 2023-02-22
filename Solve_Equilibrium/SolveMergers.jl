@@ -586,14 +586,14 @@ function simulate_all_mergers(m::InsuranceLogit,
 
     # Initialize Firm Data
     f = firmData(m,df,mkt,par_dem,par_cost)
-    if policy=="Base"
-        checkMargin(m,f,"$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub_short)_Margins.csv")
-    end
+    # if policy=="Base"
+    #     checkMargin(m,f,"$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub_short)_Margins.csv")
+    # end
     setMarginCostAdjust!(m,f,"$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub_short)_Margins_Set.csv")
-    if policy=="Base"
-        checkMargin(m,f,"$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub_short)_Margins_Targeted.csv")
-        testMarginModel(m,f,"$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub_short)_Margins_Model.csv")
-    end
+    # if policy=="Base"
+    #     checkMargin(m,f,"$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub_short)_Margins_Targeted.csv")
+    #     testMarginModel(m,f,"$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub_short)_Margins_Model.csv")
+    # end
 
 
     # Policy Regime
