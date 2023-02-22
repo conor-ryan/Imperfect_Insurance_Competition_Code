@@ -52,24 +52,24 @@ function product_profits(d::InsuranceLogit,f::firmData;sim="Base")
     wgts_long = weight(d.data)[:]
     prod_long = Int.(product(d.data))
 
-    for idxitr in values(d.data._personDict)
-        prod_ids =prod_long[idxitr]
+    # for idxitr in values(d.data._personDict)
+    #     prod_ids =prod_long[idxitr]
 
-        s_pred = f.s_pred[idxitr]
-        rev = f.Rev_ij[idxitr]
-        wgt = wgts_long[idxitr]
+    #     s_pred = f.s_pred[idxitr]
+    #     rev = f.Rev_ij[idxitr]
+    #     wgt = wgts_long[idxitr]
 
 
-        for k in 1:length(prod_ids)
-            j = prod_ids[k]
-            Revenue[j] += wgt[k]*s_pred[k]*rev[k]
-        end
-    end
+    #     for k in 1:length(prod_ids)
+    #         j = prod_ids[k]
+    #         Revenue[j] += wgt[k]*s_pred[k]*rev[k]
+    #     end
+    # end
 
     if sim=="RA"
-        Profit = Revenue - f.C_j.*f.S_j
+        Profit = f.SA_j.*f.P_j - f.C_j.*f.S_j
     elseif sim=="Base"
-        Profit = Revenue - f.PC_j.*f.S_j
+        Profit = f.SA_j.*f.P_j - f.PC_j.*f.S_j
     end
 
     return Profit
