@@ -1,33 +1,32 @@
 function market_profits(d::InsuranceLogit,f::firmData)
     J = maximum(d.prods)
-    Revenue = zeros(J)
-    Cost = zeros(J)
-    Share = zeros(J)
+    # Revenue = zeros(J)
+    # Cost = zeros(J)
+    # Share = zeros(J)
 
-    Market_Total = zeros(J)
+    # Market_Total = zeros(J)
 
-    wgts_long = weight(d.data)[:]
-    prod_long = Int.(product(d.data))
+    # wgts_long = weight(d.data)[:]
+    # prod_long = Int.(product(d.data))
 
-    for idxitr in values(d.data._personDict)
-        # prod_ids = f.stdMap[prod_long[idxitr]]
-        prod_ids =prod_long[idxitr]
-        catas = findall(inlist(prod_ids,f.catas_prods))
+    # for idxitr in values(d.data._personDict)
+    #     # prod_ids = f.stdMap[prod_long[idxitr]]
+    #     prod_ids =prod_long[idxitr]
+    #     catas = findall(inlist(prod_ids,f.catas_prods))
 
-        s_pred = f.s_pred[idxitr]
-        cost = f.c_pred[idxitr]
-        rev = f.Rev_ij[idxitr]
-        wgt = wgts_long[idxitr]
+    #     s_pred = f.s_pred[idxitr]
+    #     cost = f.c_pred[idxitr]
+    #     rev = f.Rev_ij[idxitr]
+    #     wgt = wgts_long[idxitr]
 
 
-        for k in 1:length(prod_ids)
-            j = prod_ids[k]
-            Revenue[j] += wgt[k]*s_pred[k]*rev[k]
-            Cost[j] += wgt[k]*s_pred[k]*cost[k]
-        end
-    end
+    #     for k in 1:length(prod_ids)
+    #         j = prod_ids[k]
+    #         Revenue[j] += wgt[k]*s_pred[k]*rev[k]
+    #     end
+    # end
 
-    Profit = Revenue - Cost
+    Profit = f.SA_j.*f.P_j .- f.C_j.*f.S_j
 
     market_profits = Vector{Float64}(undef,length(keys(f.mkt_index)))
     for (m,m_idx) in f.mkt_index
@@ -143,7 +142,7 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
     λ_vec = SharedArray{Float64}(maximum(markets))
     @sync @distributed for mkt in markets
         println("Solving for $mkt")
-        # println("Profit Target: $(Π_target[mkt])")
+        println("Profit Target: $(Π_target[mkt])")
         # profits = market_profits(m,f)
 
         λ = find_λ(m,f,mkt,Π_target[mkt])
@@ -494,7 +493,7 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         println("Market: $mkt, Iteration Count: $itr_cnt, Error: $err_new, Mean Step: $(mean(stp[prod_ind_ne])), Profit: $(profits[mkt])")
         println("Prices: $(round.(f.P_j[prod_ind]))")
         println("dProf: $(round.(dProf[prod_ind]))")
-        println("Step: $(round.(stp[prod_ind]))")
+        println("Step: $(round.(stp[prod_ind],digits=4))")
     end
     println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
     return nothing
