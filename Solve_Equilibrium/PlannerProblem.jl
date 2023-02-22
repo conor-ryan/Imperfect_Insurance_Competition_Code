@@ -488,6 +488,8 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         err_new = sum(dProf[prod_ind_ne].^2)/length(prod_ind_ne)
         profits = market_profits(m,f)
         println("Market: $mkt, Iteration Count: $itr_cnt, Error: $err_new, Mean Step: $(mean(stp[prod_ind_ne])), Profit: $(profits[mkt])")
+        println("Prices: $(round.(f.P_j[prod_ind]))")
+        println("Lives: $(round.(f.S_j[prod_ind]))")
     end
     println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
     return nothing
