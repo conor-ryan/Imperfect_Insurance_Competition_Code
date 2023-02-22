@@ -463,7 +463,7 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         # println("Update Price")
 
 
-        foc_err, err_new, tot_err,P_new = foc_error(f,mkt,stp,λ=λ,sim=sim,merg=merg,voucher=voucher)
+        foc_err, err_new, tot_err,P_new = foc_error_planner(f,mkt,stp,λ=λ,sim=sim,merg=merg,voucher=voucher)
 
 
         P_last[:] = copy(f.P_j[:])
