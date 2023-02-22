@@ -446,6 +446,16 @@ function foc_error(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.
     return foc_err, err_new, tot_err, P_new
 end
 
+function foc_error_planner(f::firmData,ST::String,stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base",voucher::Bool=false)
+    prod_ind = f._prodSTDict[ST]
+    return foc_error_planner(f,prod_ind,stp,λ=λ,sim=sim,merg=merg,voucher=voucher)
+end
+
+function foc_error_planner(f::firmData,mkt::Int,stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base",voucher::Bool=false)
+    prod_ind = f.mkt_index[mkt]
+    return foc_error_planner(f,prod_ind,stp,λ=λ,sim=sim,merg=merg,voucher=voucher)
+end
+
 function foc_error_planner(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base",voucher::Bool=false)
 
     P_new = predict_price(f,prod_ind,sim=sim,merg=merg,λ=λ,voucher=voucher)
