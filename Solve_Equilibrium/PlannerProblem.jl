@@ -472,9 +472,10 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         exit_thresh = 1.0
         choke_point = 0.5
         ChokePrice = f.S_j.< choke_point
-        dProf[ChokePrice] .= 0.0
+        dProf[ChokePrice].= 0.0
+        prod_ind_ne = prod_ind[f.S_j[prod_ind].>exit_thresh]
 
-        stp = stp.*(1.2)
+        stp[prod_ind_ne] = stp[prod_ind_ne].*(1.2)
         slow_down = ((dProf_last.>0.0) .& (dProf.<0.0)) | ((dProf_last.<0.0) .& (dProf.>0.0))
 
         stp[slow_down].=initial_stp
@@ -483,7 +484,6 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         f.P_j[:] = f.P_j[:] .+ update[:]
 
         dProf_last[:] = copy(dProf[:])
-        prod_ind_ne = prod_ind[f.S_j[prod_ind].>exit_thresh]
         
         err_new = sum(dProf[prod_ind_ne].^2)/length(prod_ind_ne)
         println("Iteration Count: $itr_cnt, Error: $err_new, Mean Step: $(mean(stp[prod_ind_ne]))")
@@ -568,13 +568,6 @@ function evaluate_FOC_planner(f::firmData,std_ind::Vector{Int64},λ::Float64;vou
 
     cost_std = sum(f.dCdp_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
     SA = f.SA_j[std_ind]
-
-    P_std[std_ind]= inv(dSdp)*(-SA + cost_std)
-    P_RA[std_ind] = inv(dSdp)*(-SA + cost_pl)
-
-    Mkup[std_ind] = inv(dSdp)*(-SA)
-    MC[std_ind] = inv(dSdp)*(cost_std)
-    dSubs[std_ind] = inv(dSdp)*sum(f.dSubdp_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
 
 
     dProf[std_ind] = dSdp*f.P_j[std_ind] - cost_std + λ.*SA
