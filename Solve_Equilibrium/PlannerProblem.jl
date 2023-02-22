@@ -142,7 +142,7 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
     λ_vec = SharedArray{Float64}(maximum(markets))
     @sync @distributed for mkt in markets
         println("Solving for $mkt")
-        println("Profit Target: $(Π_target[mkt])")
+        # println("Profit Target: $(Π_target[mkt])")
         # profits = market_profits(m,f)
 
         λ = find_λ(m,f,mkt,Π_target[mkt])
@@ -490,10 +490,10 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         
         err_new = sum(dProf[prod_ind_ne].^2)/length(prod_ind_ne)
         profits = market_profits(m,f)
-        println("Market: $mkt, Iteration Count: $itr_cnt, Error: $err_new, Mean Step: $(mean(stp[prod_ind_ne])), Profit: $(profits[mkt])")
-        println("Prices: $(round.(f.P_j[prod_ind]))")
-        println("dProf: $(round.(dProf[prod_ind]))")
-        println("Step: $(round.(stp[prod_ind],digits=4))")
+        # println("Market: $mkt, Iteration Count: $itr_cnt, Error: $err_new, Mean Step: $(mean(stp[prod_ind_ne])), Profit: $(profits[mkt])")
+        # println("Prices: $(round.(f.P_j[prod_ind]))")
+        # println("dProf: $(round.(dProf[prod_ind]))")
+        # println("Step: $(round.(stp[prod_ind],digits=4))")
     end
     println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
     return nothing
