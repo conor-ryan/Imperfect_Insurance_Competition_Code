@@ -483,7 +483,9 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         update = stp.*dProf 
         update[update.>10].=10.0
         update[update.< -10].= -10.0
-        f.P_j[:] = f.P_j[:] .+ update[:]
+        update_test = zeros(length(update))
+        update_test[2324] = update[2324]
+        f.P_j[:] = f.P_j[:] .+ update_test[:]
 
         dProf_last[:] = copy(dProf[:])
         
