@@ -481,6 +481,8 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         stp[slow_down].=initial_stp
         stp[ChokePrice] .=initial_stp
         update = stp.*dProf 
+        update[update.>10].=10.0
+        update[update.< -10].= -10.0
         f.P_j[:] = f.P_j[:] .+ update[:]
 
         dProf_last[:] = copy(dProf[:])
