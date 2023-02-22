@@ -400,7 +400,7 @@ function solve_SP!(m::InsuranceLogit,f::firmData;
         #     continue
         # end
         println("Solving for $mkt")
-        solve_model_mkt!(m,f,mkt,sim=sim,merg=merg,tol=tol,voucher=voucher,update_voucher=update_voucher)
+        solve_model_mkt!(m,f,mkt,tol=tol,voucher=voucher,update_voucher=update_voucher)
         # P_res[f._prodSTDict[s]] = f.P_j[f._prodSTDict[s]]
     end
     # f.P_j[:] = P_res[:]
@@ -447,14 +447,16 @@ end
 
 
 function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
-        λ::Float64=0.0,sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=true,update_voucher=false)
+        λ::Float64=0.0,tol::Float64=1e-12,voucher=true,update_voucher=false)
     err_new = 1
     err_last = 1
     itr_cnt = 0
-    stp = 0.05
+    stp = zeros(length(f.P_j[:]))
+    initial_stp = 0.001
+    step[:].=initial_stp
     no_prog_cnt = 0
     no_prog = 0
-    P_last = zeros(length(f.P_j[:]))
+    dProf_last = zeros(length(f.P_j[:]))
     P_new_last = zeros(length(f.P_j[:]))
     while err_new>tol
         itr_cnt+=1
@@ -463,51 +465,34 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         # println("Update Price")
 
 
-        foc_err, err_new, tot_err,P_new = foc_error_planner(f,mkt,stp,λ=λ,sim=sim,merg=merg,voucher=voucher)
+        dProf = evaluate_FOC_planner(f,prod_ind,λ,voucher=voucher)
+
+        ### 0 Market Share
+        exit_thresh = 1.0
+        ProdExit = f.S_j.< exit_thresh
+        choke_point = 0.5
+        ChokePrice = f.S_j.< choke_point
+        dProf[ChokePrice] .= 0.0
 
 
-        P_last[:] = copy(f.P_j[:])
-        P_new_last[:] = copy(P_new[:])
-        update = stp.*(P_new[:] .- f.P_j[:])
-        # update[abs.(update).>50].=50 .*sign.(update[abs.(update).>50])
+        
+
+
+        stp = stp.*(1.2)
+        slow_down = ((dProf_last.>0.0) .& (dProf.<0.0)) | ((dProf_last.<0.0) .& (dProf.>0.0))
+
+        stp[slow_down].=initial_stp
+        stp[ChokePrice] .=initial_stp
+        update = stp.*dProf 
         f.P_j[:] = f.P_j[:] .+ update[:]
-        # println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
-        # println(foc_err)
-        # println(P_new[f.mkt_index[mkt]])
-        # println(f.P_j[f.mkt_index[mkt]])
 
-        if stp==1.0
-            stp = .001
-        end
-        stp = max(stp,1e-6)
-        if stp<.05
-            if err_new>1e-3
-                stp = stp*1.1
-            else
-                stp = stp*1.1
-            end
-        elseif stp<.25
-            stp = stp*(1.1)
-        elseif stp<.75
-            stp=stp*(1.1)
-        end
-
-        if ((err_new>err_last) & (no_prog==0)) | ((err_new<err_last) & (no_prog==1))
-            stp = .05
-            # if (itr_cnt>100) & (rand()<.2)
-            #     stp = 1.0
-            # end
-        end
-        if err_new>err_last
-            no_prog = 1
-        else
-            no_prog=0
-        end
-
-        err_last = copy(err_new)
-        # println(P_last)
+        dProf_last[:] = copy(dProf[:])
+        prod_ind_ne = prod_ind[f.S_j[prod_ind].>exit_thresh]
+        
+        err_new = sum(dProf[prod_ind_ne].^2)/length(prod_ind_ne)
+        println("Iteration Count: $itr_cnt, Error: $err_new, Mean Step: $(mean(stp[prod_ind_ne]))")
     end
-    # println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
+    println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
     return nothing
 end
 
@@ -571,4 +556,67 @@ function solve_model_st!(m::InsuranceLogit, f::firmData, ST::String,λ::Float64;
         err_last = copy(err_new)
     end
     return nothing
+end
+
+function evaluate_FOC_planner(f::firmData,std_ind::Vector{Int64},λ::Float64;voucher::Bool=false)
+    dProf = zeros(length(f.P_j))
+
+    ownershipMatrix = ones(size(f.ownMat))
+
+
+    if voucher
+        dSdp = (f.dSAdp_j.*ownershipMatrix)[std_ind,std_ind]
+    else
+        dSdp = ((f.dSAdp_j - f.bench_prods.*f.dMAdp_j).*ownershipMatrix)[std_ind,std_ind]
+    end
+
+    cost_std = sum(f.dCdp_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
+    SA = f.SA_j[std_ind]
+
+    P_std[std_ind]= inv(dSdp)*(-SA + cost_std)
+    P_RA[std_ind] = inv(dSdp)*(-SA + cost_pl)
+
+    Mkup[std_ind] = inv(dSdp)*(-SA)
+    MC[std_ind] = inv(dSdp)*(cost_std)
+    dSubs[std_ind] = inv(dSdp)*sum(f.dSubdp_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
+
+
+    dProf[std_ind] = dSdp*f.P_j[std_ind] - cost_std + λ.*SA
+
+    return dProf
+end
+
+function foc_error_planner(f::firmData,ST::String,stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base",voucher::Bool=false)
+    prod_ind = f._prodSTDict[ST]
+    return foc_error_planner(f,prod_ind,stp,λ=λ,sim=sim,merg=merg,voucher=voucher)
+end
+
+function foc_error_planner(f::firmData,mkt::Int,stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base",voucher::Bool=false)
+    prod_ind = f.mkt_index[mkt]
+    return foc_error_planner(f,prod_ind,stp,λ=λ,sim=sim,merg=merg,voucher=voucher)
+end
+
+function foc_error_planner(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.0,voucher::Bool=false)
+
+    dProf = evaluate_FOC_planner(f,prod_ind,λ,voucher=voucher)
+    tot_err = (P_new[prod_ind] - f.P_j[prod_ind])./100
+
+    non_prods = .!(inlist(Int.(1:length(P_new)),prod_ind))
+
+
+
+    ## Error in Prices
+    prod_ind_ne = prod_ind[f.S_j[prod_ind].>exit_thresh]
+    foc_err = (P_new[prod_ind_ne] - f.P_j[prod_ind_ne])./100
+
+
+    err_new = sum(foc_err.^2)/length(prod_ind_ne)
+    tot_err = sum(tot_err.^2)/length(prod_ind)
+
+    ### New Prices
+    P_new[non_prods] = f.P_j[non_prods]
+    P_update = f.P_j.*(1-stp) + stp.*P_new
+    P_update[non_prods] = f.P_j[non_prods]
+
+    return foc_err, err_new, tot_err, P_new
 end
