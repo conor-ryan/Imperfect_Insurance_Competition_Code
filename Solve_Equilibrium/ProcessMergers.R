@@ -91,7 +91,7 @@ for (policy in c("Base","RA","Man","RAMan")){
   hhi[,hhi_category:=factor(hhi_category,levels=c(0,1),
                             labels=c("HHI < 3500","HHI > 3500"))]
   baseline = merge(baseline,hhi,by=c("Market"))
-  # baseline = baseline[grepl("GA",Market)]
+  baseline = baseline[grepl("GA",Market)]
   baseline[,policy:=policy]
   print(baseline[,mean(Price),by="Metal_std"])
   basedata = rbind(basedata,baseline)
@@ -99,7 +99,7 @@ for (policy in c("Base","RA","Man","RAMan")){
 }
 
 
-ggplot(basedata[policy=="Base"])+ 
+ggplot(basedata[policy=="Base"&grepl("GA",Market)])+ 
   geom_point(aes(x=Price,y=Price_CP),color="blue") +
   geom_point(aes(x=Price,y=Price_SP)) + geom_abline()
 
@@ -230,8 +230,8 @@ for (policy in c("Base","RA","Man","RAMan")){
       
       postmerge[Firm%in%c(m1,m2),Firm:=merging_parties]
       postmerge[,parties_indicator:=as.numeric(Firm==merging_parties)]
-      postmerge[,pre_profit_firm:=sum(Profit),by=c("Firm","ST")]
-      postmerge[,post_profit_firm:=sum(Profit_merge),by=c("Firm","ST")]
+      postmerge[,pre_profit_firm:=sum(Profit),by=c("Firm","Market")]
+      postmerge[,post_profit_firm:=sum(Profit_merge),by=c("Firm","Market")]
       
       merger_effects = rbind(merger_effects,postmerge)
     }
@@ -239,10 +239,10 @@ for (policy in c("Base","RA","Man","RAMan")){
   rm(postmerge,hhi,baseline,firm_share,dHHI,merger_files)
 }
 
-## Equilibrium Stability
-merger_effects = merger_effects[grepl("GA",Market)]
-ggplot(merger_effects) + aes(x=Price,y=Price_premerge) + geom_point(alpha=0.5) + geom_smooth(method="lm",se=FALSE) + geom_abline(intercept=0,slope=1)
-
+# ## Equilibrium Stability
+# merger_effects = merger_effects[grepl("GA",Market)]
+# ggplot(merger_effects) + aes(x=Price,y=Price_premerge) + geom_point(alpha=0.5) + geom_smooth(method="lm",se=FALSE) + geom_abline(intercept=0,slope=1)
+# 
 merger_effects[,profit_effect:=post_profit_firm-pre_profit_firm]
 
 ## Merger Welfare Effects

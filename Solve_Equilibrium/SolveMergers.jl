@@ -589,7 +589,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     # if policy=="Base"
     #     checkMargin(m,f,"$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub_short)_Margins.csv")
     # end
-    setMarginCostAdjust!(m,f,"$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub_short)_Margins_Set.csv")
+    # setMarginCostAdjust!(m,f,"$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub_short)_Margins_Set.csv")
     # if policy=="Base"
     #     checkMargin(m,f,"$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub_short)_Margins_Targeted.csv")
     #     testMarginModel(m,f,"$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub_short)_Margins_Model.csv")
