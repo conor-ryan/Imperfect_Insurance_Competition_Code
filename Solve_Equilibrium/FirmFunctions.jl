@@ -172,24 +172,21 @@ function prof_margin(f::firmData,std_ind::Union{Vector{Int64},Missing}=missing)
     if ismissing(std_ind)
         std_ind = f.prods
     end
-    dSdp_rev = (f.dSAdp_j.*f.ownMat)[std_ind,std_ind]
-    dSdp = (f.dSdp_j.*f.ownMat)[std_ind,std_ind]
+    dSdp = (f.dSAdp_j.*f.ownMat)[std_ind,std_ind]
 
-    # MR = inv(dSdp_rev)*sum(f.dRdp_j.*f.ownMat,dims=2)[std_ind]
-    Mkup = -inv(dSdp_rev)*f.SA_j[std_ind]
-    MR = f.P_j[std_ind] .+ inv(dSdp_rev)*f.SA_j[std_ind]
+    MR = inv(dSdp)*sum(f.dRdp_j.*f.ownMat,dims=2)[std_ind]
+    Mkup = -inv(dSdp)*f.SA_j[std_ind]
+    # MR = -inv(dSdp)*f.SA_j[std_ind]
 
-    cost_std = sum(f.dCdp_j[std_ind,std_ind].*f.ownMat[std_ind,std_ind],dims=2) #+ dSdp*f.ω_j[std_ind]
-    cost_pl = sum(f.dCdp_pl_j[std_ind,std_ind].*f.ownMat[std_ind,std_ind],dims=2) #+ dSdp*f.ω_j[std_ind]
+    cost_std = sum(f.dCdp_j[std_ind,std_ind].*f.ownMat[std_ind,std_ind],dims=2)
+    cost_pl = sum(f.dCdp_pl_j[std_ind,std_ind].*f.ownMat[std_ind,std_ind],dims=2)
 
-    MC_std = inv(dSdp_rev)*cost_std 
-    MC_RA = inv(dSdp_rev)*cost_pl 
-
-    ω = inv(dSdp)*(dSdp_rev*f.P_j[std_ind]+f.SA_j[std_ind] - cost_pl)
+    MC_std = inv(dSdp)*cost_std
+    MC_RA = inv(dSdp)*cost_pl
     # MR = -sum(f.dRdp_j.*f.ownMat,dims=2)[std_ind]
     # MC_std = -sum(f.dCdp_j.*f.ownMat,dims=2)[std_ind]
     # MC_RA = -sum(f.dCdp_pl_j.*f.ownMat,dims=2)[std_ind]
-    return Mkup, MR,MC_std[:],MC_RA[:],ω[:]
+    return Mkup, MR,MC_std[:],MC_RA[:]
 end
 
 function prof_margin_raw(f::firmData,std_ind::Union{Vector{Int64},Missing}=missing)
@@ -210,7 +207,7 @@ end
 
 function checkMargin(m::InsuranceLogit,f::firmData,file::String)
     evaluate_model!(m,f,"All",foc_check=true)
-    Mkup,MR,MC_std,MC_RA,ω = prof_margin(f)
+    Mkup,MR,MC_std,MC_RA = prof_margin(f)
     avgCost = f.C_j[f.prods]
     pooledCost = f.PC_j[f.prods]
     lives = f.S_j[f.prods]
@@ -234,54 +231,11 @@ function checkMargin(m::InsuranceLogit,f::firmData,file::String)
     return nothing
 end
 
-function testMarginModel(m::InsuranceLogit,f::firmData,file::String)
-    evaluate_model!(m,f,"All")
-    Mkup,MR,MC_std,MC_RA,ω = prof_margin(f)
-    avgCost = f.C_j[f.prods]
-    pooledCost = f.PC_j[f.prods]
-    lives = f.S_j[f.prods]
-    ageRate = f.SA_j[f.prods]./lives
-    P_obs = f.P_j[f.prods]
-    avgR = calc_avgR(m,f)
-
-    output =  DataFrame(Product=f.prods,
-                        P_obs = P_obs,
-                        Mkup = Mkup,
-                        MR = MR,
-                        MC_std = MC_std,
-                        MC_RA = MC_RA,
-                        avgCost = avgCost,
-                        pooledCost = pooledCost,
-                        lives=lives,
-                        avgR = avgR,
-                        ageRate=ageRate,
-                        omega = ω)
-
-    CSV.write(file,output)
-    return nothing
-end
-
-function setMarginCostAdjust!(m::InsuranceLogit,f::firmData,file::String)
-    evaluate_model!(m,f,"All")
-    Mkup,MR,MC_std,MC_RA,ω = prof_margin(f)
-    f.ω_j[f.prods] = ω
-
-    # for (m,prod_ind) in f.mkt_index
-    #     lives = f.S_j[prod_ind]
-    #     own_mat = f.ownMat[prod_ind,prod_ind]
-    #     firm_error = own_mat*(lives.*f.ω_j[prod_ind])
-    #     firm_lives = own_mat*(lives)
-    #     f.ω_j[prod_ind] = firm_error./firm_lives
-    # end
-    output =  DataFrame(Product=f.prods,
-    P_obs = f.P_j[f.prods],
-    Mkup = Mkup,
-    MR = MR,
-    MC_std = MC_std,
-    MC_RA = MC_RA,
-    Lives = f.S_j[f.prods],
-    omega = f.ω_j[f.prods])
-    CSV.write(file,output)
+function setMarginCostAdjust!(m::InsuranceLogit,f::firmData)
+    evaluate_model!(m,f,"All",foc_check=true)
+    Mkup,MR,MC_std,MC_RA = prof_margin(f)
+    
+    f.ω_j = MR - MC_RA
     return nothing
 end
 
@@ -334,6 +288,11 @@ function evaluate_FOC(f::firmData,std_ind::Vector{Int64},merg::String="Base",vou
     return P_std, P_RA, Mkup, MC, dSubs
 end
 
+
+# function evaluate_FOC(f::firmData,std_ind::Vector{Int},merg::String="Base")
+#     P_std, P_RA, MR, MC = evaluate_FOC(f,std_ind,merg)
+#     return P_std, P_RA, MR, MC
+# end
 
 function evaluate_FOC(f::firmData,merg::String="Base")
     std_ind = f.prods
@@ -440,4 +399,3 @@ function foc_error(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.
 
     return foc_err, err_new, tot_err, P_new
 end
-

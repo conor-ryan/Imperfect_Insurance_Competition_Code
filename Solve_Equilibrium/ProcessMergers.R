@@ -24,27 +24,10 @@ prodData = merge(prodData,marketSize,by="Market")
 # test2 = merge(test2,prodData,by="Product")
 # 
 
-margins = fread("Estimation_Output/AllMergers_FMC-2022-12-26_Margins.csv")
+margins = fread("Estimation_Output/AllMergers_FMC-2022-12-26_Base_Marigins.csv")
 ggplot(margins) + aes(x=MR,y=MC_RA) + geom_point() + geom_abline() + geom_smooth(method="lm")
 margins[,omega:=MR-MC_RA]
 margins[,error_ratio:=omega/MC_RA]
-summary(margins)
-
-margins = fread("Estimation_Output/AllMergers_FMC-2022-12-26_Margins_Set.csv")
-ggplot(margins) + aes(x=MR,y=MC_RA,size=Lives) + geom_point() + geom_abline() + geom_smooth(method="lm")
-summary(margins)
-
-margins = fread("Estimation_Output/AllMergers_FMC-2022-12-26_Margins_Targeted.csv")
-ggplot(margins) + aes(x=MR,y=MC_RA) + geom_point() + geom_abline() + geom_smooth(method="lm")
-margins[,omega:=MR-MC_RA]
-margins[,error_ratio:=omega/MC_RA]
-summary(margins)
-
-margins = fread("Estimation_Output/AllMergers_FMC-2022-12-26_Margins_Model.csv")
-ggplot(margins) + aes(x=MR,y=MC_RA,) + geom_point() + geom_abline() + geom_smooth(method="lm")
-margins[,omega:=MR-MC_RA]
-margins[,error_ratio:=omega/MC_RA]
-summary(margins)
 
 #### Testing ####
 #### Baseline Data
@@ -99,7 +82,7 @@ for (policy in c("Base","RA","Man","RAMan")){
 }
 
 
-ggplot(basedata[policy=="Base"&grepl("GA",Market)])+ 
+ggplot(basedata[policy=="Base"])+ 
   geom_point(aes(x=Price,y=Price_CP),color="blue") +
   geom_point(aes(x=Price,y=Price_SP)) + geom_abline()
 
@@ -230,8 +213,8 @@ for (policy in c("Base","RA","Man","RAMan")){
       
       postmerge[Firm%in%c(m1,m2),Firm:=merging_parties]
       postmerge[,parties_indicator:=as.numeric(Firm==merging_parties)]
-      postmerge[,pre_profit_firm:=sum(Profit),by=c("Firm","Market")]
-      postmerge[,post_profit_firm:=sum(Profit_merge),by=c("Firm","Market")]
+      postmerge[,pre_profit_firm:=sum(Profit),by=c("Firm","ST")]
+      postmerge[,post_profit_firm:=sum(Profit_merge),by=c("Firm","ST")]
       
       merger_effects = rbind(merger_effects,postmerge)
     }
@@ -239,10 +222,10 @@ for (policy in c("Base","RA","Man","RAMan")){
   rm(postmerge,hhi,baseline,firm_share,dHHI,merger_files)
 }
 
-# ## Equilibrium Stability
-# merger_effects = merger_effects[grepl("GA",Market)]
-# ggplot(merger_effects) + aes(x=Price,y=Price_premerge) + geom_point(alpha=0.5) + geom_smooth(method="lm",se=FALSE) + geom_abline(intercept=0,slope=1)
-# 
+## Equilibrium Stability
+merger_effects = merger_effects[grepl("GA",Market)]
+ggplot(merger_effects) + aes(x=Price,y=Price_premerge) + geom_point(alpha=0.5) + geom_smooth(method="lm",se=FALSE) + geom_abline(intercept=0,slope=1)
+
 merger_effects[,profit_effect:=post_profit_firm-pre_profit_firm]
 
 ## Merger Welfare Effects

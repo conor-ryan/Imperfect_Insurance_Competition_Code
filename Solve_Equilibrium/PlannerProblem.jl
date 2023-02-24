@@ -1,32 +1,33 @@
 function market_profits(d::InsuranceLogit,f::firmData)
     J = maximum(d.prods)
-    # Revenue = zeros(J)
-    # Cost = zeros(J)
-    # Share = zeros(J)
+    Revenue = zeros(J)
+    Cost = zeros(J)
+    Share = zeros(J)
 
-    # Market_Total = zeros(J)
+    Market_Total = zeros(J)
 
-    # wgts_long = weight(d.data)[:]
-    # prod_long = Int.(product(d.data))
+    wgts_long = weight(d.data)[:]
+    prod_long = Int.(product(d.data))
 
-    # for idxitr in values(d.data._personDict)
-    #     # prod_ids = f.stdMap[prod_long[idxitr]]
-    #     prod_ids =prod_long[idxitr]
-    #     catas = findall(inlist(prod_ids,f.catas_prods))
+    for idxitr in values(d.data._personDict)
+        # prod_ids = f.stdMap[prod_long[idxitr]]
+        prod_ids =prod_long[idxitr]
+        catas = findall(inlist(prod_ids,f.catas_prods))
 
-    #     s_pred = f.s_pred[idxitr]
-    #     cost = f.c_pred[idxitr]
-    #     rev = f.Rev_ij[idxitr]
-    #     wgt = wgts_long[idxitr]
+        s_pred = f.s_pred[idxitr]
+        cost = f.c_pred[idxitr]
+        rev = f.Rev_ij[idxitr]
+        wgt = wgts_long[idxitr]
 
 
-    #     for k in 1:length(prod_ids)
-    #         j = prod_ids[k]
-    #         Revenue[j] += wgt[k]*s_pred[k]*rev[k]
-    #     end
-    # end
+        for k in 1:length(prod_ids)
+            j = prod_ids[k]
+            Revenue[j] += wgt[k]*s_pred[k]*rev[k]
+            Cost[j] += wgt[k]*s_pred[k]*cost[k]
+        end
+    end
 
-    Profit = f.SA_j.*f.P_j .- f.C_j.*f.S_j
+    Profit = Revenue - Cost
 
     market_profits = Vector{Float64}(undef,length(keys(f.mkt_index)))
     for (m,m_idx) in f.mkt_index
@@ -52,24 +53,24 @@ function product_profits(d::InsuranceLogit,f::firmData;sim="Base")
     wgts_long = weight(d.data)[:]
     prod_long = Int.(product(d.data))
 
-    # for idxitr in values(d.data._personDict)
-    #     prod_ids =prod_long[idxitr]
+    for idxitr in values(d.data._personDict)
+        prod_ids =prod_long[idxitr]
 
-    #     s_pred = f.s_pred[idxitr]
-    #     rev = f.Rev_ij[idxitr]
-    #     wgt = wgts_long[idxitr]
+        s_pred = f.s_pred[idxitr]
+        rev = f.Rev_ij[idxitr]
+        wgt = wgts_long[idxitr]
 
 
-    #     for k in 1:length(prod_ids)
-    #         j = prod_ids[k]
-    #         Revenue[j] += wgt[k]*s_pred[k]*rev[k]
-    #     end
-    # end
+        for k in 1:length(prod_ids)
+            j = prod_ids[k]
+            Revenue[j] += wgt[k]*s_pred[k]*rev[k]
+        end
+    end
 
     if sim=="RA"
-        Profit = f.SA_j.*f.P_j - f.C_j.*f.S_j
+        Profit = Revenue - f.C_j.*f.S_j
     elseif sim=="Base"
-        Profit = f.SA_j.*f.P_j - f.PC_j.*f.S_j
+        Profit = Revenue - f.PC_j.*f.S_j
     end
 
     return Profit
@@ -121,7 +122,7 @@ function solve_SP_λ_parallel!(m::InsuranceLogit,f::firmData,Π_target::Vector{F
                 sim="SPλ",merg::String="SP",
                 CW_target::Vector{Float64}=Vector{Float64}(undef,0),
                 markets=Vector{Int}(undef,0),
-                tol::Float64=1e-8,voucher=false,update_voucher=true)
+                tol::Float64=1e-12,voucher=false,update_voucher=true)
 
     println("Send Data to Workers")
     @eval @everywhere m=$m
@@ -175,7 +176,7 @@ function solve_SP_λ_parallel_st!(m::InsuranceLogit, f::firmData, Π_target::Dic
     sim="SPλ", merg::String="SP",
     CW_target::Vector{Float64}=Vector{Float64}(undef, 0),
     states=Vector{String}(undef, 0),
-    tol::Float64=1e-8, voucher=false, update_voucher=true)
+    tol::Float64=1e-12, voucher=false, update_voucher=true)
 
     println("Send Data to Workers")
     @eval @everywhere m = $m
@@ -263,7 +264,7 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
         end
 
         f.P_j[:] = p_init[:]
-        solve_model_mkt!(m,f,mkt,λ=λ_new,tol=tol,voucher=true,update_voucher=false)
+        solve_model_mkt!(m,f,mkt,λ=λ_new,sim=sim,merg="SP",tol=tol,voucher=true,update_voucher=false)
         # println("Price vector ($λ_new): $(f.P_j[f.mkt_index[mkt]])")
         profits = market_profits(m,f)
         Π_new = profits[mkt]
@@ -297,12 +298,7 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
         Π_old = copy(Π_new)
         Π_err = abs(Π_new - Π_target)
         err = Π_err/Π_target
-        println("Got Profit $Π_new at iteration $cnt with λ=$λ_new, target $Π_target")
-        if (Π_new<Π_target) & (λ_new==1.0)
-            break
-        elseif (Π_new>Π_target) & (λ_new==0.0)
-            break
-        end
+        # println("Got Profit $Π_new at iteration $cnt with λ=$λ_new, target $Π_target")
 
         cw = calc_cw_mkt(m,f,mkt)
         # println(" Mean CW in Mkt: $cw")
@@ -391,7 +387,7 @@ function find_λ_st(m::InsuranceLogit,f::firmData,ST::String,
 end
 
 function solve_SP!(m::InsuranceLogit,f::firmData;
-                sim="SP",merg::String="SP",tol::Float64=1e-8,voucher=false,update_voucher=true)
+                sim="SP",merg::String="SP",tol::Float64=1e-12,voucher=false,update_voucher=true)
     # P_res = zeros(length(f.P_j))
     markets = sort(Int.(keys(f.mkt_index)))
     for mkt in markets
@@ -399,7 +395,7 @@ function solve_SP!(m::InsuranceLogit,f::firmData;
         #     continue
         # end
         println("Solving for $mkt")
-        solve_model_mkt!(m,f,mkt,tol=tol,voucher=voucher,update_voucher=update_voucher)
+        solve_model_mkt!(m,f,mkt,sim=sim,merg=merg,tol=tol,voucher=voucher,update_voucher=update_voucher)
         # P_res[f._prodSTDict[s]] = f.P_j[f._prodSTDict[s]]
     end
     # f.P_j[:] = P_res[:]
@@ -407,7 +403,7 @@ function solve_SP!(m::InsuranceLogit,f::firmData;
 end
 
 function solve_SP_parallel!(m::InsuranceLogit,f::firmData;
-                sim="SP",merg::String="SP",tol::Float64=1e-8,markets=Vector{Int}(undef,0),voucher=false,update_voucher=true)
+                sim="SP",merg::String="SP",tol::Float64=1e-12,markets=Vector{Int}(undef,0),voucher=false,update_voucher=true)
     println("Send Data to Workers")
     @eval @everywhere m=$m
     @eval @everywhere f=$f
@@ -430,7 +426,7 @@ function solve_SP_parallel!(m::InsuranceLogit,f::firmData;
     @sync @distributed for mkt in markets
         # println("Solving for $mkt")
         println("Parameters: voucher: $voucher_SP_run, update_voucher: $update_voucher_SP_run,  sim: $sim_SP_run")
-        solve_model_mkt!(m,f,mkt,tol=tol_SP_run,voucher=voucher_SP_run,update_voucher=update_voucher_SP_run)
+        solve_model_mkt!(m,f,mkt,sim=sim_SP_run,merg=merg_SP_run,tol=tol_SP_run,voucher=voucher_SP_run,update_voucher=update_voucher_SP_run)
         println("Solved $(mkt)!")
         P_res[f.mkt_index[mkt]] = f.P_j[f.mkt_index[mkt]]
     end
@@ -446,18 +442,15 @@ end
 
 
 function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
-        λ::Float64=0.0,tol::Float64=1e-12,voucher=true,update_voucher=false)
+        λ::Float64=0.0,sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=true,update_voucher=false)
     err_new = 1
-
+    err_last = 1
     itr_cnt = 0
-
-    stp = zeros(length(f.P_j[:]))
-    initial_stp = 0.0001
-    stp[:].=initial_stp
-
-    dProf_last = zeros(length(f.P_j[:]))
-    prod_ind = f.mkt_index[mkt]
-
+    stp = 0.05
+    no_prog_cnt = 0
+    no_prog = 0
+    P_last = zeros(length(f.P_j[:]))
+    P_new_last = zeros(length(f.P_j[:]))
     while err_new>tol
         itr_cnt+=1
         # println("Evaluate Model")
@@ -465,35 +458,49 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         # println("Update Price")
 
 
-        dProf = evaluate_FOC_planner(f,prod_ind,λ,voucher=voucher)
+        foc_err, err_new, tot_err,P_new = foc_error(f,mkt,stp,λ=λ,sim=sim,merg=merg,voucher=voucher)
 
-        ### 0 Market Share
-        exit_thresh = 1.0
-        choke_point = 0.5
-        ChokePrice = f.S_j.< choke_point
-        dProf[ChokePrice].= 0.0
-        prod_ind_ne = prod_ind[f.S_j[prod_ind].>exit_thresh]
 
-        stp[prod_ind_ne] = stp[prod_ind_ne].*(1.2)
-        slow_down = ((dProf_last.>0.0) .& (dProf.<0.0)) .| ((dProf_last.<0.0) .& (dProf.>0.0))
-
-        stp[slow_down].=initial_stp
-        stp[ChokePrice] .=initial_stp
-        update = stp.*dProf 
-        # update[update.>10].=10.0
-        # update[update.< -10].= -10.0
-        # update_test = zeros(length(update))
-        # update_test[2195] = update[2195]
+        P_last[:] = copy(f.P_j[:])
+        P_new_last[:] = copy(P_new[:])
+        update = stp.*(P_new[:] .- f.P_j[:])
+        # update[abs.(update).>50].=50 .*sign.(update[abs.(update).>50])
         f.P_j[:] = f.P_j[:] .+ update[:]
+        # println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
+        # println(foc_err)
+        # println(P_new[f.mkt_index[mkt]])
+        # println(f.P_j[f.mkt_index[mkt]])
 
-        dProf_last[:] = copy(dProf[:])
-        
-        err_new = sum(dProf[prod_ind_ne].^2)/length(prod_ind_ne)
-        profits = market_profits(m,f)
-        # println("Market: $mkt, Iteration Count: $itr_cnt, Error: $err_new, Mean Step: $(mean(stp[prod_ind_ne])), Profit: $(profits[mkt])")
-        # println("Prices: $(round.(f.P_j[prod_ind]))")
-        # println("dProf: $(round.(dProf[prod_ind]))")
-        # println("Step: $(round.(stp[prod_ind],digits=4))")
+        if stp==1.0
+            stp = .001
+        end
+        stp = max(stp,1e-6)
+        if stp<.05
+            if err_new>1e-3
+                stp = stp*1.1
+            else
+                stp = stp*1.1
+            end
+        elseif stp<.25
+            stp = stp*(1.1)
+        elseif stp<.75
+            stp=stp*(1.1)
+        end
+
+        if ((err_new>err_last) & (no_prog==0)) | ((err_new<err_last) & (no_prog==1))
+            stp = .05
+            # if (itr_cnt>100) & (rand()<.2)
+            #     stp = 1.0
+            # end
+        end
+        if err_new>err_last
+            no_prog = 1
+        else
+            no_prog=0
+        end
+
+        err_last = copy(err_new)
+        # println(P_last)
     end
     # println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
     return nothing
@@ -559,60 +566,4 @@ function solve_model_st!(m::InsuranceLogit, f::firmData, ST::String,λ::Float64;
         err_last = copy(err_new)
     end
     return nothing
-end
-
-function evaluate_FOC_planner(f::firmData,std_ind::Vector{Int64},λ::Float64;voucher::Bool=false)
-    dProf = zeros(length(f.P_j))
-
-    ownershipMatrix = ones(size(f.ownMat))
-
-
-    if voucher
-        dSdp = (f.dSAdp_j.*ownershipMatrix)[std_ind,std_ind]
-    else
-        dSdp = ((f.dSAdp_j - f.bench_prods.*f.dMAdp_j).*ownershipMatrix)[std_ind,std_ind]
-    end
-
-    cost_std = sum(f.dCdp_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
-    SA = f.SA_j[std_ind]
-
-
-    dProf[std_ind] = dSdp*f.P_j[std_ind] - cost_std + λ.*SA
-
-    return dProf
-end
-
-function foc_error_planner(f::firmData,ST::String,stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base",voucher::Bool=false)
-    prod_ind = f._prodSTDict[ST]
-    return foc_error_planner(f,prod_ind,stp,λ=λ,sim=sim,merg=merg,voucher=voucher)
-end
-
-function foc_error_planner(f::firmData,mkt::Int,stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base",voucher::Bool=false)
-    prod_ind = f.mkt_index[mkt]
-    return foc_error_planner(f,prod_ind,stp,λ=λ,sim=sim,merg=merg,voucher=voucher)
-end
-
-function foc_error_planner(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.0,voucher::Bool=false)
-
-    dProf = evaluate_FOC_planner(f,prod_ind,λ,voucher=voucher)
-    tot_err = (P_new[prod_ind] - f.P_j[prod_ind])./100
-
-    non_prods = .!(inlist(Int.(1:length(P_new)),prod_ind))
-
-
-
-    ## Error in Prices
-    prod_ind_ne = prod_ind[f.S_j[prod_ind].>exit_thresh]
-    foc_err = (P_new[prod_ind_ne] - f.P_j[prod_ind_ne])./100
-
-
-    err_new = sum(foc_err.^2)/length(prod_ind_ne)
-    tot_err = sum(tot_err.^2)/length(prod_ind)
-
-    ### New Prices
-    P_new[non_prods] = f.P_j[non_prods]
-    P_update = f.P_j.*(1-stp) + stp.*P_new
-    P_update[non_prods] = f.P_j[non_prods]
-
-    return foc_err, err_new, tot_err, P_new
 end
