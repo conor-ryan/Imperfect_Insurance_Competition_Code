@@ -847,7 +847,7 @@ function simulate_all_mergers(m::InsuranceLogit,
         #                     Price=f.P_j,
         #                     Lives=f.S_j)
         # CSV.write(file,output)
-    # end
+    end
     return nothing
 end
 
