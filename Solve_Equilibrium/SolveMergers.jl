@@ -60,21 +60,21 @@ function MergersMain(rundate,spec,home_directory)
     println("####################################")
     simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
                             filestub,policy="Base")
-    # println("####################################")
-    # println("#### Solve Without Risk Adjustment ####")
-    # println("####################################")
-    # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
-    #                         filestub,policy="RA_repeal")
-    # println("####################################")
-    # println("#### Solve Without Individual Mandate ####")
-    # println("####################################")
-    # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
-    #                         filestub,policy="Man_repeal")
-    # println("####################################")
-    # println("#### Solve Without Risk Adjustment nor Individual Mandate ####")
-    # println("####################################")
-    # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
-    #                         filestub,policy="RAMan_repeal")
+    println("####################################")
+    println("#### Solve Without Risk Adjustment ####")
+    println("####################################")
+    simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
+                            filestub,policy="RA_repeal")
+    println("####################################")
+    println("#### Solve Without Individual Mandate ####")
+    println("####################################")
+    simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
+                            filestub,policy="Man_repeal")
+    println("####################################")
+    println("#### Solve Without Risk Adjustment nor Individual Mandate ####")
+    println("####################################")
+    simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
+                            filestub,policy="RAMan_repeal")
     # filestub = "AllMergers_PL_$spec-$(rundate)"
     # println("####################################")
     # println("#### Solve Policy Baseline - Price Linked ####")
@@ -729,10 +729,6 @@ function simulate_all_mergers(m::InsuranceLogit,
             # Skip if merging parties do not operate in same state
             shared_states = check_states_if_merger(f,merging_parties)
             shared_markets = check_markets_if_merger(f,merging_parties)
-            # Only GA Mergers
-            if (length(shared_markets)==0) | ( !("GA" in shared_states))
-                continue
-            end
             push!(merging_party_list,merging_parties)
             push!(shared_state_list,shared_states)
             push!(shared_market_list,shared_markets)
@@ -758,9 +754,9 @@ function simulate_all_mergers(m::InsuranceLogit,
         shared_states = shared_state_list[i]
         merging_parties = merging_party_list[i]
 
-        shared_markets = [4,5,6,7,8,9,10,11,12,13,14]
-        shared_states = ["GA"]
-        merging_parties = ["AETNA","HUMANA"]
+        # shared_markets = [4,5,6,7,8,9,10,11,12,13,14]
+        # shared_states = ["GA"]
+        # merging_parties = ["AETNA","HUMANA"]
 
         # ### Only GA MergersMain
         # if !("GA" in shared_states)
