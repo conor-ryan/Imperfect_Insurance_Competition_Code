@@ -298,14 +298,14 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
         Π_old = copy(Π_new)
         Π_err = abs(Π_new - Π_target)
         err = Π_err/Π_target
-        println("Got Profit $Π_new at iteration $cnt with λ=$λ_new, target $Π_target")
+        println("Got Profit $Π_new at iteration $cnt with λ=$λ_new, target $Π_target, error: $err")
         if (Π_new<Π_target) & (λ_new==1.0)
             break
         elseif (Π_new>Π_target) & (λ_new==0.0)
             break
         end
 
-        cw = calc_cw_mkt(m,f,mkt)
+        # cw = calc_cw_mkt(m,f,mkt)
         # println(" Mean CW in Mkt: $cw")
 
     end
