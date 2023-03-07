@@ -305,6 +305,11 @@ function find_λ(m::InsuranceLogit,f::firmData,mkt::Int,
             break
         end
 
+        if ((λ_max - λ_min)<1e-13)
+            println("λ value converged")
+            println("Got Profit $Π_new with λ=$λ_new, err $err, bounds = ($λ_max,$λ_min)")
+            break
+        end
         # cw = calc_cw_mkt(m,f,mkt)
         # println(" Mean CW in Mkt: $cw")
 
