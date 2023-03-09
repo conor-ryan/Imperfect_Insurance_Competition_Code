@@ -426,6 +426,7 @@ function solve_SP_parallel!(m::InsuranceLogit,f::firmData;
 
     if length(markets) == 0
         println("All Markets")
+        markets = sort(Int.(keys(f.mkt_index)))
         @everywhere markets = sort(Int.(keys(f.mkt_index)))
     else
         @eval @everywhere markets = $markets
