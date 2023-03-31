@@ -312,7 +312,7 @@ function eval_FOC(e::EqData)
     weights_byperson = weights[e.data._prod_2_per_map]
 
     vidx = e.data.index
-    alpha_long = e.data.data_byperson[:,vidx[:alpha]].*12./1000
+    alpha_long = e.data.data_byperson[:,vidx[:alpha]].*12 ./1000
     ageRate_long =  e.data.data_byperson[:,vidx[:ageRate_avg]]
 
     ### Average Cost for Comparison ###

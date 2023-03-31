@@ -1,6 +1,6 @@
 using Distributed
-println("Add Workers")
-addprocs(11)
+# println("Add Workers")
+# addprocs(11)
 
 @everywhere using BenchmarkTools
 @everywhere using JLD2
@@ -100,21 +100,21 @@ println("Load Marginal Cost Estimation Code...")
 @everywhere include("$codeDir/Firm_Side/MC_optimization.jl")
 @everywhere include("$codeDir/Firm_Side/Firm_Inner_Loop.jl")
 @everywhere include("$codeDir/Firm_Side/SpecRunMC.jl")
-# estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
+estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
 
 @everywhere include("ProcessDemResults.jl")
-# process_demand(rundate,spec,home_directory)
+process_demand(rundate,spec,home_directory)
 
 
-println("##### Solve Equilibrium #####")
-println("Load Equilibrium Code...")
-@everywhere include("predictionData.jl")
-@everywhere include("FirmFunctions.jl")
-@everywhere include("SolveModel.jl")
-@everywhere include("EvaluateModel.jl")
-@everywhere include("PriceUpdate.jl")
-@everywhere include("ConsumerWelfare.jl")
-@everywhere include("PlannerProblem.jl")
-@everywhere include("SolveMergers.jl")
+# println("##### Solve Equilibrium #####")
+# println("Load Equilibrium Code...")
+# @everywhere include("predictionData.jl")
+# @everywhere include("FirmFunctions.jl")
+# @everywhere include("SolveModel.jl")
+# @everywhere include("EvaluateModel.jl")
+# @everywhere include("PriceUpdate.jl")
+# @everywhere include("ConsumerWelfare.jl")
+# @everywhere include("PlannerProblem.jl")
+# @everywhere include("SolveMergers.jl")
 
-MergersMain(rundate,spec,home_directory)
+# MergersMain(rundate,spec,home_directory)

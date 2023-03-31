@@ -602,7 +602,7 @@ function var_bootstrap(c::MC_Data,d::InsuranceLogit,p::parMC{T};draw_num::Int=10
         # moment_draws[:,i] = sqrt_n.*costMoments_bootstrap(c,d,p).^2
     end
     check = sum(moment_draws,dims=1)
-    nan_ind = findall( .! (isnan.(check[:]) .| isinf.(check[:])))
+    nan_ind = findall( ! (isnan.(check[:]) .| isinf.(check[:])))
     moment_draws = moment_draws[:,nan_ind]
 
     Σ_unwt = scattermat(moment_draws,dims=2)
@@ -665,12 +665,12 @@ function GMM_var(c::MC_Data,d::InsuranceLogit,p::Array{Float64},par_est::parDict
     G[(J+1):(J+K),(R+1):(Q+R)] = M_γ[:,:]
 
     W_new = Matrix{Float64}(I,J+K,J+K)
-    # W_new[1:J,1:J] = inv(S[1:J,1:J])
+    W_new[1:J,1:J] = inv(S[1:J,1:J])
     W_new[(J+1):(J+K),(J+1):(J+K)] = W[:,:]
 
     ## Calculate Variance
     term1 = G'*W_new*G
-    inv_term1 = inv(term1)
+    # inv_term1 = inv(term1)
     Avar =  inv(G'*W_new*G)*(G'*W_new*S*W_new*G)*inv(G'*W_new*G)
     Avar = Avar[(R+1):(Q+R),(R+1):(Q+R)]
 
