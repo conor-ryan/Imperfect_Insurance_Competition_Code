@@ -45,25 +45,25 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     # M = hcat(mom_grad,hess)
 
     #### Covariance of Cost and Demand moments ####
-    # grad_obs = Vector{Float64}(undef,d.parLength[:All])
+    grad_obs = Vector{Float64}(undef,d.parLength[:All])
     risk_moments = Vector{Float64}(undef,num_prods*2)
 
     mean_cost_moments = Vector{Float64}(undef,num_prods*4+length(c.ageMoments)*2+length(c.agenoMoments)*2+4)
     mean_cost_moments[:] .= 0.0
     cost_mom_length = length(mean_cost_moments)
 
-    # dem_mom_length = length(risk_moments) + d.parLength[:All]
-    dem_mom_length = 0
-    # mean_dem_moments = Vector{Float64}(undef,dem_mom_length)
-    # mean_dem_moments[:] .= 0.0
+    dem_mom_length = length(risk_moments) + d.parLength[:All]
+    # dem_mom_length = 0
+    mean_dem_moments = Vector{Float64}(undef,dem_mom_length)
+    mean_dem_moments[:] .= 0.0
 
     m_n = Vector{Float64}(undef,cost_mom_length)
-    # g_n = Vector{Float64}(undef,dem_mom_length)
+    g_n = Vector{Float64}(undef,dem_mom_length)
 
     ## Estimate of population mean...
     for app in eachperson(d.data)
         # println(person(app)[1])
-        # grad_obs[:] .= 0.0
+        grad_obs[:] .= 0.0
         m_n[:] .= 0.0
         risk_moments[:] .= 0.0
 
@@ -73,11 +73,11 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
 
 
         # #### Demand Moments (Ignore until I get these right)
-        # ll_obs,pars_relevant = ll_obs_gradient!(grad_obs,app,d,par.pars)
-        # idx_prod = risk_obs_moments!(risk_moments,productIDs,app,d,par.pars)
-        #
-        # mean_dem_moments[1:length(risk_moments)] += risk_moments[:]
-        # mean_dem_moments[(length(risk_moments)+1):dem_mom_length] += grad_obs[:]
+        ll_obs,pars_relevant = ll_obs_gradient!(grad_obs,app,d,par.pars)
+        idx_prod = risk_obs_moments!(risk_moments,productIDs,app,d,par.pars)
+        
+        mean_dem_moments[1:length(risk_moments)] += risk_moments[:]
+        mean_dem_moments[(length(risk_moments)+1):dem_mom_length] += grad_obs[:]
 
     end
     mean_cost_moments = mean_cost_moments./Pop
@@ -99,9 +99,9 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
 
     for app in eachperson(d.data)
         m_n[:].= 0.0
-        # g_n[:].= 0.0
-        # grad_obs[:].= 0.0
-        # risk_moments[:].=0.0
+        g_n[:].= 0.0
+        grad_obs[:].= 0.0
+        risk_moments[:].=0.0
         w_i = weight(app)[1]
         w_cov = w_i/Pop
         w_cov_sumsq[:] += [w_cov^2]
@@ -110,58 +110,58 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
         idx_prod, wgt_obs = cost_obs_moments!(m_n,productIDs,app,d,c,par)
         m_n[:] = (m_n[:]./w_i - mean_cost_moments[:])
 
-        idx_nonEmpty = vcat(idx_prod,num_prods .+idx_prod,num_prods*2 .+idx_prod,num_prods*3 .+idx_prod,(num_prods*4+1):cost_mom_length)
+        idx_nonEmpty_cost = vcat(idx_prod,num_prods .+idx_prod,num_prods*2 .+idx_prod,num_prods*3 .+idx_prod,(num_prods*4+1):cost_mom_length)
 
-        # ### Demand Moments
-        # ll_obs,pars_relevant = ll_obs_gradient!(grad_obs,app,d,par.pars)
-        # idx_prod = risk_obs_moments!(risk_moments,productIDs,app,d,par.pars)
-        #
-        # g_n[1:length(risk_moments)] = risk_moments[:]
-        # g_n[(length(risk_moments)+1):dem_mom_length] = grad_obs[:]
-        #
-        # g_n[:] = (g_n[:]./w_i - mean_dem_moments[:])
-        #
-        # idx_nonEmpty_dem = vcat(idx_prod,num_prods .+idx_prod,(num_prods*2) .+ pars_relevant)
-        # g_tilde = vcat(g_n,m_n)
-        #
-        # idx_nonEmpty = vcat(idx_nonEmpty_dem,length(g_n).+idx_nonEmpty_cost)
+        ### Demand Moments
+        ll_obs,pars_relevant = ll_obs_gradient!(grad_obs,app,d,par.pars)
+        idx_prod = risk_obs_moments!(risk_moments,productIDs,app,d,par.pars)
+        
+        g_n[1:length(risk_moments)] = risk_moments[:]
+        g_n[(length(risk_moments)+1):dem_mom_length] = grad_obs[:]
+        
+        g_n[:] = (g_n[:]./w_i - mean_dem_moments[:])
+        
+        idx_nonEmpty_dem = vcat(idx_prod,num_prods .+idx_prod,(num_prods*2) .+ pars_relevant)
+        g_tilde = vcat(g_n,m_n)
+        
+        idx_nonEmpty = vcat(idx_nonEmpty_dem,length(g_n).+idx_nonEmpty_cost)
 
-        add_Σ(Σ,m_n,idx_nonEmpty,w_cov,Σ_hold)
-        # add_Σ(Σ,g_tilde,idx_nonEmpty,w_cov,Σ_hold)
+        # add_Σ(Σ,m_n,idx_nonEmpty,w_cov,Σ_hold)
+        add_Σ(Σ,g_tilde,idx_nonEmpty,w_cov,Σ_hold)
     end
     # Σ = Σ./8300
 
     # nonzero_index = findall(sum(abs.(Σ),dims=2)[1:dem_mom_length].!=0.0)
     # nonzero_length = sum(mean_dem_moments.!=0.0)
-    # nonmissing_prods = length(d.prods)
+    nonmissing_prods = length(d.prods)
     # Σ = Σ./(1-w_cov_sumsq[1])
     # Σ = Σ./N
     # Σ = Σ.*Pop
     # println(Pop)
     Γ_m = Δavar(c,d,mean_cost_moments)
-    # Γ_g = zeros(d.parLength[:All] + length(d.data.tMoments),nonmissing_prods*2 + d.parLength[:All])
-    # (Q,R) = size(Γ_g)
-    # (N,M) = size(Γ_m)
-    # Γ_g_11 = risk_Δavar(mean_dem_moments[1:(num_prods*2)],d)
-    # Γ_g[1:length(d.data.tMoments),1:(nonmissing_prods*2)] = Γ_g_11[:,vcat(d.prods,num_prods.+d.prods)]
-    # Γ_g[(length(d.data.tMoments)+1):Q,(nonmissing_prods*2 + 1):R] = Matrix{Float64}(I,d.parLength[:All],d.parLength[:All])
-    #
-    # Γ = zeros(Q+N,M+R)
-    # Γ[1:Q,1:R] = Γ_g[:,:]
-    # Γ[(Q+1):(Q+N),(R+1):(R+M)] = Γ_m
+    Γ_g = zeros(d.parLength[:All] + length(d.data.tMoments),nonmissing_prods*2 + d.parLength[:All])
+    (Q,R) = size(Γ_g)
+    (N,M) = size(Γ_m)
+    Γ_g_11 = risk_Δavar(mean_dem_moments[1:(num_prods*2)],d)
+    Γ_g[1:length(d.data.tMoments),1:(nonmissing_prods*2)] = Γ_g_11[:,vcat(d.prods,num_prods.+d.prods)]
+    Γ_g[(length(d.data.tMoments)+1):Q,(nonmissing_prods*2 + 1):R] = Matrix{Float64}(I,d.parLength[:All],d.parLength[:All])
+    
+    Γ = zeros(Q+N,M+R)
+    Γ[1:Q,1:R] = Γ_g[:,:]
+    Γ[(Q+1):(Q+N),(R+1):(R+M)] = Γ_m
 
-    # Σ_m = Σ[(dem_mom_length+1):(dem_mom_length+cost_mom_length),(dem_mom_length+1):(dem_mom_length+cost_mom_length)]
-    # S_m = Γ_m*Σ_m*Γ_m'
-    S_m = Γ_m*Σ*Γ_m'
+    Σ_m = Σ[(dem_mom_length+1):(dem_mom_length+cost_mom_length),(dem_mom_length+1):(dem_mom_length+cost_mom_length)]
+    S_m = Γ_m*Σ_m*Γ_m'
+    # S_m = Γ_m*Σ*Γ_m'
 
     # Σ = Σ[vcat(nonzero_index,(dem_mom_length+1):(dem_mom_length+cost_mom_length)),vcat(nonzero_index,(dem_mom_length+1):(dem_mom_length+cost_mom_length))]
     # # Γ = Γ[:,zero_index]
     #
-    # S_est = (Γ*Σ*Γ')
+    S_est = (Γ*Σ*Γ')
 
     # S_est = S_est.*(sqrt_n^2)
 
-    return S_m, Σ, Γ_m, mean_cost_moments
+    return S_est, Σ, Γ, S_m
 end
 
 
