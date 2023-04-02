@@ -577,7 +577,7 @@ function transferMoment(c::MC_Data,d::InsuranceLogit,p::parMC{T}) where T
     wgts_ins = p.s_hat_ins.*wgts
     wgts_share = p.pars.s_hat.*wgts
 
-    avgTransfer = zeros(length(keys(c._raMomentDict)))
+    avgTransfer = Vector{T}(undef,length(keys(c._raMomentDict)))
     for (m,m_idx) in c._raMomentDict
         T_total = 0
         S_total = 0
