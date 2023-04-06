@@ -2,7 +2,8 @@ rm(list = ls())
 library(data.table)
 library(ggplot2)
 library(scales)
-setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
+# setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
+setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition/")
 
 run = "2022-12-26"
 spec = "FMC"
@@ -14,137 +15,137 @@ names(prodData) = c("ST","Firm","Product","Metal_std","Market")
 
 load("Intermediate_Output/Simulated_BaseData/simMarketSize.rData")
 prodData = merge(prodData,marketSize,by="Market")
-
-#### Welfare By Market Concentration ####
-conc_welfare = NULL
-for (policy in c("Base","RA")){
-  if (policy=="PL"){
-    spec_temp = paste("PL","FMC",sep="_")
-    policy_temp="Base"
-  }else{
-    spec_temp = spec
-    policy_temp = policy
-  }
-  print(policy)
-  filestub = paste("Estimation_Output/AllMergers_",spec_temp,"-",run,"_",policy_temp,"_",sep="")
-  
-  ### Baseline Market Data ####
-  baseline = fread(paste(filestub,"baseline.csv",sep=""))
-  baseline = merge(baseline,prodData,by="Product")
-  baseline[,insideShare:=Lives/sum(Lives),by="Market"]
-  
-  ## Create HHI baseline data
-  firm_share = baseline[,list(share=sum(insideShare*100)),by=c("Market","ST","Firm")]
-  firm_share[,count:=1]
-  firm_share[,markets:=as.numeric(as.factor(Market))]
-  hhi = firm_share[,list(hhi=sum((share)^2),firm_num=sum(count)),by=c("markets","Market","ST")]
-
-  
-  ## Baseline welfare data
-  base_welfare = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,"_baseline-",spec,"-",run,".csv",sep=""))
-  base_welfare[,tot_Welfare:=CW+Profit]
-  base_welfare[,tot_Welfare_gov:=CW+Profit+Spending]
-  
-  conc_base = merge(base_welfare[,c("markets","tot_Welfare","tot_Welfare_gov")],hhi[,c("Market","markets","hhi","firm_num")],by="markets")
-  conc_base[,dHHI:=0]
-  conc_base[,merging_parties:="baseline"]
-  conc_base[,policy:=policy]
-  conc_welfare = rbind(conc_welfare,conc_base)
-  
-  #### Iterate Through Mergers ####
-  merger_welfare_files = list.files("Estimation_Output",pattern=paste("totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,sep=""))
-  merger_price_files = list.files("Estimation_Output",pattern=paste("^AllMergers_",spec_temp,"-",run,"_",policy_temp,sep=""))
-  unique_firms = sort(firm_share[,unique(Firm)])
-  
-  
-  for (i in 1:length(unique_firms)){
-    for (j in 1:(i-1)){
-      if (j==0){next}
-      m1 = unique_firms[j]
-      m2 = unique_firms[i]
-      ## Read in Welfare File
-      merging_party_string = paste(policy_temp,"_",m1,"_",m2,"-",spec,sep="")
-      welfare_file = merger_welfare_files[grepl(merging_party_string,merger_welfare_files)]
-      merging_party_string = paste(policy_temp,"_",m1,"_",m2,".csv",sep="")
-      price_file = merger_price_files[grepl(merging_party_string,merger_price_files)]
-      if (length(welfare_file)==0){next}
-      ## Welfare
-      welfare = fread(paste("Estimation_Output/",welfare_file,sep=""))
-      welfare[,tot_Welfare:=CW+Profit]
-      welfare[,tot_Welfare_gov:=CW+Profit+Spending]
-      
-      dHHI = firm_share[Firm%in%c(m1,m2),list(dHHI=2*prod(share),merger=sum(count)),by="markets"]
-      dHHI[merger<2,dHHI:=0]
-      
-      welfare = merge(welfare,dHHI[,c("markets","dHHI")],by="markets",all.x=TRUE)
-      welfare[is.na(dHHI),dHHI:=0]
-      welfare = welfare[dHHI>100]
-      
-      
-      ## Post-Merger HHI
-      equi = fread(paste("Estimation_Output/",price_file,sep=""))
-      equi = merge(equi,prodData,by="Product")
-      equi[,insideShare:=Lives/sum(Lives),by="Market"]
-      equi[Firm%in%c(m1,m2),Firm:=m1]
-      
-      ## Create HHI baseline data
-      temp_share = equi[,list(share=sum(insideShare*100)),by=c("Market","ST","Firm")]
-      temp_share[,count:=1]
-      temp_hhi = temp_share[,list(hhi=sum((share)^2),firm_num=sum(count)),by=c("Market","ST")]
-      temp_hhi[,markets:=as.numeric(as.factor(Market))]
-      
-      temp= merge(welfare[,c("markets","tot_Welfare","tot_Welfare_gov","dHHI")],temp_hhi[,c("Market","markets","hhi","firm_num")],by="markets",all.x=TRUE)
-      temp[,merging_parties:=paste(unique_firms[j],unique_firms[i],sep="-")]
-      temp[,policy:=policy]
-      
-      
-      conc_welfare = rbind(conc_welfare,temp)
-      rm(temp,temp_hhi,temp_share,equi,welfare,dHHI)
-    }
-  }
-  rm(welfare,hhi,base_welfare,baseline,firm_share,dHHI)
-}
-
-
-### Regression Analysis
-
-conc_welfare[,hhi_bucket:=floor(hhi/500)*500]
-conc_welfare[hhi>9000,hhi_bucket:=9000]
-conc_welfare[,hhi_bucket:=as.factor(hhi_bucket)]
-conc_welfare[,hhi_2:=hhi^2]
-conc_welfare[,hhi_3:=hhi^3]
-conc_welfare[,firmFactor:=as.factor(firm_num)]
-
-res_base = conc_welfare[policy=="Base"&(dHHI>100|merging_parties=="baseline"),summary(lm(tot_Welfare~firmFactor+Market))]
-res_RA = conc_welfare[policy=="RA"&(dHHI>100|merging_parties=="baseline"),summary(lm(tot_Welfare~firmFactor+Market))]
-
-df1 = data.frame(
-  Firms = rownames(res_base$coefficients)[grepl("firm",rownames(res_base$coefficients))],
-  Effect = res_base$coefficients[grepl("firm",rownames(res_base$coefficients)),"Estimate"],
-  se = res_base$coefficients[grepl("firm",rownames(res_base$coefficients)),"Std. Error"],
-  policy = "Baseline")
-
-df2 = data.frame(
-  Firms = rownames(res_RA$coefficients)[grepl("firm",rownames(res_RA$coefficients))],
-  Effect = res_RA$coefficients[grepl("firm",rownames(res_RA$coefficients)),"Estimate"],
-  se = res_RA$coefficients[grepl("firm",rownames(res_RA$coefficients)),"Std. Error"],
-  policy = "No Risk Adjustment")
-
-df = as.data.table(rbind(df1,df2))
-df[,Firms:=as.numeric(gsub("firmFactor","",Firms))]
-df[,ci_min:=Effect - 1.96*se]
-df[,ci_max:=Effect + 1.96*se]
-
-df = rbind(df,data.table(Firms=c(1,1),
-                         Effect=c(0,0),
-                         se = c(0,0),
-                         policy=c("Baseline","No Risk Adjustment"),
-                         ci_min=c(0,0),
-                         ci_max=c(0,0)))
-
-ggplot(df) + aes(x=as.factor(Firms),y=Effect,color=policy,shape=policy) + 
-  geom_point(position=position_dodge(width=0.5)) + geom_errorbar(aes(ymin=ci_min,ymax=ci_max),position=position_dodge(width=0.5))
-
+# 
+# #### Welfare By Market Concentration ####
+# conc_welfare = NULL
+# for (policy in c("Base","RA")){
+#   if (policy=="PL"){
+#     spec_temp = paste("PL","FMC",sep="_")
+#     policy_temp="Base"
+#   }else{
+#     spec_temp = spec
+#     policy_temp = policy
+#   }
+#   print(policy)
+#   filestub = paste("Estimation_Output/AllMergers_",spec_temp,"-",run,"_",policy_temp,"_",sep="")
+#   
+#   ### Baseline Market Data ####
+#   baseline = fread(paste(filestub,"baseline.csv",sep=""))
+#   baseline = merge(baseline,prodData,by="Product")
+#   baseline[,insideShare:=Lives/sum(Lives),by="Market"]
+#   
+#   ## Create HHI baseline data
+#   firm_share = baseline[,list(share=sum(insideShare*100)),by=c("Market","ST","Firm")]
+#   firm_share[,count:=1]
+#   firm_share[,markets:=as.numeric(as.factor(Market))]
+#   hhi = firm_share[,list(hhi=sum((share)^2),firm_num=sum(count)),by=c("markets","Market","ST")]
+# 
+#   
+#   ## Baseline welfare data
+#   base_welfare = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,"_baseline-",spec,"-",run,".csv",sep=""))
+#   base_welfare[,tot_Welfare:=CW+Profit]
+#   base_welfare[,tot_Welfare_gov:=CW+Profit+Spending]
+#   
+#   conc_base = merge(base_welfare[,c("markets","tot_Welfare","tot_Welfare_gov")],hhi[,c("Market","markets","hhi","firm_num")],by="markets")
+#   conc_base[,dHHI:=0]
+#   conc_base[,merging_parties:="baseline"]
+#   conc_base[,policy:=policy]
+#   conc_welfare = rbind(conc_welfare,conc_base)
+#   
+#   #### Iterate Through Mergers ####
+#   merger_welfare_files = list.files("Estimation_Output",pattern=paste("totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,sep=""))
+#   merger_price_files = list.files("Estimation_Output",pattern=paste("^AllMergers_",spec_temp,"-",run,"_",policy_temp,sep=""))
+#   unique_firms = sort(firm_share[,unique(Firm)])
+#   
+#   
+#   for (i in 1:length(unique_firms)){
+#     for (j in 1:(i-1)){
+#       if (j==0){next}
+#       m1 = unique_firms[j]
+#       m2 = unique_firms[i]
+#       ## Read in Welfare File
+#       merging_party_string = paste(policy_temp,"_",m1,"_",m2,"-",spec,sep="")
+#       welfare_file = merger_welfare_files[grepl(merging_party_string,merger_welfare_files)]
+#       merging_party_string = paste(policy_temp,"_",m1,"_",m2,".csv",sep="")
+#       price_file = merger_price_files[grepl(merging_party_string,merger_price_files)]
+#       if (length(welfare_file)==0){next}
+#       ## Welfare
+#       welfare = fread(paste("Estimation_Output/",welfare_file,sep=""))
+#       welfare[,tot_Welfare:=CW+Profit]
+#       welfare[,tot_Welfare_gov:=CW+Profit+Spending]
+#       
+#       dHHI = firm_share[Firm%in%c(m1,m2),list(dHHI=2*prod(share),merger=sum(count)),by="markets"]
+#       dHHI[merger<2,dHHI:=0]
+#       
+#       welfare = merge(welfare,dHHI[,c("markets","dHHI")],by="markets",all.x=TRUE)
+#       welfare[is.na(dHHI),dHHI:=0]
+#       welfare = welfare[dHHI>100]
+#       
+#       
+#       ## Post-Merger HHI
+#       equi = fread(paste("Estimation_Output/",price_file,sep=""))
+#       equi = merge(equi,prodData,by="Product")
+#       equi[,insideShare:=Lives/sum(Lives),by="Market"]
+#       equi[Firm%in%c(m1,m2),Firm:=m1]
+#       
+#       ## Create HHI baseline data
+#       temp_share = equi[,list(share=sum(insideShare*100)),by=c("Market","ST","Firm")]
+#       temp_share[,count:=1]
+#       temp_hhi = temp_share[,list(hhi=sum((share)^2),firm_num=sum(count)),by=c("Market","ST")]
+#       temp_hhi[,markets:=as.numeric(as.factor(Market))]
+#       
+#       temp= merge(welfare[,c("markets","tot_Welfare","tot_Welfare_gov","dHHI")],temp_hhi[,c("Market","markets","hhi","firm_num")],by="markets",all.x=TRUE)
+#       temp[,merging_parties:=paste(unique_firms[j],unique_firms[i],sep="-")]
+#       temp[,policy:=policy]
+#       
+#       
+#       conc_welfare = rbind(conc_welfare,temp)
+#       rm(temp,temp_hhi,temp_share,equi,welfare,dHHI)
+#     }
+#   }
+#   rm(welfare,hhi,base_welfare,baseline,firm_share,dHHI)
+# }
+# 
+# 
+# ### Regression Analysis
+# 
+# conc_welfare[,hhi_bucket:=floor(hhi/500)*500]
+# conc_welfare[hhi>9000,hhi_bucket:=9000]
+# conc_welfare[,hhi_bucket:=as.factor(hhi_bucket)]
+# conc_welfare[,hhi_2:=hhi^2]
+# conc_welfare[,hhi_3:=hhi^3]
+# conc_welfare[,firmFactor:=as.factor(firm_num)]
+# 
+# res_base = conc_welfare[policy=="Base"&(dHHI>100|merging_parties=="baseline"),summary(lm(tot_Welfare~firmFactor+Market))]
+# res_RA = conc_welfare[policy=="RA"&(dHHI>100|merging_parties=="baseline"),summary(lm(tot_Welfare~firmFactor+Market))]
+# 
+# df1 = data.frame(
+#   Firms = rownames(res_base$coefficients)[grepl("firm",rownames(res_base$coefficients))],
+#   Effect = res_base$coefficients[grepl("firm",rownames(res_base$coefficients)),"Estimate"],
+#   se = res_base$coefficients[grepl("firm",rownames(res_base$coefficients)),"Std. Error"],
+#   policy = "Baseline")
+# 
+# df2 = data.frame(
+#   Firms = rownames(res_RA$coefficients)[grepl("firm",rownames(res_RA$coefficients))],
+#   Effect = res_RA$coefficients[grepl("firm",rownames(res_RA$coefficients)),"Estimate"],
+#   se = res_RA$coefficients[grepl("firm",rownames(res_RA$coefficients)),"Std. Error"],
+#   policy = "No Risk Adjustment")
+# 
+# df = as.data.table(rbind(df1,df2))
+# df[,Firms:=as.numeric(gsub("firmFactor","",Firms))]
+# df[,ci_min:=Effect - 1.96*se]
+# df[,ci_max:=Effect + 1.96*se]
+# 
+# df = rbind(df,data.table(Firms=c(1,1),
+#                          Effect=c(0,0),
+#                          se = c(0,0),
+#                          policy=c("Baseline","No Risk Adjustment"),
+#                          ci_min=c(0,0),
+#                          ci_max=c(0,0)))
+# 
+# ggplot(df) + aes(x=as.factor(Firms),y=Effect,color=policy,shape=policy) + 
+#   geom_point(position=position_dodge(width=0.5)) + geom_errorbar(aes(ymin=ci_min,ymax=ci_max),position=position_dodge(width=0.5))
+# 
 
 
 #### Merger Welfare Data ####
@@ -220,7 +221,7 @@ for (policy in c("Base","RA")){
       
       welfare = merge(welfare,dHHI[,c("Market","dHHI")],by="Market",all.x=TRUE)
       welfare[is.na(dHHI),dHHI:=0]
-      # welfare = welfare[dHHI>100]
+      welfare = welfare[dHHI>0]
       merger_welfare = rbind(merger_welfare,welfare)
     }
   }
@@ -232,66 +233,6 @@ for (policy in c("Base","RA")){
 #### Welfare Effect Merger Plot #####
 merger_welfare[,chg_Tot_Welfare:=chg_CW+chg_Profit]
 merger_welfare[,chg_Tot_Welfaregov:=chg_CW+chg_Profit+chg_Spending]
-
-
-plotdf1 = merger_welfare[,c("dHHI","chg_CW","policy")]
-names(plotdf1)[2] = "value"
-plotdf1[,label:="Consumer Welfare"]
-plotdf1[,chg_CW:=NA]
-plotdf2 = merger_welfare[,c("dHHI","chg_Tot_Welfare","chg_CW","policy")]
-names(plotdf2)[2] = "value"
-plotdf2[,label:="Total Welfare"]
-plotdf = rbind(plotdf1,plotdf2)
-
-
-# png("Writing/Images/Base_WelfareEffect.png",width=2500,height=1500,res=275)
-ggplot(plotdf[policy=="Base"])+
-  geom_point(aes(x=dHHI,y=value,color=label,shape=label),size=2.5)+
-  # geom_point(aes(x=dHHI,y=chg_Tot_Welfare,color="Total Welfare",shape ="Total Welfare"),size=2) +
-  scale_shape_manual(values=c(16,17)) +
-  geom_errorbar(aes(x=dHHI,ymin=chg_CW,ymax=value)) +
-  guides(color = guide_legend(override.aes = list(size = 5))) +
-  # facet_wrap(~hhi_category,ncol=1) +
-  geom_abline(slope=0,intercept=0) +
-  xlab("Predicted Change in HHI")+
-  ylab("Dollars Per-Person Per-Month")+
-  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
-    strip.background = element_blank(),
-    strip.text = element_text(size=14),
-    legend.background = element_rect(color=grey(.5)),
-    legend.title = element_blank(),
-    legend.text = element_text(size=14),
-    legend.key.width = unit(.05,units="npc"),
-    legend.key = element_rect(color="transparent",fill="transparent"),
-    legend.position = "bottom",
-    axis.title=element_text(size=14),
-    axis.text = element_text(size=16))
-# dev.off()
-
-
-# png("Writing/Images/RA_WelfareEffect.png",width=2500,height=1500,res=275)
-ggplot(plotdf[policy=="RA"])+ 
-  geom_point(aes(x=dHHI,y=value,color=label,shape=label),size=2.5)+
-  scale_shape_manual(values=c(16,17)) +
-  geom_errorbar(aes(x=dHHI,ymin=chg_CW,ymax=value)) +
-  guides(color = guide_legend(override.aes = list(size = 5))) +
-  geom_abline(slope=0,intercept=0) +
-  xlab("Predicted Change in HHI")+
-  ylab("Dollars Per-Person Per-Month")+
-  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
-    strip.background = element_blank(),
-    strip.text = element_text(size=14),
-    legend.background = element_rect(color=grey(.5)),
-    legend.title = element_blank(),
-    legend.text = element_text(size=14),
-    legend.key.width = unit(.05,units="npc"),
-    legend.key = element_rect(color="transparent",fill="transparent"),
-    legend.position = "bottom",
-    axis.title=element_text(size=14),
-    axis.text = element_text(size=16))
-# dev.off()
-
-
 
 ##### Decomposition  Data ####
 base_welfare = NULL
@@ -359,34 +300,133 @@ merger_welfare = merge(merger_welfare,base_welfare,by=c("markets","policy"),all.
 # }
 # 
 # merger_welfare = merge(merger_welfare,merger_welfare_SP,by=c("markets","merging_parties","policy"),all.x=TRUE)
+merger_welfare[,policy_label:=factor(policy,levels=c("Base","RA"),labels=c("Baseline","No Risk"))]
 
+
+plotdf1 = merger_welfare[,c("dHHI","chg_CW","policy","sorting_cost","policy_label")]
+names(plotdf1)[2] = "value"
+plotdf1[,label:="Consumer Welfare"]
+plotdf1[,chg_CW:=NA]
+plotdf2 = merger_welfare[,c("dHHI","chg_Tot_Welfare","chg_CW","policy","sorting_cost","policy_label")]
+names(plotdf2)[2] = "value"
+plotdf2[,label:="Total Welfare"]
+plotdf = rbind(plotdf1,plotdf2)
+
+
+png("Writing/Images/Base_WelfareEffect.png",width=2500,height=1500,res=275)
+ggplot(plotdf[policy=="Base"])+
+  geom_point(aes(x=dHHI,y=value,color=label,shape=label),size=2.5)+
+  # geom_point(aes(x=dHHI,y=chg_Tot_Welfare,color="Total Welfare",shape ="Total Welfare"),size=2) +
+  scale_shape_manual(values=c(16,17)) +
+  geom_errorbar(aes(x=dHHI,ymin=chg_CW,ymax=value)) +
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+  # facet_wrap(~hhi_category,ncol=1) +
+  geom_abline(slope=0,intercept=0) +
+  xlab("Predicted Change in HHI")+
+  ylab("Dollars Per-Person Per-Month")+
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    strip.text = element_text(size=14),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title = element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "bottom",
+    axis.title=element_text(size=14),
+    axis.text = element_text(size=16))
+dev.off()
+
+png("Writing/Images/Base_WelfareEffect_bySort.png",width=2500,height=1500,res=275)
+ggplot(plotdf[policy=="Base"])+
+  geom_point(aes(x=sorting_cost,y=value,color=label,shape=label),size=2.5)+
+  # geom_point(aes(x=dHHI,y=chg_Tot_Welfare,color="Total Welfare",shape ="Total Welfare"),size=2) +
+  scale_shape_manual(values=c(16,17)) +
+  geom_errorbar(aes(x=sorting_cost,ymin=chg_CW,ymax=value)) +
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+  # facet_wrap(~hhi_category,ncol=1) +
+  geom_abline(slope=0,intercept=0) +
+  xlab("Predicted Change in HHI")+
+  ylab("Dollars Per-Person Per-Month")+
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    strip.text = element_text(size=14),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title = element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "bottom",
+    axis.title=element_text(size=14),
+    axis.text = element_text(size=16))
+dev.off()
+
+png("Writing/Images/RA_WelfareEffect.png",width=2500,height=1500,res=275)
+ggplot(plotdf[policy=="RA"])+ 
+  geom_point(aes(x=dHHI,y=value,color=label,shape=label),size=2.5)+
+  scale_shape_manual(values=c(16,17)) +
+  geom_errorbar(aes(x=dHHI,ymin=chg_CW,ymax=value)) +
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+  geom_abline(slope=0,intercept=0) +
+  xlab("Predicted Change in HHI")+
+  ylab("Dollars Per-Person Per-Month")+
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    strip.text = element_text(size=14),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title = element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "bottom",
+    axis.title=element_text(size=14),
+    axis.text = element_text(size=16))
+dev.off()
+
+png("Writing/Images/RA_WelfareEffect_bySort.png",width=2500,height=1500,res=275)
+ggplot(plotdf[policy=="RA"])+ 
+  geom_point(aes(x=sorting_cost,y=value,color=label,shape=label),size=2.5)+
+  scale_shape_manual(values=c(16,17)) +
+  geom_errorbar(aes(x=sorting_cost,ymin=chg_CW,ymax=value)) +
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+  geom_abline(slope=0,intercept=0) +
+  xlab("Predicted Change in HHI")+
+  ylab("Dollars Per-Person Per-Month")+
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    strip.text = element_text(size=14),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title = element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "bottom",
+    axis.title=element_text(size=14),
+    axis.text = element_text(size=16))
+dev.off()
 
 ##### Welfare Decomposition #####
 big_mergers = merger_welfare[dHHI>0]
 big_mergers[,chg_rank:= rank(chg_Tot_Welfare,ties.method="first"),by=policy]
-big_mergers[,sorting_rank:= rank(sorting_cost,ties.method="first"),by=policy]
 # big_mergers[,dMarkup:=Tot_Welfare_merge_cp - Welfare_baseline_CP]
 # big_mergers[,dSorting:=chg_Tot_Welfare - dMarkup]
 
 ## Smooth out non-ordered variables
 big_mergers[,chg_rank_bucket:=floor(chg_rank/10)]
-big_mergers[,sorting_rank_bucket:=ceiling(sorting_cost/5)*5]
-big_mergers[sorting_rank==max(sorting_rank),sorting_rank_bucket:=max(sorting_rank_bucket)-1]# Group max into previous group
+big_mergers[,chg_rank_dist:=chg_rank/max(chg_rank),by="policy"]
 
 big_mergers[,sorting_cost_smooth:=mean(sorting_cost,na.rm=TRUE),by=c("chg_rank_bucket","policy")]
-# big_mergers[,dSorting_smooth:=mean(dSorting,na.rm=TRUE),by=c("sorting_rank_bucket","policy")]
-# big_mergers[,dMarkup_smooth:=mean(dMarkup,na.rm=TRUE),by=c("sorting_rank_bucket","policy")]
-big_mergers[,dWelfare_smooth:=mean(chg_Tot_Welfare,na.rm=TRUE),by=c("sorting_rank_bucket","policy")]
-big_mergers[,hhi_smooth:=mean(hhi,na.rm=TRUE),by=c("sorting_rank_bucket","policy")]
+big_mergers[,dWelfare_smooth:=mean(chg_Tot_Welfare,na.rm=TRUE),by=c("chg_rank_bucket","policy")]
+big_mergers[,hhi_smooth:=mean(hhi,na.rm=TRUE),by=c("chg_rank_bucket","policy")]
 
 
-plot_df1 = unique(big_mergers[,c("sorting_rank_bucket","policy","dWelfare_smooth")])
+plot_df1 = big_mergers[,c("chg_rank_bucket","policy","chg_Tot_Welfare","chg_rank_dist","policy_label")]
 names(plot_df1)[3] = "value"
 plot_df1[,label:="Total Welfare Effect"]
-plot_df2 = big_mergers[,c("sorting_cost","policy","hhi_smooth")]
+plot_df2 = big_mergers[,c("chg_rank_bucket","policy","hhi_smooth","chg_rank_dist","policy_label")]
 names(plot_df2)[3] = "value"
 plot_df2[,label:="Pre-Merger HHI"]
-plot_df3 = big_mergers[,c("sorting_cost","policy","sorting_cost")]
+plot_df3 = big_mergers[,c("chg_rank_bucket","policy","sorting_cost","chg_rank_dist","policy_label")]
 names(plot_df3)[3] = "value"
 plot_df3[,label:="Sorting Cost"]
 # plot_df4 = big_mergers[,c("sorting_cost_smooth","policy","dSorting_smooth")]
@@ -400,11 +440,18 @@ plotdf[label%in%c("Change due to Sorting","Change due to Markups"),facet:="Decom
 plotdf[,color:=label]
 plotdf[!label%in%c("Change due to Sorting","Change due to Markups"),color:=NA]
 
-# png("Writing/Images/RAManWelfareDist.png",width=2500,height=1500,res=275)
-ggplot(plot_df1[policy=="RA"&label%in%c("Total Welfare Effect")]) + 
-  aes(x=sorting_rank_bucket,y=value) + geom_bar(stat="identity",color=grey(0.5),fill=grey(0.5)) + 
+
+plot_df1[,cross:=min(abs(value)),by="policy"]
+thresh = plot_df1[abs(value)==cross]
+setkey(plotdf,chg_rank_dist)
+
+png("Writing/Images/WelfareDist_all.png",width=2500,height=1500,res=275)
+ggplot(plotdf[label%in%c("Total Welfare Effect")]) + 
+  facet_wrap(~policy_label,ncol=1,scales="free") + 
+  aes(x=chg_rank_dist,y=value) + geom_bar(stat="identity",width=0.001,color=grey(0.5),fill=grey(0.5)) + 
   ylab("Dollars Per-Person Per-Month")+
   xlab("")+
+  geom_vline(data=thresh,aes(xintercept=chg_rank_dist)) + 
   theme(strip.background = element_blank(),
     strip.text = element_text(size=14),
     legend.background = element_rect(color=grey(.5)),
@@ -416,14 +463,54 @@ ggplot(plot_df1[policy=="RA"&label%in%c("Total Welfare Effect")]) +
     axis.title=element_text(size=14),
     axis.text.y = element_text(size=16),
     axis.text.x = element_text(size=16))
-# dev.off()
+dev.off()
 
-# png("Writing/Images/RAManWelfareSorting.png",width=2500,height=1500,res=275)
-ggplot(plotdf[policy=="RA"&label%in%c("Total Welfare Effect","Sorting Cost")]) +
-  aes(x=sorting_rank,y=value) + geom_bar(stat="identity",color=grey(0.5),fill=grey(0.5)) + 
-  facet_wrap(~label,ncol=1,scales="free")  + 
+big_mergers = merger_welfare[dHHI<200&dHHI>0]
+big_mergers[,chg_rank:= rank(chg_Tot_Welfare,ties.method="first"),by=policy]
+# big_mergers[,dMarkup:=Tot_Welfare_merge_cp - Welfare_baseline_CP]
+# big_mergers[,dSorting:=chg_Tot_Welfare - dMarkup]
+
+## Smooth out non-ordered variables
+big_mergers[,chg_rank_bucket:=floor(chg_rank/10)]
+big_mergers[,chg_rank_dist:=chg_rank/max(chg_rank),by="policy"]
+
+big_mergers[,sorting_cost_smooth:=mean(sorting_cost,na.rm=TRUE),by=c("chg_rank_bucket","policy")]
+big_mergers[,dWelfare_smooth:=mean(chg_Tot_Welfare,na.rm=TRUE),by=c("chg_rank_bucket","policy")]
+big_mergers[,hhi_smooth:=mean(hhi,na.rm=TRUE),by=c("chg_rank_bucket","policy")]
+
+
+plot_df1 = big_mergers[,c("chg_rank_bucket","policy","chg_Tot_Welfare","chg_rank_dist","policy_label")]
+names(plot_df1)[3] = "value"
+plot_df1[,label:="Total Welfare Effect"]
+plot_df2 = big_mergers[,c("chg_rank_bucket","policy","hhi_smooth","chg_rank_dist","policy_label")]
+names(plot_df2)[3] = "value"
+plot_df2[,label:="Pre-Merger HHI"]
+plot_df3 = big_mergers[,c("chg_rank_bucket","policy","sorting_cost","chg_rank_dist","policy_label")]
+names(plot_df3)[3] = "value"
+plot_df3[,label:="Sorting Cost"]
+# plot_df4 = big_mergers[,c("sorting_cost_smooth","policy","dSorting_smooth")]
+# names(plot_df4)[3] = "value"
+# plot_df4[,label:="Change due to Sorting"]
+plotdf = rbind(plot_df1,plot_df2,plot_df3)#,plot_df3,plot_df4)
+
+plotdf[,label:= factor(label,levels=c("Total Welfare Effect","Pre-Merger HHI","Sorting Cost"))]#,"Change due to Sorting","Change due to Markups"))]
+plotdf[,facet:=label]
+plotdf[label%in%c("Change due to Sorting","Change due to Markups"),facet:="Decomposition"]
+plotdf[,color:=label]
+plotdf[!label%in%c("Change due to Sorting","Change due to Markups"),color:=NA]
+
+
+plot_df1[,cross:=min(abs(value)),by="policy"]
+thresh = plot_df1[abs(value)==cross]
+setkey(plotdf,chg_rank_dist)
+
+png("Writing/Images/WelfareDist_dHHI_LT200.png",width=2500,height=1500,res=275)
+ggplot(plotdf[label%in%c("Total Welfare Effect")]) + 
+  facet_wrap(~policy_label,ncol=1,scales="free") + 
+  aes(x=chg_rank_dist,y=value) + geom_bar(stat="identity",width=0.001,color=grey(0.5),fill=grey(0.5)) + 
   ylab("Dollars Per-Person Per-Month")+
   xlab("")+
+  geom_vline(data=thresh,aes(xintercept=chg_rank_dist)) + 
   theme(strip.background = element_blank(),
         strip.text = element_text(size=14),
         legend.background = element_rect(color=grey(.5)),
@@ -434,7 +521,144 @@ ggplot(plotdf[policy=="RA"&label%in%c("Total Welfare Effect","Sorting Cost")]) +
         legend.position = "bottom",
         axis.title=element_text(size=14),
         axis.text.y = element_text(size=16),
-        axis.text.x = element_blank())
+        axis.text.x = element_text(size=16))
+dev.off()
+
+big_mergers = merger_welfare[dHHI>200]
+big_mergers[,chg_rank:= rank(chg_Tot_Welfare,ties.method="first"),by=policy]
+# big_mergers[,dMarkup:=Tot_Welfare_merge_cp - Welfare_baseline_CP]
+# big_mergers[,dSorting:=chg_Tot_Welfare - dMarkup]
+
+## Smooth out non-ordered variables
+big_mergers[,chg_rank_bucket:=floor(chg_rank/10)]
+big_mergers[,chg_rank_dist:=chg_rank/max(chg_rank),by="policy"]
+
+big_mergers[,sorting_cost_smooth:=mean(sorting_cost,na.rm=TRUE),by=c("chg_rank_bucket","policy")]
+big_mergers[,dWelfare_smooth:=mean(chg_Tot_Welfare,na.rm=TRUE),by=c("chg_rank_bucket","policy")]
+big_mergers[,hhi_smooth:=mean(hhi,na.rm=TRUE),by=c("chg_rank_bucket","policy")]
+
+
+plot_df1 = big_mergers[,c("chg_rank_bucket","policy","chg_Tot_Welfare","chg_rank_dist","policy_label")]
+names(plot_df1)[3] = "value"
+plot_df1[,label:="Total Welfare Effect"]
+plot_df2 = big_mergers[,c("chg_rank_bucket","policy","hhi_smooth","chg_rank_dist","policy_label")]
+names(plot_df2)[3] = "value"
+plot_df2[,label:="Pre-Merger HHI"]
+plot_df3 = big_mergers[,c("chg_rank_bucket","policy","sorting_cost","chg_rank_dist","policy_label")]
+names(plot_df3)[3] = "value"
+plot_df3[,label:="Sorting Cost"]
+# plot_df4 = big_mergers[,c("sorting_cost_smooth","policy","dSorting_smooth")]
+# names(plot_df4)[3] = "value"
+# plot_df4[,label:="Change due to Sorting"]
+plotdf = rbind(plot_df1,plot_df2,plot_df3)#,plot_df3,plot_df4)
+
+plotdf[,label:= factor(label,levels=c("Total Welfare Effect","Pre-Merger HHI","Sorting Cost"))]#,"Change due to Sorting","Change due to Markups"))]
+plotdf[,facet:=label]
+plotdf[label%in%c("Change due to Sorting","Change due to Markups"),facet:="Decomposition"]
+plotdf[,color:=label]
+plotdf[!label%in%c("Change due to Sorting","Change due to Markups"),color:=NA]
+
+
+plot_df1[,cross:=min(abs(value)),by="policy"]
+thresh = plot_df1[abs(value)==cross]
+setkey(plotdf,chg_rank_dist)
+
+png("Writing/Images/WelfareDist_dHHI_GT200.png",width=2500,height=1500,res=275)
+ggplot(plotdf[label%in%c("Total Welfare Effect")]) + 
+  facet_wrap(~policy_label,ncol=1,scales="free") + 
+  aes(x=chg_rank_dist,y=value) + geom_bar(stat="identity",width=0.001,color=grey(0.5),fill=grey(0.5)) + 
+  ylab("Dollars Per-Person Per-Month")+
+  xlab("")+
+  geom_vline(data=thresh,aes(xintercept=chg_rank_dist)) + 
+  theme(strip.background = element_blank(),
+        strip.text = element_text(size=14),
+        legend.background = element_rect(color=grey(.5)),
+        legend.title = element_blank(),
+        legend.text = element_text(size=14),
+        legend.key.width = unit(.05,units="npc"),
+        legend.key = element_rect(color="transparent",fill="transparent"),
+        legend.position = "bottom",
+        axis.title=element_text(size=14),
+        axis.text.y = element_text(size=16),
+        axis.text.x = element_text(size=16))
+dev.off()
+
+big_mergers = merger_welfare[dHHI>500]
+big_mergers[,chg_rank:= rank(chg_Tot_Welfare,ties.method="first"),by=policy]
+# big_mergers[,dMarkup:=Tot_Welfare_merge_cp - Welfare_baseline_CP]
+# big_mergers[,dSorting:=chg_Tot_Welfare - dMarkup]
+
+## Smooth out non-ordered variables
+big_mergers[,chg_rank_bucket:=floor(chg_rank/10)]
+big_mergers[,chg_rank_dist:=chg_rank/max(chg_rank),by="policy"]
+
+big_mergers[,sorting_cost_smooth:=mean(sorting_cost,na.rm=TRUE),by=c("chg_rank_bucket","policy")]
+big_mergers[,dWelfare_smooth:=mean(chg_Tot_Welfare,na.rm=TRUE),by=c("chg_rank_bucket","policy")]
+big_mergers[,hhi_smooth:=mean(hhi,na.rm=TRUE),by=c("chg_rank_bucket","policy")]
+
+
+plot_df1 = big_mergers[,c("chg_rank_bucket","policy","chg_Tot_Welfare","chg_rank_dist","policy_label")]
+names(plot_df1)[3] = "value"
+plot_df1[,label:="Total Welfare Effect"]
+plot_df2 = big_mergers[,c("chg_rank_bucket","policy","hhi_smooth","chg_rank_dist","policy_label")]
+names(plot_df2)[3] = "value"
+plot_df2[,label:="Pre-Merger HHI"]
+plot_df3 = big_mergers[,c("chg_rank_bucket","policy","sorting_cost","chg_rank_dist","policy_label")]
+names(plot_df3)[3] = "value"
+plot_df3[,label:="Sorting Cost"]
+# plot_df4 = big_mergers[,c("sorting_cost_smooth","policy","dSorting_smooth")]
+# names(plot_df4)[3] = "value"
+# plot_df4[,label:="Change due to Sorting"]
+plotdf = rbind(plot_df1,plot_df2,plot_df3)#,plot_df3,plot_df4)
+
+plotdf[,label:= factor(label,levels=c("Total Welfare Effect","Pre-Merger HHI","Sorting Cost"))]#,"Change due to Sorting","Change due to Markups"))]
+plotdf[,facet:=label]
+plotdf[label%in%c("Change due to Sorting","Change due to Markups"),facet:="Decomposition"]
+plotdf[,color:=label]
+plotdf[!label%in%c("Change due to Sorting","Change due to Markups"),color:=NA]
+
+
+plot_df1[,cross:=min(abs(value)),by="policy"]
+thresh = plot_df1[abs(value)==cross]
+setkey(plotdf,chg_rank_dist)
+
+png("Writing/Images/WelfareDist_dHHI_GT500.png",width=2500,height=1500,res=275)
+ggplot(plotdf[label%in%c("Total Welfare Effect")]) + 
+  facet_wrap(~policy_label,ncol=1,scales="free") + 
+  aes(x=chg_rank_dist,y=value) + geom_bar(stat="identity",width=0.001,color=grey(0.5),fill=grey(0.5)) + 
+  ylab("Dollars Per-Person Per-Month")+
+  xlab("")+
+  geom_vline(data=thresh,aes(xintercept=chg_rank_dist)) + 
+  theme(strip.background = element_blank(),
+        strip.text = element_text(size=14),
+        legend.background = element_rect(color=grey(.5)),
+        legend.title = element_blank(),
+        legend.text = element_text(size=14),
+        legend.key.width = unit(.05,units="npc"),
+        legend.key = element_rect(color="transparent",fill="transparent"),
+        legend.position = "bottom",
+        axis.title=element_text(size=14),
+        axis.text.y = element_text(size=16),
+        axis.text.x = element_text(size=16))
+dev.off()
+
+# png("Writing/Images/RAManWelfareSorting.png",width=2500,height=1500,res=275)
+# ggplot(plotdf[policy=="RA"&label%in%c("Total Welfare Effect","Sorting Cost")]) +
+#   aes(x=sorting_rank,y=value) + geom_bar(stat="identity",color=grey(0.5),fill=grey(0.5)) + 
+#   facet_wrap(~label,ncol=1,scales="free")  + 
+#   ylab("Dollars Per-Person Per-Month")+
+#   xlab("")+
+#   theme(strip.background = element_blank(),
+#         strip.text = element_text(size=14),
+#         legend.background = element_rect(color=grey(.5)),
+#         legend.title = element_blank(),
+#         legend.text = element_text(size=14),
+#         legend.key.width = unit(.05,units="npc"),
+#         legend.key = element_rect(color="transparent",fill="transparent"),
+#         legend.position = "bottom",
+#         axis.title=element_text(size=14),
+#         axis.text.y = element_text(size=16),
+#         axis.text.x = element_blank())
 # dev.off()
 
 
@@ -461,40 +685,40 @@ ggplot(plotdf[policy=="RA"&label%in%c("Total Welfare Effect","Sorting Cost")]) +
 
 
 # png("Writing/Images/BaseWelfareDist.png",width=2500,height=1500,res=275)
-ggplot(plotdf[policy=="Base"&label%in%c("Total Welfare Effect")]) + 
-  aes(x=chg_rank,y=value) + geom_bar(stat="identity",color=grey(0.5),fill=grey(0.5)) + 
-  ylab("Dollars Per-Person Per-Month")+
-  xlab("")+
-  theme(strip.background = element_blank(),
-        strip.text = element_text(size=14),
-        legend.background = element_rect(color=grey(.5)),
-        legend.title = element_blank(),
-        legend.text = element_text(size=14),
-        legend.key.width = unit(.05,units="npc"),
-        legend.key = element_rect(color="transparent",fill="transparent"),
-        legend.position = "bottom",
-        axis.title=element_text(size=14),
-        axis.text.y = element_text(size=16),
-        axis.text.x = element_blank())
+# ggplot(plotdf[policy=="Base"&label%in%c("Total Welfare Effect")]) + 
+#   aes(x=chg_rank,y=value) + geom_bar(stat="identity",color=grey(0.5),fill=grey(0.5)) + 
+#   ylab("Dollars Per-Person Per-Month")+
+#   xlab("")+
+#   theme(strip.background = element_blank(),
+#         strip.text = element_text(size=14),
+#         legend.background = element_rect(color=grey(.5)),
+#         legend.title = element_blank(),
+#         legend.text = element_text(size=14),
+#         legend.key.width = unit(.05,units="npc"),
+#         legend.key = element_rect(color="transparent",fill="transparent"),
+#         legend.position = "bottom",
+#         axis.title=element_text(size=14),
+#         axis.text.y = element_text(size=16),
+#         axis.text.x = element_blank())
 # dev.off()
 
 # png("Writing/Images/BaseWelfareSorting.png",width=2500,height=1500,res=275)
-ggplot(plotdf[policy=="Base"&label%in%c("Total Welfare Effect","Pre-Merger Cost of Inefficient Sorting")]) +
-  aes(x=chg_rank,y=value) + geom_bar(stat="identity",color=grey(0.5),fill=grey(0.5)) + 
-  facet_wrap(~label,ncol=1,scales="free")  + 
-  ylab("Dollars Per-Person Per-Month")+
-  xlab("")+
-  theme(strip.background = element_blank(),
-        strip.text = element_text(size=14),
-        legend.background = element_rect(color=grey(.5)),
-        legend.title = element_blank(),
-        legend.text = element_text(size=14),
-        legend.key.width = unit(.05,units="npc"),
-        legend.key = element_rect(color="transparent",fill="transparent"),
-        legend.position = "bottom",
-        axis.title=element_text(size=14),
-        axis.text.y = element_text(size=16),
-        axis.text.x = element_blank())
+# ggplot(plotdf[policy=="Base"&label%in%c("Total Welfare Effect","Pre-Merger Cost of Inefficient Sorting")]) +
+#   aes(x=chg_rank,y=value) + geom_bar(stat="identity",color=grey(0.5),fill=grey(0.5)) + 
+#   facet_wrap(~label,ncol=1,scales="free")  + 
+#   ylab("Dollars Per-Person Per-Month")+
+#   xlab("")+
+#   theme(strip.background = element_blank(),
+#         strip.text = element_text(size=14),
+#         legend.background = element_rect(color=grey(.5)),
+#         legend.title = element_blank(),
+#         legend.text = element_text(size=14),
+#         legend.key.width = unit(.05,units="npc"),
+#         legend.key = element_rect(color="transparent",fill="transparent"),
+#         legend.position = "bottom",
+#         axis.title=element_text(size=14),
+#         axis.text.y = element_text(size=16),
+#         axis.text.x = element_blank())
 # dev.off()
 
 
@@ -527,7 +751,7 @@ ggplot(plotdf[policy=="Base"&label%in%c("Total Welfare Effect","Pre-Merger Cost 
 
 #### Merger Price-Effect Data ####
 merger_effects = NULL
-for (policy in c("Man","RAMan")){
+for (policy in c("Base","RA")){
   print(policy)
   if (policy=="PL"){
     spec_temp = paste("PL","FMC",sep="_")
@@ -604,29 +828,17 @@ for (policy in c("Man","RAMan")){
   rm(postmerge,hhi,baseline,firm_share,dHHI,merger_files)
 }
 
-merger_effects[,Metal_std:=factor(Metal_std,levels=c("CATASTROPHIC","BRONZE","SILVER","GOLD","PLATINUM"))]
+merger_effects[,Metal_std:=factor(Metal_std,levels=c("CATASTROPHIC","BRONZE","SILVER","GOLD","PLATINUM"),
+                                  labels=c("Catas","Bronze","Silver","Gold","Plat"))]
 
-ggplot(merger_effects[policy=="Base"]) + 
-  aes(x=Metal_std,y=Price_Effect_percent) + 
-  geom_boxplot(outlier.shape=NA) + 
-  coord_cartesian(ylim=c(-.025,.125))  +
-  ylab("Change in Monthly Premium")+
-  xlab("")+
-  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
-    title=element_text(hjust=0,size=18),
-    strip.background = element_blank(),
-    strip.text = element_text(size=14),
-    legend.background = element_rect(color=grey(.5)),
-    legend.title = element_blank(),
-    legend.text = element_text(size=14),
-    legend.key.width = unit(.05,units="npc"),
-    legend.key = element_rect(color="transparent",fill="transparent"),
-    legend.position = "bottom",
-    axis.title=element_text(size=14),
-    axis.text = element_text(size=16))
+merger_plot = merge(merger_effects,merger_welfare[,c("markets","policy","merging_parties","chg_Tot_Welfare")],by=c("markets","policy","merging_parties"))
 
-png("Writing/Images/BasePriceEffect_HHHI1000.png",width=2500,height=1500,res=275)
-ggplot(merger_effects[policy=="Base"&dHHI>1000]) + 
+merger_plot[,welf_effect:="Negative Welfare Effect"]
+merger_plot[chg_Tot_Welfare>0,welf_effect:="Positive Welfare Effect"]
+
+png("Writing/Images/BasePriceEffect.png",width=2500,height=1500,res=275)
+ggplot(merger_plot[policy=="Base"&parties_indicator==1]) + 
+  facet_wrap(~welf_effect,ncol=1,scales="free") +
   aes(x=Metal_std,y=Price_Effect_percent) + 
   geom_abline(intercept=0,slope=0) + 
   geom_boxplot(outlier.shape=NA) + 
@@ -646,11 +858,12 @@ ggplot(merger_effects[policy=="Base"&dHHI>1000]) +
     legend.key = element_rect(color="transparent",fill="transparent"),
     legend.position = "bottom",
     axis.title=element_text(size=16),
-    axis.text = element_text(size=16))
+    axis.text = element_text(size=12))
 dev.off()
 
-png("Writing/Images/RAManPriceEffect_HHHI1000.png",width=2500,height=1500,res=275)
-ggplot(merger_effects[policy=="RAMan"&dHHI>1000]) + 
+png("Writing/Images/BasePriceEffect_Positive.png",width=2500,height=1500,res=275)
+ggplot(merger_plot[policy=="Base"&parties_indicator==1&chg_Tot_Welfare>0]) + 
+  # facet_wrap(~welf_effect,ncol=1,scales="free") +
   aes(x=Metal_std,y=Price_Effect_percent) + 
   geom_abline(intercept=0,slope=0) + 
   geom_boxplot(outlier.shape=NA) + 
@@ -658,7 +871,7 @@ ggplot(merger_effects[policy=="RAMan"&dHHI>1000]) +
   scale_y_continuous(label=percent) +
   ylab("Percent Change in Monthly Premium")+
   xlab("")+
-  ggtitle("Price Effect Without Selection Regulations") + 
+  ggtitle("Price Effect With Selection Regulations") + 
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
     title=element_text(hjust=0,size=16),
     strip.background = element_blank(),
@@ -670,10 +883,12 @@ ggplot(merger_effects[policy=="RAMan"&dHHI>1000]) +
     legend.key = element_rect(color="transparent",fill="transparent"),
     legend.position = "bottom",
     axis.title=element_text(size=16),
-    axis.text = element_text(size=16))
+    axis.text = element_text(size=12))
 dev.off()
 
-ggplot(merger_effects[policy=="RA"&dHHI>1000]) + 
+png("Writing/Images/BasePriceEffect_Negative.png",width=2500,height=1500,res=275)
+ggplot(merger_plot[policy=="Base"&parties_indicator==1&chg_Tot_Welfare<0]) + 
+  facet_wrap(~welf_effect,ncol=1,scales="free") +
   aes(x=Metal_std,y=Price_Effect_percent) + 
   geom_abline(intercept=0,slope=0) + 
   geom_boxplot(outlier.shape=NA) + 
@@ -681,7 +896,7 @@ ggplot(merger_effects[policy=="RA"&dHHI>1000]) +
   scale_y_continuous(label=percent) +
   ylab("Percent Change in Monthly Premium")+
   xlab("")+
-  ggtitle("Price Effect Without Selection Regulations") + 
+  ggtitle("Price Effect With Selection Regulations") + 
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
     title=element_text(hjust=0,size=16),
     strip.background = element_blank(),
@@ -693,31 +908,13 @@ ggplot(merger_effects[policy=="RA"&dHHI>1000]) +
     legend.key = element_rect(color="transparent",fill="transparent"),
     legend.position = "bottom",
     axis.title=element_text(size=16),
-    axis.text = element_text(size=16))
+    axis.text = element_text(size=12))
+dev.off()
 
-ggplot(merger_effects[policy=="Man"&dHHI>1000]) + 
-  aes(x=Metal_std,y=Price_Effect_percent) + 
-  geom_abline(intercept=0,slope=0) + 
-  geom_boxplot(outlier.shape=NA) + 
-  coord_cartesian(ylim=c(-.25,.25))  +
-  scale_y_continuous(label=percent) +
-  ylab("Percent Change in Monthly Premium")+
-  xlab("")+
-  ggtitle("Price Effect Without Selection Regulations") + 
-  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
-    title=element_text(hjust=0,size=16),
-    strip.background = element_blank(),
-    strip.text = element_text(size=14),
-    legend.background = element_rect(color=grey(.5)),
-    legend.title = element_blank(),
-    legend.text = element_text(size=14),
-    legend.key.width = unit(.05,units="npc"),
-    legend.key = element_rect(color="transparent",fill="transparent"),
-    legend.position = "bottom",
-    axis.title=element_text(size=16),
-    axis.text = element_text(size=16))
 
-ggplot(merger_effects[policy=="PL"&dHHI>1000]) + 
+png("Writing/Images/RAPriceEffect.png",width=2500,height=1500,res=275)
+ggplot(merger_plot[policy=="RA"&parties_indicator==1]) + 
+  facet_wrap(~welf_effect,ncol=1,scales="free") +
   aes(x=Metal_std,y=Price_Effect_percent) + 
   geom_abline(intercept=0,slope=0) + 
   geom_boxplot(outlier.shape=NA) + 
@@ -725,7 +922,7 @@ ggplot(merger_effects[policy=="PL"&dHHI>1000]) +
   scale_y_continuous(label=percent) +
   ylab("Percent Change in Monthly Premium")+
   xlab("")+
-  ggtitle("Price Effect Without Selection Regulations") + 
+  ggtitle("Price Effect With Selection Regulations") + 
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
     title=element_text(hjust=0,size=16),
     strip.background = element_blank(),
@@ -737,4 +934,55 @@ ggplot(merger_effects[policy=="PL"&dHHI>1000]) +
     legend.key = element_rect(color="transparent",fill="transparent"),
     legend.position = "bottom",
     axis.title=element_text(size=16),
-    axis.text = element_text(size=16))
+    axis.text = element_text(size=12))
+dev.off()
+
+png("Writing/Images/RAPriceEffect_Positive.png",width=2500,height=1500,res=275)
+ggplot(merger_plot[policy=="RA"&parties_indicator==1&chg_Tot_Welfare>0]) + 
+  # facet_wrap(~welf_effect,ncol=1,scales="free") +
+  aes(x=Metal_std,y=Price_Effect_percent) + 
+  geom_abline(intercept=0,slope=0) + 
+  geom_boxplot(outlier.shape=NA) + 
+  coord_cartesian(ylim=c(-.25,.25))  +
+  scale_y_continuous(label=percent) +
+  ylab("Percent Change in Monthly Premium")+
+  xlab("")+
+  ggtitle("Price Effect With Selection Regulations") + 
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    title=element_text(hjust=0,size=16),
+    strip.background = element_blank(),
+    strip.text = element_text(size=14),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title = element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "bottom",
+    axis.title=element_text(size=16),
+    axis.text = element_text(size=12))
+dev.off()
+
+png("Writing/Images/RAPriceEffect_Negative.png",width=2500,height=1500,res=275)
+ggplot(merger_plot[policy=="RA"&parties_indicator==1&chg_Tot_Welfare<0]) + 
+  facet_wrap(~welf_effect,ncol=1,scales="free") +
+  aes(x=Metal_std,y=Price_Effect_percent) + 
+  geom_abline(intercept=0,slope=0) + 
+  geom_boxplot(outlier.shape=NA) + 
+  coord_cartesian(ylim=c(-.25,.25))  +
+  scale_y_continuous(label=percent) +
+  ylab("Percent Change in Monthly Premium")+
+  xlab("")+
+  ggtitle("Price Effect With Selection Regulations") + 
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    title=element_text(hjust=0,size=16),
+    strip.background = element_blank(),
+    strip.text = element_text(size=14),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title = element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "bottom",
+    axis.title=element_text(size=16),
+    axis.text = element_text(size=12))
+dev.off()
