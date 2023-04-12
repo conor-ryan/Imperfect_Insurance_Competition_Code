@@ -108,7 +108,9 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
     println("#################")
     println("#################")
     #### Use Predicted Shares as Observed Shares for computing two-stage Standard Errors
-    m.data.data[m.data._choice,:] = par_est.s_hat
+    (M,N) = size(m.data.data)
+    # m.data.data[m.data._choice,:] = par_est.s_hat
+    m.data.data[m.data._choice,:] = m_demand.data.data[m_demand.data._choice,1:N]
     println(mean(par_est.s_hat))
     println(mean(par_dem.s_hat))
 
