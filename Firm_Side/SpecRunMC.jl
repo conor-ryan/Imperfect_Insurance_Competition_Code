@@ -36,21 +36,21 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
     individual_values!(m_demand,par_dem)
     individual_shares(m_demand,par_dem)
 
-    println("Construct Hessians for Standard Errors")
-    ll_grad = Vector{Float64}(undef,length(p_dem_est))
-    ll_hess = Matrix{Float64}(undef,length(p_dem_est),length(p_dem_est))
-    ll = log_likelihood!(ll_hess,ll_grad,m_demand,par_dem)
+    # println("Construct Hessians for Standard Errors")
+    # ll_grad = Vector{Float64}(undef,length(p_dem_est))
+    # ll_hess = Matrix{Float64}(undef,length(p_dem_est),length(p_dem_est))
+    # ll = log_likelihood!(ll_hess,ll_grad,m_demand,par_dem)
 
-    mom_grad = Matrix{Float64}(undef,length(p_dem_est),length(m_demand.data.rMoments))
-    mom = calc_risk_moments!(mom_grad,m_demand,par_dem)
-    G_θ = hcat(mom_grad,ll_hess)
+    # mom_grad = Matrix{Float64}(undef,length(p_dem_est),length(m_demand.data.rMoments))
+    # mom = calc_risk_moments!(mom_grad,m_demand,par_dem)
+    # G_θ = hcat(mom_grad,ll_hess)
 
-    m_demand = 0.0
-    df_demand = 0.0
-    par_dem = 0.0
-    ll_grad = 0.0
-    ll_hess = 0.0
-    mom_grad = 0.0
+    # m_demand = 0.0
+    # df_demand = 0.0
+    # par_dem = 0.0
+    # ll_grad = 0.0
+    # ll_hess = 0.0
+    # mom_grad = 0.0
 
     #### Build Model ####
     # Structre the data
