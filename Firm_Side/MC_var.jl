@@ -143,7 +143,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     # Σ = Σ.*Pop
     # println(Pop)
     Γ_m = Δavar(c,d,mean_cost_moments)
-    Γ_g = zeros(d.parLength[:All] + length(d.data.tMoments),nonmissing_prods*2 + d.parLength[:All])
+    Γ_g = zeros(d.parLength[:All] + length(d.data.rMoments),nonmissing_prods*2 + d.parLength[:All])
     (Q,R) = size(Γ_g)
     (N,M) = size(Γ_m)
     Γ_g_11 = risk_Δavar(mean_dem_moments[1:(num_prods*2)],d)
