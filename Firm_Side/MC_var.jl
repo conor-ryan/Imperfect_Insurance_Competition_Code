@@ -117,7 +117,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
         idx_nonEmpty_cost = vcat(idx_prod,num_prods .+idx_prod,num_prods*2 .+idx_prod,num_prods*3 .+idx_prod,(num_prods*4+1):cost_mom_length)
 
         ### Demand Moments
-        ll_obs,pars_relevant = ll_obs_gradient!(grad_obs,app,d,par.pars)
+        # ll_obs,pars_relevant = ll_obs_gradient!(grad_obs,app,d,par.pars)
         idx_prod = risk_obs_moments!(risk_moments,productIDs,app,d,par.pars)
         
         g_n[1:length(risk_moments)] = risk_moments[:]
