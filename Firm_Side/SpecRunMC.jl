@@ -60,7 +60,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
     # println(M)
     # println(M2)
     # df = df[1:N,!]
-    df = df[1:115000,:]
+    df_subset = df[1:115000,:]
     # Structre the data
     chdf = ChoiceData(df,df_mkt,df_risk,df_transfer;
         product = [:Product_std],
