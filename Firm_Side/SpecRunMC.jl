@@ -74,7 +74,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
     end
 
     #### Compute Demand Estimation
-    par_est = parDict(m,p_dem_est,no2Der=true)
+    par_est = parDict(m,p_dem_est,no2Der=false)
     individual_values!(m,par_est)
     individual_shares(m,par_est)
 
