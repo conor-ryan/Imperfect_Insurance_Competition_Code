@@ -2,7 +2,7 @@ using StatsBase
 using FiniteDiff
 
 function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Float64})
-
+    println("Check 1")
     par = parMC(p,p_est,d,c) # Fix p0
     individual_costs(d,par)
 
@@ -29,7 +29,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
             missing_index = vcat(missing_index,[j])
         end
     end
-
+    println("Check 2")
     #### Newey McFadden  1994
     # ## Derivative of Cost Moments wrt Demand Parameters
     # G_γ = stage1_gradient(p_dem_vec,p,d,c)
@@ -82,7 +82,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     end
     mean_cost_moments = mean_cost_moments./Pop
     # mean_dem_moments = mean_dem_moments./Pop
-
+    println("Check 3")
     ## Estimate of variance...
     # m_n = Vector{Float64}(undef,mom_length)
     w_cov_sumsq = [0.0]
@@ -130,7 +130,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
         add_Σ(Σ,g_tilde,idx_nonEmpty,w_cov,Σ_hold)
     end
     # Σ = Σ./8300
-
+    println("Check 4")
     # nonzero_index = findall(sum(abs.(Σ),dims=2)[1:dem_mom_length].!=0.0)
     # nonzero_length = sum(mean_dem_moments.!=0.0)
     nonmissing_prods = length(d.prods)
@@ -145,7 +145,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     Γ_g_11 = risk_Δavar(mean_dem_moments[1:(num_prods*2)],d)
     Γ_g[1:length(d.data.tMoments),1:(nonmissing_prods*2)] = Γ_g_11[:,vcat(d.prods,num_prods.+d.prods)]
     Γ_g[(length(d.data.tMoments)+1):Q,(nonmissing_prods*2 + 1):R] = Matrix{Float64}(I,d.parLength[:All],d.parLength[:All])
-    
+    println("Check 5")
     Γ = zeros(Q+N,M+R)
     Γ[1:Q,1:R] = Γ_g[:,:]
     Γ[(Q+1):(Q+N),(R+1):(R+M)] = Γ_m
