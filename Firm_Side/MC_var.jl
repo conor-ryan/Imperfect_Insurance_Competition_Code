@@ -29,6 +29,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
             missing_index = vcat(missing_index,[j])
         end
     end
+    println("Check 2")
     #### Newey McFadden  1994
     # ## Derivative of Cost Moments wrt Demand Parameters
     # G_γ = stage1_gradient(p_dem_vec,p,d,c)
@@ -48,6 +49,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     risk_moments = Vector{Float64}(undef,num_prods*2)
 
     mean_cost_moments = Vector{Float64}(undef,num_prods*4+length(c.ageMoments)*2+length(c.agenoMoments)*2+4)
+    println(num_prods*4)
     mean_cost_moments[:] .= 0.0
     cost_mom_length = length(mean_cost_moments)
 
@@ -58,12 +60,16 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
 
     m_n = Vector{Float64}(undef,cost_mom_length)
     g_n = Vector{Float64}(undef,dem_mom_length)
-    ll = log_likelihood!(grad_obs,d,par.pars)
-    println("Check 2")
-    mean_dem_moments[(length(risk_moments)+1):dem_mom_length] += grad_obs[:]
 
     ## Estimate of population mean...
+    itr = 0
     for app in eachperson(d.data)
+        if itr%50==0
+            println(person(app)[1])
+            println(length(m_n))
+        end
+        itr += 1
+        grad_obs[:] .= 0.0
         m_n[:] .= 0.0
         risk_moments[:] .= 0.0
 
@@ -73,9 +79,12 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
 
 
         # #### Demand Moments (Ignore until I get these right)
+        ll_obs,pars_relevant = ll_obs_gradient!(grad_obs,app,d,par.pars)
         idx_prod = risk_obs_moments!(risk_moments,productIDs,app,d,par.pars)
         
         mean_dem_moments[1:length(risk_moments)] += risk_moments[:]
+        mean_dem_moments[(length(risk_moments)+1):dem_mom_length] += grad_obs[:]
+
     end
     mean_cost_moments = mean_cost_moments./Pop
     mean_dem_moments = mean_dem_moments./Pop
@@ -161,6 +170,50 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     return S_est, Σ, Γ, S_m
 end
 
+
+function momentMeans(c::MC_Data,d::InsuranceLogit,par::parMC{Float64})
+    Pop =calc_pop(d.data)
+
+    num_prods = maximum(d.prods)
+
+    #### Covariance of Cost and Demand moments ####
+    risk_moments = Vector{Float64}(undef,num_prods*2)
+
+    mean_cost_moments = Vector{Float64}(undef,num_prods*4+length(c.ageMoments)*2+length(c.agenoMoments)*2+4)
+    mean_cost_moments[:] .= 0.0
+    cost_mom_length = length(mean_cost_moments)
+    m_n = Vector{Float64}(undef,cost_mom_length)
+
+    dem_mom_length = length(risk_moments) + d.parLength[:All]
+    mean_dem_moments = Vector{Float64}(undef,dem_mom_length)
+    mean_dem_moments[:] .= 0.0
+    grad_obs = Vector{Float64}(undef,d.parLength[:All])
+
+    
+
+
+    for app in eachperson(d.data)
+        grad_obs[:] .= 0.0
+        m_n[:] .= 0.0
+        risk_moments[:] .= 0.0
+
+        #### Cost Moments
+        idx_prod, wgt_obs = cost_obs_moments!(m_n,productIDs,app,d,c,par)
+        mean_cost_moments[:] += m_n[:]
+
+
+        # #### Demand Moments (Ignore until I get these right)
+        ll_obs,pars_relevant = ll_obs_gradient!(grad_obs,app,d,par.pars)
+        idx_prod = risk_obs_moments!(risk_moments,productIDs,app,d,par.pars)
+        
+        mean_dem_moments[1:length(risk_moments)] += risk_moments[:]
+        mean_dem_moments[(length(risk_moments)+1):dem_mom_length] += grad_obs[:]
+
+    end
+    mean_cost_moments = mean_cost_moments./Pop
+    mean_dem_moments = mean_dem_moments./Pop
+    return mean_cost_moments, mean_dem_moments
+end
 
 function cost_obs_moments!(mom_obs::Vector{Float64},productIDs::Vector{Int64},
                     app::ChoiceData,d::InsuranceLogit,c::MC_Data,p::parMC{Float64}) where T

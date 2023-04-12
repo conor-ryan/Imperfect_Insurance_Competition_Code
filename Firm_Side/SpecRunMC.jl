@@ -111,6 +111,10 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
     #### Use Predicted Shares as Observed Shares for computing two-stage Standard Errors
     m.data.data[m.data._choice,:] = par_est.s_hat
 
+    par = parMC(p_stg1,par_est,m,costdf) # Fix p0
+    individual_costs(m,par)
+    mean_cost, mean_dem = momentMeans(costdf,m,par)
+
     println("Compute Weighting Matrix")
     S_all,Σ,Δ,S_m = aVar(costdf,m,p_stg1,par_est)
     S_diag = Matrix(Diagonal(diag(S_m)))
