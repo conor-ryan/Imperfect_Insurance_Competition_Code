@@ -172,14 +172,14 @@ end
 
 
 function momentMeans(c::MC_Data,d::InsuranceLogit,par::parMC{Float64})
-    Pop =calc_pop(d.data)
+    Pop =sum(weight(d.data).*choice(d.data))
 
-    num_prods = maximum(d.prods)
+    # num_prods = maximum(d.prods)
 
     # #### Covariance of Cost and Demand moments ####
     # risk_moments = Vector{Float64}(undef,num_prods*2)
 
-    mean_cost_moments = Vector{Float64}(undef,num_prods*4+length(c.ageMoments)*2+length(c.agenoMoments)*2+4)
+    # mean_cost_moments = Vector{Float64}(undef,num_prods*4+length(c.ageMoments)*2+length(c.agenoMoments)*2+4)
     # mean_cost_moments[:] .= 0.0
     # cost_mom_length = length(mean_cost_moments)
     # m_n = Vector{Float64}(undef,cost_mom_length)
@@ -216,10 +216,10 @@ function momentMeans(c::MC_Data,d::InsuranceLogit,par::parMC{Float64})
         
 
     end
-    mean_dem_moments[(length(risk_moments)+1):dem_mom_length] = grad_obs[:]
+    # mean_dem_moments[(length(risk_moments)+1):dem_mom_length] = grad_obs[:]
     # mean_cost_moments = mean_cost_moments./Pop
-    mean_dem_moments = mean_dem_moments./Pop
-    return mean_cost_moments, mean_dem_moments
+    # mean_dem_moments = mean_dem_moments./Pop
+    return [0], grad_obs
 end
 
 function cost_obs_moments!(mom_obs::Vector{Float64},productIDs::Vector{Int64},
