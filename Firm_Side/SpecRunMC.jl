@@ -116,7 +116,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
     println("A1")
     ll = log_likelihood!(ll_grad,m_demand,par_dem)
     println("A2")
-    ll = log_likelihood!(ll_grad,m_demand,par_est)
+    ll = log_likelihood!(ll_grad,m,par_est)
     println("A3")
     mean_cost, mean_dem = momentMeans(costdf,m,par)
 
