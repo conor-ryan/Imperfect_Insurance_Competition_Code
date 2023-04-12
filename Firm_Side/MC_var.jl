@@ -77,7 +77,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
 
 
         # #### Demand Moments (Ignore until I get these right)
-        # ll_obs,pars_relevant = ll_obs_gradient!(grad_obs,app,d,par.pars)
+        ll_obs,pars_relevant = ll_obs_gradient!(grad_obs,app,d,par.pars)
         idx_prod = risk_obs_moments!(risk_moments,productIDs,app,d,par.pars)
         
         mean_dem_moments[1:length(risk_moments)] += risk_moments[:]
@@ -147,8 +147,8 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     (Q,R) = size(Γ_g)
     (N,M) = size(Γ_m)
     Γ_g_11 = risk_Δavar(mean_dem_moments[1:(num_prods*2)],d)
-    Γ_g[1:length(d.data.tMoments),1:(nonmissing_prods*2)] = Γ_g_11[:,vcat(d.prods,num_prods.+d.prods)]
-    Γ_g[(length(d.data.tMoments)+1):Q,(nonmissing_prods*2 + 1):R] = Matrix{Float64}(I,d.parLength[:All],d.parLength[:All])
+    Γ_g[1:length(d.data.rMoments),1:(nonmissing_prods*2)] = Γ_g_11[:,vcat(d.prods,num_prods.+d.prods)]
+    Γ_g[(length(d.data.rMoments)+1):Q,(nonmissing_prods*2 + 1):R] = Matrix{Float64}(I,d.parLength[:All],d.parLength[:All])
     println("Check 5")
     Γ = zeros(Q+N,M+R)
     Γ[1:Q,1:R] = Γ_g[:,:]
