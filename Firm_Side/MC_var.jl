@@ -63,7 +63,6 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     ## Estimate of population mean...
     itr = 0
     for app in eachperson(d.data)
-        sleep(0.01)
         if itr%50==0
             println(person(app)[1])
         end
@@ -78,7 +77,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
 
 
         # #### Demand Moments (Ignore until I get these right)
-        ll_obs,pars_relevant = ll_obs_gradient!(grad_obs,app,d,par.pars)
+        # ll_obs,pars_relevant = ll_obs_gradient!(grad_obs,app,d,par.pars)
         idx_prod = risk_obs_moments!(risk_moments,productIDs,app,d,par.pars)
         
         mean_dem_moments[1:length(risk_moments)] += risk_moments[:]
