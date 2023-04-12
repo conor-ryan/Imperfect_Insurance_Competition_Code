@@ -570,26 +570,26 @@ function returnParameterX!(q::Int64,X_mat::Matrix{Float64},
                         γlen::Int64,β0len::Int64,βlen::Int64,σlen::Int64)
     (N,K) = size(X_mat)
     if q<0
-        X = 1.0
+        return 1.0
     elseif q<=γlen
-        X = Z[q]
+        return Z[q]
     elseif q<=β0len
-        X = X_t[q-γlen,:]
+        return X_t[q-γlen,:]
     elseif q<=βlen
         # Characteristic Interactions
-        X = X_t[1,:].*Z[q-β0len]
+        return X_t[1,:].*Z[q-β0len]
     elseif q<=σlen
         #Quality Random Effect
         X_mat[1,:].=0.0
         for n in 2:N,k in 1:K
             @inbounds X_mat[n,k] = draws[n-1,r_ind]*X_0_t[q-(βlen),k]
         end
-        X = copy(X_mat)
+        return X_mat
     else
         #Fixed Effect
-        X = F_t[q-σlen,:]
+        return F_t[q-σlen,:]
     end
-    return X
+    # return X
 end
 
 function ll_obs_hessian!(hess::Union{Matrix{Float64},SharedMatrix{Float64}},
