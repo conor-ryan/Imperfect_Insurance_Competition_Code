@@ -65,6 +65,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     for app in eachperson(d.data)
         if itr%50==0
             println(person(app)[1])
+            println(length(m_n))
         end
         itr += 1
         grad_obs[:] .= 0.0
