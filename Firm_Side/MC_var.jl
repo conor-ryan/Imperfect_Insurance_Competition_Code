@@ -29,7 +29,6 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
             missing_index = vcat(missing_index,[j])
         end
     end
-    println("Check 2")
     #### Newey McFadden  1994
     # ## Derivative of Cost Moments wrt Demand Parameters
     # G_γ = stage1_gradient(p_dem_vec,p,d,c)
@@ -60,6 +59,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     m_n = Vector{Float64}(undef,cost_mom_length)
     g_n = Vector{Float64}(undef,dem_mom_length)
     ll = log_likelihood!(grad_obs,d,par.pars)
+    println("Check 2")
     mean_dem_moments[(length(risk_moments)+1):dem_mom_length] += grad_obs[:]
 
     ## Estimate of population mean...
