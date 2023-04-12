@@ -3,7 +3,6 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
     println("Loading Data...")
     codeDir = "$home_directory/Research/Imperfect_Insurance_Competition/Code/Firm_Side"
     include("$codeDir/MC_load.jl")
-    println(size(df))
 
     # df[:High_small] = df[:HighRisk].*df[:Small]
 
@@ -54,14 +53,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
     # mom_grad = 0.0
 
     #### Build Model ####
-    println("Cut data...")
-    # (N,M) = size(df_dem)
-    # (N2,M2) = size(df)
-    # println(M)
-    # println(M2)
-    # df = df[1:N,!]
-    df_subset = df[1:115000,:]
-    # Structre the data
+    # Structure the data
     chdf = ChoiceData(df,df_mkt,df_risk,df_transfer;
         product = [:Product_std],
         demoRaw=spec_Dict["demoRaw"],
@@ -134,7 +126,13 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
     println("A1d")
     ll = log_likelihood!(ll_grad,m_demand,par_dem)
 
-    println("A2")
+    println("A2a")
+    ll = log_likelihood!(ll_grad,m,par_est)
+    println("A2b")
+    ll = log_likelihood!(ll_grad,m,par_est)
+    println("A2c")
+    ll = log_likelihood!(ll_grad,m,par_est)
+    println("A2d")
     ll = log_likelihood!(ll_grad,m,par_est)
     println("A3")
     mean_cost, mean_dem = momentMeans(costdf,m,par)
