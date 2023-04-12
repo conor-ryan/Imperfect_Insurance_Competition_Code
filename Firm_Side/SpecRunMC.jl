@@ -3,7 +3,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
     println("Loading Data...")
     codeDir = "$home_directory/Research/Imperfect_Insurance_Competition/Code/Firm_Side"
     include("$codeDir/MC_load.jl")
-
+    println(size(df))
 
     # df[:High_small] = df[:HighRisk].*df[:Small]
 
