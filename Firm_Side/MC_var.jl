@@ -63,6 +63,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     ## Estimate of population mean...
     itr = 0
     for app in eachperson(d.data)
+        sleep(0.01)
         if itr%50==0
             println(person(app)[1])
         end
