@@ -189,7 +189,13 @@ function momentMeans(c::MC_Data,d::InsuranceLogit,par::parMC{Float64})
     mean_dem_moments[:] .= 0.0
     grad_obs = Vector{Float64}(undef,d.parLength[:All])
 
-    
+    ### Unique Product IDs
+    (N,M) = size(d.data.data)
+    productIDs = Vector{Int64}(undef,M)
+    for j in d.prods
+        idx_prod = d.data._productDict[j]
+        productIDs[idx_prod] .= j
+    end
 
 
     for app in eachperson(d.data)
