@@ -18,7 +18,7 @@ df_transfer = CSV.read("$home_directory/Research/Imperfect_Insurance_Competition
 df[!,:Firm] = String.(df[!,:Firm])
 # No constant
 df[!,:constant] = ones(size(df, 1))
-
+println(size(df))
 
 #### Load Moments
 mom_firm = CSV.read("$home_directory/Research/Imperfect_Insurance_Competition/Intermediate_Output/MC_Moments/firmMoments.csv",DataFrame)
