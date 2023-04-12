@@ -59,11 +59,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
 
     m_n = Vector{Float64}(undef,cost_mom_length)
     g_n = Vector{Float64}(undef,dem_mom_length)
-    grad_obs[:].=0.0
-    for app in eachperson(d.data)
-        # #### Demand Moments (Ignore until I get these right)
-        ll_obs,pars_relevant = ll_obs_gradient!(grad_obs,app,d,par.pars)
-    end
+    ll = log_likelihood!(grad_obs,d,par.pars)
     mean_dem_moments[(length(risk_moments)+1):dem_mom_length] += grad_obs[:]
 
     ## Estimate of population mean...

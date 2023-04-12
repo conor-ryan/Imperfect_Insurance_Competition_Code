@@ -73,7 +73,6 @@ function log_likelihood!(grad::Vector{S},
     grad[:] .= 0.0
     ll = 0.0
     Pop =sum(weight(d.data).*choice(d.data))
-    grad_obs = Vector{Float64}(undef,Q)
     #Reset Derivatives
     # p.dSdθ_j[:] .= 0.0
     # p.dRdθ_j[:] .= 0.0
