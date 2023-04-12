@@ -584,8 +584,7 @@ function returnParameterX!(q::Int64,X_mat::Matrix{Float64},
         for n in 2:N,k in 1:K
             @inbounds X_mat[n,k] = draws[n-1,r_ind]*X_0_t[q-(βlen),k]
         end
-        X = similar(X_mat)
-        X[:,:] = X_mat[:,:]
+        X = X_mat # Does this need to be copy? 
     else
         #Fixed Effect
         X = F_t[q-σlen,:]
