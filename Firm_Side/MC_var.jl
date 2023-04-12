@@ -126,12 +126,12 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
         g_n[:] = (g_n[:]./w_i - mean_dem_moments[:])
         
         idx_nonEmpty_dem = vcat(idx_prod,num_prods .+idx_prod,(num_prods*2) .+ pars_relevant)
-        # g_tilde = vcat(g_n,m_n)
+        g_tilde = vcat(g_n,m_n)
         
         idx_nonEmpty = vcat(idx_nonEmpty_dem,length(g_n).+idx_nonEmpty_cost)
 
         # add_Σ(Σ,m_n,idx_nonEmpty,w_cov,Σ_hold)
-        # add_Σ(Σ,g_tilde,idx_nonEmpty,w_cov,Σ_hold)
+        add_Σ(Σ,g_tilde,idx_nonEmpty,w_cov,Σ_hold)
     end
     # Σ = Σ./8300
     println("Check 4")
