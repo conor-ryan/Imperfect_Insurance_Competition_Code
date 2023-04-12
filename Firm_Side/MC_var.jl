@@ -174,6 +174,9 @@ end
 function momentMeans(c::MC_Data,d::InsuranceLogit,par::parMC{Float64})
     Pop =sum(weight(d.data).*choice(d.data))
 
+    p = par.pars
+    individual_values!(d,p)
+    individual_shares(d,p)
     # num_prods = maximum(d.prods)
 
     # #### Covariance of Cost and Demand moments ####
@@ -209,7 +212,7 @@ function momentMeans(c::MC_Data,d::InsuranceLogit,par::parMC{Float64})
 
 
         # #### Demand Moments (Ignore until I get these right)
-        ll_obs,pars_relevant = ll_obs_gradient!(grad_obs,app,d,par.pars)
+        ll_obs,pars_relevant = ll_obs_gradient!(grad_obs,app,d,p)
         # idx_prod = risk_obs_moments!(risk_moments,productIDs,app,d,par.pars)
         
         # mean_dem_moments[1:length(risk_moments)] += risk_moments[:]

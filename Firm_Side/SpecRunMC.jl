@@ -125,8 +125,15 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
 
     par = parMC(p_stg1,par_est,m,costdf) # Fix p0
     individual_costs(m,par)
-    println("A1")
+    println("A1a")
     ll = log_likelihood!(ll_grad,m_demand,par_dem)
+    println("A1b")
+    ll = log_likelihood!(ll_grad,m_demand,par_dem)
+    println("A1c")
+    ll = log_likelihood!(ll_grad,m_demand,par_dem)
+    println("A1d")
+    ll = log_likelihood!(ll_grad,m_demand,par_dem)
+
     println("A2")
     ll = log_likelihood!(ll_grad,m,par_est)
     println("A3")
