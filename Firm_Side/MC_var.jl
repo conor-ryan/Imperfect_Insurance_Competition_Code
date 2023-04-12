@@ -174,49 +174,50 @@ end
 function momentMeans(c::MC_Data,d::InsuranceLogit,par::parMC{Float64})
     Pop =calc_pop(d.data)
 
-    num_prods = maximum(d.prods)
+    # num_prods = maximum(d.prods)
 
-    #### Covariance of Cost and Demand moments ####
-    risk_moments = Vector{Float64}(undef,num_prods*2)
+    # #### Covariance of Cost and Demand moments ####
+    # risk_moments = Vector{Float64}(undef,num_prods*2)
 
     mean_cost_moments = Vector{Float64}(undef,num_prods*4+length(c.ageMoments)*2+length(c.agenoMoments)*2+4)
-    mean_cost_moments[:] .= 0.0
-    cost_mom_length = length(mean_cost_moments)
-    m_n = Vector{Float64}(undef,cost_mom_length)
+    # mean_cost_moments[:] .= 0.0
+    # cost_mom_length = length(mean_cost_moments)
+    # m_n = Vector{Float64}(undef,cost_mom_length)
 
-    dem_mom_length = length(risk_moments) + d.parLength[:All]
-    mean_dem_moments = Vector{Float64}(undef,dem_mom_length)
-    mean_dem_moments[:] .= 0.0
+    # dem_mom_length = length(risk_moments) + d.parLength[:All]
+    # mean_dem_moments = Vector{Float64}(undef,dem_mom_length)
+    # mean_dem_moments[:] .= 0.0
     grad_obs = Vector{Float64}(undef,d.parLength[:All])
 
-    ### Unique Product IDs
-    (N,M) = size(d.data.data)
-    productIDs = Vector{Int64}(undef,M)
-    for j in d.prods
-        idx_prod = d.data._productDict[j]
-        productIDs[idx_prod] .= j
-    end
+    # ### Unique Product IDs
+    # (N,M) = size(d.data.data)
+    # productIDs = Vector{Int64}(undef,M)
+    # for j in d.prods
+    #     idx_prod = d.data._productDict[j]
+    #     productIDs[idx_prod] .= j
+    # end
 
 
+    grad_obs[:] .= 0.0
     for app in eachperson(d.data)
-        grad_obs[:] .= 0.0
-        m_n[:] .= 0.0
-        risk_moments[:] .= 0.0
+        # m_n[:] .= 0.0
+        # risk_moments[:] .= 0.0
 
         #### Cost Moments
-        idx_prod, wgt_obs = cost_obs_moments!(m_n,productIDs,app,d,c,par)
-        mean_cost_moments[:] += m_n[:]
+        # idx_prod, wgt_obs = cost_obs_moments!(m_n,productIDs,app,d,c,par)
+        # mean_cost_moments[:] += m_n[:]
 
 
         # #### Demand Moments (Ignore until I get these right)
         ll_obs,pars_relevant = ll_obs_gradient!(grad_obs,app,d,par.pars)
-        idx_prod = risk_obs_moments!(risk_moments,productIDs,app,d,par.pars)
+        # idx_prod = risk_obs_moments!(risk_moments,productIDs,app,d,par.pars)
         
-        mean_dem_moments[1:length(risk_moments)] += risk_moments[:]
-        mean_dem_moments[(length(risk_moments)+1):dem_mom_length] += grad_obs[:]
+        # mean_dem_moments[1:length(risk_moments)] += risk_moments[:]
+        
 
     end
-    mean_cost_moments = mean_cost_moments./Pop
+    mean_dem_moments[(length(risk_moments)+1):dem_mom_length] = grad_obs[:]
+    # mean_cost_moments = mean_cost_moments./Pop
     mean_dem_moments = mean_dem_moments./Pop
     return mean_cost_moments, mean_dem_moments
 end
