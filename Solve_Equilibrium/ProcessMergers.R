@@ -2,8 +2,8 @@ rm(list = ls())
 library(data.table)
 library(ggplot2)
 library(scales)
-# setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
-setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition/")
+setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
+# setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition/")
 
 run = "2022-12-26"
 spec = "FMC"
@@ -300,7 +300,7 @@ merger_welfare = merge(merger_welfare,base_welfare,by=c("markets","policy"),all.
 # }
 # 
 # merger_welfare = merge(merger_welfare,merger_welfare_SP,by=c("markets","merging_parties","policy"),all.x=TRUE)
-merger_welfare[,policy_label:=factor(policy,levels=c("Base","RA"),labels=c("Baseline","No Risk"))]
+merger_welfare[,policy_label:=factor(policy,levels=c("Base","RA"),labels=c("Baseline","No Risk Adjustment"))]
 
 
 plotdf1 = merger_welfare[,c("dHHI","chg_CW","policy","sorting_cost","policy_label")]
@@ -346,7 +346,7 @@ ggplot(plotdf[policy=="Base"])+
   guides(color = guide_legend(override.aes = list(size = 5))) +
   # facet_wrap(~hhi_category,ncol=1) +
   geom_abline(slope=0,intercept=0) +
-  xlab("Predicted Change in HHI")+
+  xlab("Welfare Cost of Sorting ($ per person month)")+
   ylab("Dollars Per-Person Per-Month")+
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
     strip.background = element_blank(),
@@ -390,7 +390,7 @@ ggplot(plotdf[policy=="RA"])+
   geom_errorbar(aes(x=sorting_cost,ymin=chg_CW,ymax=value)) +
   guides(color = guide_legend(override.aes = list(size = 5))) +
   geom_abline(slope=0,intercept=0) +
-  xlab("Predicted Change in HHI")+
+  xlab("Welfare Cost of Sorting ($ per person month)")+
   ylab("Dollars Per-Person Per-Month")+
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
     strip.background = element_blank(),
@@ -846,7 +846,7 @@ ggplot(merger_plot[policy=="Base"&parties_indicator==1]) +
   scale_y_continuous(label=percent) +
   ylab("Percent Change in Monthly Premium")+
   xlab("")+
-  ggtitle("Price Effect With Selection Regulations") + 
+  # ggtitle("Price Effect With Selection Regulations") + 
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
     title=element_text(hjust=0,size=16),
     strip.background = element_blank(),
@@ -871,7 +871,7 @@ ggplot(merger_plot[policy=="Base"&parties_indicator==1&chg_Tot_Welfare>0]) +
   scale_y_continuous(label=percent) +
   ylab("Percent Change in Monthly Premium")+
   xlab("")+
-  ggtitle("Price Effect With Selection Regulations") + 
+  # ggtitle("Price Effect With Selection Regulations") + 
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
     title=element_text(hjust=0,size=16),
     strip.background = element_blank(),
@@ -896,7 +896,7 @@ ggplot(merger_plot[policy=="Base"&parties_indicator==1&chg_Tot_Welfare<0]) +
   scale_y_continuous(label=percent) +
   ylab("Percent Change in Monthly Premium")+
   xlab("")+
-  ggtitle("Price Effect With Selection Regulations") + 
+  # ggtitle("Price Effect With Selection Regulations") + 
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
     title=element_text(hjust=0,size=16),
     strip.background = element_blank(),
@@ -922,7 +922,7 @@ ggplot(merger_plot[policy=="RA"&parties_indicator==1]) +
   scale_y_continuous(label=percent) +
   ylab("Percent Change in Monthly Premium")+
   xlab("")+
-  ggtitle("Price Effect With Selection Regulations") + 
+  # ggtitle("Price Effect With Selection Regulations") + 
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
     title=element_text(hjust=0,size=16),
     strip.background = element_blank(),
@@ -947,7 +947,7 @@ ggplot(merger_plot[policy=="RA"&parties_indicator==1&chg_Tot_Welfare>0]) +
   scale_y_continuous(label=percent) +
   ylab("Percent Change in Monthly Premium")+
   xlab("")+
-  ggtitle("Price Effect With Selection Regulations") + 
+  # ggtitle("Price Effect With Selection Regulations") + 
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
     title=element_text(hjust=0,size=16),
     strip.background = element_blank(),
@@ -972,7 +972,7 @@ ggplot(merger_plot[policy=="RA"&parties_indicator==1&chg_Tot_Welfare<0]) +
   scale_y_continuous(label=percent) +
   ylab("Percent Change in Monthly Premium")+
   xlab("")+
-  ggtitle("Price Effect With Selection Regulations") + 
+  # ggtitle("Price Effect With Selection Regulations") + 
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
     title=element_text(hjust=0,size=16),
     strip.background = element_blank(),
