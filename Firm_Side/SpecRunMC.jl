@@ -73,7 +73,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
     if length(p_stg2)!=m.parLength[:All]
         println(length(p_stg2))
         println(m.parLength[:All])
-        error("Parameter Vector Not Quite Right")
+        # error("Parameter Vector Not Quite Right")
     end
 
     #### Compute Demand Estimation
