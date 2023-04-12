@@ -55,13 +55,12 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
 
     #### Build Model ####
     println("Cut data...")
-    (N,M) = size(df_dem)
-    (N2,M2) = size(df)
-    println(M)
-    println(M2)
+    # (N,M) = size(df_dem)
+    # (N2,M2) = size(df)
+    # println(M)
+    # println(M2)
+    # df = df[1:N,!]
 
-    
-    df = df[1:N,!]
     # Structre the data
     chdf = ChoiceData(df,df_mkt,df_risk,df_transfer;
         product = [:Product_std],
