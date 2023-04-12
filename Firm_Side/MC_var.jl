@@ -174,7 +174,7 @@ end
 function momentMeans(c::MC_Data,d::InsuranceLogit,par::parMC{Float64})
     Pop =calc_pop(d.data)
 
-    # num_prods = maximum(d.prods)
+    num_prods = maximum(d.prods)
 
     # #### Covariance of Cost and Demand moments ####
     # risk_moments = Vector{Float64}(undef,num_prods*2)
