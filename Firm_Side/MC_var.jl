@@ -49,6 +49,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     risk_moments = Vector{Float64}(undef,num_prods*2)
 
     mean_cost_moments = Vector{Float64}(undef,num_prods*4+length(c.ageMoments)*2+length(c.agenoMoments)*2+4)
+    println(num_prods*4)
     mean_cost_moments[:] .= 0.0
     cost_mom_length = length(mean_cost_moments)
 
