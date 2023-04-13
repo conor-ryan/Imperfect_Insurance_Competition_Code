@@ -131,7 +131,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     end
     # Σ = Σ./8300
 
-    # nonzero_index = findall(sum(abs.(Σ),dims=2)[1:dem_mom_length].!=0.0)
+    nonzero_index = findall(sum(abs.(Σ),dims=2)[1:dem_mom_length].!=0.0)
     # nonzero_length = sum(mean_dem_moments.!=0.0)
     nonmissing_prods = length(d.prods)
     # Σ = Σ./(1-w_cov_sumsq[1])
@@ -154,7 +154,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     S_m = Γ_m*Σ_m*Γ_m'
     # S_m = Γ_m*Σ*Γ_m'
 
-    # Σ = Σ[vcat(nonzero_index,(dem_mom_length+1):(dem_mom_length+cost_mom_length)),vcat(nonzero_index,(dem_mom_length+1):(dem_mom_length+cost_mom_length))]
+    Σ = Σ[vcat(nonzero_index,(dem_mom_length+1):(dem_mom_length+cost_mom_length)),vcat(nonzero_index,(dem_mom_length+1):(dem_mom_length+cost_mom_length))]
     # # Γ = Γ[:,zero_index]
     #
     S_est = (Γ*Σ*Γ')
