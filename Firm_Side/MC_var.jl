@@ -81,7 +81,7 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
 
     end
     mean_cost_moments = mean_cost_moments./Pop
-    # mean_dem_moments = mean_dem_moments./Pop
+    mean_dem_moments = mean_dem_moments./Pop
 
     ## Estimate of variance...
     # m_n = Vector{Float64}(undef,mom_length)
@@ -139,12 +139,12 @@ function aVar(c::MC_Data,d::InsuranceLogit,p::Array{Float64,1},p_est::parDict{Fl
     # Σ = Σ.*Pop
     # println(Pop)
     Γ_m = Δavar(c,d,mean_cost_moments)
-    Γ_g = zeros(d.parLength[:All] + length(d.data.tMoments),nonmissing_prods*2 + d.parLength[:All])
+    Γ_g = zeros(d.parLength[:All] + length(d.data.rMoments),nonmissing_prods*2 + d.parLength[:All])
     (Q,R) = size(Γ_g)
     (N,M) = size(Γ_m)
     Γ_g_11 = risk_Δavar(mean_dem_moments[1:(num_prods*2)],d)
-    Γ_g[1:length(d.data.tMoments),1:(nonmissing_prods*2)] = Γ_g_11[:,vcat(d.prods,num_prods.+d.prods)]
-    Γ_g[(length(d.data.tMoments)+1):Q,(nonmissing_prods*2 + 1):R] = Matrix{Float64}(I,d.parLength[:All],d.parLength[:All])
+    Γ_g[1:length(d.data.rMoments),1:(nonmissing_prods*2)] = Γ_g_11[:,vcat(d.prods,num_prods.+d.prods)]
+    Γ_g[(length(d.data.rMoments)+1):Q,(nonmissing_prods*2 + 1):R] = Matrix{Float64}(I,d.parLength[:All],d.parLength[:All])
     
     Γ = zeros(Q+N,M+R)
     Γ[1:Q,1:R] = Γ_g[:,:]
