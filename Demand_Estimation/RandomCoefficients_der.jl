@@ -204,7 +204,7 @@ function ll_obs_hessian!(thD::Array{Float64,3},hess::Matrix{Float64},grad::Vecto
             X = returnParameterX!(q,X_mat,
                             Z,X_0_t,X_t,draws,F_t,r_ind,
                             γlen,β0len,βlen,σlen)
-             Y_list[q_i] = copy(X)
+            @inbounds Y_list[q_i] = copy(X)
 
             dS_x_all = grad_calc!(dS_x,s_n,anyR,
                         dR_x,risk,r_age,
@@ -219,14 +219,14 @@ function ll_obs_hessian!(thD::Array{Float64,3},hess::Matrix{Float64},grad::Vecto
             grad[q]+= combine_grad(N,gll_t1,gll_t4,dS_x,dS_x_all)
 
             # for (k,ij) in enumerate(idxitr)
-            #       p.dSdθ[q,ij] = dS_x[k]/N
-            #       p.dRdθ[q,ij] = dR_x[k]/(s_hat[k]*N) - (dS_x[k]/N)/s_hat[k] * r_avg[k]
+            #     @inbounds @fastmath p.dSdθ[q,ij] = dS_x[k]/N
+            #     @inbounds @fastmath p.dRdθ[q,ij] = dR_x[k]/(s_hat[k]*N) - (dS_x[k]/N)/s_hat[k] * r_avg[k]
             # end
 
             dR_x_list[q_i] = dR_x[:]
             for k in 1:K
-                  p.dSdθ_j[q,prodidx[k]]+= wgt[k]*dS_x[k]
-                  p.dRdθ_j[q,prodidx[k]]+= wgt[k]*(dR_x[k])
+                @inbounds @fastmath p.dSdθ_j[q,prodidx[k]]+= wgt[k]*dS_x[k]
+                @inbounds @fastmath p.dRdθ_j[q,prodidx[k]]+= wgt[k]*(dR_x[k])
             end
 
 
@@ -258,8 +258,8 @@ function ll_obs_hessian!(thD::Array{Float64,3},hess::Matrix{Float64},grad::Vecto
                 end
 
                 for k in 1:K
-                      p.d2Sdθ_j[q,r,prodidx[k]]+= wgt[k]*dS_xy[k]
-                      p.d2Rdθ_j[q,r,prodidx[k]]+= wgt[k]*(dR_xy[k])
+                    @inbounds @fastmath p.d2Sdθ_j[q,r,prodidx[k]]+= wgt[k]*dS_xy[k]
+                    @inbounds @fastmath p.d2Rdθ_j[q,r,prodidx[k]]+= wgt[k]*(dR_xy[k])
                 end
 
 
@@ -325,7 +325,7 @@ function combine_thD(N::Int64,
     thD_obs = 0.0
     K = length(dS_xyz)
 
-      @simd for k in 1:K
+    @inbounds @fastmath @simd for k in 1:K
         # thD_obs += gll_t1[k]*dS_xyz[k]/N -
         #                 gll_t2[k]*((dS_x[k]/N)*(dS_yz[k]/N) + (dS_y[k]/N)*(dS_xz[k]/N) + (dS_z[k]/N)*(dS_xy[k]/N)) +
         #                 gll_t3[k]*(dS_x[k]/N)*(dS_y[k]/N)*(dS_z[k]/N) -
@@ -352,7 +352,7 @@ function combine_hess(N::Int64,
     hess_obs = 0.0
     K = length(dS_xy)
 
-      @simd for k in 1:K
+    @inbounds @fastmath @simd for k in 1:K
         # hess_obs += gll_t1[k]*(dS_xy[k]/N) - gll_t2[k]*(dS_x[k]/N)*(dS_y[k]/N) - (gll_t3[k]*(dS_xy_all/N) - gll_t4[k]*dS_x_all/N*dS_y_all/N)
         hess_obs += gll_t1[k]*(dS_xy[k]) - gll_t2[k]*(dS_x[k])*(dS_y[k]) - (gll_t3[k]*(dS_xy_all) - gll_t4[k]*dS_x_all*dS_y_all)
     end
@@ -368,7 +368,7 @@ function combine_grad(N::Int64,
     grad_obs = 0.0
     K = length(dS_x)
 
-      @simd for k in 1:K
+    @inbounds @fastmath @simd for k in 1:K
         grad_obs += gll_t1[k]*dS_x[k] - gll_t3[k]*dS_x_all
     end
     return grad_obs
@@ -395,9 +395,9 @@ function hess_calc!(dS_xy::Vector{Float64},s_n::Vector{T},
     risk_nr = zeros(1,K)
     Γ_x, Γ_y, Γ_xy = calc_derSums_xy!(0,s_n,X_mat,Y,μ_ij_nr,δ,μ_ij_nr_sum[1])
 
-    #  Γ_x = dμ_ij_x_sums/μ_ij_nr_sum[1]
-    #  Γ_y = dμ_ij_y_sums/μ_ij_nr_sum[1]
-    #  Γ_xy = dμ_ij_xy_sums/μ_ij_nr_sum[1]
+    # @fastmath Γ_x = dμ_ij_x_sums/μ_ij_nr_sum[1]
+    # @fastmath Γ_y = dμ_ij_y_sums/μ_ij_nr_sum[1]
+    # @fastmath Γ_xy = dμ_ij_xy_sums/μ_ij_nr_sum[1]
 
     calc_prodTerms_xy!(0,1-anyR,dS_xy,dR,risk_nr,risk_age,
                 X_mat,Y,s_n,Γ_x,Γ_y,Γ_xy)
@@ -407,9 +407,9 @@ function hess_calc!(dS_xy::Vector{Float64},s_n::Vector{T},
 
         Γ_x, Γ_y, Γ_xy = calc_derSums_xy!(n,s_n,X_mat,Y,μ_ij,δ,μ_ij_sums_n)
 
-        #  Γ_x = dμ_ij_x_sums/μ_ij_sums_n
-        #  Γ_y = dμ_ij_y_sums/μ_ij_sums_n
-        #  Γ_xy = dμ_ij_xy_sums/μ_ij_sums_n
+        # @fastmath Γ_x = dμ_ij_x_sums/μ_ij_sums_n
+        # @fastmath Γ_y = dμ_ij_y_sums/μ_ij_sums_n
+        # @fastmath Γ_xy = dμ_ij_xy_sums/μ_ij_sums_n
         # s_n = μ_ij[n,:].*δ/μ_ij_sums_n
 
         calc_prodTerms_xy!(n,anyR/N,dS_xy,dR,risk,risk_age,
@@ -417,7 +417,7 @@ function hess_calc!(dS_xy::Vector{Float64},s_n::Vector{T},
                             Γ_x,Γ_y,Γ_xy)
     end
     for k in 1:K
-          dS_xy_all+= dS_xy[k]
+        @inbounds @fastmath dS_xy_all+= dS_xy[k]
     end
     return dS_xy_all
 end
@@ -439,13 +439,13 @@ end
 #     dμ_ij_x_sums,dμ_ij_y_sums,dμ_ij_z_sums,dμ_ij_xy_sums,dμ_ij_xz_sums,dμ_ij_yz_sums,dμ_ij_xyz_sums =
 #         calc_derSums_xyz!(0,s_n,X_mat,Y,Z,μ_ij_nr,δ,μ_ij_nr_sum[1])
 #
-#      Γ_x = dμ_ij_x_sums/μ_ij_nr_sum[1]
-#      Γ_y = dμ_ij_y_sums/μ_ij_nr_sum[1]
-#      Γ_z = dμ_ij_z_sums/μ_ij_nr_sum[1]
-#      Γ_xy = dμ_ij_xy_sums/μ_ij_nr_sum[1]
-#      Γ_xz = dμ_ij_xz_sums/μ_ij_nr_sum[1]
-#      Γ_yz = dμ_ij_yz_sums/μ_ij_nr_sum[1]
-#      Γ_xyz = dμ_ij_xyz_sums/μ_ij_nr_sum[1]
+#     @fastmath Γ_x = dμ_ij_x_sums/μ_ij_nr_sum[1]
+#     @fastmath Γ_y = dμ_ij_y_sums/μ_ij_nr_sum[1]
+#     @fastmath Γ_z = dμ_ij_z_sums/μ_ij_nr_sum[1]
+#     @fastmath Γ_xy = dμ_ij_xy_sums/μ_ij_nr_sum[1]
+#     @fastmath Γ_xz = dμ_ij_xz_sums/μ_ij_nr_sum[1]
+#     @fastmath Γ_yz = dμ_ij_yz_sums/μ_ij_nr_sum[1]
+#     @fastmath Γ_xyz = dμ_ij_xyz_sums/μ_ij_nr_sum[1]
 #     # s_n = s_n./μ_ij_sums_n
 #
 #     calc_prodTerms_xyz!(0,1-anyR,dS_xyz,
@@ -457,20 +457,20 @@ end
 #         dμ_ij_x_sums,dμ_ij_y_sums,dμ_ij_z_sums,dμ_ij_xy_sums,dμ_ij_xz_sums,dμ_ij_yz_sums,dμ_ij_xyz_sums =
 #             calc_derSums_xyz!(n,s_n,X_mat,Y,Z,μ_ij,δ,μ_ij_sums_n)
 #
-#          Γ_x = dμ_ij_x_sums/μ_ij_sums_n
-#          Γ_y = dμ_ij_y_sums/μ_ij_sums_n
-#          Γ_z = dμ_ij_z_sums/μ_ij_sums_n
-#          Γ_xy = dμ_ij_xy_sums/μ_ij_sums_n
-#          Γ_xz = dμ_ij_xz_sums/μ_ij_sums_n
-#          Γ_yz = dμ_ij_yz_sums/μ_ij_sums_n
-#          Γ_xyz = dμ_ij_xyz_sums/μ_ij_sums_n
+#         @fastmath Γ_x = dμ_ij_x_sums/μ_ij_sums_n
+#         @fastmath Γ_y = dμ_ij_y_sums/μ_ij_sums_n
+#         @fastmath Γ_z = dμ_ij_z_sums/μ_ij_sums_n
+#         @fastmath Γ_xy = dμ_ij_xy_sums/μ_ij_sums_n
+#         @fastmath Γ_xz = dμ_ij_xz_sums/μ_ij_sums_n
+#         @fastmath Γ_yz = dμ_ij_yz_sums/μ_ij_sums_n
+#         @fastmath Γ_xyz = dμ_ij_xyz_sums/μ_ij_sums_n
 #         # s_n = s_n./μ_ij_sums_n
 #
 #         calc_prodTerms_xyz!(n,anyR/N,dS_xyz,
 #                     X_mat,Y,Z,s_n,Γ_x,Γ_y,Γ_z,Γ_xy,Γ_xz,Γ_yz,Γ_xyz)
 #     end
 #     for k in 1:K
-#           dS_xyz_all+= dS_xyz[k]
+#         @inbounds @fastmath dS_xyz_all+= dS_xyz[k]
 #     end
 #     return dS_xyz_all
 # end
@@ -512,7 +512,7 @@ function grad_calc!(dS_x::Vector{T},
                     X_mat,s_n,Γ_x)
     end
     for k in 1:K
-          dS_x_all+= dS_x[k]
+        @inbounds @fastmath dS_x_all+= dS_x[k]
     end
     return dS_x_all
 end
@@ -541,23 +541,23 @@ function returnParameter!(q::Int64,X_mat::Matrix{Float64},
         X_mat[:] .= Z[q]
     elseif q<=β0len
         for n in 1:N
-             X_mat[n,:] = X_t[q-γlen,:]
+            @inbounds X_mat[n,:] = X_t[q-γlen,:]
         end
     elseif q<=βlen
         # Characteristic Interactions
         for n in 1:N
-             X_mat[n,:] = X_t[1,:].*Z[q-β0len]
+            @inbounds X_mat[n,:] = X_t[1,:].*Z[q-β0len]
         end
     elseif q<=σlen
         #Quality Random Effect
         X_mat[1,:].=0.0
         for n in 2:N,k in 1:K
-             X_mat[n,k] = draws[n-1,r_ind]*X_0_t[q-(βlen),k]
+            @inbounds X_mat[n,k] = draws[n-1,r_ind]*X_0_t[q-(βlen),k]
         end
     else
         #Fixed Effect
         for n in 1:N
-             X_mat[n,:] = F_t[q-σlen,:]
+            @inbounds X_mat[n,:] = F_t[q-σlen,:]
         end
     end
     return Nothing
@@ -570,26 +570,26 @@ function returnParameterX!(q::Int64,X_mat::Matrix{Float64},
                         γlen::Int64,β0len::Int64,βlen::Int64,σlen::Int64)
     (N,K) = size(X_mat)
     if q<0
-        return 1.0
+        X = 1.0
     elseif q<=γlen
-        return Z[q]
+        X = Z[q]
     elseif q<=β0len
-        return X_t[q-γlen,:]
+        X = X_t[q-γlen,:]
     elseif q<=βlen
         # Characteristic Interactions
-        return X_t[1,:].*Z[q-β0len]
+        X = X_t[1,:].*Z[q-β0len]
     elseif q<=σlen
         #Quality Random Effect
         X_mat[1,:].=0.0
         for n in 2:N,k in 1:K
-             X_mat[n,k] = draws[n-1,r_ind]*X_0_t[q-(βlen),k]
+            @inbounds X_mat[n,k] = draws[n-1,r_ind]*X_0_t[q-(βlen),k]
         end
-        return X_mat
+        X = copy(X_mat)
     else
         #Fixed Effect
-        return F_t[q-σlen,:]
+        X = F_t[q-σlen,:]
     end
-    # return X
+    return X
 end
 
 function ll_obs_hessian!(hess::Union{Matrix{Float64},SharedMatrix{Float64}},
@@ -673,7 +673,7 @@ function ll_obs_hessian!(hess::Union{Matrix{Float64},SharedMatrix{Float64}},
             X = returnParameterX!(q,X_mat,
                             Z,X_0_t,X_t,draws,F_t,r_ind,
                             γlen,β0len,βlen,σlen)
-             Y_list[q_i] = copy(X)
+            @inbounds Y_list[q_i] = copy(X)
 
             dS_x_all = grad_calc!(dS_x,s_n,anyR,
                         dR_x,risk,r_age,
@@ -688,14 +688,14 @@ function ll_obs_hessian!(hess::Union{Matrix{Float64},SharedMatrix{Float64}},
             grad[q]+= combine_grad(N,gll_t1,gll_t4,dS_x,dS_x_all)
 
             # for (k,ij) in enumerate(idxitr)
-            #       p.dSdθ[q,ij] = dS_x[k]/N
-            #       p.dRdθ[q,ij] = dR_x[k]/(s_hat[k]*N) - (dS_x[k]/N)/s_hat[k] * r_avg[k]
+            #     @inbounds @fastmath p.dSdθ[q,ij] = dS_x[k]/N
+            #     @inbounds @fastmath p.dRdθ[q,ij] = dR_x[k]/(s_hat[k]*N) - (dS_x[k]/N)/s_hat[k] * r_avg[k]
             # end
 
             dR_x_list[q_i] = dR_x[:]
             for k in 1:K
-                  p.dSdθ_j[q,prodidx[k]]+= wgt[k]*dS_x[k]
-                  p.dRdθ_j[q,prodidx[k]]+= wgt[k]*(dR_x[k])
+                @inbounds @fastmath p.dSdθ_j[q,prodidx[k]]+= wgt[k]*dS_x[k]
+                @inbounds @fastmath p.dRdθ_j[q,prodidx[k]]+= wgt[k]*(dR_x[k])
             end
 
 
@@ -727,8 +727,8 @@ function ll_obs_hessian!(hess::Union{Matrix{Float64},SharedMatrix{Float64}},
                 end
 
                 for k in 1:K
-                      p.d2Sdθ_j[q,r,prodidx[k]]+= wgt[k]*dS_xy[k]
-                      p.d2Rdθ_j[q,r,prodidx[k]]+= wgt[k]*(dR_xy[k])
+                    @inbounds @fastmath p.d2Sdθ_j[q,r,prodidx[k]]+= wgt[k]*dS_xy[k]
+                    @inbounds @fastmath p.d2Rdθ_j[q,r,prodidx[k]]+= wgt[k]*(dR_xy[k])
                 end
             end
         end
@@ -810,7 +810,7 @@ function ll_obs_gradient!(grad::Union{Vector{S},SharedVector{S}},
             #     #Quality Random Effect
             #     X_mat[1,:].=0.0
             #     for n in 1:N,k in 1:K
-            #          X_mat[n+1,k] = draws[n,r_ind]*X_0_t[q-(βlen),k]
+            #         @inbounds X_mat[n+1,k] = draws[n,r_ind]*X_0_t[q-(βlen),k]
             #     end
             #     X = X_mat
             # else
@@ -830,8 +830,8 @@ function ll_obs_gradient!(grad::Union{Vector{S},SharedVector{S}},
             grad[q]+= combine_grad(N,gll_t1,gll_t4,dS_x,dS_x_all)
 
             for k in 1:K
-                  p.dSdθ_j[q,prodidx[k]]+= wgt[k]*dS_x[k]
-                  p.dRdθ_j[q,prodidx[k]]+= wgt[k]*(dR_x[k])
+                @inbounds @fastmath p.dSdθ_j[q,prodidx[k]]+= wgt[k]*dS_x[k]
+                @inbounds @fastmath p.dRdθ_j[q,prodidx[k]]+= wgt[k]*(dR_x[k])
             end
 
         end

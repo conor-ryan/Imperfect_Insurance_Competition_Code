@@ -97,7 +97,7 @@ function parDict(m::InsuranceLogit,x::Array{T};no2Der=false) where T
     #δ = ones(M)
 
     Q = m.parLength[:All]
-    J = maximum(m.prods)
+    J = length(m.prods)
     dSdθ_j = Matrix{T}(undef,Q,J)
     dRdθ_j = Matrix{T}(undef,Q,J)
     # d2Sdθ_j = Array{T,3}(undef,Q,Q,J)

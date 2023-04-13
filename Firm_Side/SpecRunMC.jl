@@ -4,6 +4,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
     codeDir = "$home_directory/Research/Imperfect_Insurance_Competition/Code/Firm_Side"
     include("$codeDir/MC_load.jl")
 
+
     # df[:High_small] = df[:HighRisk].*df[:Small]
 
 
@@ -38,22 +39,21 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
     println("Construct Hessians for Standard Errors")
     ll_grad = Vector{Float64}(undef,length(p_dem_est))
     ll_hess = Matrix{Float64}(undef,length(p_dem_est),length(p_dem_est))
-    # ll = log_likelihood!(ll_hess,ll_grad,m_demand,par_dem)
-    ll = log_likelihood!(ll_grad,m_demand,par_dem)
+    ll = log_likelihood!(ll_hess,ll_grad,m_demand,par_dem)
 
-    # mom_grad = Matrix{Float64}(undef,length(p_dem_est),length(m_demand.data.rMoments))
-    # mom = calc_risk_moments!(mom_grad,m_demand,par_dem)
-    # G_θ = hcat(mom_grad,ll_hess)
+    mom_grad = Matrix{Float64}(undef,length(p_dem_est),length(m_demand.data.rMoments))
+    mom = calc_risk_moments!(mom_grad,m_demand,par_dem)
+    G_θ = hcat(mom_grad,ll_hess)
 
-    # m_demand = 0.0
-    # df_demand = 0.0
-    # par_dem = 0.0
-    # ll_grad = 0.0
-    # ll_hess = 0.0
-    # mom_grad = 0.0
+    m_demand = 0.0
+    df_demand = 0.0
+    par_dem = 0.0
+    ll_grad = 0.0
+    ll_hess = 0.0
+    mom_grad = 0.0
 
     #### Build Model ####
-    # Structure the data
+    # Structre the data
     chdf = ChoiceData(df,df_mkt,df_risk,df_transfer;
         product = [:Product_std],
         demoRaw=spec_Dict["demoRaw"],
@@ -69,11 +69,11 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
     if length(p_stg2)!=m.parLength[:All]
         println(length(p_stg2))
         println(m.parLength[:All])
-        # error("Parameter Vector Not Quite Right")
+        error("Parameter Vector Not Quite Right")
     end
 
     #### Compute Demand Estimation
-    par_est = parDict(m,p_dem_est,no2Der=false)
+    par_est = parDict(m,p_dem_est,no2Der=true)
     individual_values!(m,par_est)
     individual_shares(m,par_est)
 
@@ -108,38 +108,9 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
     println("#################")
     println("#################")
     #### Use Predicted Shares as Observed Shares for computing two-stage Standard Errors
-    (M,N) = size(m.data.data)
-    # m.data.data[m.data._choice,:] = par_est.s_hat
-    m.data.data[m.data._choice,:] = m_demand.data.data[m_demand.data._choice,1:N]
-    println(mean(par_est.s_hat))
-    println(mean(par_dem.s_hat))
+    m.data.data[m.data._choice,:] = par_est.s_hat
 
-    println(size(m.data.data))
-    println(size(m_demand.data.data))
 
-    par = parMC(p_stg1,par_est,m,costdf) # Fix p0
-    individual_costs(m,par)
-    println("A1a")
-    ll = log_likelihood!(ll_grad,m_demand,par_dem)
-    println("A1b")
-    ll = log_likelihood!(ll_grad,m_demand,par_dem)
-    println("A1c")
-    ll = log_likelihood!(ll_grad,m_demand,par_dem)
-    println("A1d")
-    ll = log_likelihood!(ll_grad,m_demand,par_dem)
-
-    println("A2a")
-    ll = log_likelihood!(ll_grad,m,par_est)
-    println("A2b")
-    ll = log_likelihood!(ll_grad,m,par_est)
-    println("A2c")
-    ll = log_likelihood!(ll_grad,m,par_est)
-    println("A2d")
-    ll = log_likelihood!(ll_grad,m,par_est)
-    println("A3")
-    mean_cost, mean_dem = momentMeans(costdf,m,par)
-
-    println("Compute Weighting Matrix")
     S_all,Σ,Δ,S_m = aVar(costdf,m,p_stg1,par_est)
     S_diag = Matrix(Diagonal(diag(S_m)))
     W = Matrix(Diagonal(diag(inv(S_diag))))

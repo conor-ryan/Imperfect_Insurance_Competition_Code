@@ -870,24 +870,24 @@ function integration_var_bootstrap(d::InsuranceLogit,p0::Array{T};feFlag::Int64=
 end
 
 
-# function risk_moment_bootstrap(d::InsuranceLogit,p0::Array{T};n=200) where T
-#     num_halton_draws,R = size(d.draws)
+function risk_moment_bootstrap(d::InsuranceLogit,p0::Array{T};n=200) where T
+    num_halton_draws,R = size(d.draws)
 
-#     moments = SharedArray{Float64,2}(length(d.data.rMoments),n)
+    moments = SharedArray{Float64,2}(length(d.data.rMoments),n)
 
-#     println("Send Data to Workers")
-#     @eval @everywhere d=$d
-#     @eval @everywhere num_halton_draws=$num_halton_draws
-#     @eval @everywhere p0=$p0
-#     println("Data Distributed")
+    println("Send Data to Workers")
+    @eval @everywhere d=$d
+    @eval @everywhere num_halton_draws=$num_halton_draws
+    @eval @everywhere p0=$p0
+    println("Data Distributed")
 
-#     @sync @distributed for i in 1:n
-#         println("Sample $i")
-#         sample = bootstrapSample(d.data)
-#         m_sample = InsuranceLogit(sample,num_halton_draws)
-#         # println("Calculate Moment")
-#         moments[:,i] = calc_risk_moments(m_sample,p0)
-#     end
-#     V = cov(moments,dims=2)
-#     return V
-# end
+    @sync @distributed for i in 1:n
+        println("Sample $i")
+        sample = bootstrapSample(d.data)
+        m_sample = InsuranceLogit(sample,num_halton_draws)
+        # println("Calculate Moment")
+        moments[:,i] = calc_risk_moments(m_sample,p0)
+    end
+    V = cov(moments,dims=2)
+    return V
+end
