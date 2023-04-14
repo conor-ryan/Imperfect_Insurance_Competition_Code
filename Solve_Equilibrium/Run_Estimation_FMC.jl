@@ -1,3 +1,4 @@
+using Distributed
 using BenchmarkTools
 using JLD2
 using CSV

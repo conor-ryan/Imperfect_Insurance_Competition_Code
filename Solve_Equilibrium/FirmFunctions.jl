@@ -401,11 +401,11 @@ function foc_error(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.
 end
 
 
-function calc_risk_avg(d::InsuranceLogit,f::firmData) where T
+function calc_risk_avg(d::InsuranceLogit,f::firmData)
     wgts = weight(d.data)[1,:]
     wgts_share = wgts.*f.s_pred
     num_prods = maximum(d.prods)
-    r_hat_j = Vector{T}(undef,num_prods)
+    r_hat_j = Vector{Float64}(undef,num_prods)
     r_hat = f.r_pred
 
     for j in d.prods
