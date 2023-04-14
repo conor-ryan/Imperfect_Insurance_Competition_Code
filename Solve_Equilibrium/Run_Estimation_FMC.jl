@@ -1,30 +1,26 @@
-using Distributed
-# println("Add Workers")
-# addprocs(11)
-
-@everywhere using BenchmarkTools
-@everywhere using JLD2
-@everywhere using CSV
-@everywhere using Random
-@everywhere using Dates
-@everywhere using LinearAlgebra
-@everywhere using Statistics
-@everywhere using DataFrames
-@everywhere using StatsFuns
-@everywhere using ForwardDiff
-@everywhere using NLopt
-@everywhere using FiniteDiff
-@everywhere using SharedArrays
+using BenchmarkTools
+using JLD2
+using CSV
+using Random
+using Dates
+using LinearAlgebra
+using Statistics
+using DataFrames
+using StatsFuns
+using ForwardDiff
+using NLopt
+using FiniteDiff
+using SharedArrays
 
 
 # ## Check OS Environment
 if occursin(r"Users",homedir())
-        @everywhere home_directory = "$(homedir())/Dropbox"
+        home_directory = "$(homedir())/Dropbox"
 else
-        @everywhere home_directory = "$(homedir())/work/"
+        home_directory = "$(homedir())/work/"
 end
 
-@everywhere codeDir = "$(home_directory)/Research/Imperfect_Insurance_Competition/Code/"
+codeDir = "$(home_directory)/Research/Imperfect_Insurance_Competition/Code/"
 
 ##### Set Specification ####
 halton_draws = 500
@@ -61,26 +57,26 @@ println("Running $spec on $rundate")
 println("##### Estimate Demand #####")
 println("Load Demand Estimation Code...")
 # Data Structure
-@everywhere include("$codeDir/Demand_Estimation/InsChoiceData.jl")
+include("$codeDir/Demand_Estimation/InsChoiceData.jl")
 #Halton Draws
-@everywhere include("$codeDir/Demand_Estimation/Halton.jl")
+include("$codeDir/Demand_Estimation/Halton.jl")
 # Random Coefficients MLE
-@everywhere include("$codeDir/Demand_Estimation/RandomCoefficients.jl")
-@everywhere include("$codeDir/Demand_Estimation/RandomCoefficients_der.jl")
-@everywhere include("$codeDir/Demand_Estimation/DerivFunctions.jl")
-@everywhere include("$codeDir/Demand_Estimation/Log_Likehood.jl")
-@everywhere include("$codeDir/Demand_Estimation/Log_Likehood_Penalty.jl")
+include("$codeDir/Demand_Estimation/RandomCoefficients.jl")
+include("$codeDir/Demand_Estimation/RandomCoefficients_der.jl")
+include("$codeDir/Demand_Estimation/DerivFunctions.jl")
+include("$codeDir/Demand_Estimation/Log_Likehood.jl")
+include("$codeDir/Demand_Estimation/Log_Likehood_Penalty.jl")
 
 # GMM Functions
-@everywhere include("$codeDir/Demand_Estimation/Contraction.jl")
-@everywhere include("$codeDir/Demand_Estimation/RiskMoments.jl")
-@everywhere include("$codeDir/Demand_Estimation/GMM_Var.jl")
+include("$codeDir/Demand_Estimation/Contraction.jl")
+include("$codeDir/Demand_Estimation/RiskMoments.jl")
+include("$codeDir/Demand_Estimation/GMM_Var.jl")
 # Estimation Functions
-@everywhere include("$codeDir/Demand_Estimation/Estimate_Basic.jl")
-@everywhere include("$codeDir/Demand_Estimation/Estimate_GMM.jl")
-@everywhere include("$codeDir/Demand_Estimation/Estimate_TwoStage.jl")
-@everywhere include("$codeDir/Demand_Estimation/utility.jl")
-@everywhere include("$codeDir/Demand_Estimation/Specification_Run.jl")
+include("$codeDir/Demand_Estimation/Estimate_Basic.jl")
+include("$codeDir/Demand_Estimation/Estimate_GMM.jl")
+include("$codeDir/Demand_Estimation/Estimate_TwoStage.jl")
+include("$codeDir/Demand_Estimation/utility.jl")
+include("$codeDir/Demand_Estimation/Specification_Run.jl")
 
 filename = "PLL_Estimate_$spec"
 # estimate_demand(filename,rundate,home_directory,
@@ -93,28 +89,14 @@ filename = "PLL_Estimate_$spec"
 
 println("##### Estimation Marginal Cost #####")
 println("Load Marginal Cost Estimation Code...")
-@everywhere include("$codeDir/Firm_Side/MC_parameters.jl")
-@everywhere include("$codeDir/Firm_Side/MC_GMM.jl")
-@everywhere include("$codeDir/Firm_Side/MC_var.jl")
-@everywhere include("$codeDir/Firm_Side/MC_derivatives.jl")
-@everywhere include("$codeDir/Firm_Side/MC_optimization.jl")
-@everywhere include("$codeDir/Firm_Side/Firm_Inner_Loop.jl")
-@everywhere include("$codeDir/Firm_Side/SpecRunMC.jl")
+include("$codeDir/Firm_Side/MC_parameters.jl")
+include("$codeDir/Firm_Side/MC_GMM.jl")
+include("$codeDir/Firm_Side/MC_var.jl")
+include("$codeDir/Firm_Side/MC_derivatives.jl")
+include("$codeDir/Firm_Side/MC_optimization.jl")
+include("$codeDir/Firm_Side/Firm_Inner_Loop.jl")
+include("$codeDir/Firm_Side/SpecRunMC.jl")
 estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
 
-@everywhere include("ProcessDemResults.jl")
+include("ProcessDemResults.jl")
 process_demand(rundate,spec,home_directory)
-
-
-# println("##### Solve Equilibrium #####")
-# println("Load Equilibrium Code...")
-# @everywhere include("predictionData.jl")
-# @everywhere include("FirmFunctions.jl")
-# @everywhere include("SolveModel.jl")
-# @everywhere include("EvaluateModel.jl")
-# @everywhere include("PriceUpdate.jl")
-# @everywhere include("ConsumerWelfare.jl")
-# @everywhere include("PlannerProblem.jl")
-# @everywhere include("SolveMergers.jl")
-
-# MergersMain(rundate,spec,home_directory)

@@ -128,7 +128,7 @@ function nonprice_value!(app::ChoiceData,firm::firmData)
     # FE is a row Vector
     # if T== Float64
     controls = zeros(size(F,2))
-    for k in 1:length(controls)
+    for k in eachindex(controls)
         for j in app._rel_fe_Dict[ind]
             controls[k]+= fe[j]*F[j,k]
         end
@@ -188,43 +188,44 @@ end
 
 
 
-function individual_update(d::InsuranceLogit,firm::firmData)
-    # Store Parameters
-    p_dem = firm.par_dem
-    p_cost = firm.par_cost
-    δ_long = (firm.δ_nonprice).*(firm.δ_price)
-    μ_ij_large = p_dem.μ_ij
-    μnr_ij_large = p_dem.μ_ij_nonRisk
-    risk_long = rIndS(d.data)
-    cost_nonRisk = p_cost.C_nonrisk
-    any_long = anyHCC(d.data)
+# function individual_update(d::InsuranceLogit,firm::firmData)
+#     # Store Parameters
+#     p_dem = firm.par_dem
+#     p_cost = firm.par_cost
+#     δ_long = (firm.δ_nonprice).*(firm.δ_price)
+#     μ_ij_large = p_dem.μ_ij
+#     μnr_ij_large = p_dem.μ_ij_nonRisk
+#     risk_long = rIndS(d.data)
+#     cost_nonRisk = p_cost.C_nonrisk
+#     any_long = anyHCC(d.data)
 
-    for idxitr in values(d.data._personDict)
-        δ = δ_long[idxitr]
-        @inbounds u = μ_ij_large[:,idxitr]
-        @inbounds u_nr = μnr_ij_large[idxitr]
-        r_ind = Int.(risk_long[idxitr])
-        @inbounds r_cost = p_cost.risks[:,r_ind]
-        @inbounds r_scores = d.draws[:,r_ind]
-        @inbounds any_r = any_long[idxitr[1]]
-        c_nr = cost_nonRisk[idxitr]
-        c_nr = capped_cost(c_nr)
-        # s_r,c,c_HCC,dc,dc_HCC,d2c,d2c_HCC = update_cost(u,δ,r_cost,r_scores,c_nr,anyHCC_scores)
-        s_r,c_r = update_cost(u,δ,r_cost,r_scores,c_nr)
-        s_nr = calc_shares(u_nr,δ)
+#     for idxitr in values(d.data._personDict)
+#         δ = δ_long[idxitr]
+#         @inbounds u = μ_ij_large[:,idxitr]
+#         @inbounds u_nr = μnr_ij_large[idxitr]
+#         r_ind = Int.(risk_long[idxitr])
+#         @inbounds r_cost = p_cost.risks[:,r_ind]
+#         @inbounds r_scores = d.draws[:,r_ind]
+#         @inbounds any_r = any_long[idxitr[1]]
+#         c_nr = cost_nonRisk[idxitr]
+#         c_nr = capped_cost(c_nr)
+#         # s_r,c,c_HCC,dc,dc_HCC,d2c,d2c_HCC = update_cost(u,δ,r_cost,r_scores,c_nr,anyHCC_scores)
+#         s_r,c_r = update_cost(u,δ,r_cost,r_scores,c_nr)
+#         s_nr = calc_shares(u_nr,δ)
 
-        s_hat = (any_r.*s_r + (1-any_r).*s_nr)
-        firm.c_pred[idxitr] = (any_r.*s_r.*c_r + (1-any_r).*s_nr.*c_nr)./s_hat
-        firm.s_pred[idxitr] = s_hat
-    end
-    return Nothing
-end
+#         s_hat = (any_r.*s_r + (1-any_r).*s_nr)
+#         firm.c_pred[idxitr] = (any_r.*s_r.*c_r + (1-any_r).*s_nr.*c_nr)./s_hat
+#         firm.s_pred[idxitr] = s_hat
+#     end
+#     return Nothing
+# end
 
 
-function update_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},c::Vector{T},catas::Vector{Int64};returnMat::Bool=false) where T
+function update_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},r_draw::Matrix{Float64},c::Vector{T},catas::Vector{Int64};returnMat::Bool=false) where T
     (N,K) = size(μ_ij)
     util = Matrix{Float64}(undef,K,N)
     s_hat = Matrix{Float64}(undef,K,N)
+    r_hat = Matrix{Float64}(undef,K,N)
     s_ins = Vector{Float64}(undef,N)
     c_hat = Matrix{T}(undef,K,N)
     c_hat_pool = Matrix{T}(undef,K,N)
@@ -250,6 +251,7 @@ function update_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},c::V
             cost = capped_cost(cost)
             @inbounds c_hat[i,n] = s*cost
             @inbounds c_hat_pool[i,n] = si*cost
+            @inbounds r_hat[i,n] = s*r_draw[n,i]
             if returnMat
                 c_mat[i,n] = cost
             end
@@ -257,6 +259,7 @@ function update_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},c::V
     end
 
     s_sum  = sum(s_hat,dims=2)
+    r_mean = sum(r_hat,dims=2)./s_sum
     c_mean = sum(c_hat,dims=2)./s_sum
     c_mean_pool = sum(c_hat_pool,dims=2)./sum(s_ins)
 
@@ -264,9 +267,9 @@ function update_cost(μ_ij::Array{Float64},δ::Vector{Float64},r::Matrix{T},c::V
     s_mean = s_sum./N
 
     if returnMat
-        return s_mean,c_mean,c_mean_pool, s_hat,c_mat
+        return s_mean,r_mean,c_mean,c_mean_pool, s_hat,c_mat
     else
-        return s_mean, c_mean, c_mean_pool
+        return s_mean,r_mean,c_mean, c_mean_pool
     end
 end
 
@@ -456,19 +459,21 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
         @inbounds u_nr = μnr_ij_large[idxitr]
         r_ind = Int.(risk_long[idxitr])
         @inbounds r_cost = p_cost.risks[:,r_ind]
+        @inbounds r_draw = d.draws[:,r_ind]
         @inbounds any_r = any_long[idxitr[1]]
         wgt = wgt_long[idxitr]
         c_nr = cost_nonRisk[idxitr]
         c_nr = capped_cost(c_nr)
         Ze_prem = firm.zero_ij[idxitr]
 
-        s_r,c_r,c_r_pl,s_mat,c_mat = update_cost(u,δ,r_cost,c_nr,catas,returnMat=true)
+        s_r,r_mean,c_r,c_r_pl,s_mat,c_mat = update_cost(u,δ,r_cost,r_draw,c_nr,catas,returnMat=true)
         s_nr = calc_shares(u_nr,δ)
         s_r_ins = sum(s_r) - sum(s_r[catas])
         s_nr_ins = sum(s_nr) - sum(s_nr[catas])
 
         s_hat = (any_r.*s_r + (1-any_r).*s_nr)
         c_hat = (any_r.*s_r.*c_r + (1-any_r).*s_nr.*c_nr)./s_hat
+        r_hat = (any_r.*r_mean)
 
         s_ins_hat = (any_r.*s_r_ins + (1-any_r).*s_nr_ins)
         c_pool = (any_r.*s_r_ins.*c_r_pl + (1-any_r).*s_nr_ins.*c_nr)./s_ins_hat
@@ -476,6 +481,7 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
         firm.c_pred[idxitr] = c_hat[:]
         firm.c_pool[idxitr] = c_pool[:]
         firm.s_pred[idxitr] = s_hat[:]
+        firm.r_pred[idxitr] = r_hat[:]
 
 
         @inbounds Z = demData[:,idxitr[1]]
@@ -662,13 +668,14 @@ function update_shares(d::InsuranceLogit,firm::firmData,
         c_nr = capped_cost(c_nr)
         Ze_prem = firm.zero_ij[idxitr]
 
-        s_r,c_r,c_r_pl,s_mat,c_mat = update_cost(u,δ,r_cost,c_nr,catas,returnMat=true)
+        s_r,r_mean,c_r,c_r_pl,s_mat,c_mat = update_cost(u,δ,r_cost,r_draw,c_nr,catas,returnMat=true)
         s_nr = calc_shares(u_nr,δ)
         s_r_ins = sum(s_r) - sum(s_r[catas])
         s_nr_ins = sum(s_nr) - sum(s_nr[catas])
 
         s_hat = (any_r.*s_r + (1-any_r).*s_nr)
         c_hat = (any_r.*s_r.*c_r + (1-any_r).*s_nr.*c_nr)./s_hat
+        r_hat = (any_r.*r_mean)
 
         s_ins_hat = (any_r.*s_r_ins + (1-any_r).*s_nr_ins)
         c_pool = (any_r.*s_r_ins.*c_r_pl + (1-any_r).*s_nr_ins.*c_nr)./s_ins_hat
@@ -676,6 +683,7 @@ function update_shares(d::InsuranceLogit,firm::firmData,
         firm.c_pred[idxitr] = c_hat[:]
         firm.c_pool[idxitr] = c_pool[:]
         firm.s_pred[idxitr] = s_hat[:]
+        firm.r_pred[idxitr] = r_hat[:]
 
 
         @inbounds Z = demData[:,idxitr[1]]

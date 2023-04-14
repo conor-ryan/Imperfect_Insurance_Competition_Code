@@ -641,6 +641,7 @@ function simulate_all_mergers(m::InsuranceLogit,
 
     base_profits = market_profits(m,f)
     base_profits_st =state_profits(m,f)
+    product_risk = calc_risk_avg(m,f)
     # consumer_welfare(m,f,"$(file_stub)_baseline",spec,rundate)
     trash = total_welfare_bymkt(m,f,"$(file_stub)_baseline",spec,rundate,update_voucher=update_voucher)
 
@@ -649,7 +650,8 @@ function simulate_all_mergers(m::InsuranceLogit,
     output =  DataFrame(Product=prod_vec,
                         Price=f.P_j,
                         Lives=f.S_j,
-                        Profit = prod_profits)
+                        Profit = prod_profits,
+                        Risk = product_risk)
     CSV.write(file,output)
 
     println("Total Voucher: $(sum(f.subsidy_ij))")
@@ -661,6 +663,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     solve_SP_parallel!(m,f,voucher=voucher,update_voucher=update_voucher)
     evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
     
+    product_risk = calc_risk_avg(m,f)
     # consumer_welfare(m,f,"$(file_stub)_SP_baseline",spec,rundate)
     trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_baseline",spec,rundate,update_voucher=update_voucher)
     
@@ -668,7 +671,8 @@ function simulate_all_mergers(m::InsuranceLogit,
     file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_baseline.csv"
     output =  DataFrame(Product=prod_vec,
                         Price=f.P_j,
-                        Lives=f.S_j)
+                        Lives=f.S_j,
+                        Risk = product_risk)
     CSV.write(file,output)
     
     println("Total Voucher: $(sum(f.subsidy_ij))")
@@ -685,6 +689,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     # markets_cp, λ_vec_cp = solve_SP_λ_st!(m,f,base_profits_st,states=["GA"])
     evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
     P_Base_SP_cp[:] = f.P_j[:]
+    product_risk = calc_risk_avg(m,f)
 
     # println("Model Price: $(f.P_j)")
     # # P_Base_SP_cp = P_Base[:]
@@ -696,7 +701,8 @@ function simulate_all_mergers(m::InsuranceLogit,
     file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_cp_baseline.csv"
     output =  DataFrame(Product=prod_vec,
                         Price=f.P_j,
-                        Lives=f.S_j)
+                        Lives=f.S_j,
+                        Risk = product_risk)
     CSV.write(file,output)
 
     ### Reset to Baseline
@@ -749,7 +755,6 @@ function simulate_all_mergers(m::InsuranceLogit,
     println("Data Distributed")
 
     @sync @distributed for i in eachindex(merging_party_list)
-    # @sync @distributed for i in eachindex(merging_party_list[1:12])
         shared_markets = shared_market_list[i]
         shared_states = shared_state_list[i]
         merging_parties = merging_party_list[i]
@@ -786,6 +791,7 @@ function simulate_all_mergers(m::InsuranceLogit,
         evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
         prod_profits = product_profits(m,f,sim=sim)
         merger_profits = market_profits(m,f)
+        product_risk = calc_risk_avg(m,f)
         # println(merger_profits[shared_markets])
         P_m[:] = f.P_j[:]
         S_m[:] = f.S_j[:]
@@ -806,43 +812,48 @@ function simulate_all_mergers(m::InsuranceLogit,
         output =  DataFrame(Product=prod_vec,
                             Price=P_m,
                             Lives=S_m,
-                            Profit=prod_profits)
+                            Profit=prod_profits,
+                            Risk = product_risk)
         CSV.write(file,output)
 
-        println("Resolve Pre-merger Baseline")
-        P_pre=  zeros(J)
-        S_pre =  zeros(J)
-        ownerMatrix!(f)
-        solve_model!(m,f,shared_states,sim=sim,voucher=voucher,update_voucher=update_voucher)
-        evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
-        prod_profits = product_profits(m,f,sim=sim)
-        P_pre[:] = f.P_j[:]
-        S_pre[:] = f.S_j[:]
-        file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_PRE_$(merging_parties[1])_$(merging_parties[2]).csv"
-        output =  DataFrame(Product=prod_vec,
-                            Price=P_pre,
-                            Lives=S_pre,
-                            Profit=prod_profits)
-        CSV.write(file,output)
-        println("Saved Resolved File at $file")
+        # println("Resolve Pre-merger Baseline")
+        # P_pre=  zeros(J)
+        # S_pre =  zeros(J)
+        # ownerMatrix!(f)
+        # solve_model!(m,f,shared_states,sim=sim,voucher=voucher,update_voucher=update_voucher)
+        # evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
+        # prod_profits = product_profits(m,f,sim=sim)
+        # product_risk = calc_risk_avg(m,f)
+        # P_pre[:] = f.P_j[:]
+        # S_pre[:] = f.S_j[:]
+        # file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_PRE_$(merging_parties[1])_$(merging_parties[2]).csv"
+        # output =  DataFrame(Product=prod_vec,
+        #                     Price=P_pre,
+        #                     Lives=S_pre,
+        #                     Profit=prod_profits,
+        #                     Risk = product_risk)
+        # CSV.write(file,output)
+        # println("Saved Resolved File at $file")
 
-        ## Solve Profit-Constrained Social Planner Problem
-        println("Begin Profit Constrained Planner Solution")
-        f.P_j[:] = P_Base_SP_cp
-        markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,merger_profits,markets=shared_markets)
-        evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
+        # ## Solve Profit-Constrained Social Planner Problem
+        # println("Begin Profit Constrained Planner Solution")
+        # f.P_j[:] = P_Base_SP_cp
+        # markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,merger_profits,markets=shared_markets)
+        # evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
+        # product_risk = calc_risk_avg(m,f)
         
-        # println("SP Consumer Welfare")
-        # consumer_welfare(m,f,"$(file_stub)_SP_cp_$(merging_parties[1])_$(merging_parties[2])",spec,rundate)
-        println("SP Total Welfare")
-        trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_cp_$(merging_parties[1])_$(merging_parties[2])",spec,rundate,update_voucher=update_voucher)
+        # # println("SP Consumer Welfare")
+        # # consumer_welfare(m,f,"$(file_stub)_SP_cp_$(merging_parties[1])_$(merging_parties[2])",spec,rundate)
+        # println("SP Total Welfare")
+        # trash = total_welfare_bymkt(m,f,"$(file_stub)_SP_cp_$(merging_parties[1])_$(merging_parties[2])",spec,rundate,update_voucher=update_voucher)
         
-        # Output Baseline Model
-        file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_cp_$(merging_parties[1])_$(merging_parties[2]).csv"
-        output =  DataFrame(Product=prod_vec,
-                            Price=f.P_j,
-                            Lives=f.S_j)
-        CSV.write(file,output)
+        # # Output Baseline Model
+        # file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_SP_cp_$(merging_parties[1])_$(merging_parties[2]).csv"
+        # output =  DataFrame(Product=prod_vec,
+        #                     Price=f.P_j,
+        #                     Lives=f.S_j,
+        #                     Risk = product_risk)
+        # CSV.write(file,output)
     end
     return nothing
 end

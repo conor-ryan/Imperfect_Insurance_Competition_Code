@@ -108,7 +108,7 @@ function compute_profit(d::InsuranceLogit,f::firmData)
         wgt = wgts_long[idxitr]
 
 
-        for k in 1:length(prod_ids)
+        for k in eachindex(prod_ids)
             j = prod_ids[k]
             Revenue[j] += wgt[k]*s_pred[k]*rev[k]
             Cost[j] += wgt[k]*s_pred[k]*cost[k]
@@ -398,4 +398,20 @@ function foc_error(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.
     # f.P_j[:] = P_update[:]
 
     return foc_err, err_new, tot_err, P_new
+end
+
+
+function calc_risk_avg(d::InsuranceLogit,f::firmData) where T
+    wgts = weight(d.data)[1,:]
+    wgts_share = wgts.*f.s_pred
+    num_prods = maximum(d.prods)
+    r_hat_j = Vector{T}(undef,num_prods)
+    r_hat = f.r_pred
+
+    for j in d.prods
+        j_index_all = d.data._productDict[j]
+        r_hat_j[j] = sliceMean_wgt(r_hat,wgts_share,j_index_all)
+    end
+    
+    return r_hat_j
 end

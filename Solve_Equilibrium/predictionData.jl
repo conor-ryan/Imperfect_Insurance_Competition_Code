@@ -19,6 +19,7 @@ mutable struct firmData
     δ_nonprice::Vector{Float64} # Fixed non-price product chars
     δ_price::Vector{Float64} # Updated Price Characteristics
     s_pred:: Vector{Float64} # Updated Person-Product Shares
+    r_pred::Vector{Float64} # Updated Person-Product Risk
     c_pred:: Vector{Float64} # Updated Person-Product Costs
     c_pool:: Vector{Float64} # Updated Person-Product Costs, after RA transfers
 
@@ -117,6 +118,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     δ_nonprice=Vector{Float64}(undef,M) # Fixed non-price product chars
     δ_price=Vector{Float64}(undef,M) # Updated Price Characteristics
     s_pred= Vector{Float64}(undef,M) # Updated Person-Product Shares
+    r_pred= Vector{Float64}(undef,M) # Updated Person-Product Risk
     c_pred= Vector{Float64}(undef,M) # Update Person-Product Costs
     c_pool= Vector{Float64}(undef,M) # Update Person-Product Costs, after transfer
 
@@ -241,7 +243,7 @@ function firmData(m::InsuranceLogit,df::DataFrame,mkt::DataFrame,
     firm = firmData(par_dem,par_cost,
     data,index,
     P_ij,Rev_ij,subsidy_ij,subsidy_ij_voucher,zero_ij,
-    δ_nonprice,δ_price,s_pred,c_pred,c_pool,
+    δ_nonprice,δ_price,s_pred,r_pred,c_pred,c_pool,
     P_j,SA_j,S_j,Mkt_j,C_j,PC_j,ω_j,
     hix_cnt,bench_base,
     dSdp_j,dSAdp_j,dRdp_j,dCdp_j,dMdp_j,dMAdp_j,dCdp_pl_j,dSubdp_j,
