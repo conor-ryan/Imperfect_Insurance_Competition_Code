@@ -579,6 +579,7 @@ function check_markets_if_merger(f::firmData,merging_parties)
     end
     return markets[market_bool]
 end
+
 function simulate_all_mergers(m::InsuranceLogit,
                             df::DataFrame,mkt::DataFrame,par_dem::parDict,par_cost::parMC,
                             file_stub_short;
