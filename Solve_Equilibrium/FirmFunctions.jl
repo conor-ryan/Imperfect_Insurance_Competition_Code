@@ -321,17 +321,17 @@ function predict_price(f::firmData,prod_ind::Vector{Int};sim="Base",merg::String
     return P_new
 end
 
-function foc_error(f::firmData,ST::String,stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base",voucher::Bool=false)
+function foc_error(f::firmData,ST::String;λ::Float64=0.0,sim="Base",merg::String="Base",voucher::Bool=false)
     prod_ind = f._prodSTDict[ST]
-    return foc_error(f,prod_ind,stp,λ=λ,sim=sim,merg=merg,voucher=voucher)
+    return foc_error(f,prod_ind,λ=λ,sim=sim,merg=merg,voucher=voucher)
 end
 
-function foc_error(f::firmData,mkt::Int,stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base",voucher::Bool=false)
+function foc_error(f::firmData,mkt::Int;λ::Float64=0.0,sim="Base",merg::String="Base",voucher::Bool=false)
     prod_ind = f.mkt_index[mkt]
-    return foc_error(f,prod_ind,stp,λ=λ,sim=sim,merg=merg,voucher=voucher)
+    return foc_error(f,prod_ind,λ=λ,sim=sim,merg=merg,voucher=voucher)
 end
 
-function foc_error(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.0,sim="Base",merg::String="Base",voucher::Bool=false)
+function foc_error(f::firmData,prod_ind::Vector{Int};λ::Float64=0.0,sim="Base",merg::String="Base",voucher::Bool=false)
 
     P_new = predict_price(f,prod_ind,sim=sim,merg=merg,λ=λ,voucher=voucher)
     tot_err = (P_new[prod_ind] - f.P_j[prod_ind])./100
@@ -345,21 +345,21 @@ function foc_error(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.
     non_prods = .!(inlist(Int.(1:length(P_new)),prod_ind))
 
     ### 0 Market Share
-    exit_thresh = 1.0
+    exit_thresh = 0.001
     ProdExit = f.S_j.< exit_thresh
-    choke_point = 0.5
-    ChokePrice = f.S_j.< choke_point
-    P_new[ChokePrice] = min.(f.P_j[ChokePrice],P_new[ChokePrice])
+    # choke_point = 0.0001
+    # ChokePrice = f.S_j.< choke_point
+    P_new[ProdExit] = min.(f.P_j[ProdExit],P_new[ProdExit])
 
     #Price Cap
     # P_new[P_new.>5e4] .= 5e4
 
-    if any(ProdExit[prod_ind])
-        exited = length(findall(ProdExit[prod_ind]))
-        choked = length(findall(ChokePrice[prod_ind]))
-        all = length(prod_ind)
-        # println("Product Exits for $exited out of $all products, $choked at choke price.")
-    end
+    # if any(ProdExit[prod_ind])
+    #     exited = length(findall(ProdExit[prod_ind]))
+    #     choked = length(findall(ChokePrice[prod_ind]))
+    #     all = length(prod_ind)
+    #     # println("Product Exits for $exited out of $all products, $choked at choke price.")
+    # end
 
     ### Negative Prices
     P_new[non_prods].=0.0
@@ -389,8 +389,8 @@ function foc_error(f::firmData,prod_ind::Vector{Int},stp::Float64;λ::Float64=0.
     ### New Prices
 
     P_new[non_prods] = f.P_j[non_prods]
-    P_update = f.P_j.*(1-stp) + stp.*P_new
-    P_update[non_prods] = f.P_j[non_prods]
+    # P_update = f.P_j.*(1-stp) + stp.*P_new
+    # P_update[non_prods] = f.P_j[non_prods]
     # P_update[P_new.>=MLR_const] = MLR_const[P_new.>MLR_const]
     # Contrain Prices at 0
     #P_update = max.(P_update,0)
@@ -406,6 +406,7 @@ function calc_risk_avg(d::InsuranceLogit,f::firmData)
     wgts_share = wgts.*f.s_pred
     num_prods = maximum(d.prods)
     r_hat_j = Vector{Float64}(undef,num_prods)
+    r_hat_j[:].=0.0
     r_hat = f.r_pred
 
     for j in d.prods

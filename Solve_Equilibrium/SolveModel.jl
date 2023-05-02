@@ -66,7 +66,7 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
 
 
 
-        foc_err, err_new, tot_err,P_new = foc_error(f,ST,stp,sim=sim,merg=merg,voucher=voucher)
+        foc_err, err_new, tot_err,P_new = foc_error(f,ST,sim=sim,merg=merg,voucher=voucher)
 
 
         P_last[:] = copy(f.P_j[:])

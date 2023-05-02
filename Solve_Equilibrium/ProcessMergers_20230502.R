@@ -2,8 +2,8 @@ rm(list = ls())
 library(data.table)
 library(ggplot2)
 library(scales)
-setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
-# setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition/")
+# setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
+setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition/")
 
 run = "2022-12-26"
 spec = "FMC"
@@ -15,6 +15,137 @@ names(prodData) = c("ST","Firm","Product","Metal_std","Market")
 
 load("Intermediate_Output/Simulated_BaseData/simMarketSize.rData")
 prodData = merge(prodData,marketSize,by="Market")
+# 
+# #### Welfare By Market Concentration ####
+# conc_welfare = NULL
+# for (policy in c("Base","RA")){
+#   if (policy=="PL"){
+#     spec_temp = paste("PL","FMC",sep="_")
+#     policy_temp="Base"
+#   }else{
+#     spec_temp = spec
+#     policy_temp = policy
+#   }
+#   print(policy)
+#   filestub = paste("Estimation_Output/AllMergers_",spec_temp,"-",run,"_",policy_temp,"_",sep="")
+#   
+#   ### Baseline Market Data ####
+#   baseline = fread(paste(filestub,"baseline.csv",sep=""))
+#   baseline = merge(baseline,prodData,by="Product")
+#   baseline[,insideShare:=Lives/sum(Lives),by="Market"]
+#   
+#   ## Create HHI baseline data
+#   firm_share = baseline[,list(share=sum(insideShare*100)),by=c("Market","ST","Firm")]
+#   firm_share[,count:=1]
+#   firm_share[,markets:=as.numeric(as.factor(Market))]
+#   hhi = firm_share[,list(hhi=sum((share)^2),firm_num=sum(count)),by=c("markets","Market","ST")]
+# 
+#   
+#   ## Baseline welfare data
+#   base_welfare = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,"_baseline-",spec,"-",run,".csv",sep=""))
+#   base_welfare[,tot_Welfare:=CW+Profit]
+#   base_welfare[,tot_Welfare_gov:=CW+Profit+Spending]
+#   
+#   conc_base = merge(base_welfare[,c("markets","tot_Welfare","tot_Welfare_gov")],hhi[,c("Market","markets","hhi","firm_num")],by="markets")
+#   conc_base[,dHHI:=0]
+#   conc_base[,merging_parties:="baseline"]
+#   conc_base[,policy:=policy]
+#   conc_welfare = rbind(conc_welfare,conc_base)
+#   
+#   #### Iterate Through Mergers ####
+#   merger_welfare_files = list.files("Estimation_Output",pattern=paste("totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,sep=""))
+#   merger_price_files = list.files("Estimation_Output",pattern=paste("^AllMergers_",spec_temp,"-",run,"_",policy_temp,sep=""))
+#   unique_firms = sort(firm_share[,unique(Firm)])
+#   
+#   
+#   for (i in 1:length(unique_firms)){
+#     for (j in 1:(i-1)){
+#       if (j==0){next}
+#       m1 = unique_firms[j]
+#       m2 = unique_firms[i]
+#       ## Read in Welfare File
+#       merging_party_string = paste(policy_temp,"_",m1,"_",m2,"-",spec,sep="")
+#       welfare_file = merger_welfare_files[grepl(merging_party_string,merger_welfare_files)]
+#       merging_party_string = paste(policy_temp,"_",m1,"_",m2,".csv",sep="")
+#       price_file = merger_price_files[grepl(merging_party_string,merger_price_files)]
+#       if (length(welfare_file)==0){next}
+#       ## Welfare
+#       welfare = fread(paste("Estimation_Output/",welfare_file,sep=""))
+#       welfare[,tot_Welfare:=CW+Profit]
+#       welfare[,tot_Welfare_gov:=CW+Profit+Spending]
+#       
+#       dHHI = firm_share[Firm%in%c(m1,m2),list(dHHI=2*prod(share),merger=sum(count)),by="markets"]
+#       dHHI[merger<2,dHHI:=0]
+#       
+#       welfare = merge(welfare,dHHI[,c("markets","dHHI")],by="markets",all.x=TRUE)
+#       welfare[is.na(dHHI),dHHI:=0]
+#       welfare = welfare[dHHI>100]
+#       
+#       
+#       ## Post-Merger HHI
+#       equi = fread(paste("Estimation_Output/",price_file,sep=""))
+#       equi = merge(equi,prodData,by="Product")
+#       equi[,insideShare:=Lives/sum(Lives),by="Market"]
+#       equi[Firm%in%c(m1,m2),Firm:=m1]
+#       
+#       ## Create HHI baseline data
+#       temp_share = equi[,list(share=sum(insideShare*100)),by=c("Market","ST","Firm")]
+#       temp_share[,count:=1]
+#       temp_hhi = temp_share[,list(hhi=sum((share)^2),firm_num=sum(count)),by=c("Market","ST")]
+#       temp_hhi[,markets:=as.numeric(as.factor(Market))]
+#       
+#       temp= merge(welfare[,c("markets","tot_Welfare","tot_Welfare_gov","dHHI")],temp_hhi[,c("Market","markets","hhi","firm_num")],by="markets",all.x=TRUE)
+#       temp[,merging_parties:=paste(unique_firms[j],unique_firms[i],sep="-")]
+#       temp[,policy:=policy]
+#       
+#       
+#       conc_welfare = rbind(conc_welfare,temp)
+#       rm(temp,temp_hhi,temp_share,equi,welfare,dHHI)
+#     }
+#   }
+#   rm(welfare,hhi,base_welfare,baseline,firm_share,dHHI)
+# }
+# 
+# 
+# ### Regression Analysis
+# 
+# conc_welfare[,hhi_bucket:=floor(hhi/500)*500]
+# conc_welfare[hhi>9000,hhi_bucket:=9000]
+# conc_welfare[,hhi_bucket:=as.factor(hhi_bucket)]
+# conc_welfare[,hhi_2:=hhi^2]
+# conc_welfare[,hhi_3:=hhi^3]
+# conc_welfare[,firmFactor:=as.factor(firm_num)]
+# 
+# res_base = conc_welfare[policy=="Base"&(dHHI>100|merging_parties=="baseline"),summary(lm(tot_Welfare~firmFactor+Market))]
+# res_RA = conc_welfare[policy=="RA"&(dHHI>100|merging_parties=="baseline"),summary(lm(tot_Welfare~firmFactor+Market))]
+# 
+# df1 = data.frame(
+#   Firms = rownames(res_base$coefficients)[grepl("firm",rownames(res_base$coefficients))],
+#   Effect = res_base$coefficients[grepl("firm",rownames(res_base$coefficients)),"Estimate"],
+#   se = res_base$coefficients[grepl("firm",rownames(res_base$coefficients)),"Std. Error"],
+#   policy = "Baseline")
+# 
+# df2 = data.frame(
+#   Firms = rownames(res_RA$coefficients)[grepl("firm",rownames(res_RA$coefficients))],
+#   Effect = res_RA$coefficients[grepl("firm",rownames(res_RA$coefficients)),"Estimate"],
+#   se = res_RA$coefficients[grepl("firm",rownames(res_RA$coefficients)),"Std. Error"],
+#   policy = "No Risk Adjustment")
+# 
+# df = as.data.table(rbind(df1,df2))
+# df[,Firms:=as.numeric(gsub("firmFactor","",Firms))]
+# df[,ci_min:=Effect - 1.96*se]
+# df[,ci_max:=Effect + 1.96*se]
+# 
+# df = rbind(df,data.table(Firms=c(1,1),
+#                          Effect=c(0,0),
+#                          se = c(0,0),
+#                          policy=c("Baseline","No Risk Adjustment"),
+#                          ci_min=c(0,0),
+#                          ci_max=c(0,0)))
+# 
+# ggplot(df) + aes(x=as.factor(Firms),y=Effect,color=policy,shape=policy) + 
+#   geom_point(position=position_dodge(width=0.5)) + geom_errorbar(aes(ymin=ci_min,ymax=ci_max),position=position_dodge(width=0.5))
+# 
 
 
 #### Merger Welfare Data ####
@@ -170,13 +301,13 @@ merger_welfare = merge(merger_welfare,base_welfare,by=c("markets","policy"),all.
 # 
 # merger_welfare = merge(merger_welfare,merger_welfare_SP,by=c("markets","merging_parties","policy"),all.x=TRUE)
 merger_welfare[,policy_label:=factor(policy,levels=c("Base","RA"),labels=c("Baseline","No Risk Adjustment"))]
-merger_welfare = merge(merger_welfare,merger_properties,by=c("merging_parties","markets","policy"))
 
-plotdf1 = merger_welfare[,c("dHHI","chg_CW","policy","sorting_cost","risk_diff","price_diff","policy_label")]
+
+plotdf1 = merger_welfare[,c("dHHI","chg_CW","policy","sorting_cost","policy_label")]
 names(plotdf1)[2] = "value"
 plotdf1[,label:="Consumer Welfare"]
 plotdf1[,chg_CW:=NA]
-plotdf2 = merger_welfare[,c("dHHI","chg_Tot_Welfare","chg_CW","policy","sorting_cost","risk_diff","price_diff","policy_label")]
+plotdf2 = merger_welfare[,c("dHHI","chg_Tot_Welfare","chg_CW","policy","sorting_cost","policy_label")]
 names(plotdf2)[2] = "value"
 plotdf2[,label:="Total Welfare"]
 plotdf = rbind(plotdf1,plotdf2)
@@ -273,26 +404,6 @@ ggplot(plotdf[policy=="RA"])+
     axis.title=element_text(size=14),
     axis.text = element_text(size=16))
 dev.off()
-
-ggplot(plotdf[policy=="RA"&dHHI>200&sorting_cost>6&sorting_cost<12])+ 
-  geom_point(aes(x=sorting_cost,y=value,color=label,shape=label),size=2.5)+
-  scale_shape_manual(values=c(16,17)) +
-  geom_errorbar(aes(x=sorting_cost,ymin=chg_CW,ymax=value)) +
-  guides(color = guide_legend(override.aes = list(size = 5))) +
-  geom_abline(slope=0,intercept=0) +
-  xlab("Predicted Change in HHI")+
-  ylab("Dollars Per-Person Per-Month")+
-  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
-    strip.background = element_blank(),
-    strip.text = element_text(size=14),
-    legend.background = element_rect(color=grey(.5)),
-    legend.title = element_blank(),
-    legend.text = element_text(size=14),
-    legend.key.width = unit(.05,units="npc"),
-    legend.key = element_rect(color="transparent",fill="transparent"),
-    legend.position = "bottom",
-    axis.title=element_text(size=14),
-    axis.text = element_text(size=16))
 
 ##### Welfare Decomposition #####
 big_mergers = merger_welfare[dHHI>0]
@@ -706,11 +817,10 @@ for (policy in c("Base","RA")){
       postmerge[is.na(dHHI),dHHI:=0]
       postmerge = postmerge[dHHI>0]
       
-      postmerge[,Firm_merge:=Firm]
-      postmerge[Firm%in%c(m1,m2),Firm_merge:=merging_parties]
-      postmerge[,parties_indicator:=as.numeric(Firm_merge==merging_parties)]
-      postmerge[,pre_profit_firm:=sum(Profit),by=c("Firm_merge","Market")]
-      postmerge[,post_profit_firm:=sum(Profit_merge),by=c("Firm_merge","Market")]
+      postmerge[Firm%in%c(m1,m2),Firm:=merging_parties]
+      postmerge[,parties_indicator:=as.numeric(Firm==merging_parties)]
+      postmerge[,pre_profit_firm:=sum(Profit),by=c("Firm","Market")]
+      postmerge[,post_profit_firm:=sum(Profit_merge),by=c("Firm","Market")]
       
       merger_effects = rbind(merger_effects,postmerge)
     }
@@ -720,19 +830,6 @@ for (policy in c("Base","RA")){
 
 merger_effects[,Metal_std:=factor(Metal_std,levels=c("CATASTROPHIC","BRONZE","SILVER","GOLD","PLATINUM"),
                                   labels=c("Catas","Bronze","Silver","Gold","Plat"))]
-merger_effects[,missing_gold_plat:=as.numeric(Metal_std%in%c("Gold","Plat")&Lives<1)]
-merger_effects[,missing_gold_plat_post:=as.numeric(Metal_std%in%c("Gold","Plat")&Lives_merge<1)]
-
-merger_firms = merger_effects[parties_indicator==1,
-                              list(avg_risk=sum(Risk*Lives)/sum(Lives),
-                                   avg_price=sum(Price*Lives)/sum(Lives),
-                                   missing_gold_plat=sum(missing_gold_plat),
-                                   missing_gold_plat_post=sum(missing_gold_plat_post)),
-                              by=c("merging_parties","markets","policy","Firm")]
-merger_properties = merger_firms[,list(risk_diff=max(avg_risk)-min(avg_risk),
-                                       price_diff=max(avg_price)-min(avg_price),
-                                       missing_gold_plat_post=sum(missing_gold_plat_post)),
-                                 by=c("merging_parties","markets","policy")]
 
 merger_plot = merge(merger_effects,merger_welfare[,c("markets","policy","merging_parties","chg_Tot_Welfare")],by=c("markets","policy","merging_parties"))
 
