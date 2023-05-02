@@ -469,7 +469,7 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         # println("Update Price")
 
 
-        foc_err, err_new, tot_err,P_new = foc_error(f,mkt,stp,λ=λ,sim=sim,merg=merg,voucher=voucher)
+        foc_err, err_new, tot_err,P_new = foc_error(f,mkt,λ=λ,sim=sim,merg=merg,voucher=voucher)
 
 
         P_last[:] = copy(f.P_j[:])
@@ -534,7 +534,7 @@ function solve_model_st!(m::InsuranceLogit, f::firmData, ST::String,λ::Float64;
     while (err_new > tol) & (!isnan(err_new))
         itr_cnt += 1
         evaluate_model!(m, f, ST, voucher=voucher, update_voucher=update_voucher, no_policy=no_policy)
-        foc_err, err_new, tot_err,P_new = foc_error(f,ST,stp,λ=λ,sim=sim,merg=merg,voucher=voucher)
+        foc_err, err_new, tot_err,P_new = foc_error(f,ST,λ=λ,sim=sim,merg=merg,voucher=voucher)
 
 
         P_last[:] = copy(f.P_j[:])
