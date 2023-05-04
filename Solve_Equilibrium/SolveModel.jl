@@ -1,7 +1,7 @@
 function solve_model!(m::InsuranceLogit,f::firmData;
                 sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=false,update_voucher=true,no_policy=false)
     states = sort(String.(keys(f._prodSTDict)))
-    for s in [states[2]]
+    for s in states
         println("Solving for $s")
         solve_model_st!(m,f,s,sim=sim,merg=merg,tol=tol,voucher=voucher,update_voucher=update_voucher,no_policy=no_policy)
     end
