@@ -662,6 +662,7 @@ function update_shares(d::InsuranceLogit,firm::firmData,
         @inbounds u_nr = μnr_ij_large[idxitr]
         r_ind = Int.(risk_long[idxitr])
         @inbounds r_cost = p_cost.risks[:,r_ind]
+        @inbounds r_draw = d.draws[:,r_ind]
         @inbounds any_r = any_long[idxitr[1]]
         wgt = wgt_long[idxitr]
         c_nr = cost_nonRisk[idxitr]
@@ -752,7 +753,7 @@ end
 
 
 function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;
-    foc_check=false,voucher=false,update_voucher=true,no_policy=false)
+    foc_check=false,voucher=true,update_voucher=false,no_policy=false)
     #Clear Derivative Values
     f.dSdp_j[:].=0.0
     f.dSAdp_j[:].=0.0
@@ -785,7 +786,7 @@ function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;
 end
 
 function evaluate_model!(m::InsuranceLogit,f::firmData,mkt::Int;
-                        foc_check=false,voucher=false,update_voucher=true,no_policy=false,deriv=true)
+                        foc_check=false,voucher=true,update_voucher=false,no_policy=false,deriv=true)
     #Clear Derivative Values
     f.dSdp_j[:].=0.0
     f.dSAdp_j[:].=0.0

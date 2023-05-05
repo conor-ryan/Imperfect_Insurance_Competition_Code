@@ -1,31 +1,4 @@
 function market_profits(d::InsuranceLogit,f::firmData)
-    J = maximum(d.prods)
-    # Revenue = zeros(J)
-    # Cost = zeros(J)
-    # Share = zeros(J)
-
-    # Market_Total = zeros(J)
-
-    # wgts_long = weight(d.data)[:]
-    # prod_long = Int.(product(d.data))
-
-    # for idxitr in values(d.data._personDict)
-    #     # prod_ids = f.stdMap[prod_long[idxitr]]
-    #     prod_ids =prod_long[idxitr]
-    #     catas = findall(inlist(prod_ids,f.catas_prods))
-
-    #     s_pred = f.s_pred[idxitr]
-    #     cost = f.c_pred[idxitr]
-    #     rev = f.Rev_ij[idxitr]
-    #     wgt = wgts_long[idxitr]
-
-
-    #     for k in 1:length(prod_ids)
-    #         j = prod_ids[k]
-    #         Revenue[j] += wgt[k]*s_pred[k]*rev[k]
-    #         Cost[j] += wgt[k]*s_pred[k]*cost[k]
-    #     end
-    # end
 
     Profit = f.SA_j.*f.P_j .- f.C_j.*f.S_j
 
