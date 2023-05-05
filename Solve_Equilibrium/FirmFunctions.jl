@@ -278,6 +278,7 @@ function evaluate_FOC(f::firmData,std_ind::Vector{Int64},merg::String="Base",vou
     cost_std = sum(transpose(f.dCdp_j[std_ind,std_ind]).*ownershipMatrix[std_ind,std_ind],dims=2)
     cost_pl = sum(transpose(f.dCdp_pl_j[std_ind,std_ind]).*ownershipMatrix[std_ind,std_ind],dims=2)
     SA = f.SA_j[std_ind]
+    S = f.S_j[std_ind]
 
     P_std[std_ind]= inv(dSdp)*(-SA + cost_std)
     P_RA[std_ind] = inv(dSdp)*(-SA + cost_pl)
