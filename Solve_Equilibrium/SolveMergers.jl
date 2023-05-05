@@ -684,9 +684,9 @@ function simulate_all_mergers(m::InsuranceLogit,
     println("Solve Baseline Current Profit Planner Problem")
     # markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits,markets=[1])
     
-    markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits)
+    # markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits)
     # GA Only
-    # markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits,markets=[4,5,6,7,8,9,10,11,12,13,14])
+    markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits,markets=[4,5,6,7,8,9,10,11,12,13,14])
     # markets_cp, λ_vec_cp = solve_SP_λ_st!(m,f,base_profits_st,states=["GA"])
     evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
     P_Base_SP_cp[:] = f.P_j[:]
@@ -764,14 +764,14 @@ function simulate_all_mergers(m::InsuranceLogit,
         # shared_states = ["GA"]
         # merging_parties = ["AETNA","HUMANA"]
 
-        # ### Only GA MergersMain
-        # if !("GA" in shared_states)
-        #     # println("Non-GA Merger")
-        #     # continue
-        # else
-        #     shared_states = ["GA"]
-        #     shared_markets = [4,5,6,7,8,9,10,11,12,13,14]
-        # end
+        ### Only GA MergersMain
+        if !("GA" in shared_states)
+            println("Non-GA Merger")
+            continue
+        else
+            shared_states = ["GA"]
+            shared_markets = [4,5,6,7,8,9,10,11,12,13,14]
+        end
 
  
         println(merging_parties)

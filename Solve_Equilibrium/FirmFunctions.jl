@@ -1,38 +1,38 @@
-#### Profit Derivative Functions ####
-function evaluate_FOC_dprof(f::firmData,std_ind::Vector{Int64},merg::String="Base",voucher::Bool=false)
-    # P_std = zeros(length(f.P_j))
-    # P_RA = zeros(length(f.P_j))
-    # MC = zeros(length(f.P_j))
-    # Mkup = zeros(length(f.P_j))
-    # dSubs = zeros(length(f.P_j))
+# #### Profit Derivative Functions ####
+# function evaluate_FOC_dprof(f::firmData,std_ind::Vector{Int64},merg::String="Base",voucher::Bool=false)
+#     # P_std = zeros(length(f.P_j))
+#     # P_RA = zeros(length(f.P_j))
+#     # MC = zeros(length(f.P_j))
+#     # Mkup = zeros(length(f.P_j))
+#     # dSubs = zeros(length(f.P_j))
 
-    ownershipMatrix = f.ownMat
-    if merg=="Merger"
-        ownershipMatrix = f.ownMat_merge
-    elseif merg=="SP"
-        ownershipMatrix = ones(size(f.ownMat))
-    end
+#     ownershipMatrix = f.ownMat
+#     if merg=="Merger"
+#         ownershipMatrix = f.ownMat_merge
+#     elseif merg=="SP"
+#         ownershipMatrix = ones(size(f.ownMat))
+#     end
 
-    if voucher
-        dSdp = (f.dSAdp_j.*ownershipMatrix)[std_ind,std_ind]
-    else
-        dSdp = ((f.dSAdp_j - f.bench_prods.*f.dMAdp_j).*ownershipMatrix)[std_ind,std_ind]
-    end
+#     if voucher
+#         dSdp = (f.dSAdp_j.*ownershipMatrix)[std_ind,std_ind]
+#     else
+#         dSdp = ((f.dSAdp_j - f.bench_prods.*f.dMAdp_j).*ownershipMatrix)[std_ind,std_ind]
+#     end
 
-    cost_std = sum(transpose(f.dCdp_j[std_ind,std_ind]).*ownershipMatrix[std_ind,std_ind],dims=2)
-    cost_pl = sum(transpose(f.dCdp_pl_j[std_ind,std_ind]).*ownershipMatrix[std_ind,std_ind],dims=2)
-    SA = f.SA_j[std_ind]
+#     cost_std = sum(transpose(f.dCdp_j[std_ind,std_ind]).*ownershipMatrix[std_ind,std_ind],dims=2)
+#     cost_pl = sum(transpose(f.dCdp_pl_j[std_ind,std_ind]).*ownershipMatrix[std_ind,std_ind],dims=2)
+#     SA = f.SA_j[std_ind]
 
-    # P_std[std_ind]= inv(dSdp)*(-SA + cost_std)
-    # P_RA[std_ind] = inv(dSdp)*(-SA + cost_pl)
-    #
-    # Mkup[std_ind] = inv(dSdp)*(-SA)
-    # MC[std_ind] = inv(dSdp)*(cost_std)
-    subs_term = sum(f.dSubdp_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
-    # dSubs[std_ind] = inv(dSdp)*sum(f.dSubdp_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
+#     # P_std[std_ind]= inv(dSdp)*(-SA + cost_std)
+#     # P_RA[std_ind] = inv(dSdp)*(-SA + cost_pl)
+#     #
+#     # Mkup[std_ind] = inv(dSdp)*(-SA)
+#     # MC[std_ind] = inv(dSdp)*(cost_std)
+#     subs_term = sum(f.dSubdp_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
+#     # dSubs[std_ind] = inv(dSdp)*sum(f.dSubdp_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
 
-    return cost_std, cost_pl, SA, subs_term, dSdp
-end
+#     return cost_std, cost_pl, SA, subs_term, dSdp
+# end
 
 
 # function evaluate_FOC(f::firmData,std_ind::Vector{Int},merg::String="Base")
@@ -40,38 +40,38 @@ end
 #     return P_std, P_RA, MR, MC
 # end
 
-function evaluate_FOC_dprof(f::firmData,merg::String="Base")
-    std_ind = f.prods
-    cost_std, cost_pl, SA, subs_term, dSdp = evaluate_FOC_dprof(f,std_ind,merg)
-    return cost_std, cost_pl, SA, subs_term, dSdp
-end
+# function evaluate_FOC_dprof(f::firmData,merg::String="Base")
+#     std_ind = f.prods
+#     cost_std, cost_pl, SA, subs_term, dSdp = evaluate_FOC_dprof(f,std_ind,merg)
+#     return cost_std, cost_pl, SA, subs_term, dSdp
+# end
 
-function predict_dprof(f::firmData,std_ind::Vector{Int};sim="Base",merg::String="Base",λ::Float64=0.0,voucher::Bool=false)
-    dProf = zeros(length(f.P_j))
-    cost_std, cost_pl, SA, subs_term, dSdp = evaluate_FOC_dprof(f,std_ind,merg,voucher)
-    # println(P_std[f._prodSTDict[ST]])
+# function predict_dprof(f::firmData,std_ind::Vector{Int};sim="Base",merg::String="Base",λ::Float64=0.0,voucher::Bool=false)
+#     dProf = zeros(length(f.P_j))
+#     cost_std, cost_pl, SA, subs_term, dSdp = evaluate_FOC_dprof(f,std_ind,merg,voucher)
+#     # println(P_std[f._prodSTDict[ST]])
 
-    if sim=="RA"
-        # P_new = copy(P_std)
-        dProf[std_ind] = SA  + dSdp*f.P_j[std_ind]  - cost_std
-    elseif sim=="Base"
-        # P_new = copy(P_RA)
-        dProf[std_ind] = dSdp*f.P_j[std_ind] +  (SA  - cost_pl)
-    elseif sim=="SP"
-        # P_new = copy(MC)
-        dProf[std_ind] = dSdp*f.P_j[std_ind]  - cost_std
-    elseif sim=="SP_gov"
-        # P_new = copy(MC) + copy(dSubs)
-        dProf[std_ind] = dSdp*f.P_j[std_ind]  - cost_std + subs_term
-    elseif sim=="SPλ"
-        # P_new = MC + λ.*Mkup
-        dProf[std_ind] = λ.*SA  + dSdp*f.P_j[std_ind]  - cost_std
-    elseif sim=="SPλ_gov"
-        # P_new = MC + λ.*Mkup + (1-λ).*dSubs
-        dProf[std_ind] = λ.*SA  + dSdp*f.P_j[std_ind]  - cost_std - (1-λ).*subs_term
-    end
-    return dProf
-end
+#     if sim=="RA"
+#         # P_new = copy(P_std)
+#         dProf[std_ind] = SA  + dSdp*f.P_j[std_ind]  - cost_std
+#     elseif sim=="Base"
+#         # P_new = copy(P_RA)
+#         dProf[std_ind] = dSdp*f.P_j[std_ind] +  (SA  - cost_pl)
+#     elseif sim=="SP"
+#         # P_new = copy(MC)
+#         dProf[std_ind] = dSdp*f.P_j[std_ind]  - cost_std
+#     elseif sim=="SP_gov"
+#         # P_new = copy(MC) + copy(dSubs)
+#         dProf[std_ind] = dSdp*f.P_j[std_ind]  - cost_std + subs_term
+#     elseif sim=="SPλ"
+#         # P_new = MC + λ.*Mkup
+#         dProf[std_ind] = λ.*SA  + dSdp*f.P_j[std_ind]  - cost_std
+#     elseif sim=="SPλ_gov"
+#         # P_new = MC + λ.*Mkup + (1-λ).*dSubs
+#         dProf[std_ind] = λ.*SA  + dSdp*f.P_j[std_ind]  - cost_std - (1-λ).*subs_term
+#     end
+#     return dProf
+# end
 
 
 
@@ -259,6 +259,7 @@ function evaluate_FOC(f::firmData,std_ind::Vector{Int64},merg::String="Base",vou
     P_RA = zeros(length(f.P_j))
     MC = zeros(length(f.P_j))
     Mkup = zeros(length(f.P_j))
+    Mkup_SP = zeros(length(f.P_j))
     dSubs = zeros(length(f.P_j))
 
     ownershipMatrix = f.ownMat
@@ -282,10 +283,11 @@ function evaluate_FOC(f::firmData,std_ind::Vector{Int64},merg::String="Base",vou
     P_RA[std_ind] = inv(dSdp)*(-SA + cost_pl)
 
     Mkup[std_ind] = inv(dSdp)*(-SA)
+    Mkup_CS[std_ind] = inv(dSdp)*(-S)
     MC[std_ind] = inv(dSdp)*(cost_std)
     dSubs[std_ind] = inv(dSdp)*sum(transpose(f.dSubdp_j[std_ind,std_ind]).*ownershipMatrix[std_ind,std_ind],dims=2)
 
-    return P_std, P_RA, Mkup, MC, dSubs
+    return P_std, P_RA, Mkup, Mkup_SP, MC, dSubs
 end
 
 function evaluate_GePP(f::firmData,std_ind::Vector{Int64},voucher::Bool=false)
@@ -310,8 +312,9 @@ function evaluate_GePP(f::firmData,std_ind::Vector{Int64},voucher::Bool=false)
     UPP[isnan.(UPP)].=0.0
     # UPP_rev = Div_jk.*P_mat
 
-    # UPP_cost = f.dSdp_j.*AC_mat./transpose(dSAdp_Diag_mat)
-    # UPP_cost = UPP_cost - Diagonal(diag(UPP_cost))
+    UPP_cost = f.dSdp_j.*AC_mat./transpose(dSAdp_Diag_mat)
+    UPP_cost = UPP_cost - Diagonal(diag(UPP_cost))
+    UPP_cost[isnan.(UPP_cost)].=0.0
     # UPP_cost = Div_jk.*age_margin_ratio.*AC_mat
 
     UPP_sel = (S_mat.*dAdp)./transpose(dSAdp_Diag_mat)
@@ -324,32 +327,35 @@ function evaluate_GePP(f::firmData,std_ind::Vector{Int64},voucher::Bool=false)
     tot_UPP = transpose(sum(UPP.*f.ownMat,dims=1))
     tot_UPP_sel = transpose(sum(UPP_sel.*f.ownMat,dims=1))
 
+    MC_all = diag(f.dCdp_j)./diag(f.dSAdp_j) .+ transpose(sum((UPP_cost .+ UPP_sel).*f.ownMat,dims=1))
 
-    # println(f.P_j[prod_ind] - ( Mkup + MC +tot_UPP + tot_UPP_sel)[prod_ind])
-    # maximum(abs.((f.P_j[prod_ind] - ( Mkup + MC +tot_UPP + tot_UPP_sel)[prod_ind])))
 
-    # ######
-    # # prod_ind =findall(f.SA_j.!=0.0)
-    # SA = f.SA_j[prod_ind]
-    # cost = sum(transpose(f.dCdp_j[prod_ind,prod_ind]).*f.ownMat[prod_ind,prod_ind],dims=2)
-    # dSdp = (f.dSAdp_j[prod_ind,prod_ind].*f.ownMat[prod_ind,prod_ind])
-    # P_foc = inv(dSdp)*(-f.SA_j[prod_ind]+cost)
-    # println(f.P_j[prod_ind] - P_foc)
+    println(f.P_j[prod_ind] - ( Mkup + MC +tot_UPP + tot_UPP_sel)[prod_ind])
+    maximum(abs.((f.P_j[prod_ind] - ( Mkup + MC +tot_UPP + tot_UPP_sel)[prod_ind])))
 
-    # ###### 
-    # dSdp*P_foc + SA - sum(transpose(f.dCdp_j[prod_ind,prod_ind]).*f.ownMat[prod_ind,prod_ind],dims=2)
-    # dSdp_cross = dSdp - Diagonal(diag(dSdp))
-    # cost_cross = f.dCdp_j[prod_ind,prod_ind].*f.ownMat[prod_ind,prod_ind]
-    # cost_cross = cost_cross - Diagonal(diag(cost_cross))
+    ######
+    # prod_ind =findall(f.SA_j.!=0.0)
+    SA = f.SA_j[prod_ind]
+    cost = sum(transpose(f.dCdp_j[prod_ind,prod_ind]).*f.ownMat[prod_ind,prod_ind],dims=2)
+    dSdp = (f.dSAdp_j[prod_ind,prod_ind].*f.ownMat[prod_ind,prod_ind])
+    P_foc = inv(dSdp)*(-f.SA_j[prod_ind]+cost)
+    println(f.P_j[prod_ind] - P_foc)
 
-    # # P_foc.*diag(dSdp) + dSdp_cross*P_foc + SA - diag(f.dCdp_j[prod_ind,prod_ind]) - sum(cost_cross,dims=2)
-    # # P_foc + (dSdp_cross*P_foc)./diag(dSdp) + SA./diag(dSdp) - diag(f.dCdp_j[prod_ind,prod_ind])./diag(dSdp) - sum(cost_cross,dims=2)./diag(dSdp)
-    # P_foc - (-SA./diag(dSdp)+ diag(f.dCdp_j[prod_ind,prod_ind])./diag(dSdp) -(dSdp_cross*f.P_j[prod_ind])./diag(dSdp) + sum(transpose(cost_cross),dims=2)./diag(dSdp))
+    ###### 
+    dSdp*P_foc + SA - sum(transpose(f.dCdp_j[prod_ind,prod_ind]).*f.ownMat[prod_ind,prod_ind],dims=2)
+    dSdp_cross = dSdp - Diagonal(diag(dSdp))
+    cost_cross = f.dCdp_j[prod_ind,prod_ind].*f.ownMat[prod_ind,prod_ind]
+    cost_cross = cost_cross - Diagonal(diag(cost_cross))
 
-    # mkup_test =-SA./diag(dSdp) 
-    # mc_test = diag(f.dCdp_j[prod_ind,prod_ind])./diag(dSdp)
-    # upp_test = -(dSdp_cross*P_foc)./diag(dSdp) + sum(transpose(cost_cross)./diag(dSdp),dims=2)
+    P_foc.*diag(dSdp) + dSdp_cross*P_foc + SA - cost
+    # P_foc + (dSdp_cross*P_foc)./diag(dSdp) + SA./diag(dSdp) - diag(f.dCdp_j[prod_ind,prod_ind])./diag(dSdp) - sum(cost_cross,dims=2)./diag(dSdp)
+    P_foc - (-SA./diag(dSdp)+ diag(f.dCdp_j[prod_ind,prod_ind])./diag(dSdp) -(dSdp_cross*f.P_j[prod_ind])./diag(dSdp) + sum(transpose(cost_cross),dims=2)./diag(dSdp))
 
+    mkup_test =-SA./diag(dSdp) 
+    mc_test = diag(f.dCdp_j[prod_ind,prod_ind])./diag(dSdp)
+    upp_test = -(dSdp_cross*P_foc)./diag(dSdp) + sum(transpose(cost_cross)./diag(dSdp),dims=2)
+    mc_all_test =  diag(f.dCdp_j[prod_ind,prod_ind])./diag(dSdp) + sum(transpose(cost_cross)./diag(dSdp),dims=2)-(dSdp_cross*P_foc)./diag(dSdp)
+    mkup_all_test = -SA./diag(dSdp) 
     return UPP_sel
 end
 
@@ -360,13 +366,13 @@ end
 
 function evaluate_FOC(f::firmData,merg::String="Base")
     std_ind = f.prods
-    P_std, P_RA, Mkup, MC, dSubs = evaluate_FOC(f,std_ind,merg)
-    return P_std, P_RA, Mkup, MC, dSubs
+    P_std, P_RA, Mkup, Mkup_CS, MC, dSubs = evaluate_FOC(f,std_ind,merg)
+    return P_std, P_RA, Mkup, Mkup_CS, MC, dSubs
 end
 
 function predict_price(f::firmData,prod_ind::Vector{Int};sim="Base",merg::String="Base",λ::Float64=0.0,voucher::Bool=false)
 
-    P_std, P_RA, Mkup, MC, dSubs = evaluate_FOC(f,prod_ind,merg,voucher)
+    P_std, P_RA, Mkup, Mkup_CS, MC, dSubs = evaluate_FOC(f,prod_ind,merg,voucher)
     # println(P_std[f._prodSTDict[ST]])
 
     if sim=="RA"
@@ -374,13 +380,13 @@ function predict_price(f::firmData,prod_ind::Vector{Int};sim="Base",merg::String
     elseif sim=="Base"
         P_new = copy(P_RA)
     elseif sim=="SP"
-        P_new = copy(MC)
+        P_new = copy(Mkup).-copy(Mkup_CS) .+ copy(MC)
     elseif sim=="SP_gov"
-        P_new = copy(MC) + copy(dSubs)
+        P_new = copy(Mkup).-copy(Mkup_CS) .+ copy(MC) .+ copy(dSubs)
     elseif sim=="SPλ"
-        P_new = MC + λ.*Mkup
+        P_new = copy(Mkup).- (1-λ).*copy(Mkup_CS) .+ copy(MC)
     elseif sim=="SPλ_gov"
-        P_new = MC + λ.*Mkup + (1-λ).*dSubs
+        P_new = copy(Mkup).- (1-λ).*copy(Mkup_CS) .+ copy(MC) .+ copy(dSubs)
     end
     return P_new
 end
