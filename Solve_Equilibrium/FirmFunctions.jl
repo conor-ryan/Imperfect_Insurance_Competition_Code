@@ -288,7 +288,7 @@ function evaluate_FOC(f::firmData,std_ind::Vector{Int64},merg::String="Base",vou
     MC[std_ind] = inv(dSdp)*(cost_std)
     dSubs[std_ind] = inv(dSdp)*sum(transpose(f.dSubdp_j[std_ind,std_ind]).*ownershipMatrix[std_ind,std_ind],dims=2)
 
-    return P_std, P_RA, Mkup, Mkup_SP, MC, dSubs
+    return P_std, P_RA, Mkup, Mkup_CS, MC, dSubs
 end
 
 function evaluate_GePP(f::firmData,std_ind::Vector{Int64},voucher::Bool=false)
