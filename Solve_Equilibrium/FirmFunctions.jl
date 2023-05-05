@@ -259,7 +259,7 @@ function evaluate_FOC(f::firmData,std_ind::Vector{Int64},merg::String="Base",vou
     P_RA = zeros(length(f.P_j))
     MC = zeros(length(f.P_j))
     Mkup = zeros(length(f.P_j))
-    Mkup_SP = zeros(length(f.P_j))
+    Mkup_CS = zeros(length(f.P_j))
     dSubs = zeros(length(f.P_j))
 
     ownershipMatrix = f.ownMat
