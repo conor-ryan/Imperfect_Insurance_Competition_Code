@@ -501,7 +501,7 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
         dcdp_mat = Matrix{Float64}(undef,K,N)
         dcdp_pl_mat = Matrix{Float64}(undef,K,N)
 
-        for k in 1:length(prod_ids)
+        for k in eachindex(prod_ids)
             j = prod_ids[k]
 
             dsdp_r, dcdp_r, dcdp_r_pl = calc_der!(dsdp_mat,dcdp_mat,dcdp_pl_mat,s_mat,c_mat,k,aα,catas)
@@ -521,7 +521,7 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
             firm.S_j[j] += wgt[k]*s_hat[k]
             firm.Mkt_j[j] += wgt[k]*s_ins_hat
 
-            for l in 1:length(prod_ids)
+            for l in eachindex(prod_ids)
                 @inbounds @fastmath firm.dSdp_j[j,prod_ids[l]]+= wgt[l]*dsdp[l]
                 @inbounds @fastmath firm.dSAdp_j[j,prod_ids[l]]+= wgt[l]*dsdp[l]*(a/m)
                 @inbounds @fastmath firm.dRdp_j[j,prod_ids[l]]+= wgt[l]*(dsdp[l]*rev[l])
@@ -581,11 +581,12 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
     Transfer[prod_ind] = (firm.PC_j[prod_ind].*firm.S_j[prod_ind]./firm.C_j[prod_ind])#.*TotalAvgCost[firm.prods]
 
     #Derivative of Transfer Index
-    dTransfer = zeros(length(firm.PC_j),length(firm.PC_j))
+    dTransferIndex = zeros(length(firm.PC_j),length(firm.PC_j))
     for j in prod_ind, k in prod_ind
-        dTransfer[j,k] = (firm.dCdp_pl_j[j,k]./firm.C_j[k] - (firm.dCdp_j[j,k]/firm.C_j[k])*Transfer[k])
+        dTransferIndex[j,k] = (firm.dCdp_pl_j[j,k]./firm.C_j[k] - (firm.dCdp_j[j,k]/firm.C_j[k])*Transfer[k])
     end
     Transfer[firm.catas_prods].=0.0
+    dTransferIndex[firm.catas_prods,firm.catas_prods].=0.0 #Approximately 0 anyway
 
     # Difference Out Mean Index (Budget Neutrality)
     Γ = zeros(length(firm.PC_j))
@@ -593,30 +594,40 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
     Γ[firm.catas_prods].=0.0
 
     dΓ = zeros(length(firm.PC_j))
+    # for j in prod_ind, k in prod_ind
+    #     dΓ[k] += (dTransferIndex[j,k]*firm.S_j[k] + Transfer[k]*firm.dSdp_j[j,k])/TotalLives[k]
+    # end
+    # dΓ[prod_ind] = dΓ[prod_ind] + (dLives[prod_ind]./TotalLives[prod_ind]).*Γ[prod_ind]
     for j in prod_ind, k in prod_ind
-        dΓ[k] += (dTransfer[j,k]*firm.S_j[k] + Transfer[k]*firm.dSdp_j[j,k])/TotalLives[k]
+        dΓ[j] += (dTransferIndex[j,k]*firm.S_j[k] + (Transfer[k]-Γ[k])*firm.dSdp_j[j,k])/TotalLives[k]
     end
-    dΓ[prod_ind] = dΓ[prod_ind] + (dLives[prod_ind]./TotalLives[prod_ind]).*Γ[prod_ind]
+    # dΓ[firm.catas_prods].=0.0
+    # test = maximum(abs.((f.dSdp_j*TotTransfer - dTransferIndex*f.S_j + dΓ.*TotalLives)[prod_ind]))
 
 
     #Compute Total Risk Adjustment Transfer and Derivative 
     TotTransfer = zeros(length(firm.PC_j))
     TotTransfer[prod_ind] = (Γ[prod_ind] - Transfer[prod_ind]).*TotalAvgCost[prod_ind]
 
-    dTotTransfer = zeros(length(firm.PC_j),length(firm.PC_j))
+    dTotTransfer = zeros(length(firm.PC_j),length(firm.PC_j)) # Creates cross terms in other states, probably doesn't matter
     for j in prod_ind, k in prod_ind
-        dTransfer[j,k] = (dΓ[j] - dTransfer[j,k])*TotalAvgCost[k] + (Γ[k] - Transfer[k])*dAvgCost[j]
+        if k in firm.catas_prods
+            dTotTransfer[j,k]=0.0
+        else
+            dTotTransfer[j,k] = firm.dSdp_j[j,k]*TotTransfer[k] + firm.S_j[k]*TotalAvgCost[k]*(dΓ[j]- dTransferIndex[j,k]) + firm.S_j[k]*dAvgCost[j]*(Γ[k] - Transfer[k])
+        end
     end
 
-
     #Compute Actual Marginal Costs with Transfers and Adjustment 
+    firm.dCdp_pl_j[:,:].=0.0
     for j in prod_ind, k in prod_ind
         firm.dCdp_j[j,k] = firm.dCdp_j[j,k] + firm.dSdp_j[j,k]*firm.ω_j[k]
-        firm.dCdp_pl_j[j,k] = firm.dCdp_j[j,k] - firm.dSdp_j[j,k]*TotTransfer[k] - firm.S_j[k]*dTotTransfer[j,k]
+        firm.dCdp_pl_j[j,k] = firm.dCdp_j[j,k] - dTotTransfer[j,k]
     end
 
     #Average Real and Risk Adjusted Costs
     firm.C_j = firm.C_j./firm.S_j .+ firm.ω_j
+    firm.C_j[firm.S_j.==0.0].=0.0
     firm.PC_j = firm.C_j .- TotTransfer
 
     return nothing
@@ -699,7 +710,7 @@ function update_shares(d::InsuranceLogit,firm::firmData,
 
         rev = firm.Rev_ij[idxitr]
 
-        for k in 1:length(prod_ids)
+        for k in eachindex(prod_ids)
             j = prod_ids[k]
 
             firm.C_j[j] += wgt[k]*s_hat[k]*c_hat[k]
