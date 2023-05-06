@@ -581,11 +581,12 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
     Transfer[prod_ind] = (firm.PC_j[prod_ind].*firm.S_j[prod_ind]./firm.C_j[prod_ind])#.*TotalAvgCost[firm.prods]
 
     #Derivative of Transfer Index
-    dTransfer = zeros(length(firm.PC_j),length(firm.PC_j))
+    dTransferIndex = zeros(length(firm.PC_j),length(firm.PC_j))
     for j in prod_ind, k in prod_ind
-        dTransfer[j,k] = (firm.dCdp_pl_j[j,k]./firm.C_j[k] - (firm.dCdp_j[j,k]/firm.C_j[k])*Transfer[k])
+        dTransferIndex[j,k] = (firm.dCdp_pl_j[j,k]./firm.C_j[k] - (firm.dCdp_j[j,k]/firm.C_j[k])*Transfer[k])
     end
     Transfer[firm.catas_prods].=0.0
+    dTransferIndex[firm.catas_prods,firm.catas_prods].=0.0 #Approximately 0 anyway
 
     # Difference Out Mean Index (Budget Neutrality)
     Γ = zeros(length(firm.PC_j))
@@ -593,26 +594,35 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
     Γ[firm.catas_prods].=0.0
 
     dΓ = zeros(length(firm.PC_j))
+    # for j in prod_ind, k in prod_ind
+    #     dΓ[k] += (dTransferIndex[j,k]*firm.S_j[k] + Transfer[k]*firm.dSdp_j[j,k])/TotalLives[k]
+    # end
+    # dΓ[prod_ind] = dΓ[prod_ind] + (dLives[prod_ind]./TotalLives[prod_ind]).*Γ[prod_ind]
     for j in prod_ind, k in prod_ind
-        dΓ[k] += (dTransfer[j,k]*firm.S_j[k] + Transfer[k]*firm.dSdp_j[j,k])/TotalLives[k]
+        dΓ[j] += (dTransferIndex[j,k]*firm.S_j[k] + (Transfer[k]-Γ[k])*firm.dSdp_j[j,k])/TotalLives[k]
     end
-    dΓ[prod_ind] = dΓ[prod_ind] + (dLives[prod_ind]./TotalLives[prod_ind]).*Γ[prod_ind]
+    # dΓ[firm.catas_prods].=0.0
+    # test = maximum(abs.((f.dSdp_j*TotTransfer - dTransferIndex*f.S_j + dΓ.*TotalLives)[prod_ind]))
 
 
     #Compute Total Risk Adjustment Transfer and Derivative 
     TotTransfer = zeros(length(firm.PC_j))
     TotTransfer[prod_ind] = (Γ[prod_ind] - Transfer[prod_ind]).*TotalAvgCost[prod_ind]
 
-    dTotTransfer = zeros(length(firm.PC_j),length(firm.PC_j))
+    dTotTransfer = zeros(length(firm.PC_j),length(firm.PC_j)) # Creates cross terms in other states, probably doesn't matter
     for j in prod_ind, k in prod_ind
-        dTransfer[j,k] = (dΓ[j] - dTransfer[j,k])*TotalAvgCost[k] + (Γ[k] - Transfer[k])*dAvgCost[j]
+        if k in firm.catas_prods
+            dTotTransfer[j,k]=0.0
+        else
+            dTotTransfer[j,k] = firm.dSdp_j[j,k]*TotTransfer[k] + firm.S_j[k]*TotalAvgCost[k]*(dΓ[j]- dTransferIndex[j,k]) + firm.S_j[k]*dAvgCost[j]*(Γ[k] - Transfer[k])
+        end
     end
 
-
     #Compute Actual Marginal Costs with Transfers and Adjustment 
+    firm.dCdp_pl_j[:,:].=0.0
     for j in prod_ind, k in prod_ind
         firm.dCdp_j[j,k] = firm.dCdp_j[j,k] + firm.dSdp_j[j,k]*firm.ω_j[k]
-        firm.dCdp_pl_j[j,k] = firm.dCdp_j[j,k] - firm.dSdp_j[j,k]*TotTransfer[k] - firm.S_j[k]*dTotTransfer[j,k]
+        firm.dCdp_pl_j[j,k] = firm.dCdp_j[j,k] - dTotTransfer[j,k]
     end
 
     #Average Real and Risk Adjusted Costs
