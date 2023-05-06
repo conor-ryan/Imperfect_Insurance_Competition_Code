@@ -19,8 +19,8 @@
 #         dSdp = ((f.dSAdp_j - f.bench_prods.*f.dMAdp_j).*ownershipMatrix)[std_ind,std_ind]
 #     end
 
-#     cost_std = sum(transpose(f.dCdp_j[std_ind,std_ind]).*ownershipMatrix[std_ind,std_ind],dims=2)
-#     cost_pl = sum(transpose(f.dCdp_pl_j[std_ind,std_ind]).*ownershipMatrix[std_ind,std_ind],dims=2)
+#     cost_std = sum(f.dCdp_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
+#     cost_pl = sum(f.dCdp_pl_j[std_ind,std_ind].*ownershipMatrix[std_ind,std_ind],dims=2)
 #     SA = f.SA_j[std_ind]
 
 #     # P_std[std_ind]= inv(dSdp)*(-SA + cost_std)
@@ -178,8 +178,8 @@ function prof_margin(f::firmData,std_ind::Union{Vector{Int64},Missing}=missing)
     Mkup = -inv(dSdp)*f.SA_j[std_ind]
     # MR = -inv(dSdp)*f.SA_j[std_ind]
 
-    cost_std = sum(transpose(f.dCdp_j[std_ind,std_ind]).*f.ownMat[std_ind,std_ind],dims=2)
-    cost_pl = sum(transpose(f.dCdp_pl_j[std_ind,std_ind]).*f.ownMat[std_ind,std_ind],dims=2)
+    cost_std = sum(f.dCdp_j[std_ind,std_ind].*f.ownMat[std_ind,std_ind],dims=2)
+    cost_pl = sum(f.dCdp_pl_j[std_ind,std_ind].*f.ownMat[std_ind,std_ind],dims=2)
 
     MC_std = inv(dSdp)*cost_std
     MC_RA = inv(dSdp)*cost_pl
@@ -198,8 +198,8 @@ function prof_margin_raw(f::firmData,std_ind::Union{Vector{Int64},Missing}=missi
     MR = f.SA_j[std_ind] + dSdp*f.P_j[std_ind]
     # MR = -inv(dSdp)*f.SA_j[std_ind]
 
-    cost_std = sum(transpose(f.dCdp_j[std_ind,std_ind]),dims=2)
-    cost_pl = sum(transpose(f.dCdp_pl_j[std_ind,std_ind]),dims=2)
+    cost_std = sum(f.dCdp_j[std_ind,std_ind],dims=2)
+    cost_pl = sum(f.dCdp_pl_j[std_ind,std_ind],dims=2)
 
     return MR,cost_std,cost_pl
 end
