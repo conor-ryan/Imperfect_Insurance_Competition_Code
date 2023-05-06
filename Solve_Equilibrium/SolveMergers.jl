@@ -871,10 +871,3 @@ function sendto(ps::Vector{Int}, args...)
         sendto(p,args)
     end
 end
-
-
-for i in 4:14
-    println(i)
-    solve_model_mkt!(m,f,i,λ=0.0,sim="SPλ",merg="SP",tol=1e-6,voucher=true,update_voucher=false)
-    println(market_profits(m,f)[i]-base_profits[i])
-end
