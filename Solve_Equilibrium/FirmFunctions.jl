@@ -264,6 +264,9 @@ function evaluate_GePP(f::firmData,uppMat::Matrix{Float64})
     AC_mat[:,:].=f.C_j
     dSAdp_Diag_mat[:,:].=diag(f.dSAdp_j)
 
+    tot_UPP = Vector{Float64}(undef,J)
+    tot_UPP_sel = Vector{Float64}(undef,J)
+
 
     dAdp = (f.dCdp_j .- f.dSdp_j.*AC_mat)./S_mat
     dAdp = dAdp - Diagonal(diag(dAdp))
@@ -287,8 +290,8 @@ function evaluate_GePP(f::firmData,uppMat::Matrix{Float64})
     # Mkup = -f.SA_j./diag(f.dSAdp_j)
     # MC = diag(f.dCdp_j)./diag(f.dSAdp_j)
 
-    tot_UPP = sum(UPP.*uppMat,dims=2)
-    tot_UPP_sel = sum(UPP_sel.*uppMat,dims=2)
+    tot_UPP[:] = sum(UPP.*uppMat,dims=2)
+    tot_UPP_sel[:] = sum(UPP_sel.*uppMat,dims=2)
 
 
     # MC_all = diag(f.dCdp_j)./diag(f.dSAdp_j) .+ transpose(sum((UPP_cost .+ UPP_sel).*f.ownMat,dims=1))
