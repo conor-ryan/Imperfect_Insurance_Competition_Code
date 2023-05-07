@@ -555,6 +555,27 @@ function ownerMatrix!(fdata::firmData,merging_firms)
     return nothing
 end
 
+function ownerMatrix!(uppMat::Martix{Float64},fdata::firmData,merging_firms)
+    uppMat[:].=0.0
+    fdata.ownMat[:].=0.0
+    prod_std = fdata.prods
+    firm_list = fdata.firm_vector
+    for j in prod_std
+        f = firm_list[j]
+        for i in prod_std
+            if (f=="") | (firm_list[i]=="")
+                continue
+            elseif (f == firm_list[i]) #| ((f in merging_firms) & (firm_list[i] in merging_firms))
+                fdata.ownMat[j,i]=1
+            elseif ((f in merging_firms) & (firm_list[i] in merging_firms))
+                uppMat[j,i]=1
+                fdata.ownMat[j,i]=1
+            end
+        end
+    end
+    return nothing
+end
+
 
 function check_states_if_merger(f::firmData,merging_parties)
     shared_markets = 0
@@ -756,6 +777,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     @eval @everywhere sim=$sim
     println("Data Distributed")
 
+    uppMat = zeros(size(f.ownMat))
     @sync @distributed for i in eachindex(merging_party_list)
         shared_markets = shared_market_list[i]
         shared_states = shared_state_list[i]
@@ -765,20 +787,20 @@ function simulate_all_mergers(m::InsuranceLogit,
         # shared_states = ["GA"]
         # merging_parties = ["AETNA","HUMANA"]
 
-        ### Only GA MergersMain
-        # if !("GA" in shared_states)
-        #     println("Non-GA Merger")
-        #     continue
-        # else
-        #     shared_states = ["GA"]
-        #     shared_markets = [4,5,6,7,8,9,10,11,12,13,14]
-        # end
+        ## Only GA MergersMain
+        if !("GA" in shared_states)
+            # println("Non-GA Merger")
+            # continue
+        else
+            shared_states = ["GA"]
+            shared_markets = [4,5,6,7,8,9,10,11,12,13,14]
+        end
 
  
         println(merging_parties)
 
         ## Set post-merger ownership matrix
-        ownerMatrix!(f,merging_parties)
+        ownerMatrix!(uppMat,f,merging_parties)
 
         ## Initialize save vectors
         P_m=  zeros(J)
@@ -787,6 +809,10 @@ function simulate_all_mergers(m::InsuranceLogit,
         ## Reset to pre-merger baseline
         f.P_j[:] = P_Base[:]
         evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
+
+        ## Compute UPP Values
+        upp_avg,upp_sel = evaluate_GePP(f,uppMat)
+
         # Solve model in the affected states
         println("Begin Competitive Equilibrium Solution")
         solve_model!(m,f,shared_states,sim=sim,voucher=voucher,update_voucher=update_voucher)
@@ -815,7 +841,9 @@ function simulate_all_mergers(m::InsuranceLogit,
                             Price=P_m,
                             Lives=S_m,
                             Profit=prod_profits,
-                            Risk = product_risk)
+                            Risk = product_risk,
+                            UPP_avg = upp_avg,
+                            UPP_sel = upp_sel)
         CSV.write(file,output)
 
         # println("Resolve Pre-merger Baseline")

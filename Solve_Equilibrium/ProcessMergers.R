@@ -281,11 +281,11 @@ merger_welfare[dHHI>500,dHHI_Label:="500 - 1000"]
 merger_welfare[dHHI>1000,dHHI_Label:=">1000"]
 merger_welfare[,dHHI_Label:=factor(dHHI_Label,levels=c("<200","200 - 500","500 - 1000",">1000"))]
 
-merger_welfare[,sorting_Label:="<\\$3"]
-merger_welfare[sorting_cost>3,sorting_Label:="\\$3-\\$5.5"]
-merger_welfare[sorting_cost>5.5,sorting_Label:="\\$5.5-\\$8.5"]
-merger_welfare[sorting_cost>8.5,sorting_Label:=">\\$8.5"]
-merger_welfare[,sorting_Label:=factor(sorting_Label,levels=c("<\\$3","\\$3-\\$5.5","\\$5.5-\\$8.5",">\\$8.5"))]
+merger_welfare[,sorting_Label:="<\\$5"]
+merger_welfare[sorting_cost>5,sorting_Label:="\\$5-\\$7.5"]
+merger_welfare[sorting_cost>7.5,sorting_Label:="\\$7.5-\\$10"]
+merger_welfare[sorting_cost>10,sorting_Label:=">\\$10"]
+merger_welfare[,sorting_Label:=factor(sorting_Label,levels=c("<\\$5","\\$5-\\$7.5","\\$7.5-\\$10",">\\$10"))]
 
 Main_HHI = merger_welfare[,list(avgdWelfare=round(mean(chg_Tot_Welfare),2),#avgdCW=round(mean(chg_CW),2),
                                 posdWelf=round(100*mean(chg_Tot_Welfare>0),1),posdCW=round(100*mean(chg_CW>0),2),N=sum(count)),by=c("dHHI_Label","policy")]
@@ -406,9 +406,9 @@ dev.off()
 
 png("Writing/Images/RA_WelfareEffect_bySort.png",width=2500,height=1500,res=275)
 ggplot(plotdf[policy=="RA"])+ 
-  geom_point(aes(x=sorting_cost,y=value,color=label,shape=label),size=2.5)+
+  geom_point(aes(x=sorting_cost,y=value,color=label,shape=label),size=3.0,alpha=0.2)+
   scale_shape_manual(values=c(16,17)) +
-  geom_errorbar(aes(x=sorting_cost,ymin=chg_CW,ymax=value)) +
+  # geom_errorbar(aes(x=sorting_cost,ymin=chg_CW,ymax=value)) +
   guides(color = guide_legend(override.aes = list(size = 5))) +
   geom_abline(slope=0,intercept=0) +
   xlab("Predicted Change in HHI")+

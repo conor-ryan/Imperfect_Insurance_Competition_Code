@@ -253,7 +253,7 @@ function calc_avgR(m::InsuranceLogit,f::firmData)
     return R_j[f.prods]
 end
 
-function evaluate_GePP(f::firmData)
+function evaluate_GePP(f::firmData,uppMat::Matrix{Float64})
     J = length(f.S_j)
     S_mat = Matrix{Float64}(undef,J,J)
     P_mat = Matrix{Float64}(undef,J,J)
@@ -284,11 +284,11 @@ function evaluate_GePP(f::firmData)
     UPP_sel = UPP_sel - Diagonal(diag(UPP_sel))
     UPP_sel[isnan.(UPP_sel)].=0.0
 
-    Mkup = -f.SA_j./diag(f.dSAdp_j)
-    MC = diag(f.dCdp_j)./diag(f.dSAdp_j)
+    # Mkup = -f.SA_j./diag(f.dSAdp_j)
+    # MC = diag(f.dCdp_j)./diag(f.dSAdp_j)
 
-    tot_UPP = sum(UPP.*f.ownMat,dims=2)
-    tot_UPP_sel = sum(UPP_sel.*f.ownMat,dims=2)
+    tot_UPP = sum(UPP.*uppMat,dims=2)
+    tot_UPP_sel = sum(UPP_sel.*uppMat,dims=2)
 
 
     # MC_all = diag(f.dCdp_j)./diag(f.dSAdp_j) .+ transpose(sum((UPP_cost .+ UPP_sel).*f.ownMat,dims=1))
