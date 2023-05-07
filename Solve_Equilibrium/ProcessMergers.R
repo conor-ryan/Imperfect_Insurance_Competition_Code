@@ -65,7 +65,10 @@ for (policy in c("Base","RA")){
       if (length(file)==0){next}
       postmerge = fread(paste("Estimation_Output/",file,sep=""))
       names(postmerge)[2:length(names(postmerge))] = paste(names(postmerge)[2:length(names(postmerge))],"merge",sep="_")
-      
+      if (!"UPP_avg_merge"%in%names(postmerge)){
+        postmerge[,UPP_avg_merge:=NA]
+        postmerge[,UPP_sel_merge:=NA]
+      }
       # Merge in HHI and Baseline Data
       postmerge = merge(baseline,postmerge,by="Product")
       postmerge = merge(hhi,postmerge,by=c("Market","ST"))
