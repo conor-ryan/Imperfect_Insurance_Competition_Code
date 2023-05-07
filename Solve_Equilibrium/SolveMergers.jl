@@ -791,7 +791,7 @@ function simulate_all_mergers(m::InsuranceLogit,
         ## Only GA MergersMain
         if !("GA" in shared_states)
             # println("Non-GA Merger")
-            # continue
+            continue
         else
             shared_states = ["GA"]
             shared_markets = [4,5,6,7,8,9,10,11,12,13,14]
