@@ -555,7 +555,7 @@ function ownerMatrix!(fdata::firmData,merging_firms)
     return nothing
 end
 
-function ownerMatrix!(uppMat::Martix{Float64},fdata::firmData,merging_firms)
+function ownerMatrix!(uppMat::Matrix{Float64},fdata::firmData,merging_firms)
     uppMat[:].=0.0
     fdata.ownMat[:].=0.0
     prod_std = fdata.prods
