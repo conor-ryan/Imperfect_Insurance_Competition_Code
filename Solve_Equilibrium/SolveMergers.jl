@@ -812,7 +812,7 @@ function simulate_all_mergers(m::InsuranceLogit,
         evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
 
         ## Compute UPP Values
-        upp_avg,upp_sel = evaluate_GePP(f,uppMat)
+        upp_avg,upp_sel = evaluate_GePP(f,uppMat,sim)
 
         # Solve model in the affected states
         println("Begin Competitive Equilibrium Solution")
