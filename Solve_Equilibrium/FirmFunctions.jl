@@ -253,28 +253,35 @@ function calc_avgR(m::InsuranceLogit,f::firmData)
     return R_j[f.prods]
 end
 
-function evaluate_GePP(f::firmData,uppMat::Matrix{Float64})
+function evaluate_GePP(f::firmData,uppMat::Matrix{Float64},sim::String)
     J = length(f.S_j)
-    S_mat = Matrix{Float64}(undef,J,J)
+    SA_mat = Matrix{Float64}(undef,J,J)
     P_mat = Matrix{Float64}(undef,J,J)
     AC_mat = Matrix{Float64}(undef,J,J)
     dSAdp_Diag_mat = Matrix{Float64}(undef,J,J)
-    S_mat[:,:].=f.S_j
+    SA_mat[:,:].=f.SA_j
     P_mat[:,:].=f.P_j
-    AC_mat[:,:].=f.C_j
+    AC_mat[:,:].=f.C_j.*f.S_j./f.SA_j
+    # AC_mat[isnan.(AC_mat)].=0.0
     dSAdp_Diag_mat[:,:].=diag(f.dSAdp_j)
+
+    if sim=="RA"
+        dCdp = f.dCdp_j
+    elseif sim=="Base"
+        dCdp = f.dCdp_pl_j
+    end
 
     tot_UPP = Vector{Float64}(undef,J)
     tot_UPP_sel = Vector{Float64}(undef,J)
 
 
-    dAdp = (f.dCdp_j .- f.dSdp_j.*AC_mat)./S_mat
+    dAdp = (dCdp .- f.dSAdp_j.*AC_mat)./SA_mat
     dAdp = dAdp - Diagonal(diag(dAdp))
 
     Div_jk = -f.dSAdp_j./dSAdp_Diag_mat + I
-    age_margin_ratio = f.dSdp_j./f.dSAdp_j
-    age_margin_ratio[isnan.(age_margin_ratio)].=0.0
-    UPP = Div_jk.*(transpose(P_mat) .- age_margin_ratio.*AC_mat)
+    # age_margin_ratio = f.dSdp_j./f.dSAdp_j
+    # age_margin_ratio[isnan.(age_margin_ratio)].=0.0
+    UPP = Div_jk.*(transpose(P_mat) .- AC_mat)
     UPP[isnan.(UPP)].=0.0
     # UPP_rev = Div_jk.*P_mat
 
@@ -283,12 +290,12 @@ function evaluate_GePP(f::firmData,uppMat::Matrix{Float64})
     # UPP_cost[isnan.(UPP_cost)].=0.0
     # UPP_cost = Div_jk.*age_margin_ratio.*AC_mat
 
-    UPP_sel = (S_mat.*dAdp)./dSAdp_Diag_mat
+    UPP_sel = (SA_mat.*dAdp)./dSAdp_Diag_mat
     UPP_sel = UPP_sel - Diagonal(diag(UPP_sel))
     UPP_sel[isnan.(UPP_sel)].=0.0
 
-    # Mkup = -f.SA_j./diag(f.dSAdp_j)
-    # MC = diag(f.dCdp_j)./diag(f.dSAdp_j)
+    Mkup = -f.SA_j./diag(f.dSAdp_j)
+    MC = diag(dCdp)./diag(f.dSAdp_j)
 
     tot_UPP[:] = sum(UPP.*uppMat,dims=2)
     tot_UPP_sel[:] = sum(UPP_sel.*uppMat,dims=2)
@@ -301,12 +308,12 @@ function evaluate_GePP(f::firmData,uppMat::Matrix{Float64})
     # maximum(abs.((f.P_j[prod_ind] - ( Mkup + MC +tot_UPP + tot_UPP_sel)[prod_ind])))
 
     # ######
-    # # prod_ind =findall(f.SA_j.!=0.0)
-    # SA = f.SA_j[prod_ind]
-    # cost = sum(f.dCdp_j[prod_ind,prod_ind].*f.ownMat[prod_ind,prod_ind],dims=2)
-    # dSdp = (f.dSAdp_j[prod_ind,prod_ind].*f.ownMat[prod_ind,prod_ind])
-    # P_foc = inv(dSdp)*(-f.SA_j[prod_ind]+cost)
-    # println(f.P_j[prod_ind] - P_foc)
+    # prod_ind =findall(f.SA_j.!=0.0)
+    SA = f.SA_j[prod_ind]
+    cost = sum(f.dCdp_j[prod_ind,prod_ind].*f.ownMat[prod_ind,prod_ind],dims=2)
+    dSdp = (f.dSAdp_j[prod_ind,prod_ind].*f.ownMat[prod_ind,prod_ind])
+    P_foc = inv(dSdp)*(-f.SA_j[prod_ind]+cost)
+    println(f.P_j[prod_ind] - P_foc)
 
     # ###### 
     # dSdp*P_foc + SA - sum(transpose(f.dCdp_j[prod_ind,prod_ind]).*f.ownMat[prod_ind,prod_ind],dims=2)
