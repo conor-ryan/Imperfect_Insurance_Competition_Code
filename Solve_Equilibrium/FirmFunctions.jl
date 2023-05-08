@@ -309,11 +309,11 @@ function evaluate_GePP(f::firmData,uppMat::Matrix{Float64},sim::String)
 
     # ######
     # prod_ind =findall(f.SA_j.!=0.0)
-    SA = f.SA_j[prod_ind]
-    cost = sum(f.dCdp_j[prod_ind,prod_ind].*f.ownMat[prod_ind,prod_ind],dims=2)
-    dSdp = (f.dSAdp_j[prod_ind,prod_ind].*f.ownMat[prod_ind,prod_ind])
-    P_foc = inv(dSdp)*(-f.SA_j[prod_ind]+cost)
-    println(f.P_j[prod_ind] - P_foc)
+    # SA = f.SA_j[prod_ind]
+    # cost = sum(f.dCdp_j[prod_ind,prod_ind].*f.ownMat[prod_ind,prod_ind],dims=2)
+    # dSdp = (f.dSAdp_j[prod_ind,prod_ind].*f.ownMat[prod_ind,prod_ind])
+    # P_foc = inv(dSdp)*(-f.SA_j[prod_ind]+cost)
+    # println(f.P_j[prod_ind] - P_foc)
 
     # ###### 
     # dSdp*P_foc + SA - sum(transpose(f.dCdp_j[prod_ind,prod_ind]).*f.ownMat[prod_ind,prod_ind],dims=2)
