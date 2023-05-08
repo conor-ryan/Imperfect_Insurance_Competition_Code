@@ -778,8 +778,8 @@ function simulate_all_mergers(m::InsuranceLogit,
     println("Data Distributed")
 
     uppMat = zeros(size(f.ownMat))
-    # @sync @distributed for i in eachindex(merging_party_list)
-    for i in eachindex(merging_party_list)
+    @sync @distributed for i in eachindex(merging_party_list)
+    # for i in eachindex(merging_party_list)
         shared_markets = shared_market_list[i]
         shared_states = shared_state_list[i]
         merging_parties = merging_party_list[i]
