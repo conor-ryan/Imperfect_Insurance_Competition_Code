@@ -625,7 +625,7 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
         # firm.dCdp_pl_j[j,k] = firm.dCdp_j[j,k] - dTotTransfer[j,k]
     end
     firm.dCdp_pl_j[:] = firm.dCdp_j[:]
-    for (s, st_prod_ind) in f._prodSTDict # Get rid of cross-state cross terms
+    for (s, st_prod_ind) in firm._prodSTDict # Get rid of cross-state cross terms
         for j in st_prod_ind, k in st_prod_ind
             firm.dCdp_pl_j[j,k] = firm.dCdp_j[j,k] - dTotTransfer[j,k]
         end
