@@ -286,8 +286,8 @@ function evaluate_GePP(f::firmData,uppMat::Matrix{Float64},sim::String)
         AC[isnan.(AC)].=0.0
     end
 
-    # tot_UPP = Vector{Float64}(undef,J)
-    # tot_UPP_sel = Vector{Float64}(undef,J)
+    tot_UPP = Vector{Float64}(undef,J)
+    tot_UPP_sel = Vector{Float64}(undef,J)
 
 
     # dAdp = (dCdp .- f.dSAdp_j.*AC_mat)./SA_mat
@@ -297,7 +297,7 @@ function evaluate_GePP(f::firmData,uppMat::Matrix{Float64},sim::String)
     #     dAdp[j,k] = (dCdp[j,k] - f.dSAdp_j[j,k]*AC[j])/f.SA_j[j]
     # end
     # dAdp[isnan.(dAdp)].=0.0
-    Div_jk = (f.dSAdp_j./dSAdp_Diag_mat - I).*f.ownMat
+    Div_jk = (f.dSAdp_j./dSAdp_Diag_mat - I).*uppMat
     Div_jk[isnan.(Div_jk)].=0.0
     # age_margin_ratio = f.dSdp_j./f.dSAdp_j
     # age_margin_ratio[isnan.(age_margin_ratio)].=0.0
@@ -305,12 +305,12 @@ function evaluate_GePP(f::firmData,uppMat::Matrix{Float64},sim::String)
     # UPP[isnan.(UPP)].=0.0
 
     UPP_rev = -Div_jk*f.P_j
-    UPP_cost = sum(dCdp_cross.*f.ownMat,dims=2)./diag(f.dSAdp_j)
+    UPP_cost = sum(dCdp_cross.*uppMat,dims=2)./diag(f.dSAdp_j)
     UPP_avg_cost = Div_jk*AC
     UPP_sel_cost = UPP_cost - UPP_avg_cost
 
-    tot_UPP = UPP_rev + UPP_avg_cost
-    tot_UPP_sel = UPP_sel_cost
+    tot_UPP[:] = UPP_rev + UPP_avg_cost
+    tot_UPP_sel[:] = UPP_sel_cost
     # UPP_rev = sum((-Div_jk.*(transpose(P_mat))).*f.ownMat,dims=2)
 
     # UPP_avg = -Div_jk*(f.P_j - AC)
