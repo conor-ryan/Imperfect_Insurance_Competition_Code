@@ -45,7 +45,7 @@ function product_profits(d::InsuranceLogit,f::firmData;sim="Base")
     elseif sim=="Base"
         Profit = f.SA_j.*f.P_j - f.PC_j.*f.S_j
     end
-
+    Profit[isnan.(Profit)].=0.0
     return Profit
 end
 

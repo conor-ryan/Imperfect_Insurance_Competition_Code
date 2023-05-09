@@ -622,8 +622,15 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
     firm.dCdp_pl_j[:,:].=0.0
     for j in prod_ind, k in prod_ind
         firm.dCdp_j[j,k] = firm.dCdp_j[j,k] + firm.dSdp_j[j,k]*firm.ω_j[k]
-        firm.dCdp_pl_j[j,k] = firm.dCdp_j[j,k] - dTotTransfer[j,k]
+        # firm.dCdp_pl_j[j,k] = firm.dCdp_j[j,k] - dTotTransfer[j,k]
     end
+    firm.dCdp_pl_j[:] = firm.dCdp_j[:]
+    for (s, st_prod_ind) in f._prodSTDict # Get rid of cross-state cross terms
+        for j in st_prod_ind, k in st_prod_ind
+            firm.dCdp_pl_j[j,k] = firm.dCdp_j[j,k] - dTotTransfer[j,k]
+        end
+    end
+
 
     #Average Real and Risk Adjusted Costs
     firm.C_j = firm.C_j./firm.S_j .+ firm.ω_j
@@ -672,6 +679,7 @@ function update_shares(d::InsuranceLogit,firm::firmData,
         @inbounds u_nr = μnr_ij_large[idxitr]
         r_ind = Int.(risk_long[idxitr])
         @inbounds r_cost = p_cost.risks[:,r_ind]
+        @inbounds r_draw = d.draws[:,r_ind]
         @inbounds any_r = any_long[idxitr[1]]
         wgt = wgt_long[idxitr]
         c_nr = cost_nonRisk[idxitr]
@@ -826,7 +834,8 @@ function evaluate_model!(m::InsuranceLogit,f::firmData,mkt::Int;
     if deriv
         update_derivatives(m,f,mkt,foc_check=foc_check)
     else
-        update_shares(m,f,mkt,foc_check=foc_check)
+        # update_shares(m,f,mkt,foc_check=foc_check)
+        update_derivatives(m,f,mkt,foc_check=foc_check)
     end
     return nothing
 end

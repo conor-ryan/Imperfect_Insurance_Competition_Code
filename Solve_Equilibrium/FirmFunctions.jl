@@ -145,19 +145,25 @@ function compute_profit(d::InsuranceLogit,f::firmData)
     return Revenue, Cost, Share, Pooled_Cost, Adj
 end
 
-function test_MR(m::InsuranceLogit,f::firmData,prod_int::Int,mkt::Int)
+function test_MR(m::InsuranceLogit,f::firmData,prod_int::Int,mkt::Int,sim::String)
     ϵ = 1e-6
     println("First Evaluation")
     evaluate_model!(model,f,mkt,foc_check=false,voucher=true,update_voucher=false,deriv=false)
     # Rev1, Cost1, Share1, PC1, Adj1 = compute_profit(m,f)
-    all_profits = market_profits(m,f)
-    prof1 = all_profits[mkt]
+    # all_profits = market_profits(m,f)
+    # prof1 = all_profits[mkt]
+    prod_profits = product_profits(m,f,sim=sim)
+    firm_profits = f.ownMat*prod_profits
+    prof1 = firm_profits[prod_int]
     f.P_j[prod_int]+=ϵ
     println("Deviation Evaluation")
     evaluate_model!(model,f,mkt,foc_check=false,voucher=true,update_voucher=false,deriv=false)
     # Rev2, Cost2, Share2, PC2, Adj2 = compute_profit(m,f)
-    all_profits = market_profits(m,f)
-    prof2 = all_profits[mkt]
+    # all_profits = market_profits(m,f)
+    # prof2 = all_profits[mkt]
+    prod_profits = product_profits(m,f,sim=sim)
+    firm_profits = f.ownMat*prod_profits
+    prof2 = firm_profits[prod_int]
 
     dProf = (prof2-prof1)/ϵ
     # dR = (Rev2 - Rev1)./ϵ
@@ -259,48 +265,87 @@ function evaluate_GePP(f::firmData,uppMat::Matrix{Float64},sim::String)
     P_mat = Matrix{Float64}(undef,J,J)
     AC_mat = Matrix{Float64}(undef,J,J)
     dSAdp_Diag_mat = Matrix{Float64}(undef,J,J)
+    dAdp = Matrix{Float64}(undef,J,J)
     SA_mat[:,:].=f.SA_j
     P_mat[:,:].=f.P_j
     AC_mat[:,:].=f.C_j.*f.S_j./f.SA_j
+    
     # AC_mat[isnan.(AC_mat)].=0.0
     dSAdp_Diag_mat[:,:].=diag(f.dSAdp_j)
 
+
     if sim=="RA"
         dCdp = f.dCdp_j
+        dCdp_cross = dCdp - Diagonal(diag(dCdp))
+        AC = f.C_j.*f.S_j./f.SA_j
+        AC[isnan.(AC)].=0.0
     elseif sim=="Base"
         dCdp = f.dCdp_pl_j
+        dCdp_cross = dCdp - Diagonal(diag(dCdp))
+        AC = f.PC_j.*f.S_j./f.SA_j
+        AC[isnan.(AC)].=0.0
     end
 
-    tot_UPP = Vector{Float64}(undef,J)
-    tot_UPP_sel = Vector{Float64}(undef,J)
+    # tot_UPP = Vector{Float64}(undef,J)
+    # tot_UPP_sel = Vector{Float64}(undef,J)
 
 
-    dAdp = (dCdp .- f.dSAdp_j.*AC_mat)./SA_mat
-    dAdp = dAdp - Diagonal(diag(dAdp))
+    # dAdp = (dCdp .- f.dSAdp_j.*AC_mat)./SA_mat
+    # dAdp = dAdp - Diagonal(diag(dAdp))
 
-    Div_jk = -f.dSAdp_j./dSAdp_Diag_mat + I
+    # for j in 1:J,k in 1:J
+    #     dAdp[j,k] = (dCdp[j,k] - f.dSAdp_j[j,k]*AC[j])/f.SA_j[j]
+    # end
+    # dAdp[isnan.(dAdp)].=0.0
+    Div_jk = (f.dSAdp_j./dSAdp_Diag_mat - I).*f.ownMat
+    Div_jk[isnan.(Div_jk)].=0.0
     # age_margin_ratio = f.dSdp_j./f.dSAdp_j
     # age_margin_ratio[isnan.(age_margin_ratio)].=0.0
-    UPP = Div_jk.*(transpose(P_mat) .- AC_mat)
-    UPP[isnan.(UPP)].=0.0
-    # UPP_rev = Div_jk.*P_mat
+    # UPP = -Div_jk.*(transpose(P_mat) .- AC_mat)
+    # UPP[isnan.(UPP)].=0.0
 
-    # UPP_cost = f.dSdp_j.*AC_mat./dSAdp_Diag_mat
+    UPP_rev = -Div_jk*f.P_j
+    UPP_cost = sum(dCdp_cross.*f.ownMat,dims=2)./diag(f.dSAdp_j)
+    UPP_avg_cost = Div_jk*AC
+    UPP_sel_cost = UPP_cost - UPP_avg_cost
+
+    tot_UPP = UPP_rev + UPP_avg_cost
+    tot_UPP_sel = UPP_sel_cost
+    # UPP_rev = sum((-Div_jk.*(transpose(P_mat))).*f.ownMat,dims=2)
+
+    # UPP_avg = -Div_jk*(f.P_j - AC)
+
+
+    # UPP_cost = (f.dSAdp_j.*AC_mat + dAdp.*SA_mat)./dSAdp_Diag_mat
     # UPP_cost = UPP_cost - Diagonal(diag(UPP_cost))
     # UPP_cost[isnan.(UPP_cost)].=0.0
-    # UPP_cost = Div_jk.*age_margin_ratio.*AC_mat
 
-    UPP_sel = (SA_mat.*dAdp)./dSAdp_Diag_mat
-    UPP_sel = UPP_sel - Diagonal(diag(UPP_sel))
-    UPP_sel[isnan.(UPP_sel)].=0.0
+    # UPP_sel = (SA_mat.*dAdp)./dSAdp_Diag_mat
+    # UPP_sel = UPP_sel - Diagonal(diag(UPP_sel))
+    # UPP_sel[isnan.(UPP_sel)].=0.0
 
-    Mkup = -f.SA_j./diag(f.dSAdp_j)
-    MC = diag(dCdp)./diag(f.dSAdp_j)
+    # Div_AC = (dAdp.*f.ownMat)./dSAdp_Diag_mat
+    # Div_AC = Div_AC - Diagonal(diag(Div_AC))
+    # Div_AC[isnan.(Div_AC)].=0.0
 
-    tot_UPP[:] = sum(UPP.*uppMat,dims=2)
-    tot_UPP_sel[:] = sum(UPP_sel.*uppMat,dims=2)
+    # UPP_sel_2 = (transpose(Div_AC)* f.SA_j)
 
+    # Mkup = -f.SA_j./diag(f.dSAdp_j)
+    # MC = diag(dCdp)./diag(f.dSAdp_j)
 
+    # tot_UPP[:] = sum(UPP.*uppMat,dims=2)
+    # tot_UPP_sel[:] = sum(UPP_sel.*uppMat,dims=2)
+
+    # UPP1 = sum((UPP+UPP_sel).*f.ownMat,dims=2)
+    # UPP2 = UPP_rev + sum((UPP_cost).*f.ownMat,dims=2)
+
+    # UPP3[:].=0.0
+    # for j in 1:J, k in 1:J
+    #     if j==k
+    #         continue
+    #     end
+    #     UPP3[j] += f.ownMat[k,j]*(-f.dSAdp_j[k,j]*f.P_j[k] + f.dSAdp_j[k,j]*AC[j])/f.dSAdp_j[j,j] 
+    # end
     # MC_all = diag(f.dCdp_j)./diag(f.dSAdp_j) .+ transpose(sum((UPP_cost .+ UPP_sel).*f.ownMat,dims=1))
 
 
@@ -308,25 +353,32 @@ function evaluate_GePP(f::firmData,uppMat::Matrix{Float64},sim::String)
     # maximum(abs.((f.P_j[prod_ind] - ( Mkup + MC +tot_UPP + tot_UPP_sel)[prod_ind])))
 
     # ######
-    # prod_ind =findall(f.SA_j.!=0.0)
+    # # prod_ind =findall(f.SA_j.!=0.0)
     # SA = f.SA_j[prod_ind]
-    # cost = sum(f.dCdp_j[prod_ind,prod_ind].*f.ownMat[prod_ind,prod_ind],dims=2)
+    # ac = (f.C_j.*f.S_j./f.SA_j)[prod_ind]
+    # cost = sum(f.dCdp_pl_j[prod_ind,prod_ind].*f.ownMat[prod_ind,prod_ind],dims=2)
     # dSdp = (f.dSAdp_j[prod_ind,prod_ind].*f.ownMat[prod_ind,prod_ind])
     # P_foc = inv(dSdp)*(-f.SA_j[prod_ind]+cost)
     # println(f.P_j[prod_ind] - P_foc)
 
     # ###### 
-    # dSdp*P_foc + SA - sum(transpose(f.dCdp_j[prod_ind,prod_ind]).*f.ownMat[prod_ind,prod_ind],dims=2)
+    # dSdp*P_foc + SA - sum(f.dCdp_pl_j[prod_ind,prod_ind].*f.ownMat[prod_ind,prod_ind],dims=2)
     # dSdp_cross = dSdp - Diagonal(diag(dSdp))
-    # cost_cross = f.dCdp_j[prod_ind,prod_ind].*f.ownMat[prod_ind,prod_ind]
+    # cost_cross = f.dCdp_pl_j[prod_ind,prod_ind].*f.ownMat[prod_ind,prod_ind]
     # cost_cross = cost_cross - Diagonal(diag(cost_cross))
 
     # P_foc.*diag(dSdp) + dSdp_cross*P_foc + SA - cost
+
+
+    # dAdp = (dCdp .- f.dSAdp_j.*AC_mat)./SA_mat
+    # dAdp = dAdp - Diagonal(diag(dAdp))
+
+
     # # P_foc + (dSdp_cross*P_foc)./diag(dSdp) + SA./diag(dSdp) - diag(f.dCdp_j[prod_ind,prod_ind])./diag(dSdp) - sum(cost_cross,dims=2)./diag(dSdp)
     # P_foc - (-SA./diag(dSdp)+ diag(f.dCdp_j[prod_ind,prod_ind])./diag(dSdp) -(dSdp_cross*f.P_j[prod_ind])./diag(dSdp) + sum(transpose(cost_cross),dims=2)./diag(dSdp))
 
     # mkup_test =-SA./diag(dSdp) 
-    # mc_test = diag(f.dCdp_j[prod_ind,prod_ind])./diag(dSdp)
+    # mc_test = diag(f.dCdp_pl_j[prod_ind,prod_ind])./diag(dSdp)
     # upp_test = -(dSdp_cross*P_foc)./diag(dSdp) + sum(cost_cross./diag(dSdp),dims=2)
     # upp_cost_test = sum(cost_cross./diag(dSdp),dims=2)
     # upp_rev_test = -(dSdp_cross*P_foc)./diag(dSdp)
