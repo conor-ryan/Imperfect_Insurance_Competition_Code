@@ -4,7 +4,7 @@ library(randtoolbox)
 library(data.table)
 library(scales)
 library(ggplot2)
-setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
+setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition")
 
 ## Run
 run = "2020-03-10"

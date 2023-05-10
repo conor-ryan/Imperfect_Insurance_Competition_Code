@@ -3,7 +3,7 @@ library(doBy)
 library(data.table)
 library(ggplot2)
 library(Hmisc)
-setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
+setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
 
 #### Read in MEPS Data ####
 mepsFull = read.csv("Data/2015_MEPS/MEPS_Full_2015.csv")
@@ -167,6 +167,59 @@ names(moments) = gsub("norm_","",names(moments))
 #                   "Any_HCC","var_HCC_Platinum","var_HCC_Gold","var_HCC_Silver","var_HCC_Bronze","var_HCC_Catastrophic")
 write.csv(moments,"Intermediate_Output/MEPS_Moments/R_Score_Moments.csv",row.names=FALSE)
 
+
+#### Illustrate Fit####
+meps = as.data.table(meps)
+meps[,Any_HCC:=NULL]
+meps = merge(meps,moments,by=c("Age_Cat","Inc_Cat"),all.x=TRUE)
+meps[,riskDraw:= runif(nrow(meps))]
+meps[,draws_Any:=(riskDraw-(1-Any_HCC))/(Any_HCC)]
+meps[draws_Any<0,draws_Any:=0]
+
+meps[,HCC_pred_Silver:=exp(qnorm(draws_Any)*sqrt(var_HCC_Silver) + mean_HCC_Silver)]
+
+## Positive Plot (Unncessary)
+# meps[,pos_label:="Zero"]
+# meps[draws_Any>0,pos_label:="Positive"]
+# meps[,pos_label:=factor(pos_label,levels=c("Zero","Positive"))]
+# pos_plot1 = meps[,list(population=sum(PERWT15F),type="Model"),by=pos_label]
+# 
+# meps[,pos_label:="Zero"]
+# meps[HCC_Score_Silver>0,pos_label:="Positive"]
+# meps[,pos_label:=factor(pos_label,levels=c("Zero","Positive"))]
+# pos_plot2 = meps[,list(population=sum(PERWT15F),type="Data"),by=pos_label]
+# 
+# pos_plot = rbind(pos_plot1,pos_plot2)
+# pos_plot[,prob:=population/sum(population),by="type"]
+
+## Distribution of Positive Scores
+meps[,risk_score_bucket:=ceiling(HCC_pred_Silver/0.5)*0.5]
+meps[risk_score_bucket>20,risk_score_bucket:=20]
+dist1 = meps[HCC_pred_Silver>0,list(population=sum(PERWT15F),type="Model"),by=risk_score_bucket]
+meps[,risk_score_bucket:=ceiling(HCC_Score_Silver/0.5)*0.5]
+meps[risk_score_bucket>20,risk_score_bucket:=20]
+dist2 = meps[HCC_Score_Silver>0,list(population=sum(PERWT15F),type="Data"),by=risk_score_bucket]
+dist_plot = rbind(dist1,dist2)
+
+dist_plot[,density:=population/sum(population),by="type"]
+
+png("Writing/Images/RiskDist_Fit_Positive.png",width=2500,height=1500,res=275)
+ggplot(dist_plot) + aes(x=risk_score_bucket,y=density,fill=type,group=type) + 
+  geom_bar(stat="identity",position="identity",alpha=0.75) + 
+  ylab("Density") +
+  xlab("Risk Score") +
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    #panel.grid.major = element_line(color=grey(.8)),
+    legend.background = element_blank(),
+    legend.title=element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "right",
+    axis.title=element_text(size=14),
+    axis.text = element_text(size=14))
+dev.off()
 
 #### Risk - Cost Moments ####
 meps = mepsFull[mepsFull$UNINS15==2,c("HIEUIDX","DUPERSID","PID","PANEL","AGELAST","AGE15X","TTLP15X","POVLEV15","OFFER31X","OFFER42X","OFFER53X",
