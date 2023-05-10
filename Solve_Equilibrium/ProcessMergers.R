@@ -104,6 +104,7 @@ merger_effects[,Metal_std:=factor(Metal_std,levels=c("CATASTROPHIC","BRONZE","SI
                                   labels=c("Catas","Bronze","Silver","Gold","Plat"))]
 merger_effects[,missing_gold_plat:=as.numeric(Metal_std%in%c("Gold","Plat")&Lives<1)]
 merger_effects[,missing_gold_plat_post:=as.numeric(Metal_std%in%c("Gold","Plat")&Lives_merge<1)]
+merger_effects[,UPP:=UPP_avg_merge+UPP_sel_merge]
 
 merger_firms = merger_effects[parties_indicator==1,
                               list(avg_risk=sum(Risk*Lives)/sum(Lives),

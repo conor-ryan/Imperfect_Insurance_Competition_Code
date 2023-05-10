@@ -48,8 +48,8 @@ spec_prodchars_σ=[:AV,:constant,
 :UT_ALTIUS_HEALTH_PLANS,:UT_ARCHES_HEALTH_PLAN,:UT_BRIDGESPAN,:UT_HUMANA,:UT_MOLINA_HEALTH_CARE,:UT_REGENCE_BLUECROSS_BLUESHIELD_OF_UTAH,:UT_SELECTHEALTH]#.:UT_UNITEDHEALTHCARE_LIFE_INS_CO]
 cost_spec = [:AGE,:AV_std]
 
-rundate = Dates.today()
-# rundate = "2022-12-26"
+# rundate = Dates.today()
+rundate = "2023-05-09"
 spec = "FM"
 spec_fixedEffects=[:Market_Firm]
 println("Running $spec on $rundate")
@@ -80,12 +80,12 @@ include("$codeDir/Demand_Estimation/utility.jl")
 include("$codeDir/Demand_Estimation/Specification_Run.jl")
 
 filename = "PLL_Estimate_$spec"
-estimate_demand(filename,rundate,home_directory,
-                    halton_draws,
-                    spec_demoRaw,
-                    spec_prodchars,
-                    spec_prodchars_σ,
-                    spec_fixedEffects)
+# estimate_demand(filename,rundate,home_directory,
+#                     halton_draws,
+#                     spec_demoRaw,
+#                     spec_prodchars,
+#                     spec_prodchars_σ,
+#                     spec_fixedEffects)
 
 
 println("##### Estimation Marginal Cost #####")
