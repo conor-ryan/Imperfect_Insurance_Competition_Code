@@ -171,8 +171,8 @@ function process_demand(rundate,spec,home_directory)
     bottom_10th_elas = find_pctile_index(all_wgts,elas_sort_index,0.10)
     median_elas = find_pctile_index(all_wgts,elas_sort_index,0.50)
     top_10th_elas = find_pctile_index(all_wgts,elas_sort_index,0.90)
-    bottom_10th = elas_sort_index[1:bottom_10th_elas]
-    top_10th = elas_sort_index[top_10th_elas:length(elas_sort_index)]
+    bottom_10th = elas_sort_index[1:median_elas]
+    top_10th = elas_sort_index[median_elas:length(elas_sort_index)]
 
     mean_c = sum(all_c[bottom_10th].*all_wgts[bottom_10th])/sum(all_wgts[bottom_10th])
     mean_elas = sum(all_elas[bottom_10th].*all_wgts[bottom_10th])/sum(all_wgts[bottom_10th])
@@ -184,8 +184,8 @@ function process_demand(rundate,spec,home_directory)
     bottom_10th_elas = find_pctile_index(all_wgts,elas0_long_sort_index,0.1)
     median_elas = find_pctile_index(all_wgts,elas0_long_sort_index,0.50)
     top_10th_elas = find_pctile_index(all_wgts,elas0_long_sort_index,0.9)
-    bottom_10th = elas0_long_sort_index[1:bottom_10th_elas]
-    top_10th = elas0_long_sort_index[top_10th_elas:length(elas0_long_sort_index)]
+    bottom_10th = elas0_long_sort_index[1:median_elas]
+    top_10th = elas0_long_sort_index[median_elas:length(elas0_long_sort_index)]
 
     mean_c = sum(all_c[bottom_10th].*all_wgts[bottom_10th])/sum(all_wgts[bottom_10th])
     mean_elas = sum(all_elas0_long[bottom_10th].*all_wgts[bottom_10th])/sum(all_wgts[bottom_10th])
