@@ -181,9 +181,9 @@ function process_demand(rundate,spec,home_directory)
     mean_elas = sum(all_elas[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
     println("The mean of costs in the top 75th percentile of elasticities is $mean_c, mean elasticity is $mean_elas")
 
-    bottom_10th_elas = find_pctile_index(all_wgts,elas0_long_sort_index,0.25)
+    bottom_10th_elas = find_pctile_index(all_wgts,elas0_long_sort_index,0.1)
     median_elas = find_pctile_index(all_wgts,elas0_long_sort_index,0.50)
-    top_10th_elas = find_pctile_index(all_wgts,elas0_long_sort_index,0.75)
+    top_10th_elas = find_pctile_index(all_wgts,elas0_long_sort_index,0.9)
     bottom_10th = elas0_long_sort_index[1:bottom_10th_elas]
     top_10th = elas0_long_sort_index[top_10th_elas:length(elas0_long_sort_index)]
 
