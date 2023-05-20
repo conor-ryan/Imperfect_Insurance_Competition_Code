@@ -2,11 +2,11 @@ rm(list = ls())
 library(data.table)
 library(Matrix)
 library(doBy)
-setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
+setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
 
-run = "2019-06-25"
+run = "2022-12-26"
 #### Load Estimated Data ####
-simdataFiles = focFiles = list.files("Intermediate_Output/Equilibrium_Data")[grep(paste("estimated_Data.*",run,sep=""),list.files("Intermediate_Output/Equilibrium_Data"))]
+simdataFiles = list.files("Intermediate_Output/Equilibrium_Data")[grep(paste("estimated_Data.*",run,sep=""),list.files("Intermediate_Output/Equilibrium_Data"))]
 
 simData = NULL
 for (f in simdataFiles[1]){
