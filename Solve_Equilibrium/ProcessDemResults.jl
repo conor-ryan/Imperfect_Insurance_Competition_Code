@@ -298,7 +298,7 @@ function wtp_value!(wtp_nr::Vector{Float64},wtp_r::Matrix{Float64},
     ## Extensive Margin Semi-Elasticity - Long (Product)
     elas0_nr_long[idxitr].= α*(sum(Smat_nr[idxitr]))
     for k in idxitr
-        elas0_r_long[k,:].= α*(sum(Smat_r[idxitr,:],dims=1))
+        elas0_r_long[k,:]= α*(sum(Smat_r[idxitr,:],dims=1))
     end
     return Nothing
 end
