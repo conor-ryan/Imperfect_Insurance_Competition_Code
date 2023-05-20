@@ -105,6 +105,7 @@ merger_effects[,Metal_std:=factor(Metal_std,levels=c("CATASTROPHIC","BRONZE","SI
 merger_effects[,missing_gold_plat:=as.numeric(Metal_std%in%c("Gold","Plat")&Lives<1)]
 merger_effects[,missing_gold_plat_post:=as.numeric(Metal_std%in%c("Gold","Plat")&Lives_merge<1)]
 merger_effects[,UPP:=UPP_avg_merge+UPP_sel_merge]
+merger_effects[,premerger_share:=Lives/sum(Lives),by=c("markets","policy")]
 
 merger_firms = merger_effects[parties_indicator==1,
                               list(avg_risk=sum(Risk*Lives)/sum(Lives),
@@ -112,12 +113,18 @@ merger_firms = merger_effects[parties_indicator==1,
                                    missing_gold_plat=sum(missing_gold_plat),
                                    missing_gold_plat_post=sum(missing_gold_plat_post)),
                               by=c("merging_parties","markets","policy","Firm")]
-merger_properties = merger_firms[,list(risk_diff=max(avg_risk)-min(avg_risk),
+merger_properties1 = merger_firms[,list(risk_diff=max(avg_risk)-min(avg_risk),
                                        price_diff=max(avg_price)-min(avg_price),
                                        missing_gold_plat=sum(missing_gold_plat),
                                        missing_gold_plat_post=sum(missing_gold_plat_post)),
                                  by=c("merging_parties","markets","policy")]
 
+merger_properties2 = merger_effects[parties_indicator==1,list(avg_upp=sum(UPP_avg_merge*Lives)/sum(Lives),
+                                        avg_GePP_sel = sum(UPP_sel_merge*Lives)/sum(Lives),
+                                        avg_GePP = sum(UPP*Lives)/sum(Lives),
+                                        CS_approx = sum(-UPP*Lives)/sum(Lives),
+                                        avg_pre_price=sum(Price*Lives)/sum(Lives)),
+                                  by=c("merging_parties","markets","policy")]
 #### Merger Welfare Data ####
 merger_welfare = NULL
 for (policy in c("Base","RA")){
@@ -228,6 +235,7 @@ for (policy in c("Base","RA")){
   welfare = merge(baseline_CP[,c("markets","Welfare_baseline_CP")],baseline_Comp[,c("markets","Welfare_baseline_Comp")],by="markets")
   welfare = merge(welfare,baseline_SP[,c("markets","Welfare_baseline_SP")],by="markets")
   welfare[,sorting_cost:=Welfare_baseline_CP-Welfare_baseline_Comp]
+  welfare[,markup_cost:=Welfare_baseline_SP - Welfare_baseline_CP]
   welfare[,policy:=policy]
   base_welfare = rbind(base_welfare,welfare)
 }
@@ -271,19 +279,26 @@ merger_welfare = merge(merger_welfare,base_welfare,by=c("markets","policy"),all.
 # 
 # merger_welfare = merge(merger_welfare,merger_welfare_SP,by=c("markets","merging_parties","policy"),all.x=TRUE)
 merger_welfare[,policy_label:=factor(policy,levels=c("Base","RA"),labels=c("Baseline","No Risk Adjustment"))]
-merger_welfare = merge(merger_welfare,merger_properties,by=c("merging_parties","markets","policy"))
+merger_welfare = merge(merger_welfare,merger_properties1,by=c("merging_parties","markets","policy"))
+merger_welfare = merge(merger_welfare,merger_properties2,by=c("merging_parties","markets","policy"))
 
+#### Market Description ####
+
+base_data = unique(merger_welfare[,c("markets","policy","Profit","Spending","Population","Insured","hhi","firm_num","markup_cost","sorting_cost")])
+
+summary(base_data[policy=="Base"])
+summary(base_data[policy=="RA"])
 
 ##### Main Results Table #####
 merger_welfare[,count:=1]
 
-merger_welfare[,dHHI_Label:="<200"]
+merger_welfare[,dHHI_Label:="<100"]
 # merger_welfare[dHHI>50,dHHI_Label:="50 - 100"]
 # merger_welfare[dHHI>100,dHHI_Label:="100 - 200"]
-merger_welfare[dHHI>200,dHHI_Label:="200 - 500"]
-merger_welfare[dHHI>500,dHHI_Label:="500 - 1000"]
+merger_welfare[dHHI>100,dHHI_Label:="100 - 200"]
+merger_welfare[dHHI>200,dHHI_Label:="200 - 1000"]
 merger_welfare[dHHI>1000,dHHI_Label:=">1000"]
-merger_welfare[,dHHI_Label:=factor(dHHI_Label,levels=c("<200","200 - 500","500 - 1000",">1000"))]
+merger_welfare[,dHHI_Label:=factor(dHHI_Label,levels=c("<100","100 - 200","200 - 1000",">1000"))]
 
 merger_welfare[,sorting_Label:="<\\$5"]
 merger_welfare[sorting_cost>5,sorting_Label:="\\$5-\\$7.5"]
@@ -292,12 +307,12 @@ merger_welfare[sorting_cost>10,sorting_Label:=">\\$10"]
 merger_welfare[,sorting_Label:=factor(sorting_Label,levels=c("<\\$5","\\$5-\\$7.5","\\$7.5-\\$10",">\\$10"))]
 
 Main_HHI = merger_welfare[,list(avgdWelfare=round(mean(chg_Tot_Welfare),2),#avgdCW=round(mean(chg_CW),2),
-                                posdWelf=round(100*mean(chg_Tot_Welfare>0),1),posdCW=round(100*mean(chg_CW>0),2),N=sum(count)),by=c("dHHI_Label","policy")]
+                                posdWelf=round(100*mean(chg_Tot_Welfare>0),1),posdCW=round(100*mean(chg_CW>0),2),sorting_cost=mean(sorting_cost),N=sum(count)),by=c("dHHI_Label","policy")]
 
 setkey(Main_HHI,policy,dHHI_Label)
 
 Main_sort = merger_welfare[,list(avgdWelfare=round(mean(chg_Tot_Welfare),2),#avgdCW=round(mean(chg_CW),2),
-                                posdWelf=round(100*mean(chg_Tot_Welfare>0),1),posdCW=round(100*mean(chg_CW>0),2),N=sum(count)),by=c("sorting_Label","policy")]
+                                posdWelf=round(100*mean(chg_Tot_Welfare>0),1),posdCW=round(100*mean(chg_CW>0),2),dHHI=mean(dHHI),N=sum(count)),by=c("sorting_Label","policy")]
 
 setkey(Main_sort,policy,sorting_Label)
 
@@ -311,8 +326,104 @@ Main_sort[,label:=paste(policy,label,sep="_")]
 Main_sort[,policy:=NULL]
 Main_sort %>% spread(label,value)
 
+merger_welfare[dHHI_Label=="<100",HHI_plot_label:="Change in HHI: <100"]
+merger_welfare[dHHI_Label=="100 - 200",HHI_plot_label:="Change in HHI: 100 - 200"]
+merger_welfare[dHHI_Label%in%c(">1000","200 - 1000"),HHI_plot_label:="Change in HHI: >200"]
+merger_welfare[,HHI_plot_label:=factor(HHI_plot_label,levels=c("Change in HHI: <100","Change in HHI: 100 - 200","Change in HHI: >200"))]
+
+
+png("Writing/Images/WelfareEffect_BySort.png",width=2500,height=2300,res=275)
+ggplot(merger_welfare) + aes(x=log(sorting_cost),y=chg_CW,color=policy_label,shape=policy_label) + 
+  geom_abline(slope=0,intercept=0) + 
+  geom_point(size=3,alpha=0.5) + 
+  facet_wrap("HHI_plot_label",ncol=1,scales="free_y") + 
+  scale_y_continuous(breaks=pretty_breaks(n=4)) + 
+  scale_x_continuous(breaks=c(log(0.25),log(0.5),log(1),log(2),log(4),log(8),log(16)),
+                     labels=c("0.25","0.50","1","2","4","8","16")) + 
+  xlab("Welfare Cost of Sorting ($ per person-month)") + 
+  ylab("Effect on Consumer Surplus ($ per person-month)") + 
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    strip.text = element_text(size=14),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title = element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "bottom",
+    axis.title=element_text(size=14),
+    axis.text = element_text(size=16))
+dev.off()
+
+
 ##### Identifying Positive Mergers ####
-df = merger_welfare[policy=="RA"&dHHI>200]
+df = merger_welfare[dHHI>200]
+df[,avg_upp_ratio:=avg_upp/avg_pre_price]
+df[,avg_GePP_ratio:=avg_GePP/avg_pre_price]
+
+png("Writing/Images/WelfareByGePP.png",width=2500,height=1500,res=275)
+ggplot(df) + aes(x=avg_GePP,y=chg_CW,color=policy_label,shape=policy_label) + 
+  geom_point(size=3,alpha=0.5) + 
+  geom_abline(slope=-1,intercept=0) + 
+  geom_abline(slope=0,intercept=0,color=grey(0.5)) + 
+  # scale_y_continuous(breaks=pretty_breaks(n=4)) + 
+  # scale_x_continuous(breaks=c(log(0.25),log(0.5),log(1),log(2),log(4),log(8),log(16)),
+  #                    labels=c("0.25","0.50","1","2","4","8","16")) + 
+  xlab("Merger Average GePP") + 
+  ylab("Effect on Consumer Surplus ($ per person-month)") + 
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    strip.text = element_text(size=14),
+    legend.background = element_rect(color=grey(.5)),
+    legend.title = element_blank(),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "bottom",
+    axis.title=element_text(size=14),
+    axis.text = element_text(size=16))
+dev.off()
+threshold = seq(-0.05,0.1,0.005)
+res = data.table(threshold=rep(threshold,times=4),
+                 Policy=rep(c("Baseline","No Risk\nAdjustment"),each=length(threshold),times=2),
+                 Measure = rep(c("UPP","GePP"),each=length(threshold)*2))
+for (t in threshold){
+  r1   = df[policy=="Base"&avg_upp_ratio>t,sum(chg_CW>0)/sum(!is.na(chg_CW))]
+  r2 = df[policy=="RA"&avg_upp_ratio>t,sum(chg_CW>0)/sum(!is.na(chg_CW))]
+  r3 = df[policy=="Base"&avg_GePP_ratio>t,sum(chg_CW>0)/sum(!is.na(chg_CW))]
+  r4 = df[policy=="RA"&avg_GePP_ratio>t,sum(chg_CW>0)/sum(!is.na(chg_CW))]
+  
+  res[threshold==t&Policy=="Baseline"&Measure=="UPP",positive:=r1]
+  res[threshold==t&Policy=="No Risk\nAdjustment"&Measure=="UPP",positive:=r2]
+  res[threshold==t&Policy=="Baseline"&Measure=="GePP",positive:=r3]
+  res[threshold==t&Policy=="No Risk\nAdjustment"&Measure=="GePP",positive:=r4]
+}
+
+
+png("Writing/Images/Screening.png",width=2500,height=1500,res=275)
+ggplot(res) + aes(x=threshold,y=positive,color=Policy,shape=Policy,linetype=Measure) + 
+  geom_point(size = 4) + 
+  geom_line(linewidth=1.3) +
+  scale_x_continuous(limits=c(-0.04,0.08),breaks=c(-0.025,0,0.025,0.05,0.075)) + 
+  scale_y_continuous(labels=percent) + 
+  ylab("Percent of Allowed Mergers\nwith Positive Consumer Surplus Effect") + 
+  xlab("Merger Screening Threshold (Measure/Average Price)") +
+  theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
+    strip.background = element_blank(),
+    strip.text = element_text(size=14),
+    legend.background = element_blank(),
+    legend.title = element_text(size=14),
+    legend.text = element_text(size=14),
+    legend.key.width = unit(.05,units="npc"),
+    legend.key = element_rect(color="transparent",fill="transparent"),
+    legend.position = "right",
+    axis.title=element_text(size=14),
+    axis.text = element_text(size=16))
+dev.off()
+
+
+
+
 sort = df[,list(avgdWelfare=round(mean(chg_Tot_Welfare),2),#avgdCW=round(mean(chg_CW),2),
                                  posdWelf=round(100*mean(chg_Tot_Welfare>0),1),posdCW=round(100*mean(chg_CW>0),2),N=sum(count)),by=c("sorting_Label","policy")]
 
@@ -324,7 +435,7 @@ df[risk_diff>0.064,risk_label:="2"]
 df[risk_diff>0.123,risk_label:="3"]
 df[risk_diff>0.19,risk_label:="4"]
 
-plot = df[,list(pos_welfare=mean(chg_Tot_Welfare>0),N=sum(count)),by=c("sorting_bucket","risk_label")]
+plot = df[,list(pos_welfare=mean(chg_Tot_Welfare),N=sum(count)),by=c("sorting_bucket","risk_label")]
 
 ggplot(plot) + aes(x=sorting_bucket,y=pos_welfare,group=risk_label,color=risk_label,shape=risk_label,size=N) + geom_point()
 

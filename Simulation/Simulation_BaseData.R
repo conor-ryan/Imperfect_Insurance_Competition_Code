@@ -2,7 +2,7 @@ rm(list=ls())
 library(doBy)
 library(randtoolbox)
 library(data.table)
-setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
+setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition")
 
 #### 2015 Subsidy Percentage Function ####
 

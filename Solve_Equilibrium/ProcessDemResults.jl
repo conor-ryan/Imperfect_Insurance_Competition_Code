@@ -161,18 +161,32 @@ function process_demand(rundate,spec,home_directory)
     println("The mean of costs is $mean_c")
 
     #### Relationship between Cost and Elasticity ####
-    bottom_10th_elas = find_pctile_index(all_wgts,elas_sort_index,0.10)
+    bottom_10th_elas = find_pctile_index(all_wgts,elas_sort_index,0.25)
     median_elas = find_pctile_index(all_wgts,elas_sort_index,0.50)
-    top_10th_elas = find_pctile_index(all_wgts,elas_sort_index,0.90)
-    bottom_10th = elas_sort_index[1:median_elas]
-    top_10th = elas_sort_index[median_elas:length(elas_sort_index)]
+    top_10th_elas = find_pctile_index(all_wgts,elas_sort_index,0.75)
+    bottom_10th = elas_sort_index[1:bottom_10th_elas]
+    top_10th = elas_sort_index[top_10th_elas:length(elas_sort_index)]
 
     mean_c = sum(all_c[bottom_10th].*all_wgts[bottom_10th])/sum(all_wgts[bottom_10th])
     mean_elas = sum(all_elas[bottom_10th].*all_wgts[bottom_10th])/sum(all_wgts[bottom_10th])
-    println("The mean of costs in the bottom 50th percentile of elasticities is $mean_c, mean elasticity is $mean_elas")
+    println("The mean of costs in the bottom 25th percentile of elasticities is $mean_c, mean elasticity is $mean_elas")
     mean_c = sum(all_c[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
     mean_elas = sum(all_elas[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
-    println("The mean of costs in the top 50th percentile of elasticities is $mean_c, mean elasticity is $mean_elas")
+    println("The mean of costs in the top 75th percentile of elasticities is $mean_c, mean elasticity is $mean_elas")
+
+    bottom_10th_elas = find_pctile_index(all_wgts,elas0_sort_index,0.25)
+    median_elas = find_pctile_index(all_wgts,elas0_sort_index,0.50)
+    top_10th_elas = find_pctile_index(all_wgts,elas0_sort_index,0.75)
+    bottom_10th = elas0_sort_index[1:bottom_10th_elas]
+    top_10th = elas0_sort_index[top_10th_elas:length(elas0_sort_index)]
+
+    mean_c = sum(all_c[bottom_10th].*all_wgts[bottom_10th])/sum(all_wgts[bottom_10th])
+    mean_elas = sum(all_elas0[bottom_10th].*all_wgts[bottom_10th])/sum(all_wgts[bottom_10th])
+    println("The mean of costs in the bottom 25th percentile of insurance semi-elasticities is $mean_c, mean semi-elasticity is $mean_elas")
+    mean_c = sum(all_c[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
+    mean_elas = sum(all_elas0[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
+    println("The mean of costs in the top 75th percentile of insurance semi-elasticities is $mean_c, mean semi-elasticity is $mean_elas")
+
 
     bottom_10th_cost = find_pctile_index(all_wgts,c_sort_index,0.10)
     top_10th_cost = find_pctile_index(all_wgts,c_sort_index,0.90)
@@ -185,6 +199,18 @@ function process_demand(rundate,spec,home_directory)
     mean_c = sum(all_c[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
     mean_elas = sum(all_elas[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
     println("The mean of elasticities in the top 10th percentile of costs is $mean_elas, mean cost is $mean_c")
+
+    bottom_10th_cost = find_pctile_index(all_wgts,c_sort_index,0.25)
+    top_10th_cost = find_pctile_index(all_wgts,c_sort_index,0.75)
+    bottom_10th = c_sort_index[1:bottom_10th_cost]
+    top_10th = c_sort_index[top_10th_cost:length(c_sort_index)]
+
+    mean_c = sum(all_c[bottom_10th].*all_wgts[bottom_10th])/sum(all_wgts[bottom_10th])
+    mean_elas = sum(all_elas[bottom_10th].*all_wgts[bottom_10th])/sum(all_wgts[bottom_10th])
+    println("The mean of elasticities in the bottom 25th percentile of costs is $mean_elas, mean cost is $mean_c")
+    mean_c = sum(all_c[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
+    mean_elas = sum(all_elas[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
+    println("The mean of elasticities in the top 25th percentile of costs is $mean_elas, mean cost is $mean_c")
 
     return nothing
 end

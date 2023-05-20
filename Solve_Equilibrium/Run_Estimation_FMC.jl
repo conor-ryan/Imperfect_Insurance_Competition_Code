@@ -49,9 +49,9 @@ spec_prodchars_σ=[:AV,:constant,
 cost_spec = [:AGE,:AV_std]
 
 # rundate = Dates.today()
-rundate = "2023-05-09"
-spec = "FM"
-spec_fixedEffects=[:Market_Firm]
+rundate = "2022-12-26"
+spec = "FMC"
+spec_fixedEffects=[:Market_Firm,:Market_Cat]
 println("Running $spec on $rundate")
 
 
@@ -97,7 +97,7 @@ include("$codeDir/Firm_Side/MC_derivatives.jl")
 include("$codeDir/Firm_Side/MC_optimization.jl")
 include("$codeDir/Firm_Side/Firm_Inner_Loop.jl")
 include("$codeDir/Firm_Side/SpecRunMC.jl")
-estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
+# estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
 
 include("ProcessDemResults.jl")
 process_demand(rundate,spec,home_directory)
