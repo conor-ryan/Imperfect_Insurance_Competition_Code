@@ -12,7 +12,8 @@ using ForwardDiff
 using NLopt
 using FiniteDiff
 using SharedArrays
-
+using Primes
+using StatsBase
 
 # ## Check OS Environment
 if occursin(r"Users",homedir())

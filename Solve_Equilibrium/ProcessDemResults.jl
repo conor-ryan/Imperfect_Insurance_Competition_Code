@@ -56,7 +56,7 @@ function process_demand(rundate,spec,home_directory)
     Smat_r,Smat_nr = individual_share_matrix(model,par_dem)
 
     prem_base = df[!,:premBase].*12 .*df[!,:ageRate]./1000
-    wtp_nr, wtp_r,elas_nr,elas_r,elas0_nr,elas0_r = individual_wtp(model,par_dem,Smat_r,Smat_nr,prem_base)
+    wtp_nr, wtp_r,elas_nr,elas_r,elas0_nr,elas0_r,elas0_nr_long,elas0_r_long = individual_wtp(model,par_dem,Smat_r,Smat_nr,prem_base)
 
     c_nr = par_cost.C_nonrisk
     c_r = individual_cost_matrix(model,par_cost)
@@ -126,6 +126,13 @@ function process_demand(rundate,spec,home_directory)
     mean_elas0 = sum(all_elas0.*all_wgts_pp)/sum(all_wgts_pp)
     println("The mean of elas0 is $mean_elas0")
 
+    elas0_r_long_vec = elas0_r_long[:]
+
+    all_elas0_long = vcat(elas0_r_long_vec,elas0_nr_long)
+    all_elas0_long = all_elas0_long.*12 ./1000 .*10 # $10 per month
+
+    elas0_long_sort_index = sortperm(all_elas0_long)
+
     #### Distribution of Own-price Semi Elasticity ####
     elas_r_vec = elas_r[:]
 
@@ -174,17 +181,17 @@ function process_demand(rundate,spec,home_directory)
     mean_elas = sum(all_elas[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
     println("The mean of costs in the top 75th percentile of elasticities is $mean_c, mean elasticity is $mean_elas")
 
-    bottom_10th_elas = find_pctile_index(all_wgts,elas0_sort_index,0.25)
-    median_elas = find_pctile_index(all_wgts,elas0_sort_index,0.50)
-    top_10th_elas = find_pctile_index(all_wgts,elas0_sort_index,0.75)
-    bottom_10th = elas0_sort_index[1:bottom_10th_elas]
-    top_10th = elas0_sort_index[top_10th_elas:length(elas0_sort_index)]
+    bottom_10th_elas = find_pctile_index(all_wgts,elas0_long_sort_index,0.25)
+    median_elas = find_pctile_index(all_wgts,elas0_long_sort_index,0.50)
+    top_10th_elas = find_pctile_index(all_wgts,elas0_long_sort_index,0.75)
+    bottom_10th = elas0_long_sort_index[1:bottom_10th_elas]
+    top_10th = elas0_long_sort_index[top_10th_elas:length(elas0_long_sort_index)]
 
     mean_c = sum(all_c[bottom_10th].*all_wgts[bottom_10th])/sum(all_wgts[bottom_10th])
-    mean_elas = sum(all_elas0[bottom_10th].*all_wgts[bottom_10th])/sum(all_wgts[bottom_10th])
+    mean_elas = sum(all_elas0_long[bottom_10th].*all_wgts[bottom_10th])/sum(all_wgts[bottom_10th])
     println("The mean of costs in the bottom 25th percentile of insurance semi-elasticities is $mean_c, mean semi-elasticity is $mean_elas")
     mean_c = sum(all_c[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
-    mean_elas = sum(all_elas0[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
+    mean_elas = sum(all_elas0_long[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
     println("The mean of costs in the top 75th percentile of insurance semi-elasticities is $mean_c, mean semi-elasticity is $mean_elas")
 
 
@@ -239,16 +246,19 @@ function individual_wtp(d::InsuranceLogit,p::parDict{T},Smat_r::Matrix{Float64},
     elas_r = Matrix{Float64}(undef,size(Smat_r,1),size(Smat_r,2))
     elas0_nr = zeros(P)
     elas0_r = zeros(P,size(d.draws,1))
+    elas0_nr_long=  Vector{Float64}(undef,length(Smat_nr))
+    elas0_r_long = Matrix{Float64}(undef,size(Smat_r,1),size(Smat_r,2))
 
     for app in eachperson(d.data)
-        wtp_value!(wtp_nr,wtp_r,elas_nr,elas_r,elas0_nr,elas0_r,app,p,Smat_r,Smat_nr,prem_base)
+        wtp_value!(wtp_nr,wtp_r,elas_nr,elas_r,elas0_nr,elas0_r,elas0_nr_long,elas0_r_long,app,p,Smat_r,Smat_nr,prem_base)
     end
-    return wtp_nr,wtp_r,elas_nr,elas_r,elas0_nr,elas0_r
+    return wtp_nr,wtp_r,elas_nr,elas_r,elas0_nr,elas0_r,elas0_nr_long,elas0_r_long
 end
 
 function wtp_value!(wtp_nr::Vector{Float64},wtp_r::Matrix{Float64},
                     elas_nr::Vector{Float64},elas_r::Matrix{Float64},
                     elas0_nr::Vector{Float64},elas0_r::Matrix{Float64},
+                    elas0_nr_long::Vector{Float64},elas0_r_long::Matrix{Float64},
                     app::ChoiceData,p::parDict{T},
                     Smat_r::Matrix{Float64},Smat_nr::Vector{Float64},prem_base::Vector{Float64}) where T
     γ_0 = p.γ_0
@@ -284,6 +294,12 @@ function wtp_value!(wtp_nr::Vector{Float64},wtp_r::Matrix{Float64},
     ## Extensive Margin Semi-Elasticity
     elas0_nr[ind_index] = α*(sum(Smat_nr[idxitr]))
     elas0_r[ind_index,:] = α*(sum(Smat_r[idxitr,:],dims=1))
+
+    ## Extensive Margin Semi-Elasticity - Long (Product)
+    elas0_nr_long[idxitr].= α*(sum(Smat_nr[idxitr]))
+    for k in idxitr
+        elas0_r_long[k,:].= α*(sum(Smat_r[idxitr,:],dims=1))
+    end
     return Nothing
 end
 
