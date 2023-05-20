@@ -168,18 +168,18 @@ function process_demand(rundate,spec,home_directory)
     println("The mean of costs is $mean_c")
 
     #### Relationship between Cost and Elasticity ####
-    bottom_10th_elas = find_pctile_index(all_wgts,elas_sort_index,0.25)
+    bottom_10th_elas = find_pctile_index(all_wgts,elas_sort_index,0.10)
     median_elas = find_pctile_index(all_wgts,elas_sort_index,0.50)
-    top_10th_elas = find_pctile_index(all_wgts,elas_sort_index,0.75)
+    top_10th_elas = find_pctile_index(all_wgts,elas_sort_index,0.90)
     bottom_10th = elas_sort_index[1:bottom_10th_elas]
     top_10th = elas_sort_index[top_10th_elas:length(elas_sort_index)]
 
     mean_c = sum(all_c[bottom_10th].*all_wgts[bottom_10th])/sum(all_wgts[bottom_10th])
     mean_elas = sum(all_elas[bottom_10th].*all_wgts[bottom_10th])/sum(all_wgts[bottom_10th])
-    println("The mean of costs in the bottom 25th percentile of elasticities is $mean_c, mean elasticity is $mean_elas")
+    println("The mean of costs in the bottom 10th percentile of elasticities is $mean_c, mean elasticity is $mean_elas")
     mean_c = sum(all_c[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
     mean_elas = sum(all_elas[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
-    println("The mean of costs in the top 75th percentile of elasticities is $mean_c, mean elasticity is $mean_elas")
+    println("The mean of costs in the top 90th percentile of elasticities is $mean_c, mean elasticity is $mean_elas")
 
     bottom_10th_elas = find_pctile_index(all_wgts,elas0_long_sort_index,0.1)
     median_elas = find_pctile_index(all_wgts,elas0_long_sort_index,0.50)
@@ -189,10 +189,10 @@ function process_demand(rundate,spec,home_directory)
 
     mean_c = sum(all_c[bottom_10th].*all_wgts[bottom_10th])/sum(all_wgts[bottom_10th])
     mean_elas = sum(all_elas0_long[bottom_10th].*all_wgts[bottom_10th])/sum(all_wgts[bottom_10th])
-    println("The mean of costs in the bottom 25th percentile of insurance semi-elasticities is $mean_c, mean semi-elasticity is $mean_elas")
+    println("The mean of costs in the bottom 10th percentile of insurance semi-elasticities is $mean_c, mean semi-elasticity is $mean_elas")
     mean_c = sum(all_c[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
     mean_elas = sum(all_elas0_long[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
-    println("The mean of costs in the top 75th percentile of insurance semi-elasticities is $mean_c, mean semi-elasticity is $mean_elas")
+    println("The mean of costs in the top 90th percentile of insurance semi-elasticities is $mean_c, mean semi-elasticity is $mean_elas")
 
 
     bottom_10th_cost = find_pctile_index(all_wgts,c_sort_index,0.10)
