@@ -147,7 +147,7 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
     #### Print Costs Moments
     println("Print Cost Moments...")
     moments,targets = costMoments(costdf,m,p_stg2,par_est,print_moments=true)
-    file = "$(homedir())/Documents/Research/Imperfect_Insurance_Competition/Estimation_Output/costMoments_$spec-$rundate.csv"
+    file = "$home_directory/Research/Imperfect_Insurance_Competition/Estimation_Output/costMoments_$spec-$rundate.csv"
     output =  DataFrame(estimated_moments=moments,
                         targeted_moments = targets)
     CSV.write(file,output)
