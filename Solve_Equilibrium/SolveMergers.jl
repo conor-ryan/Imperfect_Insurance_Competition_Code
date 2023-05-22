@@ -661,6 +661,10 @@ function simulate_all_mergers(m::InsuranceLogit,
         P_Base[:] = f.P_j[:]
         evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
     end
+    if voucher==false
+        evaluate_model!(m,f,"All",voucher=voucher)
+        set_voucher!(f,refund=true)
+    end
     prod_profits = product_profits(m,f,sim=sim)
 
     base_profits = market_profits(m,f)
@@ -684,8 +688,8 @@ function simulate_all_mergers(m::InsuranceLogit,
     
     # Solve Baseline Social Planner Problem
     println("Solve Baseline Planner Problem")
-    solve_SP_parallel!(m,f,voucher=voucher,update_voucher=update_voucher)
-    evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
+    solve_SP_parallel!(m,f,voucher=true,update_voucher=false)
+    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
     
     product_risk = calc_risk_avg(m,f)
     # consumer_welfare(m,f,"$(file_stub)_SP_baseline",spec,rundate)
@@ -712,7 +716,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     # markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits,markets=[4,5,6,7,8,9,10,11,12,13,14])
     # markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits,markets=[4,5,6,7,8,9,10,11,12,13,14])
     # markets_cp, λ_vec_cp = solve_SP_λ_st!(m,f,base_profits_st,states=["GA"])
-    evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
+    evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
     P_Base_SP_cp[:] = f.P_j[:]
     product_risk = calc_risk_avg(m,f)
 

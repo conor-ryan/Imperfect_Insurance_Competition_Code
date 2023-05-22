@@ -9,31 +9,31 @@ setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
 run = "2022-12-26"
 spec = "FMC"
 
-##### Check Margin ####
-margins = fread(paste("Estimation_Output/AllMergers_",spec,"-",run,"_Base_Marigins.csv",sep=""))
-
-png("Writing/Images/marginCheckRA.png",width=2500,height=1500,res=275)
-ggplot(margins) + aes(x=MR,y=MC_RA) + 
-  geom_point(aes(size=lives),alpha=0.25) +
-  scale_size(range=c(0.5,20)) + 
-  geom_smooth(method="lm",se=FALSE,color="red",linetype=2) + 
-  geom_abline(slope=1,intercept=0) + 
-  # coord_cartesian(xlim=c(-100,500),ylim=c(-100,700)) + 
-  xlab("Marginal Revenue") + 
-  ylab("Marginal Cost")  +
-  theme(panel.background=element_rect(color=grey(0.75),fill="white"),
-        panel.grid.major = element_line(color=grey(0.75)),
-        strip.background = element_blank(),
-        strip.text = element_text(size=14),
-        legend.background = element_rect(color=grey(.5)),
-        legend.title = element_blank(),
-        legend.text = element_text(size=14),
-        legend.key.width = unit(.05,units="npc"),
-        legend.key = element_rect(color="transparent",fill="transparent"),
-        legend.position = "none",
-        axis.title=element_text(size=14),
-        axis.text = element_text(size=16))
-dev.off()
+# ##### Check Margin ####
+# margins = fread(paste("Estimation_Output/AllMergers_PL_",spec,"-",run,"_Base_Marigins.csv",sep=""))
+# 
+# # png("Writing/Images/marginCheckRA.png",width=2500,height=1500,res=275)
+# ggplot(margins) + aes(x=MR,y=MC_RA) + 
+#   geom_point(aes(size=lives),alpha=0.25) +
+#   scale_size(range=c(0.5,20)) + 
+#   geom_smooth(method="lm",se=FALSE,color="red",linetype=2) + 
+#   geom_abline(slope=1,intercept=0) + 
+#   # coord_cartesian(xlim=c(-100,500),ylim=c(-100,700)) + 
+#   xlab("Marginal Revenue") + 
+#   ylab("Marginal Cost")  +
+#   theme(panel.background=element_rect(color=grey(0.75),fill="white"),
+#         panel.grid.major = element_line(color=grey(0.75)),
+#         strip.background = element_blank(),
+#         strip.text = element_text(size=14),
+#         legend.background = element_rect(color=grey(.5)),
+#         legend.title = element_blank(),
+#         legend.text = element_text(size=14),
+#         legend.key.width = unit(.05,units="npc"),
+#         legend.key = element_rect(color="transparent",fill="transparent"),
+#         legend.position = "none",
+#         axis.title=element_text(size=14),
+#         axis.text = element_text(size=16))
+# # dev.off()
 
 
 ### Base Data 
@@ -46,7 +46,7 @@ prodData = merge(prodData,marketSize,by="Market")
 
 #### Merger Price-Effect Data ####
 merger_effects = NULL
-for (policy in c("Base","RA")){
+for (policy in c("Base")){
   print(policy)
   if (policy=="PL"){
     spec_temp = paste("PL","FMC",sep="_")
@@ -55,7 +55,7 @@ for (policy in c("Base","RA")){
     spec_temp = spec
     policy_temp = policy
   }
-  filestub = paste("Estimation_Output/AllMergers_",spec_temp,"-",run,"_",policy_temp,"_",sep="")
+  filestub = paste("Estimation_Output/AllMergers_PL_",spec_temp,"-",run,"_",policy_temp,"_",sep="")
   
   ### Baseline Market Data ####
   baseline = fread(paste(filestub,"baseline.csv",sep=""))
@@ -77,7 +77,7 @@ for (policy in c("Base","RA")){
                             labels=c("HHI < 3500","HHI > 3500"))]
   
   #### Iterate Through Mergers ####
-  merger_files = list.files("Estimation_Output",pattern=paste("^AllMergers_",spec_temp,"-",run,"_",policy_temp,sep=""))
+  merger_files = list.files("Estimation_Output",pattern=paste("^AllMergers_PL_",spec_temp,"-",run,"_",policy_temp,sep=""))
   unique_firms = sort(firm_share[,unique(Firm)])
   
   
@@ -154,7 +154,7 @@ merger_properties2 = merger_effects[parties_indicator==1,list(avg_upp=sum(UPP_av
                                     by=c("merging_parties","markets","policy")]
 #### Merger Welfare Data ####
 merger_welfare = NULL
-for (policy in c("Base","RA")){
+for (policy in c("Base")){
   print(policy)
   if (policy=="PL"){
     spec_temp = paste("PL","FMC",sep="_")
@@ -163,7 +163,7 @@ for (policy in c("Base","RA")){
     spec_temp = spec
     policy_temp = policy
   }
-  filestub = paste("Estimation_Output/AllMergers_",spec_temp,"-",run,"_",policy_temp,"_",sep="")
+  filestub = paste("Estimation_Output/AllMergers_PL_",spec_temp,"-",run,"_",policy_temp,"_",sep="")
   
   ### Baseline Market Data ####
   baseline = fread(paste(filestub,"baseline.csv",sep=""))
@@ -183,10 +183,10 @@ for (policy in c("Base","RA")){
                             labels=c("HHI < 3500","HHI > 3500"))]
   
   ## Baseline welfare data
-  base_welfare = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,"_baseline-",spec,"-",run,".csv",sep=""))
+  base_welfare = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_PL_",spec_temp,"-",run,"_",policy_temp,"_baseline-",spec,"-",run,".csv",sep=""))
   
   #### Iterate Through Mergers ####
-  merger_files = list.files("Estimation_Output",pattern=paste("totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,sep=""))
+  merger_files = list.files("Estimation_Output",pattern=paste("totalWelfare_bymkt_AllMergers_PL_",spec_temp,"-",run,"_",policy_temp,sep=""))
   unique_firms = sort(firm_share[,unique(Firm)])
   
   
@@ -240,7 +240,7 @@ merger_welfare[,chg_Tot_Welfaregov:=chg_CW+chg_Profit+chg_Spending]
 
 ##### Decomposition  Data ####
 base_welfare = NULL
-for (policy in c("Base","RA")){
+for (policy in c("Base")){
   print(policy)
   if (policy=="PL"){
     spec_temp = paste("PL","FMC",sep="_")
@@ -249,9 +249,9 @@ for (policy in c("Base","RA")){
     spec_temp = spec
     policy_temp = policy
   }
-  baseline_CP = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,"_SP_cp_baseline-",spec,"-",run,".csv",sep=""))
-  baseline_Comp = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,"_baseline-",spec,"-",run,".csv",sep=""))
-  baseline_SP = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,"_SP_baseline-",spec,"-",run,".csv",sep=""))
+  baseline_CP = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_PL_",spec_temp,"-",run,"_",policy_temp,"_SP_cp_baseline-",spec,"-",run,".csv",sep=""))
+  baseline_Comp = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_PL_",spec_temp,"-",run,"_",policy_temp,"_baseline-",spec,"-",run,".csv",sep=""))
+  baseline_SP = fread(paste("Estimation_Output/totalWelfare_bymkt_AllMergers_PL_",spec_temp,"-",run,"_",policy_temp,"_SP_baseline-",spec,"-",run,".csv",sep=""))
   
   
   
@@ -280,7 +280,7 @@ merger_welfare = merge(merger_welfare,base_welfare,by=c("markets","policy"),all.
 #     policy_temp = policy
 #   }
 #   #### Iterate Through Mergers ####
-#   merger_files = list.files("Estimation_Output",pattern=paste("totalWelfare_bymkt_AllMergers_",spec_temp,"-",run,"_",policy_temp,"_",sep=""))
+#   merger_files = list.files("Estimation_Output",pattern=paste("totalWelfare_bymkt_AllMergers_PL_",spec_temp,"-",run,"_",policy_temp,"_",sep=""))
 #   merger_SP_CP_files = merger_files[grepl("_SP_",merger_files)]
 #   merger_base_files = merger_files[!grepl("_SP_",merger_files)]
 # 
@@ -333,13 +333,13 @@ merger_welfare[sorting_cost>7.5,sorting_Label:="\\$7.5-\\$10"]
 merger_welfare[sorting_cost>10,sorting_Label:=">\\$10"]
 merger_welfare[,sorting_Label:=factor(sorting_Label,levels=c("<\\$5","\\$5-\\$7.5","\\$7.5-\\$10",">\\$10"))]
 
-Main_HHI = merger_welfare[,list(avgdWelfare=round(mean(chg_Tot_Welfare),2),#avgdCW=round(mean(chg_CW),2),
-                                posdWelf=round(100*mean(chg_Tot_Welfare>0),1),posdCW=round(100*mean(chg_CW>0),2),sorting_cost=mean(sorting_cost),N=sum(count)),by=c("dHHI_Label","policy")]
+Main_HHI = merger_welfare[,list(avgdWelfare=round(mean(chg_Tot_Welfaregov),2),#avgdCW=round(mean(chg_CW),2),
+                                posdWelf=round(100*mean(chg_Tot_Welfaregov>0),1),posdCW=round(100*mean(chg_CW>0),2),sorting_cost=mean(sorting_cost),N=sum(count)),by=c("dHHI_Label","policy")]
 
 setkey(Main_HHI,policy,dHHI_Label)
 
-Main_sort = merger_welfare[,list(avgdWelfare=round(mean(chg_Tot_Welfare),2),#avgdCW=round(mean(chg_CW),2),
-                                 posdWelf=round(100*mean(chg_Tot_Welfare>0),1),posdCW=round(100*mean(chg_CW>0),2),dHHI=mean(dHHI),N=sum(count)),by=c("sorting_Label","policy")]
+Main_sort = merger_welfare[,list(avgdWelfare=round(mean(chg_Tot_Welfaregov),2),#avgdCW=round(mean(chg_CW),2),
+                                 posdWelf=round(100*mean(chg_Tot_Welfaregov>0),1),posdCW=round(100*mean(chg_CW>0),2),dHHI=mean(dHHI),N=sum(count)),by=c("sorting_Label","policy")]
 
 setkey(Main_sort,policy,sorting_Label)
 
