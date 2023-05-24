@@ -46,12 +46,11 @@ function solve_model!(m::InsuranceLogit,f::firmData,states::Vector{String};
 end
 
 function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
-                sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=false,update_voucher=true,no_policy=false)
+                sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=false,update_voucher=true,no_policy=false,itr_max=1000)
     err_new = 1
     err_last = 1
     itr_cnt = 0
     stp = 0.05
-    no_prog_cnt = 0
     no_prog = 0
     P_last = zeros(length(f.P_j[:]))
     P_new_last = zeros(length(f.P_j[:]))
@@ -115,6 +114,10 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
         end
 
         err_last = copy(err_new)
+        if itr_cnt>itr_max
+            f.P_j = P_orig
+            println("No Converged Equilibrium")
+        end
         # println(P_last)
     end
     println("Solved $ST at Iteration Count: $itr_cnt, Error: $err_new")
