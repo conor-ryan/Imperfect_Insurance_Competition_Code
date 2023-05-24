@@ -117,6 +117,7 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
         if itr_cnt>itr_max
             f.P_j = P_orig
             println("No Converged Equilibrium")
+            break
         end
         # println(P_last)
     end
