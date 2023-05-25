@@ -781,9 +781,10 @@ function simulate_all_mergers(m::InsuranceLogit,
     @eval @everywhere spec=$spec
     @eval @everywhere rundate=$rundate
     @eval @everywhere sim=$sim
+    @everywhere uppMat = zeros(size(f.ownMat))
     println("Data Distributed")
 
-    uppMat = zeros(size(f.ownMat))
+    
     @sync @distributed for i in eachindex(merging_party_list)
     # for i in eachindex(merging_party_list)
         shared_markets = shared_market_list[i]
@@ -821,7 +822,7 @@ function simulate_all_mergers(m::InsuranceLogit,
         upp_avg,upp_sel = evaluate_GePP(f,uppMat,sim)
 
         # Solve model in the affected states
-        println("Begin Competitive Equilibrium Solution")
+        println("Begin Competitive Equilibrium Solution in $shared_states")
         solve_model!(m,f,shared_states,sim=sim,voucher=voucher,update_voucher=update_voucher)
         evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
         prod_profits = product_profits(m,f,sim=sim)
