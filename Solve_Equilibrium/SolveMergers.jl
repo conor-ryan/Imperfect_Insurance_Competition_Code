@@ -764,6 +764,9 @@ function simulate_all_mergers(m::InsuranceLogit,
             # Skip if merging parties do not operate in same state
             shared_states = check_states_if_merger(f,merging_parties)
             shared_markets = check_markets_if_merger(f,merging_parties)
+            if length(shared_states)==0
+                continue
+            end
             push!(merging_party_list,merging_parties)
             push!(shared_state_list,shared_states)
             push!(shared_market_list,shared_markets)
