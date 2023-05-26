@@ -78,11 +78,11 @@ function MergersMain(rundate,spec,home_directory)
 
 
     filestub = "AllMergers_PL_$spec-$(rundate)"
-    println("####################################")
-    println("#### Solve Policy Baseline - Price Linked ####")
-    println("####################################")
-    simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
-                            filestub,policy="Base",voucher=false)
+    # println("####################################")
+    # println("#### Solve Policy Baseline - Price Linked ####")
+    # println("####################################")
+    # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
+    #                         filestub,policy="Base",voucher=false)
     println("####################################")
     println("#### Solve Without Risk Adjustment - Price Linked ####")
     println("####################################")
@@ -656,24 +656,26 @@ function simulate_all_mergers(m::InsuranceLogit,
         evaluate_model!(m,f,"All",voucher=voucher)
         set_voucher!(f,refund=true)
 
-        solve_model_parallel!(m,f,sim=sim,voucher=voucher,update_voucher=update_voucher)
+        solve_model!(m,f,sim=sim,voucher=voucher,update_voucher=update_voucher)
         # solve_model!(m,f,sim=sim,voucher=voucher)
         P_Base[:] = f.P_j[:]
+        println("Evaluate")
         evaluate_model!(m,f,"All",voucher=voucher,update_voucher=update_voucher)
     end
     if voucher==false
-        evaluate_model!(m,f,"All",voucher=voucher)
+        println("Set Voucher")
         set_voucher!(f,refund=true)
     end
+    println("Compute Profits")
     prod_profits = product_profits(m,f,sim=sim)
-
     base_profits = market_profits(m,f)
-    base_profits_st =state_profits(m,f)
+    # base_profits_st =state_profits(m,f)
     product_risk = calc_risk_avg(m,f)
     # consumer_welfare(m,f,"$(file_stub)_baseline",spec,rundate)
     trash = total_welfare_bymkt(m,f,"$(file_stub)_baseline",spec,rundate,update_voucher=update_voucher)
 
     # Output Baseline Model
+    println("Output")
     file = "$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub)_baseline.csv"
     output =  DataFrame(Product=prod_vec,
                         Price=f.P_j,
