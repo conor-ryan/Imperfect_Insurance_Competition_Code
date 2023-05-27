@@ -71,7 +71,7 @@ function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
         P_last[:] = copy(f.P_j[:])
         P_new_last[:] = copy(P_new[:])
         f.P_j[:] = (1-stp).*f.P_j[:] + stp.*P_new[:]
-        println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
+        # println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
         # println(foc_err)
         # println(P_new[f._prodSTDict[ST]])
         # println(f.S_j[f._prodSTDict[ST]])
