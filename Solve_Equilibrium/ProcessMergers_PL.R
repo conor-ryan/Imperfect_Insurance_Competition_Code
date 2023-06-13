@@ -3,37 +3,37 @@ library(data.table)
 library(ggplot2)
 library(scales)
 library(tidyr)
-setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
+setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition/")
 # setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition/")
 
 run = "2022-12-26"
 spec = "FMC"
 
-# ##### Check Margin ####
-# margins = fread(paste("Estimation_Output/AllMergers_PL_",spec,"-",run,"_Base_Marigins.csv",sep=""))
-# 
-# # png("Writing/Images/marginCheckRA.png",width=2500,height=1500,res=275)
-# ggplot(margins) + aes(x=MR,y=MC_RA) + 
-#   geom_point(aes(size=lives),alpha=0.25) +
-#   scale_size(range=c(0.5,20)) + 
-#   geom_smooth(method="lm",se=FALSE,color="red",linetype=2) + 
-#   geom_abline(slope=1,intercept=0) + 
-#   # coord_cartesian(xlim=c(-100,500),ylim=c(-100,700)) + 
-#   xlab("Marginal Revenue") + 
-#   ylab("Marginal Cost")  +
-#   theme(panel.background=element_rect(color=grey(0.75),fill="white"),
-#         panel.grid.major = element_line(color=grey(0.75)),
-#         strip.background = element_blank(),
-#         strip.text = element_text(size=14),
-#         legend.background = element_rect(color=grey(.5)),
-#         legend.title = element_blank(),
-#         legend.text = element_text(size=14),
-#         legend.key.width = unit(.05,units="npc"),
-#         legend.key = element_rect(color="transparent",fill="transparent"),
-#         legend.position = "none",
-#         axis.title=element_text(size=14),
-#         axis.text = element_text(size=16))
-# # dev.off()
+##### Check Margin ####
+margins = fread(paste("Estimation_Output/AllMergers_PL_",spec,"-",run,"_Base_Marigins.csv",sep=""))
+
+# png("Writing/Images/marginCheckRA.png",width=2500,height=1500,res=275)
+ggplot(margins) + aes(x=MR,y=MC_RA) +
+  geom_point(aes(size=lives),alpha=0.25) +
+  scale_size(range=c(0.5,20)) +
+  geom_smooth(method="lm",se=FALSE,color="red",linetype=2) +
+  geom_abline(slope=1,intercept=0) +
+  # coord_cartesian(xlim=c(-100,500),ylim=c(-100,700)) +
+  xlab("Marginal Revenue") +
+  ylab("Marginal Cost")  +
+  theme(panel.background=element_rect(color=grey(0.75),fill="white"),
+        panel.grid.major = element_line(color=grey(0.75)),
+        strip.background = element_blank(),
+        strip.text = element_text(size=14),
+        legend.background = element_rect(color=grey(.5)),
+        legend.title = element_blank(),
+        legend.text = element_text(size=14),
+        legend.key.width = unit(.05,units="npc"),
+        legend.key = element_rect(color="transparent",fill="transparent"),
+        legend.position = "none",
+        axis.title=element_text(size=14),
+        axis.text = element_text(size=16))
+# dev.off()
 
 
 ### Base Data 
@@ -46,7 +46,7 @@ prodData = merge(prodData,marketSize,by="Market")
 
 #### Merger Price-Effect Data ####
 merger_effects = NULL
-for (policy in c("Base")){
+for (policy in c("Base","RA")){
   print(policy)
   if (policy=="PL"){
     spec_temp = paste("PL","FMC",sep="_")
@@ -154,7 +154,7 @@ merger_properties2 = merger_effects[parties_indicator==1,list(avg_upp=sum(UPP_av
                                     by=c("merging_parties","markets","policy")]
 #### Merger Welfare Data ####
 merger_welfare = NULL
-for (policy in c("Base")){
+for (policy in c("Base","RA")){
   print(policy)
   if (policy=="PL"){
     spec_temp = paste("PL","FMC",sep="_")
@@ -235,12 +235,14 @@ for (policy in c("Base")){
 
 
 #### Welfare Effect Merger Plot #####
-merger_welfare[,chg_Tot_Welfare:=chg_CW+chg_Profit]
-merger_welfare[,chg_Tot_Welfaregov:=chg_CW+chg_Profit+chg_Spending]
+merger_welfare[,chg_Tot_Welfare_00:=chg_CW+chg_Profit+chg_Spending*0.0]
+merger_welfare[,chg_Tot_Welfare_05:=chg_CW+chg_Profit+chg_Spending*0.5]
+merger_welfare[,chg_Tot_Welfare_10:=chg_CW+chg_Profit+chg_Spending*1.0]
+merger_welfare[,chg_Tot_Welfare_15:=chg_CW+chg_Profit+chg_Spending*1.5]
 
 ##### Decomposition  Data ####
 base_welfare = NULL
-for (policy in c("Base")){
+for (policy in c("Base","RA")){
   print(policy)
   if (policy=="PL"){
     spec_temp = paste("PL","FMC",sep="_")
@@ -259,10 +261,19 @@ for (policy in c("Base")){
   baseline_Comp[,Welfare_baseline_Comp:=CW+Profit]
   baseline_SP[,Welfare_baseline_SP:=CW+Profit]
   
-  welfare = merge(baseline_CP[,c("markets","Welfare_baseline_CP")],baseline_Comp[,c("markets","Welfare_baseline_Comp")],by="markets")
-  welfare = merge(welfare,baseline_SP[,c("markets","Welfare_baseline_SP")],by="markets")
+  baseline_CP[,Welfare_baseline_CP_gov:=CW+Profit+Spending]
+  baseline_Comp[,Welfare_baseline_Comp_gov:=CW+Profit+Spending]
+  baseline_SP[,Welfare_baseline_SP_gov:=CW+Profit+Spending]
+  
+  welfare = merge(baseline_CP[,c("markets","Welfare_baseline_CP","Welfare_baseline_CP_gov")],baseline_Comp[,c("markets","Welfare_baseline_Comp","Welfare_baseline_Comp_gov")],by="markets")
+  welfare = merge(welfare,baseline_SP[,c("markets","Welfare_baseline_SP","Welfare_baseline_SP_gov")],by="markets")
+  
   welfare[,sorting_cost:=Welfare_baseline_CP-Welfare_baseline_Comp]
+  welfare[,sorting_cost_gov:=Welfare_baseline_CP_gov-Welfare_baseline_Comp_gov]
+  
+  
   welfare[,markup_cost:=Welfare_baseline_SP - Welfare_baseline_CP]
+  welfare[,markup_cost_gov:=Welfare_baseline_SP_gov - Welfare_baseline_CP_gov]
   welfare[,policy:=policy]
   base_welfare = rbind(base_welfare,welfare)
 }
@@ -311,7 +322,7 @@ merger_welfare = merge(merger_welfare,merger_properties2,by=c("merging_parties",
 
 #### Market Description ####
 
-base_data = unique(merger_welfare[,c("markets","policy","Profit","Spending","Population","Insured","hhi","firm_num","markup_cost","sorting_cost")])
+base_data = unique(merger_welfare[,c("markets","policy","Profit","Spending","Population","Insured","hhi","firm_num","markup_cost","sorting_cost","markup_cost_gov","sorting_cost_gov")])
 
 summary(base_data[policy=="Base"])
 summary(base_data[policy=="RA"])
@@ -333,13 +344,21 @@ merger_welfare[sorting_cost>7.5,sorting_Label:="\\$7.5-\\$10"]
 merger_welfare[sorting_cost>10,sorting_Label:=">\\$10"]
 merger_welfare[,sorting_Label:=factor(sorting_Label,levels=c("<\\$5","\\$5-\\$7.5","\\$7.5-\\$10",">\\$10"))]
 
-Main_HHI = merger_welfare[,list(avgdWelfare=round(mean(chg_Tot_Welfaregov),2),#avgdCW=round(mean(chg_CW),2),
-                                posdWelf=round(100*mean(chg_Tot_Welfaregov>0),1),posdCW=round(100*mean(chg_CW>0),2),sorting_cost=mean(sorting_cost),N=sum(count)),by=c("dHHI_Label","policy")]
+Main_HHI = merger_welfare[!is.na(chg_CW),list(avgdWelfare=round(mean(chg_Tot_Welfare_10),2),#avgdCW=round(mean(chg_CW),2),
+                                posdWelf00=round(100*mean(chg_Tot_Welfare_00>0),1),
+                                # posdWelf05=round(100*mean(chg_Tot_Welfare_05>0),1),
+                                posdWelf10=round(100*mean(chg_Tot_Welfare_10>0),1),
+                                # posdWelf15=round(100*mean(chg_Tot_Welfare_15>0),1),
+                                posdCW=round(100*mean(chg_CW>0),1),
+                                sorting_cost=mean(sorting_cost),N=sum(count)),by=c("dHHI_Label","policy")]
 
 setkey(Main_HHI,policy,dHHI_Label)
 
-Main_sort = merger_welfare[,list(avgdWelfare=round(mean(chg_Tot_Welfaregov),2),#avgdCW=round(mean(chg_CW),2),
-                                 posdWelf=round(100*mean(chg_Tot_Welfaregov>0),1),posdCW=round(100*mean(chg_CW>0),2),dHHI=mean(dHHI),N=sum(count)),by=c("sorting_Label","policy")]
+Main_sort = merger_welfare[!is.na(chg_CW),list(avgdWelfare=round(mean(chg_Tot_Welfare_10),2),#avgdCW=round(mean(chg_CW),2),
+                                 posdWelf05=round(100*mean(chg_Tot_Welfare_05>0),1),
+                                 posdWelf10=round(100*mean(chg_Tot_Welfare_10>0),1),
+                                 posdWelf15=round(100*mean(chg_Tot_Welfare_15>0),1),
+                                 dHHI=mean(dHHI),N=sum(count)),by=c("sorting_Label","policy")]
 
 setkey(Main_sort,policy,sorting_Label)
 

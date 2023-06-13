@@ -795,6 +795,9 @@ function evaluate_model!(m::InsuranceLogit,f::firmData,ST::String;
         f.Rev_ij = f[:Rev_foc]
         f.P_ij   = price(m.data)
         f.zero_ij = Float64.((f.P_ij .+ f[:Mandate]/1000 .- 1e-6).<0.0)
+        if !voucher 
+            calcBenchmark(f)
+        end
     end
 
     compute_price!(m,f)
@@ -828,6 +831,9 @@ function evaluate_model!(m::InsuranceLogit,f::firmData,mkt::Int;
         f.Rev_ij = f[:Rev_foc]
         f.P_ij   = price(m.data)
         f.zero_ij = Float64.((f.P_ij .+ f[:Mandate]/1000 .- 1e-6).<0.0)
+        if !voucher 
+            calcBenchmark(f)
+        end
     end
 
     compute_price!(m,f)

@@ -78,11 +78,11 @@ function MergersMain(rundate,spec,home_directory)
 
 
     filestub = "AllMergers_PL_$spec-$(rundate)"
-    # println("####################################")
-    # println("#### Solve Policy Baseline - Price Linked ####")
-    # println("####################################")
-    # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
-    #                         filestub,policy="Base",voucher=false)
+    println("####################################")
+    println("#### Solve Policy Baseline - Price Linked ####")
+    println("####################################")
+    simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
+                            filestub,policy="Base",voucher=false)
     println("####################################")
     println("#### Solve Without Risk Adjustment - Price Linked ####")
     println("####################################")
@@ -642,7 +642,7 @@ function simulate_all_mergers(m::InsuranceLogit,
     # ## Solve Baseline Model
     println("Solve Baseline Model")
     if policy=="Base" # Solve baseline model with vouchers adjusting on prices
-        checkMargin(m,f,"$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub_short)_Base_Marigins.csv")
+        checkMargin(m,f,"$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub_short)_Base_Marigins.csv",voucher=voucher)
         solve_model_parallel!(m,f,sim=sim,voucher=voucher)
         # solve_model!(m,f,sim=sim,voucher=voucher)
         P_Base[:] = f.P_j[:]

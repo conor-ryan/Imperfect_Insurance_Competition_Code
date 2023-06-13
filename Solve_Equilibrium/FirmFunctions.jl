@@ -174,11 +174,15 @@ function test_MR(m::InsuranceLogit,f::firmData,prod_int::Int,mkt::Int,sim::Strin
     return dProf #, dC, dS, dPC, dAdj
 end
 
-function prof_margin(f::firmData,std_ind::Union{Vector{Int64},Missing}=missing)
+function prof_margin(f::firmData;std_ind::Union{Vector{Int64},Missing}=missing,voucher=true)
     if ismissing(std_ind)
         std_ind = f.prods
     end
-    dSdp = (f.dSAdp_j.*f.ownMat)[std_ind,std_ind]
+    if voucher
+        dSdp = (f.dSAdp_j.*f.ownMat)[std_ind,std_ind]
+    else
+        dSdp = ((f.dSAdp_j - f.bench_prods.*f.dMAdp_j).*f.ownMat)[std_ind,std_ind]
+    end
 
     MR = inv(dSdp)*sum(f.dRdp_j.*f.ownMat,dims=2)[std_ind]
     Mkup = -inv(dSdp)*f.SA_j[std_ind]
@@ -211,9 +215,9 @@ function prof_margin_raw(f::firmData,std_ind::Union{Vector{Int64},Missing}=missi
 end
 
 
-function checkMargin(m::InsuranceLogit,f::firmData,file::String)
-    evaluate_model!(m,f,"All",foc_check=true)
-    Mkup,MR,MC_std,MC_RA = prof_margin(f)
+function checkMargin(m::InsuranceLogit,f::firmData,file::String;voucher=true)
+    evaluate_model!(m,f,"All",foc_check=true,voucher=voucher)
+    Mkup,MR,MC_std,MC_RA = prof_margin(f,voucher=voucher)
     avgCost = f.C_j[f.prods]
     pooledCost = f.PC_j[f.prods]
     lives = f.S_j[f.prods]
