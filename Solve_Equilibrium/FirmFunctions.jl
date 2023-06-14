@@ -215,7 +215,8 @@ function prof_margin_raw(f::firmData,std_ind::Union{Vector{Int64},Missing}=missi
 end
 
 
-function checkMargin(m::InsuranceLogit,f::firmData,file::String;voucher=true)
+function checkMargin(m::InsuranceLogit,f::firmData,file::String,voucher::Bool)
+    calcSubsidy!(f,foc_check=true,refund=false)
     evaluate_model!(m,f,"All",foc_check=true,voucher=voucher)
     Mkup,MR,MC_std,MC_RA = prof_margin(f,voucher=voucher)
     avgCost = f.C_j[f.prods]

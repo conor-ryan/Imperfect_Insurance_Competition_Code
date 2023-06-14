@@ -49,6 +49,7 @@ end
 function calcSubsidy!(firm::firmData;foc_check=false,refund=true)
     if foc_check
         refund = false
+        garbage = calcBenchmark(firm)
         benchmarks = origBenchmark(firm)
     else
         benchmarks = calcBenchmark(firm)

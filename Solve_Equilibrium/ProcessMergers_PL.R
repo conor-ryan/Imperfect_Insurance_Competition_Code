@@ -10,7 +10,7 @@ run = "2022-12-26"
 spec = "FMC"
 
 ##### Check Margin ####
-margins = fread(paste("Estimation_Output/AllMergers_PL_",spec,"-",run,"_Base_Marigins.csv",sep=""))
+margins = fread(paste("Estimation_Output/AllMergers_",spec,"-",run,"_Base_Marigins.csv",sep=""))
 
 # png("Writing/Images/marginCheckRA.png",width=2500,height=1500,res=275)
 ggplot(margins) + aes(x=MR,y=MC_RA) +
