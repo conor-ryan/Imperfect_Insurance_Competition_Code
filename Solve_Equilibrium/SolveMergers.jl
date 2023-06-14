@@ -643,6 +643,9 @@ function simulate_all_mergers(m::InsuranceLogit,
     println("Solve Baseline Model")
     if policy=="Base" # Solve baseline model with vouchers adjusting on prices
         checkMargin(m,f,"$(home_directory)/Research/Imperfect_Insurance_Competition/Estimation_Output/$(file_stub_short)_Base_Marigins.csv",voucher)
+        if !voucher 
+            outputBenchCertainty(f)
+        end
         solve_model_parallel!(m,f,sim=sim,voucher=voucher)
         # solve_model!(m,f,sim=sim,voucher=voucher)
         P_Base[:] = f.P_j[:]

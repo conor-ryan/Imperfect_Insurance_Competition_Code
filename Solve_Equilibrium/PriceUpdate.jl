@@ -36,6 +36,26 @@ function calcBenchmark(firm::firmData)
     return benchLong
 end
 
+function outputBenchCertainty(firm::firmData)
+    mkts = keys(firm.mkt_index)
+    cnt_70 = 0
+    cnt_90 = 0
+    for m in mkts
+        probs = firm.bench_prods[firm.mkt_index[m]]
+        most_certain = maximum(probs)
+        if most_certain>0.9
+            cnt_90+=1
+        end
+        if most_certain>0.7
+            cnt_70+=1
+        end
+    end
+    println("$cnt_90 markets have greater than 90% certainty of being benchmark product")
+    println("$cnt_70 markets have greater than 70% certainty of being benchmark product")
+    return nothing
+end
+
+
 function origBenchmark(firm::firmData)
     mkts = keys(firm.mkt_index)
     benchmarkPrem = Vector{Float64}(undef,length(mkts))
