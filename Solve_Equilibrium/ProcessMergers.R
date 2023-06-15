@@ -3,8 +3,8 @@ library(data.table)
 library(ggplot2)
 library(scales)
 library(tidyr)
-setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
-# setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition/")
+# setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
+setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition/")
 
 run = "2022-12-26"
 spec = "FMC"
