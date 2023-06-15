@@ -46,7 +46,7 @@ function solve_model!(m::InsuranceLogit,f::firmData,states::Vector{String};
 end
 
 function solve_model_st!(m::InsuranceLogit,f::firmData,ST::String;
-                sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=false,update_voucher=true,no_policy=false,itr_max=1000)
+                sim="Base",merg::String="Base",tol::Float64=1e-12,voucher=false,update_voucher=true,no_policy=false,itr_max=2000)
     err_new = 1
     err_last = 1
     itr_cnt = 0
