@@ -50,8 +50,8 @@ function outputBenchCertainty(firm::firmData)
             cnt_70+=1
         end
     end
-    println("$cnt_90 markets have greater than 90% certainty of being benchmark product")
-    println("$cnt_70 markets have greater than 70% certainty of being benchmark product")
+    println("$cnt_90 markets have greater than 70% certainty of being benchmark product")
+    println("$cnt_70 markets have greater than 50% certainty of being benchmark product")
     return nothing
 end
 
