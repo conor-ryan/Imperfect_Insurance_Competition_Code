@@ -2,7 +2,7 @@ rm(list = ls())
 library(data.table)
 library(Matrix)
 library(doBy)
-setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
+setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition/")
 
 #### Load Data####
 choiceData = read.csv("Intermediate_Output/Simulated_BaseData/simchoiceData_discrete.csv")

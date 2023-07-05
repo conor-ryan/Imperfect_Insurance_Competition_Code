@@ -83,11 +83,11 @@ function MergersMain(rundate,spec,home_directory)
     println("####################################")
     simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
                             filestub,policy="Base",voucher=false)
-    println("####################################")
-    println("#### Solve Without Risk Adjustment - Price Linked ####")
-    println("####################################")
-    simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
-                            filestub,policy="RA_repeal",voucher=false)
+    # println("####################################")
+    # println("#### Solve Without Risk Adjustment - Price Linked ####")
+    # println("####################################")
+    # simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
+    #                         filestub,policy="RA_repeal",voucher=false)
     # println("####################################")
     # println("#### Solve Without Individual Mandate - Price Linked ####")
     # println("####################################")
