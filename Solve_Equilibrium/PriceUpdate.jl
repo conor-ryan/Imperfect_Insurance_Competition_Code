@@ -27,7 +27,7 @@ function calcBenchmark(firm::firmData)
         end
         benchmarkPrem[m] = prems[ind][bench_index]
         # confusing way to pick the becnhmark product index...
-        temp_par = .2
+        temp_par = .1
         prob_wgts = exp.(-temp_par.*abs.(firm.P_j[firm.mkt_index[m][firm.silver_index[m]][ind]] .- benchmarkPrem[m]))
         firm.bench_prods[firm.mkt_index[m][firm.silver_index[m]][ind]]=prob_wgts/sum(prob_wgts)
         # firm.bench_prods[firm.mkt_index[m][firm.silver_index[m]][ind][bench_index]]=1.0
@@ -43,10 +43,10 @@ function outputBenchCertainty(firm::firmData)
     for m in mkts
         probs = firm.bench_prods[firm.mkt_index[m]]
         most_certain = maximum(probs)
-        if most_certain>0.9
+        if most_certain>0.7
             cnt_90+=1
         end
-        if most_certain>0.7
+        if most_certain>0.5
             cnt_70+=1
         end
     end
