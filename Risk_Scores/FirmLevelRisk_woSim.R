@@ -2,7 +2,7 @@ rm(list = ls())
 library(doBy)
 library(data.table)
 library(nleqslv)
-setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
+setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition/")
 
 #### Read in Risk Adjustment Data ####
 claims = read.csv("Data/2015_MLR/Part1_2_Summary_Data_Premium_Claims.csv")

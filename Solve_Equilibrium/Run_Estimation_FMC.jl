@@ -25,13 +25,15 @@ end
 codeDir = "$(home_directory)/Research/Imperfect_Insurance_Competition/Code/"
 
 ##### Set Specification ####
-halton_draws = 500
+halton_draws = 10
 spec_demoRaw = [:AgeFE_31_39,
         :AgeFE_40_51,
         :AgeFE_52_64,
         :Family,
         :LowIncome]
 spec_prodchars=[:Price,:AV,:constant]
+# spec_prodchars=[:Price,:Price_31_39,:Price_40_51,:Price_52_64,:Price_Family,:Price_LowIncome, 
+#                 :AV,:constant,:AgeFE_31_39,:AgeFE_40_51,:AgeFE_52_64,:Family,:LowIncome]
 spec_prodchars_σ=[:AV,:constant,
 :AK_MODA_HEALTH_PLAN_INC,#:AK_PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA,
 :GA_AETNA,:GA_AMBETTER_FROM_PEACH_STATE_HEALTH_PLAN,:GA_ASSURANT_HEALTH,:GA_BLUE_CROSS_BLUE_SHIELD_OF_GEORGIA,:GA_CIGNA_HEALTH_AND_LIFE_INSURANCE_COMPANY,:GA_HUMANA,:GA_KAISER_PERMANENTE_GA,:GA_UNITEDHEALTHCARE_LIFE_INS_CO,#:GA_UNITEDHEALTHCARE_OF_GEORGIA_INC,
@@ -49,10 +51,10 @@ spec_prodchars_σ=[:AV,:constant,
 :UT_ALTIUS_HEALTH_PLANS,:UT_ARCHES_HEALTH_PLAN,:UT_BRIDGESPAN,:UT_HUMANA,:UT_MOLINA_HEALTH_CARE,:UT_REGENCE_BLUECROSS_BLUESHIELD_OF_UTAH,:UT_SELECTHEALTH]#.:UT_UNITEDHEALTHCARE_LIFE_INS_CO]
 cost_spec = [:AGE,:AV_std]
 
-# rundate = Dates.today()
-rundate = "2023-05-09"
-spec = "FM"
-spec_fixedEffects=[:Market_Firm]
+rundate = Dates.today()
+# rundate = "2023-05-09"
+spec = "test"
+spec_fixedEffects=[:Firm,:Market]
 println("Running $spec on $rundate")
 
 
@@ -81,12 +83,11 @@ include("$codeDir/Demand_Estimation/utility.jl")
 include("$codeDir/Demand_Estimation/Specification_Run.jl")
 
 filename = "PLL_Estimate_$spec"
-# estimate_demand(filename,rundate,home_directory,
-#                     halton_draws,
-#                     spec_demoRaw,
-#                     spec_prodchars,
-#                     spec_prodchars_σ,
-#                     spec_fixedEffects)
+estimate_demand(filename,rundate,home_directory,
+                    halton_draws,
+                    spec_prodchars,
+                    spec_prodchars_σ,
+                    spec_fixedEffects)
 
 
 println("##### Estimation Marginal Cost #####")

@@ -183,15 +183,15 @@ function ChoiceData(data_choice::DataFrame,
                     data_transfer::DataFrame;
         person=[:Person],
         product=[:Product],
-        prodchars=[:Price,:MedDeduct,:High],
-        prodchars_σ=[:PriceDiff],
+        spec_prodchars=[:Price,:MedDeduct,:High],
+        spec_prodchars_σ=[:PriceDiff],
         choice=[:S_ij],
-        demoRaw=[:Age,:Family,:LowIncome],
+        spec_demoRaw=[:Age,:Family,:LowIncome],
         # demoRaw=[:F0_Y0_LI1,
         #          :F0_Y1_LI0,:F0_Y1_LI1,
         #          :F1_Y0_LI0,:F1_Y0_LI1,
         #          :F1_Y1_LI0,:F1_Y1_LI1],
-        fixedEffects=Vector{Symbol}(undef,0),
+        spec_fixedEffects=Vector{Symbol}(undef,0),
         wgt=[:N],
         unins=[:unins_rate],
         riskscores=true,
@@ -203,14 +203,14 @@ function ChoiceData(data_choice::DataFrame,
     # Convert everything to an array once for performance
     i = Array(data_choice[!,person])
     j = Array(data_choice[!,product])
-    X = Array(data_choice[!,prodchars])
-    if length(prodchars_σ)>0
-        X_σ = Array(data_choice[!,prodchars_σ])
+    X = Array(data_choice[!,spec_prodchars])
+    if length(spec_prodchars_σ)>0
+        X_σ = Array(data_choice[!,spec_prodchars_σ])
     else
         X_σ = Matrix{Float64}(undef,size(i,1),0)
     end
     y = Array(data_choice[!,choice])
-    Z = Array(data_choice[!,demoRaw])
+    Z = Array(data_choice[!,spec_demoRaw])
     w = Array(data_choice[!,wgt])
     s0= Array(data_choice[!,unins])
 
@@ -218,15 +218,15 @@ function ChoiceData(data_choice::DataFrame,
     rm = Array(data_choice[!,riskChars])
 
     println("Create Fixed Effects")
-    riskFirm = (:HighRisk in prodchars) | (:Big in prodchars)
-    smallFirm = :Small in prodchars
-    risksmall = :High_small in prodchars
-    constInProds = :constant in prodchars
-    F, feNames = build_FE(data_choice,fixedEffects,
+    riskFirm = (:HighRisk in spec_prodchars) | (:Big in spec_prodchars)
+    smallFirm = :Small in spec_prodchars
+    risksmall = :High_small in spec_prodchars
+    constInProds = :constant in spec_prodchars
+    F, feNames = build_FE(data_choice,spec_fixedEffects,
                     riskFirm = riskFirm,smallFirm = smallFirm,risksmall = risksmall,
                     constInProds=constInProds)
     F = permutedims(F,(2,1))
-
+    print("Size of F is $(size(F))")
 
 
     index = Dict{Symbol, Int}()
@@ -287,8 +287,8 @@ function ChoiceData(data_choice::DataFrame,
     # Create a data matrix, only including person id
     println("Put Together Data non FE data together")
     k = 0
-    for (d, var) in zip([i,j,w,R_metal_index,R_index, y, X, X_σ, Z, rm, s0,any_vec],
-        [person,product, wgt, r_var,r_silv_var, choice, prodchars, prodchars_σ, demoRaw,riskChars,unins,r_any])
+    for (d, var) in zip([i,j,w,R_metal_index,R_index, y, X, X_σ, rm, s0,any_vec],
+        [person,product, wgt, r_var,r_silv_var, choice, spec_prodchars, spec_prodchars_σ,riskChars,unins,r_any])
         for l=1:size(d,2)
             k+=1
             dmat = hcat(dmat, d[:,l])
@@ -306,10 +306,10 @@ function ChoiceData(data_choice::DataFrame,
     # Precompute the row indices
     _person = getDictArray(index,person)
     _product = getDictArray(index,product)
-    _prodchars = getDictArray(index, prodchars)
-    _prodchars_σ = getDictArray(index, prodchars_σ)
+    _prodchars = getDictArray(index, spec_prodchars)
+    _prodchars_σ = getDictArray(index, spec_prodchars_σ)
     _choice = getDictArray(index, choice)
-    _demoRaw = getDictArray(index, demoRaw)
+    _demoRaw = Array{Int,1}(undef,0)
     _wgt = getDictArray(index, wgt)
     _ageRate = getDictArray(index, [:ageRate_avg])
     _ageHCC = getDictArray(index, [:HCC_age])
@@ -318,7 +318,7 @@ function ChoiceData(data_choice::DataFrame,
     _rIndS = getDictArray(index, r_silv_var)
 
     println("Check Collinearity")
-    all_ind = vcat(_choice,_prodchars,_demoRaw,_ageRate,_ageHCC,_unins)
+    all_ind = vcat(_choice,_prodchars,_ageRate,_ageHCC,_unins)
     all_data = vcat(dmat[all_ind,:],F)
     X = all_data*all_data'
     ev = sort(eigvals(X))
@@ -344,9 +344,9 @@ function ChoiceData(data_choice::DataFrame,
     # end
 
     ## Rand Coefficient Index
-    _randCoeffs = Array{Int,1}(undef,length(prodchars_σ))
-    for (i,var) in enumerate(prodchars_σ)
-        _randCoeffs[i] = findall(var.==prodchars_σ)[1]
+    _randCoeffs = Array{Int,1}(undef,length(spec_prodchars_σ))
+    for (i,var) in enumerate(spec_prodchars_σ)
+        _randCoeffs[i] = findall(var.==spec_prodchars_σ)[1]
     end
 
     # Get Person ID Dictionary Mapping for Easy Subsets
@@ -390,7 +390,7 @@ function ChoiceData(data_choice::DataFrame,
 
     # Relevant Random Coefficient Parameters Per Person
     rel_rc_Dict = Dict{Real,Array{Int64,1}}()
-    if length(prodchars_σ)>0
+    if length(spec_prodchars_σ)>0
         X_σ = permutedims(X_σ,(2,1))
         for (id,idxitr) in _personDict
             X_σ_t = view(X_σ,:,idxitr)
@@ -447,7 +447,7 @@ function ChoiceData(data_choice::DataFrame,
 
     # Make the data object
     m = ChoiceData(dmat,data_market,rmat,rMoments,st_share,
-            F, index, prodchars, prodchars_σ,
+            F, index, spec_prodchars, spec_prodchars_σ,
             choice, demoRaw,wgt, unins,feNames,
              _person,_product, _prodchars,_prodchars_σ,
             _choice, _demoRaw, _wgt,_ageRate,_ageHCC,
@@ -675,7 +675,7 @@ function subset(d::T, idx) where T<:ModelData
     d.index,
     # Names of rows (columns of input data)
     d.prodchars,   # Product Characteristics
-    d. prodchars_σ,   # Product Characteristics
+    d.prodchars_σ,   # Product Characteristics
     d.choice,      # Binary choice indicator
     d.demoRaw,    # Household Demographics - raw
     d.wgt,     # Demographic Fixed Effects
@@ -811,7 +811,7 @@ function InsuranceLogit(c_data::ChoiceData,haltonDim::Int;
     end
 
     #total = 1 + γlen + β0len + γlen + flen + σlen
-    total = γlen + βlen + γlen + flen + σlen
+    total = βlen + flen + σlen
     # println("Lengths are : $γlen + $βlen + $γlen + $flen + $σlen")
     parLength = Dict(:γ=>γlen,:βσ=>βσlen,:β=>βlen,:FE=>flen,
     :σ => σlen, :All=>total)

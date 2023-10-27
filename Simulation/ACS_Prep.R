@@ -2,7 +2,7 @@ rm(list=ls())
 library(doBy)
 library(randtoolbox)
 library(data.table)
-setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
+setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition")
 
 ## Run
 # run = "2019-03-12"
@@ -27,8 +27,8 @@ subsPerc <- function(FPL){
 
 
 #### Read in  ACS Exchange Elligible Data ####
-acs = read.csv("Data/2015_ACS/exchangePopulation2015.csv")
-acs = as.data.table(acs)
+acs = fread("Data/2015_ACS/exchangePopulation2015.csv")
+# acs = as.data.table(acs)
 setkey(acs,STATEFIP,PUMA)
 #Uninsured Rate
 with(acs,sum(uninsured*PERWT)/sum(PERWT))
@@ -46,8 +46,10 @@ acs[,insured:=!all(uninsured),by="household"]
 acs = acs[,c("household","HHincomeFPL","HH_income","AGE","SEX","PERWT","RatingArea","ST","insured")]
 names(acs) = c("household","HHincomeFPL","HH_income","AGE","SEX","PERWT","AREA","ST","insured")
 
-
-
+### Rating Area Demographics for CF Estimation 
+acs[,under35:=AGE<=35]
+rating_areas = acs[,list(under35=sum(PERWT*under35)/sum(PERWT)),by=c("ST","AREA")]
+save(rating_areas,file = "Intermediate_Output/Simulated_BaseData/rating_demo.rData")
 
 #### Household Characteristics ####
 rating = read.csv("Data/AgeRating.csv")

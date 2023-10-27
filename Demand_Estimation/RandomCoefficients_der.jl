@@ -192,10 +192,7 @@ function ll_obs_hessian!(thD::Array{Float64,3},hess::Matrix{Float64},grad::Vecto
         dR_x_list = Vector{Vector{Float64}}(undef,length(pars_relevant))
         dR_xy = Vector{Float64}(undef,K)
 
-        #γlen = 1 + d.parLength[:γ]
-        γlen = d.parLength[:γ]
-        β0len = γlen + d.parLength[:β]
-        βlen = β0len + d.parLength[:γ]
+        βlen = d.parLength[:β]
         σlen = βlen + d.parLength[:σ]
         FElen = σlen + d.parLength[:FE]
 
@@ -203,7 +200,7 @@ function ll_obs_hessian!(thD::Array{Float64,3},hess::Matrix{Float64},grad::Vecto
         for (q_i,q) in enumerate(pars_relevant)
             X = returnParameterX!(q,X_mat,
                             Z,X_0_t,X_t,draws,F_t,r_ind,
-                            γlen,β0len,βlen,σlen)
+                            βlen,σlen)
             @inbounds Y_list[q_i] = copy(X)
 
             dS_x_all = grad_calc!(dS_x,s_n,anyR,
@@ -533,20 +530,21 @@ function returnParameter!(q::Int64,X_mat::Matrix{Float64},
                         Z::Vector{Float64},X_0_t::Matrix{Float64},
                         X_t::Matrix{Float64},draws::Matrix{Float64},
                         F_t::SubArray{Float64,2},r_ind::Int64,
-                        γlen::Int64,β0len::Int64,βlen::Int64,σlen::Int64)
+                        βlen::Int64,σlen::Int64)
     (N,K) = size(X_mat)
-    if q<0
-        X_mat[:] .= 1.0
-    elseif q<=γlen
-        X_mat[:] .= Z[q]
-    elseif q<=β0len
-        for n in 1:N
-            @inbounds X_mat[n,:] = X_t[q-γlen,:]
-        end
-    elseif q<=βlen
+    # if q<0
+    #     X_mat[:] .= 1.0
+    # elseif q<=γlen
+    #     X_mat[:] .= Z[q]
+    # elseif q<=β0len
+    #     for n in 1:N
+    #         @inbounds X_mat[n,:] = X_t[q-γlen,:]
+    #     end
+    # else
+    if q<=βlen
         # Characteristic Interactions
         for n in 1:N
-            @inbounds X_mat[n,:] = X_t[1,:].*Z[q-β0len]
+            @inbounds X_mat[n,:] = X_t[q,:]
         end
     elseif q<=σlen
         #Quality Random Effect
@@ -567,17 +565,17 @@ function returnParameterX!(q::Int64,X_mat::Matrix{Float64},
                         Z::Vector{Float64},X_0_t::Matrix{Float64},
                         X_t::Matrix{Float64},draws::Matrix{Float64},
                         F_t::SubArray{Float64,2},r_ind::Int64,
-                        γlen::Int64,β0len::Int64,βlen::Int64,σlen::Int64)
+                        βlen::Int64,σlen::Int64)
     (N,K) = size(X_mat)
-    if q<0
-        X = 1.0
-    elseif q<=γlen
-        X = Z[q]
-    elseif q<=β0len
-        X = X_t[q-γlen,:]
-    elseif q<=βlen
+    # if q<0
+    #     X = 1.0
+    # elseif q<=γlen
+    #     X = Z[q]
+    # elseif q<=β0len
+    #     X = X_t[q-γlen,:]
+    if q<=βlen
         # Characteristic Interactions
-        X = X_t[1,:].*Z[q-β0len]
+        X = X_t[q,:]
     elseif q<=σlen
         #Quality Random Effect
         X_mat[1,:].=0.0
@@ -661,10 +659,7 @@ function ll_obs_hessian!(hess::Union{Matrix{Float64},SharedMatrix{Float64}},
         dR_x_list = Vector{Vector{Float64}}(undef,length(pars_relevant))
         dR_xy = Vector{Float64}(undef,K)
 
-        #γlen = 1 + d.parLength[:γ]
-        γlen = d.parLength[:γ]
-        β0len = γlen + d.parLength[:β]
-        βlen = β0len + d.parLength[:γ]
+        βlen = d.parLength[:β]
         σlen = βlen + d.parLength[:σ]
         FElen = σlen + d.parLength[:FE]
 
@@ -672,7 +667,7 @@ function ll_obs_hessian!(hess::Union{Matrix{Float64},SharedMatrix{Float64}},
         for (q_i,q) in enumerate(pars_relevant)
             X = returnParameterX!(q,X_mat,
                             Z,X_0_t,X_t,draws,F_t,r_ind,
-                            γlen,β0len,βlen,σlen)
+                            βlen,σlen)
             @inbounds Y_list[q_i] = copy(X)
 
             dS_x_all = grad_calc!(dS_x,s_n,anyR,
@@ -788,10 +783,7 @@ function ll_obs_gradient!(grad::Union{Vector{S},SharedVector{S}},
 
         dR_x = Vector{S}(undef,K)
 
-        #γlen = 1 + d.parLength[:γ]
-        γlen = d.parLength[:γ]
-        β0len = γlen + d.parLength[:β]
-        βlen = β0len + d.parLength[:γ]
+        βlen = d.parLength[:β]
         σlen = βlen + d.parLength[:σ]
         FElen = σlen + d.parLength[:FE]
 
@@ -819,7 +811,7 @@ function ll_obs_gradient!(grad::Union{Vector{S},SharedVector{S}},
             # end
             X = returnParameterX!(q,X_mat,
                             Z,X_0_t,X_t,draws,F_t,r_ind,
-                            γlen,β0len,βlen,σlen)
+                            βlen,σlen)
 
             dS_x_all = grad_calc!(dS_x,s_n,anyR,
                         dR_x,risk,r_age,

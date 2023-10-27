@@ -44,7 +44,7 @@ println("Code Loaded")
 # @load file p_stg1 spec_Dict
 
 
-home_directory = "$(homedir())/Documents"
+home_directory = "$(homedir())/Dropbox"
 # Load the Data
 include("load.jl")
 halton_draws = 500

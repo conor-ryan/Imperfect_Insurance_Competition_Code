@@ -10,9 +10,9 @@ using ForwardDiff
 
 mutable struct parDict{T}
     # Parameters
-    γ_0::T
-    γ::Vector{T}
-    β_0::Vector{T}
+    # γ_0::T
+    # γ::Vector{T}
+    # β_0::Vector{T}
     β::Matrix{T}
     σ::Vector{T}
     FE::Matrix{T}
@@ -38,20 +38,20 @@ end
 function parDict(m::InsuranceLogit,x::Array{T};no2Der=false) where T
     # Parameter Lengths from model
     #γlen = 1 + m.parLength[:γ]
-    γlen = m.parLength[:γ]
-    β0len = γlen + m.parLength[:β]
-    βlen_price = β0len + m.parLength[:γ]
-    σlen = βlen_price  + m.parLength[:σ]
+    # γlen = m.parLength[:γ]
+    βlen = m.parLength[:β]
+    # βlen_price = β0len + m.parLength[:γ]
+    σlen = βlen  + m.parLength[:σ]
     FElen = σlen + m.parLength[:FE]
 
     # Distribute Parameters
     # γ_0 = x[1]
     # γ = x[2:γlen]
-    γ_0 = 0.0
-    γ = x[1:γlen]
-    β_0 = x[(γlen+1):β0len]
-    β_vec = x[(β0len+1):βlen_price]
-    σ_vec = x[(βlen_price+1):σlen]
+    # γ_0 = 0.0
+    # γ = x[1:γlen]
+    # β_0 = x[(γlen+1):β0len]
+    β_vec = x[1:βlen]
+    σ_vec = x[(βlen+1):σlen]
     FE_vec = x[(σlen+1):FElen]
 
     # Store FE as row Vector
@@ -63,21 +63,17 @@ function parDict(m::InsuranceLogit,x::Array{T};no2Der=false) where T
     σ[:] .= 0.0
     σ[m.data._randCoeffs] = σ_vec
 
-    # Stack Beta into a matrix
+    # Beta is a vector
     K = m.parLength[:β]
     N = m.parLength[:γ]
-    β = Matrix{T}(undef,K,N)
+    β = Vector{T}(undef,K)
+    β[:] = β_vec[:]
 
-
-    ind = 0
-    for i in 1:N, j in 1:K
-        if j==1
-            ind+=1
-            β[j,i] = β_vec[ind]
-        else
-            β[j,i] = 0
-        end
-    end
+    # ind = 0
+    # for i in 1:N, j in 1:K
+    #     ind+=1
+    #     β[j,i] = β_vec[ind]
+    # end
 
     #Calculate Random Coefficients matrix
     (S,R) = size(m.draws)
@@ -109,21 +105,17 @@ function parDict(m::InsuranceLogit,x::Array{T};no2Der=false) where T
         d2Sdθ_j = Array{T,3}(undef,Q,Q,J)
         d2Rdθ_j = Array{T,3}(undef,Q,Q,J)
     end
-    return parDict{T}(γ_0,γ,β_0,β,σ,FE,randCoeffs,δ,μ_ij,μ_ij_nonRisk,s_hat,r_hat,
+    return parDict{T}(β,σ,FE,randCoeffs,δ,μ_ij,μ_ij_nonRisk,s_hat,r_hat,
                             dSdθ_j,dRdθ_j,d2Sdθ_j,d2Rdθ_j)
 end
 
 function update_par(m::InsuranceLogit,par::parDict{T},x::Vector{T}) where T
-    γlen = m.parLength[:γ]
-    β0len = γlen + m.parLength[:β]
-    βlen = β0len + m.parLength[:γ]
+    βlen = m.parLength[:β]
     σlen = βlen  + m.parLength[:σ]
     FElen = σlen + m.parLength[:FE]
 
-    γ_0 = 0.0
-    γ = x[1:γlen]
-    β_0 = x[(γlen+1):β0len]
-    β_vec = x[(β0len+1):βlen]
+    # Distribute Parameters
+    β_vec = x[1:βlen]
     σ_vec = x[(βlen+1):σlen]
     FE_vec = x[(σlen+1):FElen]
 
@@ -132,29 +124,25 @@ function update_par(m::InsuranceLogit,par::parDict{T},x::Vector{T}) where T
     FE[1,:] = FE_vec
 
     # Fill in σ
-    σ = Vector{T}(undef,m.parLength[:β])
+    σ = Vector{T}(undef,m.parLength[:σ])
     σ[:] .= 0.0
     σ[m.data._randCoeffs] = σ_vec
-
-    # Stack Beta into a matrix
+  
+    # Beta is a vector
     K = m.parLength[:β]
     N = m.parLength[:γ]
-    β = Matrix{T}(undef,K,N)
+    β = Vector{T}(undef,K)
+    β[:] = β_vec[:]
 
-
-    ind = 0
-    for i in 1:N, j in 1:K
-        if j==1
-            ind+=1
-            β[j,i] = β_vec[ind]
-        else
-            β[j,i] = 0
-        end
-    end
+    # ind = 0
+    # for i in 1:N, j in 1:K
+    #     ind+=1
+    #     β[j,i] = β_vec[ind]
+    # end
 
     #Update
-    par.γ = γ
-    par.β_0 = β_0
+    # par.γ = γ
+    # par.β_0 = β_0
     par.β = β
     par.σ = σ
     par.FE = FE
@@ -214,9 +202,9 @@ function individual_values!(d::InsuranceLogit,p::parDict{T}) where T
 end
 
 function util_value!(app::ChoiceData,p::parDict{T};non_price=false) where T
-    γ_0 = p.γ_0
-    γ = p.γ
-    β_0= p.β_0
+    # γ_0 = p.γ_0
+    # γ = p.γ
+    # β_0= p.β_0
     β = p.β
     fe = p.FE
     randIndex = app._randCoeffs
@@ -230,8 +218,8 @@ function util_value!(app::ChoiceData,p::parDict{T};non_price=false) where T
     #F = fixedEffects(app)
     F = fixedEffects(app,idxitr)
 
-    β_z = β*Z
-    demos = γ_0 + dot(γ,Z)
+    # β_z = β*Z
+    # demos = γ_0 + dot(γ,Z)
     β_i= calc_indCoeffs(p,r_ind)
 
     if non_price
@@ -239,7 +227,8 @@ function util_value!(app::ChoiceData,p::parDict{T};non_price=false) where T
     end
 
     chars_σ = X_σ*β_i
-    chars = X*(β_0+β_z)
+    # chars = X*(β_0+β_z)
+    chars = X*β
 
     # FE is a row Vector
     if T== Float64
@@ -266,7 +255,8 @@ function util_value!(app::ChoiceData,p::parDict{T};non_price=false) where T
     p.μ_ij_nonRisk[idxitr].=1.0
 
     for k = 1:K
-        @fastmath d = exp(chars[k] + demos + controls[k])
+        # @fastmath d = exp(chars[k] + demos + controls[k])
+        @fastmath d = exp(chars[k] + controls[k])
         p.δ[idxitr[k]] = d
     end
 
@@ -282,9 +272,6 @@ function compute_controls!(d::InsuranceLogit,p::parDict{T}) where T
 end
 
 function control_value!(app::ChoiceData,p::parDict{T}) where T
-    γ_0 = p.γ_0
-    γ = p.γ
-    β_0= p.β_0
     β = p.β
     fe = p.FE
     randIndex = app._randCoeffs
@@ -297,10 +284,9 @@ function control_value!(app::ChoiceData,p::parDict{T}) where T
     #F = fixedEffects(app)
     F = fixedEffects(app,idxitr)
 
-    β_z = β*Z
-    demos = γ_0 + dot(γ,Z)
+    # β_z = β*Z
 
-    chars_0 = X*(β_0+β_z)
+    chars_0 = X*β
 
     # FE is a row Vector
     if T== Float64
@@ -317,7 +303,7 @@ function control_value!(app::ChoiceData,p::parDict{T}) where T
     K = length(idxitr)
 
     for k = 1:K
-        @fastmath d = exp(chars_0[k] + demos + controls[k])
+        @fastmath d = exp(chars_0[k] + controls[k])
         p.δ[idxitr[k]] = d
     end
 

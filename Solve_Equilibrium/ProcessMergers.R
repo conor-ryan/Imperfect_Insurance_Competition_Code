@@ -3,11 +3,18 @@ library(data.table)
 library(ggplot2)
 library(scales)
 library(tidyr)
-# setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
-setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition/")
+setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
+# setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition/")
 
 run = "2022-12-26"
 spec = "FMC"
+
+#### Observed Data HHI Levels ####
+estdata = fread("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv")
+estdata = estdata[,list(share=sum(s_inside)),by=c("Firm","Market")]
+
+obs_hhi = estdata[,list(hhi=sum((share*100)^2),share=sum(share)),by=c("Market")]
+
 
 ##### Check Margin ####
 margins = fread(paste("Estimation_Output/AllMergers_",spec,"-",run,"_Base_Marigins.csv",sep=""))
@@ -306,6 +313,7 @@ merger_welfare = merge(merger_welfare,base_welfare,by=c("markets","policy"),all.
 # 
 # merger_welfare = merge(merger_welfare,merger_welfare_SP,by=c("markets","merging_parties","policy"),all.x=TRUE)
 merger_welfare[,policy_label:=factor(policy,levels=c("Base","RA"),labels=c("Baseline","No Risk Adjustment"))]
+merger_effects[,policy_label:=factor(policy,levels=c("Base","RA"),labels=c("Baseline","No Risk Adjustment"))]
 merger_welfare = merge(merger_welfare,merger_properties1,by=c("merging_parties","markets","policy"))
 merger_welfare = merge(merger_welfare,merger_properties2,by=c("merging_parties","markets","policy"))
 
@@ -359,6 +367,91 @@ merger_welfare[dHHI_Label%in%c(">1000","200 - 1000"),HHI_plot_label:="Change in 
 merger_welfare[,HHI_plot_label:=factor(HHI_plot_label,levels=c("Change in HHI: <100","Change in HHI: 100 - 200","Change in HHI: >200"))]
 
 
+### Presentation Plots
+merger_welfare[,dHHI_bucket:=ceiling(dHHI/100)*100]
+merger_welfare[dHHI>=1000,dHHI_bucket:=1000]
+plot = merger_welfare[,list(frac_pos = mean(chg_CW>0),N=sum(count)),by=c("dHHI_bucket","policy_label")]
+
+png("Writing/Images/WelfareEffect_ByHHI_Grouped.png",width=2000,height=1500,res=275)
+ggplot(plot) + aes(x=dHHI_bucket,y=frac_pos,color=policy_label,size=N) + 
+  geom_point() +
+  geom_hline(aes(yintercept = 0.17,color = "No Risk Adjustment"),size=2,linetype=2,alpha=0.7) + 
+  geom_hline(aes(yintercept = 0.13,color = "Baseline"),size=2,linetype=2,alpha=0.7) + 
+  scale_size_continuous(range=c(2,6),guide="none") + 
+  xlab("Predicted Change in HHI") + 
+  ylab("Fraction w/ Positive CS Effect") + 
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+theme(panel.background=element_rect(color=grey(0.75),fill="white"),
+      panel.grid.major = element_line(color=grey(0.75)),
+      strip.background = element_blank(),
+      strip.text = element_text(size=14),
+      legend.background = element_rect(color=grey(.5)),
+      legend.title = element_blank(),
+      legend.text = element_text(size=16),
+      legend.key.width = unit(.05,units="npc"),
+      legend.key = element_rect(color="transparent",fill="transparent"),
+      legend.position = "bottom",
+      axis.title=element_text(size=16),
+      axis.text = element_text(size=16))
+dev.off()
+
+merger_welfare[,sorting_censored:=sorting_cost]
+merger_welfare[sorting_censored<0.6,sorting_censored:=0.6]
+merger_welfare[sorting_censored>16,sorting_censored:=16]
+merger_welfare[,sorting_bucket:=floor(log(sorting_censored)/0.3)*0.3]
+
+plot = merger_welfare[,list(frac_pos = mean(chg_CW>0),N=sum(count)),by=c("sorting_bucket","policy_label")]
+
+png("Writing/Images/WelfareEffect_BySort_Grouped.png",width=2000,height=1500,res=275)
+ggplot(plot) + aes(x=sorting_bucket,y=frac_pos,color=policy_label,size=N) + 
+  geom_point() +
+  geom_hline(aes(yintercept = 0.17,color = "No Risk Adjustment"),size=2,linetype=2,alpha=0.2) + 
+  geom_hline(aes(yintercept = 0.13,color = "Baseline"),size=2,linetype=2,alpha=0.2) + 
+  scale_size_continuous(range=c(2,6),guide="none") + 
+  scale_x_continuous(breaks=c(log(0.25),log(0.5),log(1),log(2),log(4),log(8),log(16)),
+                     labels=c("0.25","0.50","1","2","4","8","16")) + 
+  xlab("Pre-merger Sorting Cost") + 
+  ylab("Fraction w/ Positive CS Effect") + 
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+  theme(panel.background=element_rect(color=grey(0.75),fill="white"),
+        panel.grid.major = element_line(color=grey(0.75)),
+        strip.background = element_blank(),
+        strip.text = element_text(size=14),
+        legend.background = element_rect(color=grey(.5)),
+        legend.title = element_blank(),
+        legend.text = element_text(size=16),
+        legend.key.width = unit(.05,units="npc"),
+        legend.key = element_rect(color="transparent",fill="transparent"),
+        legend.position = "bottom",
+        axis.title=element_text(size=16),
+        axis.text = element_text(size=16))
+dev.off()
+
+png("Writing/Images/WelfareEffect_BySort_pres.png",width=2500,height=2300,res=275)
+ggplot(merger_welfare) + aes(x=log(sorting_cost),y=chg_CW,color=policy_label,shape=policy_label) + 
+  geom_abline(slope=0,intercept=0) + 
+  geom_point(size=5,alpha=0.5) + 
+  facet_wrap("HHI_plot_label",ncol=1,scales="free_y") + 
+  scale_y_continuous(breaks=pretty_breaks(n=4)) + 
+  scale_x_continuous(breaks=c(log(0.25),log(0.5),log(1),log(2),log(4),log(8),log(16)),
+                     labels=c("0.25","0.50","1","2","4","8","16")) + 
+  xlab("Welfare Cost of Sorting ($ per person-month)") + 
+  ylab("Effect on Consumer Surplus ($ per person-month)") + 
+  guides(color = guide_legend(override.aes = list(size = 6))) + 
+  theme(panel.background=element_rect(color=grey(0.75),fill="white"),
+        panel.grid.major = element_line(color=grey(0.75)),
+        strip.background = element_blank(),
+        strip.text = element_text(size=20),
+        legend.background = element_rect(color=grey(.5)),
+        legend.title = element_blank(),
+        legend.text = element_text(size=20),
+        legend.key.width = unit(.05,units="npc"),
+        legend.key = element_rect(color="transparent",fill="transparent"),
+        legend.position = "bottom",
+        axis.title=element_text(size=20),
+        axis.text = element_text(size=20))
+dev.off()
+
 png("Writing/Images/WelfareEffect_BySort.png",width=2500,height=2300,res=275)
 ggplot(merger_welfare) + aes(x=log(sorting_cost),y=chg_CW,color=policy_label,shape=policy_label) + 
   geom_abline(slope=0,intercept=0) + 
@@ -383,15 +476,15 @@ ggplot(merger_welfare) + aes(x=log(sorting_cost),y=chg_CW,color=policy_label,sha
         axis.text = element_text(size=16))
 dev.off()
 
-# ggplot(merger_welfare) + aes(x=chg_Profit,y=chg_CW,color=policy_label,shape=policy_label) + 
-#   geom_abline(slope=0,intercept=0) + 
-#   geom_point(size=3,alpha=0.5) + 
-#   facet_wrap("HHI_plot_label",ncol=1,scales="free_y") + 
-#   # scale_y_continuous(breaks=pretty_breaks(n=4)) + 
+# ggplot(merger_welfare) + aes(x=chg_Profit,y=chg_CW,color=policy_label,shape=policy_label) +
+#   geom_abline(slope=0,intercept=0) +
+#   geom_point(size=3,alpha=0.5) +
+#   facet_wrap("HHI_plot_label",ncol=1,scales="free_y") +
+#   # scale_y_continuous(breaks=pretty_breaks(n=4)) +
 #   # scale_x_continuous(breaks=c(log(0.25),log(0.5),log(1),log(2),log(4),log(8),log(16)),
-#   #                    labels=c("0.25","0.50","1","2","4","8","16")) + 
-#   # xlab("Welfare Cost of Sorting ($ per person-month)") + 
-#   # ylab("Effect on Consumer Surplus ($ per person-month)") + 
+#   #                    labels=c("0.25","0.50","1","2","4","8","16")) +
+#   # xlab("Welfare Cost of Sorting ($ per person-month)") +
+#   # ylab("Effect on Consumer Surplus ($ per person-month)") +
 #   theme(panel.background=element_rect(color=grey(0.75),fill="white"),
 #         panel.grid.major = element_line(color=grey(0.75)),
 #         strip.background = element_blank(),
@@ -405,6 +498,56 @@ dev.off()
 #         axis.title=element_text(size=14),
 #         axis.text = element_text(size=16))
 
+#### Price Effect Plots ####
+png("Writing/Images/PriceEffect.png",width=2500,height=2500,res=275)
+ggplot(merger_effects[parties_indicator==1]) +
+  aes(x=Metal_std,y=Price_Effect_percent) +
+  geom_abline(intercept=0,slope=0) +
+  geom_boxplot(outlier.shape=NA) +
+  facet_wrap("policy_label",ncol=1) + 
+  coord_cartesian(ylim=c(-.15,.25))  +
+  scale_y_continuous(label=percent) +
+  ylab("Percent Change in Monthly Premium")+
+  xlab("")+ 
+  theme(panel.background=element_rect(color=grey(0.75),fill="white"),
+        panel.grid.major.y = element_line(color=grey(0.75)),
+        panel.grid.major.x = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_text(size=14),
+        legend.background = element_rect(color=grey(.5)),
+        legend.title = element_blank(),
+        legend.text = element_text(size=14),
+        legend.key.width = unit(.05,units="npc"),
+        legend.key = element_rect(color="transparent",fill="transparent"),
+        legend.position = "bottom",
+        axis.title=element_text(size=14),
+        axis.text = element_text(size=16))
+dev.off()
+
+
+png("Writing/Images/PriceEffectBase.png",width=2500,height=1500,res=275)
+ggplot(merger_effects[parties_indicator==1&policy=="Base"]) +
+  aes(x=Metal_std,y=Price_Effect_percent) +
+  geom_abline(intercept=0,slope=0) +
+  geom_boxplot(outlier.shape=NA) +
+  coord_cartesian(ylim=c(-.15,.25))  +
+  scale_y_continuous(label=percent) +
+  ylab("Percent Change in Monthly Premium")+
+  xlab("")+ 
+  theme(panel.background=element_rect(color=grey(0.75),fill="white"),
+        panel.grid.major.y = element_line(color=grey(0.75)),
+        panel.grid.major.x = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_text(size=14),
+        legend.background = element_rect(color=grey(.5)),
+        legend.title = element_blank(),
+        legend.text = element_text(size=14),
+        legend.key.width = unit(.05,units="npc"),
+        legend.key = element_rect(color="transparent",fill="transparent"),
+        legend.position = "bottom",
+        axis.title=element_text(size=14),
+        axis.text = element_text(size=16))
+dev.off()
 
 ##### Identifying Positive Mergers ####
 df = merger_welfare[dHHI>200]

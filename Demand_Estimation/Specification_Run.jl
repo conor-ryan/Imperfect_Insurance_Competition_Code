@@ -305,7 +305,6 @@ end
 
 function estimate_demand(filename,rundate,home_directory,
                     haltonDim,
-                    spec_demoRaw,
                     spec_prodchars,
                     spec_prodchars_σ,
                     spec_fixedEffects)
@@ -319,8 +318,7 @@ function estimate_demand(filename,rundate,home_directory,
     println("#### Run Specification ####")
     spec1 = run_specification_penalizedlikelihood(filename,rundate,
                         df,df_mkt,df_risk,df_transfer,
-                        haltonDim = halton_draws,
-                        spec_demoRaw=spec_demoRaw,
+                        haltonDim = haltonDim,
                         spec_prodchars=spec_prodchars,
                         spec_prodchars_σ=spec_prodchars_σ,
                         spec_fixedEffects=spec_fixedEffects)
@@ -338,13 +336,11 @@ function run_specification_penalizedlikelihood(filename::String,
                             haltonDim = 1,
                             spec_prodchars=[:Price,:MedDeduct,:High],
                             spec_prodchars_σ=Vector{Symbol}(undef,0),
-                            spec_demoRaw=[:Age,:Family,:LowIncome],
                             spec_fixedEffects=Vector{Symbol}(undef,0),
                             nested = false)
 
     spec_Dict = Dict("prodchars" => spec_prodchars,
     "prodchars_σ"=> spec_prodchars_σ,
-    "demoRaw"=>spec_demoRaw,
     "fixedEffects"=>spec_fixedEffects,
     "nested"=>nested,
     "haltonDim"=>haltonDim)
@@ -353,22 +349,19 @@ function run_specification_penalizedlikelihood(filename::String,
 
     println("Build LL Model - Fixed Effects Starting Point")
     c_ll = ChoiceData(df,df_mkt,df_risk,df_transfer;
-        demoRaw=spec_demoRaw,
-        prodchars=spec_prodchars,
-        prodchars_σ=Vector{Symbol}(undef,0),
-        fixedEffects=spec_fixedEffects)
+        spec_prodchars=spec_prodchars,
+        spec_prodchars_σ=Vector{Symbol}(undef,0),
+        spec_fixedEffects=spec_fixedEffects)
 
     m_ll = InsuranceLogit(c_ll,1,nested=nested)
 
-    ## Initialize Starting Parameters
-    γstart = rand(m_ll.parLength[:γ])/10 .-.05
-    β0start = rand(m_ll.parLength[:β])/10 .-.05
-    βstart = rand(m_ll.parLength[:γ])/10 .- .05
+    ## Initialize Starting MC_parameters
+    βstart = rand(m_ll.parLength[:β])/10 .-.05
     σstart = rand(m_ll.parLength[:σ])/10 .- .05
     FEstart = rand(m_ll.parLength[:FE])/100 .-.005
 
     fe_length = m_ll.parLength[:FE]
-    p0 = vcat(γstart,β0start,βstart,σstart,FEstart)
+    p0 = vcat(βstart,σstart,FEstart)
     println("#### Estimate LL Starting Point ####")
 
     ## Estimate
@@ -384,18 +377,17 @@ function run_specification_penalizedlikelihood(filename::String,
     ## Build GMM Model
     println("Build Model")
     c_data = ChoiceData(df,df_mkt,df_risk,df_transfer;
-        demoRaw=spec_demoRaw,
         prodchars=spec_prodchars,
         prodchars_σ=spec_prodchars_σ,
         fixedEffects=spec_fixedEffects)
-    param_labels = vcat(String.(spec_demoRaw),String.(spec_prodchars),"Price:" .* String.(spec_demoRaw),"Variance:".*String.(spec_prodchars_σ),c_data.feNames)
+    param_labels = vcat(String.(spec_prodchars),"Variance:".*String.(spec_prodchars_σ),c_data.feNames)
 
     m_ll = InsuranceLogit(c_data,haltonDim,nested=nested)
 
     # Initialize Starting Parameters
 
     fe_length = m_ll.parLength[:FE]
-    ind1 = 1:(length(spec_demoRaw)+length(spec_prodchars)+length(spec_demoRaw))
+    ind1 = 1:(length(spec_prodchars))
     σ_ind = (1 + maximum(ind1)):(maximum(ind1)+length(spec_prodchars_σ))
     ind2 = (1 + maximum(σ_ind)):( maximum(σ_ind)+length(c_data.feNames))
 

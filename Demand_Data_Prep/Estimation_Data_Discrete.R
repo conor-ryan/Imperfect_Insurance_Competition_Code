@@ -1,7 +1,7 @@
 rm(list=ls())
 library(doBy)
 library(data.table)
-setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
+setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition")
 
 #### 2015 Subsidy Percentage Function ####
 
@@ -64,7 +64,7 @@ subsInv <- function(cont,pov_line = 11770,FPL_flag=FALSE){
 
 
 #### Read in eHealth Data and clean Premium Information ####
-eHealth = read.csv("C:/Users/Conor/Documents/Research/eHealth Data/eHealth_2015.csv",stringsAsFactors = FALSE)
+eHealth = read.csv("C:/Users/Conor/Dropbox/Research/eHealth Data/eHealth_2015.csv",stringsAsFactors = FALSE)
 
 # Firm Crosswalk
 firmCrosswalk = read.csv("Intermediate_Output/FirmCrosswalk.csv",check.names=F)
@@ -893,6 +893,7 @@ save(choices,file="Intermediate_Output/Estimation_Data/estimationData.rData")
 
 ### Run the Firm Risk Score File to get Risk Distribution in the data ###
 source("Code/Risk_Scores/FirmLevelRisk_woSim.R")
+source("Code/Demand_Data_Prep/ControlFunction.R")
 
 shares = as.data.table(read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv"))
 load("Intermediate_Output/Estimation_Data/estimationData.rData")
@@ -940,6 +941,44 @@ choices[,numericST:=as.numeric(as.factor(as.character(STATE)))]
 setkey(choices,Person,Product)
 setkey(shares,Product)
 
+#### Include Control Function Residual ####
+load(file="Intermediate_Output/Estimation_Data/CF.rData")
+choices = merge(choices,control_function,by="Product",all.x=TRUE)
+shares = merge(shares,control_function,by="Product",all.x=TRUE)
+
+choices[,CF_res_2:=CF_res^2]
+choices[,CF_res_3:=CF_res^3]
+
+
+#### Long-Form Product Characteristics
+# choices[,Price_18_30:=Price*AgeFE_18_30]
+choices[,Price_31_39:=Price*AgeFE_31_39]
+choices[,Price_40_51:=Price*AgeFE_40_51]
+choices[,Price_52_64:=Price*AgeFE_52_64]
+choices[,Price_Family:=Price*Family]
+choices[,Price_LowIncome:=Price*LowIncome]
+
+
+choices[,CF_res_31_39:=CF_res*AgeFE_31_39]
+choices[,CF_res_40_51:=CF_res*AgeFE_40_51]
+choices[,CF_res_52_64:=CF_res*AgeFE_52_64]
+choices[,CF_res_Family:=CF_res*Family]
+choices[,CF_res_LowIncome:=CF_res*LowIncome]
+
+choices[,CF_res_2_31_39:=CF_res_2*AgeFE_31_39]
+choices[,CF_res_2_40_51:=CF_res_2*AgeFE_40_51]
+choices[,CF_res_2_52_64:=CF_res_2*AgeFE_52_64]
+choices[,CF_res_2_Family:=CF_res_2*Family]
+choices[,CF_res_2_LowIncome:=CF_res_2*LowIncome]
+
+choices[,CF_res_3_31_39:=CF_res_3*AgeFE_31_39]
+choices[,CF_res_3_40_51:=CF_res_3*AgeFE_40_51]
+choices[,CF_res_3_52_64:=CF_res_3*AgeFE_52_64]
+choices[,CF_res_3_Family:=CF_res_3*Family]
+choices[,CF_res_3_LowIncome:=CF_res_3*LowIncome]
+
+
+#### Output Data ####
 
 write.csv(choices[,.SD,.SDcols=c("Person","Firm","Market","Product","S_ij","S_raw_ij","N","Price",
                      "Market_Firm","Market_Cat","Firm_ST","Firm_Market_Cat","Firm_Market_Age","Firm_Market_Cat_Age","drop_FMC","drop_FMCA",
@@ -954,6 +993,10 @@ write.csv(choices[,.SD,.SDcols=c("Person","Firm","Market","Product","S_ij","S_ra
                      "F0_Y0_LI0","F0_Y0_LI1","F0_Y1_LI0","F0_Y1_LI1",
                      "F1_Y0_LI0","F1_Y0_LI1","F1_Y1_LI0","F1_Y1_LI1",
                      "AgeFE_18_30","AgeFE_31_39","AgeFE_40_51","AgeFE_52_64",
+                     "Price_31_39","Price_40_51","Price_52_64","Price_Family","Price_LowIncome",
+                     "CF_res","CF_res_31_39","CF_res_40_51","CF_res_52_64","CF_res_Family","CF_res_LowIncome",
+                     "CF_res_2","CF_res_2_31_39","CF_res_2_40_51","CF_res_2_52_64","CF_res_2_Family","CF_res_2_LowIncome",
+                     "CF_res_3","CF_res_3_31_39","CF_res_3_40_51","CF_res_3_52_64","CF_res_3_Family","CF_res_3_LowIncome",
                      "unins_rate",firm_list)],
           "Intermediate_Output/Estimation_Data/estimationData_discrete.csv",row.names=FALSE)
 write.csv(choices,"Intermediate_Output/Estimation_Data/descriptiveData_discrete.csv",row.names=FALSE)
