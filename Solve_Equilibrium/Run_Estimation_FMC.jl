@@ -33,7 +33,10 @@ spec_demoRaw = [:AgeFE_31_39,
         :LowIncome]
 # spec_prodchars=[:Price,:AV,:constant]
 spec_prodchars=[:Price,:Price_31_39,:Price_40_51,:Price_52_64,:Price_Family,:Price_LowIncome, 
-                :AV,:constant,:AgeFE_31_39,:AgeFE_40_51,:AgeFE_52_64,:Family,:LowIncome]
+                :AV,:constant,:AgeFE_31_39,:AgeFE_40_51,:AgeFE_52_64,:Family,:LowIncome,
+                :CF_res,:CF_res_31_39,:CF_res_40_51,:CF_res_52_64,
+                :CF_res_2,:CF_res_2_31_39,:CF_res_2_40_51,:CF_res_2_52_64,
+                :CF_res_3,:CF_res_3_31_39,:CF_res_3_40_51,:CF_res_3_52_64]
 spec_prodchars_σ=[:AV,:constant,
 :AK_MODA_HEALTH_PLAN_INC,#:AK_PREMERA_BLUE_CROSS_BLUE_SHIELD_OF_ALASKA,
 :GA_AETNA,:GA_AMBETTER_FROM_PEACH_STATE_HEALTH_PLAN,:GA_ASSURANT_HEALTH,:GA_BLUE_CROSS_BLUE_SHIELD_OF_GEORGIA,:GA_CIGNA_HEALTH_AND_LIFE_INSURANCE_COMPANY,:GA_HUMANA,:GA_KAISER_PERMANENTE_GA,:GA_UNITEDHEALTHCARE_LIFE_INS_CO,#:GA_UNITEDHEALTHCARE_OF_GEORGIA_INC,

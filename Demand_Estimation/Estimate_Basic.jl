@@ -94,7 +94,7 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
     ## Initialize Parameter Vector
     p_vec = p0
     N = length(p0)
-    disp_vec = vcat([6,7],[13],[25,26],[38,39])
+    disp_vec = vcat(1:7,[30,31])
 
     cnt = 0
     grad_size = 10000
@@ -244,7 +244,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
     ## Initialize Parameter Vector
     p_vec = p0
     N = length(p0)
-    disp_vec = vcat([6,7],[13],[25,26],[38,39])
+    disp_vec = vcat(1:7,[30,31])
     cnt = 0
     grad_size = 10000
     f_eval_old = 1.0
