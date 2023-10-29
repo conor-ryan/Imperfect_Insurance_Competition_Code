@@ -13,7 +13,7 @@ mutable struct parDict{T}
     # γ_0::T
     # γ::Vector{T}
     # β_0::Vector{T}
-    β::Matrix{T}
+    β::Vector{T}
     σ::Vector{T}
     FE::Matrix{T}
     #Random Coefficients stored (function of σ and draws)

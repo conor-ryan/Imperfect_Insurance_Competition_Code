@@ -977,7 +977,8 @@ choices[,CF_res_3_52_64:=CF_res_3*AgeFE_52_64]
 choices[,CF_res_3_Family:=CF_res_3*Family]
 choices[,CF_res_3_LowIncome:=CF_res_3*LowIncome]
 
-
+setkey(choices,Person,Product)
+setkey(shares,Product)
 #### Output Data ####
 
 write.csv(choices[,.SD,.SDcols=c("Person","Firm","Market","Product","S_ij","S_raw_ij","N","Price",

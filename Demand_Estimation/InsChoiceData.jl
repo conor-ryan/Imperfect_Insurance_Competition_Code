@@ -226,8 +226,6 @@ function ChoiceData(data_choice::DataFrame,
                     riskFirm = riskFirm,smallFirm = smallFirm,risksmall = risksmall,
                     constInProds=constInProds)
     F = permutedims(F,(2,1))
-    print("Size of F is $(size(F))")
-
 
     index = Dict{Symbol, Int}()
     dmat = Matrix{Float64}(undef,n,0)
@@ -382,7 +380,7 @@ function ChoiceData(data_choice::DataFrame,
     # Relevant Fixed Effect Parameters Per Person
     rel_fe_Dict = Dict{Real,Array{Int64,1}}()
     for (id,idxitr) in _personDict
-        F_t = view(F,:,idxitr)
+        F_t = view(F,:,idxitr)    
         any_positive = maximum(F_t,dims=2)[:,1]
         pars_relevant = findall(any_positive .>0)
         rel_fe_Dict[id] = pars_relevant
