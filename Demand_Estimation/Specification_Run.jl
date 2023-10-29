@@ -377,9 +377,9 @@ function run_specification_penalizedlikelihood(filename::String,
     ## Build GMM Model
     println("Build Model")
     c_data = ChoiceData(df,df_mkt,df_risk,df_transfer;
-        prodchars=spec_prodchars,
-        prodchars_σ=spec_prodchars_σ,
-        fixedEffects=spec_fixedEffects)
+        spec_prodchars=spec_prodchars,
+        spec_prodchars_σ=spec_prodchars_σ,
+        spec_fixedEffects=spec_fixedEffects)
     param_labels = vcat(String.(spec_prodchars),"Variance:".*String.(spec_prodchars_σ),c_data.feNames)
 
     m_ll = InsuranceLogit(c_data,haltonDim,nested=nested)
