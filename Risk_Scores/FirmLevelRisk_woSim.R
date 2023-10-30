@@ -41,8 +41,8 @@ RA_claims = RA_claims[!RA_claims$absent1,]
 
 # Merge in and summarize by Firm Name
 crosswalk = read.csv("Intermediate_Output/FirmCrosswalk.csv",check.names = F)
-crosswalk = unique(crosswalk[,c("\xef..MR_SUBMISSION_TEMPLATE_ID","Firm","STATE")])
-names(crosswalk)[1] = "MR_SUBMISSION_TEMPLATE_ID"
+crosswalk = unique(crosswalk[,c("MR_SUBMISSION_TEMPLATE_ID","Firm","STATE")])
+# names(crosswalk)[1] = "MR_SUBMISSION_TEMPLATE_ID"
 
 RA_claims = merge(RA_claims,crosswalk[,c("MR_SUBMISSION_TEMPLATE_ID","Firm","STATE")],by="MR_SUBMISSION_TEMPLATE_ID")
 RA_claims = summaryBy(MLR_lives+Payments+Payments_RC+Revenue+memberMonths+memberMonths_RC~Firm+STATE,data=RA_claims,FUN=sum,na.rm=TRUE,keep.names=TRUE)

@@ -3,8 +3,9 @@ library(doBy)
 library(data.table)
 library(ggplot2)
 library(Hmisc)
-setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition/")
-
+if (!grepl("Imperfect_Insurance_Competition",getwd())){
+  setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition")
+}
 #### Read in MEPS Data ####
 mepsFull = read.csv("Data/2015_MEPS/MEPS_Full_2015.csv")
 

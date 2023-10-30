@@ -1,10 +1,9 @@
 rm(list = ls())
 library(doBy)
-library(noncensus)
-setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
+setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
 ##### Firm IDs  ####
 firms = read.csv("Data/2015_MLR/MR_Submission_Template_Header.csv")
-firms = firms[,c("ï..MR_SUBMISSION_TEMPLATE_ID","BUSINESS_STATE","GROUP_AFFILIATION","COMPANY_NAME","DBA_MARKETING_NAME")]
+firms = firms[,c("MR_SUBMISSION_TEMPLATE_ID","BUSINESS_STATE","GROUP_AFFILIATION","COMPANY_NAME","DBA_MARKETING_NAME")]
 
 firms$Firm = as.character(firms$DBA_MARKETING_NAME)
 firms$Firm[grepl("N/A",firms$DBA_MARKETING_NAME)] = paste(firms$COMPANY_NAME[grepl("N/A",firms$DBA_MARKETING_NAME)],"No DBA Name")
@@ -121,7 +120,8 @@ firms$Firm[firms$DBA_MARKETING_NAME=="UnitedHealthcare Insurance Company"&firms$
 firms$Firm[grepl("Coventry",firms$DBA_MARKETING_NAME)&firms$BUSINESS_STATE=="Illinois"]="Coventry"
 firms$Firm[grepl("Coventry",firms$DBA_MARKETING_NAME)&firms$BUSINESS_STATE=="Missouri"]="Coventry"
 
-data(states)
+data(state)
+states = data.frame(name=state.name,state=state.abb)
 firms = merge(firms,states[,c("state","name")],by.x="BUSINESS_STATE",by.y="name")
 
 firms$Firm = gsub(" ","_",firms$Firm)
@@ -129,7 +129,7 @@ firms$Firm = gsub("[,.&'-:]","",firms$Firm)
 firms$Firm = toupper(firms$Firm)
 
 # #### eHealth Firms ####
-eHealth = read.csv("C:/Users/Conor/Documents/Research/eHealth Data/eHealth_2015.csv")
+eHealth = read.csv("C:/Users/cxr5626/Dropbox/Research/eHealth Data/eHealth_2015.csv")
 # Drop "referential integrity" rows
 eHealth = eHealth[eHealth$PLAN_NAME!="UNKNOWN PLAN - this row is used for referential integrity - DSTOCK",]
 
@@ -262,8 +262,8 @@ crosswalk = merge(crosswalk,filings,by.x=c("STATE","Firm"),by.y=c("STATE","Firm"
 validStates = c("AK","CA","CT","DE","GA","IL","IA","MD","MI","MO","NE","NJ","NM","ND","OK","OR","TX","UT","VA","WV")
 
 crosswalk = crosswalk[crosswalk$STATE%in%validStates,
-                      c("BUSINESS_STATE","STATE","Firm","ï..MR_SUBMISSION_TEMPLATE_ID","ISSUER_ID","GROUP_AFFILIATION","COMPANY_NAME","DBA_MARKETING_NAME","CARRIER_NAME","CARRIER","COMPANY")]
-names(crosswalk) = c("BUSINESS_STATE","STATE","Firm","ï..MR_SUBMISSION_TEMPLATE_ID","ISSUER_ID","GROUP_AFFILIATION","COMPANY_NAME","DBA_MARKETING_NAME","eHealth_CARRIER_NAME","RWJF_CARRIER","RF_COMPANY")
+                      c("BUSINESS_STATE","STATE","Firm","MR_SUBMISSION_TEMPLATE_ID","ISSUER_ID","GROUP_AFFILIATION","COMPANY_NAME","DBA_MARKETING_NAME","CARRIER_NAME","CARRIER","COMPANY")]
+names(crosswalk) = c("BUSINESS_STATE","STATE","Firm","MR_SUBMISSION_TEMPLATE_ID","ISSUER_ID","GROUP_AFFILIATION","COMPANY_NAME","DBA_MARKETING_NAME","eHealth_CARRIER_NAME","RWJF_CARRIER","RF_COMPANY")
 
 write.csv(crosswalk,"Intermediate_Output/FirmCrosswalk.csv",row.names=FALSE)
 write.csv(planDataPlans,"Intermediate_Output/RWJF_PlanCrosswalk.csv",row.names=FALSE)

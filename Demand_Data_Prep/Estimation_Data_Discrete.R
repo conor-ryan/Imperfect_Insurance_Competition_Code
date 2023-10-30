@@ -4,6 +4,7 @@ library(data.table)
 if (!grepl("Imperfect_Insurance_Competition",getwd())){
   setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition")
 }
+eHealthDir = gsub("Imperfect_Insurance_Competition","eHealth Data",getwd())
 #### 2015 Subsidy Percentage Function ####
 
 subsPerc <- function(FPL){
@@ -65,7 +66,7 @@ subsInv <- function(cont,pov_line = 11770,FPL_flag=FALSE){
 
 
 #### Read in eHealth Data and clean Premium Information ####
-eHealth = read.csv("C:/Users/Conor/Dropbox/Research/eHealth Data/eHealth_2015.csv",stringsAsFactors = FALSE)
+eHealth = read.csv(paste(eHealthDir,"eHealth_2015.csv",sep="/"),stringsAsFactors = FALSE)
 
 # Firm Crosswalk
 firmCrosswalk = read.csv("Intermediate_Output/FirmCrosswalk.csv",check.names=F)

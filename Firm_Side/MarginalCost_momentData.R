@@ -45,7 +45,7 @@ claims = claims[!claims$absent1,c("MR_SUBMISSION_TEMPLATE_ID","Claims","MLR_live
 
 # Merge in and summarize by Firm Name
 crosswalk = read.csv("Intermediate_Output/FirmCrosswalk.csv",check.names=F)
-crosswalk = unique(crosswalk[,c("\xef..MR_SUBMISSION_TEMPLATE_ID","Firm","STATE")])
+crosswalk = unique(crosswalk[,c("MR_SUBMISSION_TEMPLATE_ID","Firm","STATE")])
 names(crosswalk) = c("MR_SUBMISSION_TEMPLATE_ID","Firm","STATE")
 
 claims = merge(claims,crosswalk[,c("MR_SUBMISSION_TEMPLATE_ID","Firm","STATE")],by="MR_SUBMISSION_TEMPLATE_ID")
