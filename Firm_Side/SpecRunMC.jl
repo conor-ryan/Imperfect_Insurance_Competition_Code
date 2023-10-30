@@ -38,10 +38,10 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
     println("Construct Hessians for Standard Errors")
     ll_grad = Vector{Float64}(undef,length(p_dem_est))
     ll_hess = Matrix{Float64}(undef,length(p_dem_est),length(p_dem_est))
-    ll = log_likelihood!(ll_hess,ll_grad,m_demand,par_dem)
+    # ll = log_likelihood!(ll_hess,ll_grad,m_demand,par_dem)
 
     mom_grad = Matrix{Float64}(undef,length(p_dem_est),length(m_demand.data.rMoments))
-    mom = calc_risk_moments!(mom_grad,m_demand,par_dem)
+    # mom = calc_risk_moments!(mom_grad,m_demand,par_dem)
     G_θ = hcat(mom_grad,ll_hess)
 
     m_demand = 0.0
