@@ -30,8 +30,7 @@ load("Intermediate_Output/Simulated_BaseData/acs_prepped.rData")
 # areas = summaryBy(MEMBERS+count~AREA+ST,data=acs,FUN=sum,keep.names=TRUE)
 
 #### Match to Choice Set ####
-choiceSets = read.csv("Intermediate_Output/Premiums/choiceSets2015.csv")
-choiceSets = as.data.table(choiceSets)
+choiceSets = fread("Intermediate_Output/Premiums/choiceSets2015.csv")
 setkey(choiceSets,ST,AREA)
 setkey(acs,ST,AREA)
 # Drop invalid states and Merge
@@ -240,7 +239,7 @@ acs[,Firm_Market_Cat_Age:=paste(Firm,Market,prodCat,Age,sep="_")]
 acs[,Firm_ST:=paste(ST,Firm,sep="_")]
 
 #### Simulation Drop Flags ####
-est_data = as.data.table(read.csv("Intermediate_Output/Estimation_Data/estimationData_discrete.csv"))
+est_data = fread("Intermediate_Output/Estimation_Data/estimationData_discrete.csv")
 est_FMC_obs = est_data[,unique(Firm_Market_Cat)]
 est_FMCA_obs = est_data[,unique(Firm_Market_Cat_Age)]
 
@@ -253,8 +252,8 @@ acs[!Firm_Market_Cat_Age%in%est_FMCA_obs,drop_FMCA:=1]
 rm(est_data)
 
 #### Merge in Product Map #### 
-prod_map = read.csv("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv")
-prod_map = as.data.table(prod_map)
+prod_map = fread("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv")
+prod_map_all = unique(prod_map[,c("Firm","METAL","Market","Product")])
 prod_map = unique(prod_map[,c("Firm","Metal_std","Market","Product_std","Small")])
 
 
@@ -265,6 +264,7 @@ acs[,premBase_std:=median(premBase),by=c("Firm","Metal_std","Market")]
 setkey(acs,Firm,Metal_std,Market)
 setkey(prod_map,Firm,Metal_std,Market)
 acs = merge(acs,prod_map,by=c("Firm","Metal_std","Market"),all.x=TRUE)
+acs = merge(acs,prod_map_all,by=c("Firm","METAL","Market"),all.x=TRUE)
 # Drop 0 share products
 acs = acs[!is.na(acs$Product_std),]
 
@@ -402,23 +402,42 @@ acs = merge(acs,r_mom,by=c("Age_Cat","Inc_Cat"),all.x=TRUE)
 
 acs[,c("Age_Cat","Inc_Cat"):=NULL]
 
+#### Include Control Function Residual ####
+load(file="Intermediate_Output/Estimation_Data/CF.rData")
+acs = merge(acs,control_function,by="Product",all.x=TRUE)
+
+acs[,CF_res_2:=CF_res^2]
+acs[,CF_res_3:=CF_res^3]
+
+#### Long-Form Product Characteristics
+# acs[,Price_18_30:=Price*AgeFE_18_30]
+acs[,Price_31_39:=Price*AgeFE_31_39]
+acs[,Price_40_51:=Price*AgeFE_40_51]
+acs[,Price_52_64:=Price*AgeFE_52_64]
+acs[,Price_Family:=Price*Family]
+acs[,Price_LowIncome:=Price*LowIncome]
+
+
+acs[,CF_res_31_39:=CF_res*AgeFE_31_39]
+acs[,CF_res_40_51:=CF_res*AgeFE_40_51]
+acs[,CF_res_52_64:=CF_res*AgeFE_52_64]
+acs[,CF_res_Family:=CF_res*Family]
+acs[,CF_res_LowIncome:=CF_res*LowIncome]
+
+acs[,CF_res_2_31_39:=CF_res_2*AgeFE_31_39]
+acs[,CF_res_2_40_51:=CF_res_2*AgeFE_40_51]
+acs[,CF_res_2_52_64:=CF_res_2*AgeFE_52_64]
+acs[,CF_res_2_Family:=CF_res_2*Family]
+acs[,CF_res_2_LowIncome:=CF_res_2*LowIncome]
+
+acs[,CF_res_3_31_39:=CF_res_3*AgeFE_31_39]
+acs[,CF_res_3_40_51:=CF_res_3*AgeFE_40_51]
+acs[,CF_res_3_52_64:=CF_res_3*AgeFE_52_64]
+acs[,CF_res_3_Family:=CF_res_3*Family]
+acs[,CF_res_3_LowIncome:=CF_res_3*LowIncome]
+
 
 #### Output Analogous Data ####
-# choiceData = acs[,c("Person","Firm","ST","Firm_ST","Market_Firm","Market_Cat","Firm_Market_Cat","Firm_Market_Cat_Age","drop_FMC","drop_FMCA",
-#                     "Market","PERWT","Price",
-#                     "MedDeduct","ExcOOP","High","AV","AV_std","AV_diff","HighRisk","Small","High_small","Gamma_j",
-#                     "Mandate","subsidy","benchBase","IncomeCont","mkt_density",
-#                     "Family","Age","LowIncome","AGE","AvgAge",
-#                     "METAL","premBase","count_hix_prod",
-#                     "Metal_std","Product_std","premBase_std",
-#                     "Bronze","Catas","Silver","Gold","Platinum",
-#                     "ageRate","ageRate_avg","HCC_age","SilvHCC_Age","MEMBERS",
-#                     "mean_HCC_Platinum","mean_HCC_Gold","mean_HCC_Silver","mean_HCC_Bronze","mean_HCC_Catastrophic",
-#                     "Rtype","Any_HCC",
-#                     "var_HCC_Platinum","var_HCC_Gold","var_HCC_Silver","var_HCC_Bronze","var_HCC_Catastrophic",
-#                     "AgeFE_18_30","AgeFE_31_39","AgeFE_40_51","AgeFE_52_64")]
-
-
 choiceData = acs[,.SD,.SDcols=c("Person","Firm","ST","Market","PERWT","Price",
                     "Market_Firm","Market_Cat","Firm_ST","Firm_Market_Cat","Firm_Market_Cat_Age","drop_FMC","drop_FMCA",
                     "PriceDiff",#"MedDeductDiff","ExcOOPDiff","HighDiff",
@@ -433,6 +452,10 @@ choiceData = acs[,.SD,.SDcols=c("Person","Firm","ST","Market","PERWT","Price",
                     "Rtype","Any_HCC",
                     "var_HCC_Platinum","var_HCC_Gold","var_HCC_Silver","var_HCC_Bronze","var_HCC_Catastrophic",
                     "AgeFE_18_30","AgeFE_31_39","AgeFE_40_51","AgeFE_52_64",
+                    "Price_31_39","Price_40_51","Price_52_64","Price_Family","Price_LowIncome",
+                    "CF_res","CF_res_31_39","CF_res_40_51","CF_res_52_64","CF_res_Family","CF_res_LowIncome",
+                    "CF_res_2","CF_res_2_31_39","CF_res_2_40_51","CF_res_2_52_64","CF_res_2_Family","CF_res_2_LowIncome",
+                    "CF_res_3","CF_res_3_31_39","CF_res_3_40_51","CF_res_3_52_64","CF_res_3_Family","CF_res_3_LowIncome",
                     firm_list_labels)]
 
 choiceData[,S_ij:=0]

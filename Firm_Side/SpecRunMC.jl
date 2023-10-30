@@ -17,10 +17,9 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
 
     #### Compute Hessian of Likelihood from Demand for Std Errors ####
     df_demand = ChoiceData(df_dem,df_mkt,df_risk,df_transfer;
-        demoRaw=spec_Dict["demoRaw"],
-        prodchars=spec_Dict["prodchars"],
-        prodchars_σ=spec_Dict["prodchars_σ"],
-        fixedEffects=spec_Dict["fixedEffects"])
+        spec_prodchars=spec_Dict["prodchars"],
+        spec_prodchars_σ=spec_Dict["prodchars_σ"],
+        spec_fixedEffects=spec_Dict["fixedEffects"])
 
     # Fit into model
     m_demand = InsuranceLogit(df_demand,spec_Dict["haltonDim"])
@@ -56,10 +55,9 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
     # Structre the data
     chdf = ChoiceData(df,df_mkt,df_risk,df_transfer;
         product = [:Product_std],
-        demoRaw=spec_Dict["demoRaw"],
-        prodchars=spec_Dict["prodchars"],
-        prodchars_σ=spec_Dict["prodchars_σ"],
-        fixedEffects=spec_Dict["fixedEffects"],
+        spec_prodchars=spec_Dict["prodchars"],
+        spec_prodchars_σ=spec_Dict["prodchars_σ"],
+        spec_fixedEffects=spec_Dict["fixedEffects"],
         wgt=[:PERWT])
 
     # Fit into model
@@ -95,11 +93,11 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
 
     p0 = vcat(rand(length(cost_spec)+1)*.2)
     p0[2] = rand()*3+1
-    # est_init = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4,max_itr=100)
-    # est_stg1 = estimate_NLOpt(est_init[3],par_est,m,costdf,W,itrFirms=true)
-    # p_stg1 = fit_firm_moments(est_stg1[3],par_est,m,costdf,itrFirms=true)
+    est_init = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4,max_itr=100)
+    est_stg1 = estimate_NLOpt(est_init[3],par_est,m,costdf,W,itrFirms=true)
+    p_stg1 = fit_firm_moments(est_stg1[3],par_est,m,costdf,itrFirms=true)
     file = "$home_directory/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg1_$spec-$rundate.jld2"
-    # @save file p_stg1 p_dem_est cost_spec spec_Dict
+    @save file p_stg1 p_dem_est cost_spec spec_Dict
     # @load file p_stg1 p_dem_est cost_spec spec_Dict
 
     println("#################")
@@ -111,22 +109,22 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
     m.data.data[m.data._choice,:] = par_est.s_hat
 
 
-    # S_all,Σ,Δ,S_m = aVar(costdf,m,p_stg1,par_est)
-    # S_diag = Matrix(Diagonal(diag(S_m)))
-    # W = Matrix(Diagonal(diag(inv(S_diag))))
+    S_all,Σ,Δ,S_m = aVar(costdf,m,p_stg1,par_est)
+    S_diag = Matrix(Diagonal(diag(S_m)))
+    W = Matrix(Diagonal(diag(inv(S_diag))))
 
-    # p0 = vcat(rand(length(cost_spec)+1)*.2)
-    # p0[2] = rand()*3+1
+    p0 = vcat(rand(length(cost_spec)+1)*.2)
+    p0[2] = rand()*3+1
 
-    # est_stg2 = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4,max_itr=100)
-    # est_stg2 = estimate_NLOpt(est_stg2[3],par_est,m,costdf,W,itrFirms=true)
+    est_stg2 = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4,max_itr=100)
+    est_stg2 = estimate_NLOpt(est_stg2[3],par_est,m,costdf,W,itrFirms=true)
 
 
-    # p_stg2 = fit_firm_moments(est_stg2[3],par_est,m,costdf,itrFirms=true)
+    p_stg2 = fit_firm_moments(est_stg2[3],par_est,m,costdf,itrFirms=true)
 
     file = "$home_directory/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_stg2_$spec-$rundate.jld2"
-    # @save file p_stg2 p_dem_est cost_spec spec_Dict
-    @load file p_stg2 p_dem_est cost_spec spec_Dict
+    @save file p_stg2 p_dem_est cost_spec spec_Dict
+    # @load file p_stg2 p_dem_est cost_spec spec_Dict
 
 
 
@@ -138,11 +136,11 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
 
 
 
-    # Avar, se, t_stat, stars = GMM_var(costdf,m,p_stg2,par_est,p_dem_est,W,G_θ)
+    Avar, se, t_stat, stars = GMM_var(costdf,m,p_stg2,par_est,p_dem_est,W,G_θ)
 
-    # out1 = DataFrame(pars=p_stg2,se=se,ts=t_stat,sig=stars)
-    # file1 = "$home_directory/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_$spec-$rundate.csv"
-    # CSV.write(file1,out1)
+    out1 = DataFrame(pars=p_stg2,se=se,ts=t_stat,sig=stars)
+    file1 = "$home_directory/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_$spec-$rundate.csv"
+    CSV.write(file1,out1)
 
     #### Print Costs Moments
     println("Print Cost Moments...")
