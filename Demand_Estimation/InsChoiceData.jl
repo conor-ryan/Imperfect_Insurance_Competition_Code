@@ -318,6 +318,8 @@ function ChoiceData(data_choice::DataFrame,
     println("Check Collinearity")
     all_ind = vcat(_choice,_prodchars,_ageRate,_ageHCC,_unins)
     all_data = vcat(dmat[all_ind,:],F)
+    println(dmat[all_ind,1:3])
+    println(spec_prodchars)
     X = all_data*all_data'
     ev = sort(eigvals(X))
     smallest_ev = ev[1]

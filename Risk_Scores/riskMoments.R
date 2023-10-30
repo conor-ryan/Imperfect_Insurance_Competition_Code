@@ -2,8 +2,9 @@ rm(list = ls())
 library(data.table)
 # library(nleqslv)
 library(doBy)
-setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
-
+if (!grepl("Imperfect_Insurance_Competition",getwd())){
+  setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition")
+}
 #### Base Firm Risk Data ####
 firmRiskFile ="Simulation_Risk_Output/FirmRiskScores_woSim.rData"
 load(firmRiskFile)

@@ -2,8 +2,9 @@ rm(list = ls())
 library(data.table)
 library(nleqslv)
 library(ggplot2)
-setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
-
+if (!grepl("Imperfect_Insurance_Competition",getwd())){
+  setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition")
+}
 
 ## Load Simulation Data
 simData = as.data.table(read.csv("Intermediate_Output/Simulated_BaseData/simchoiceData_discrete.csv"))

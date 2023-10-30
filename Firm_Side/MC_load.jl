@@ -5,7 +5,9 @@ using CSV
 ########################################################################
 # Load the data
 df = CSV.read("$home_directory/Research/Imperfect_Insurance_Competition/Intermediate_Output/Simulated_BaseData/simchoiceData_discrete.csv",
-DataFrame,types=Dict("unins_rate"=>Float64,"S_ij"=>Float64,"var_HCC_Silver"=>Float64))
+DataFrame)
+
+#,types=Dict("unins_rate"=>Float64,"S_ij"=>Float64,"var_HCC_Silver"=>Float64))
 
 df_mkt = CSV.read("$home_directory/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Data/marketData_discrete.csv",DataFrame)
 

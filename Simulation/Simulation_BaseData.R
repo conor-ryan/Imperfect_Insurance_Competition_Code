@@ -2,8 +2,9 @@ rm(list=ls())
 library(doBy)
 library(randtoolbox)
 library(data.table)
-setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition")
-
+if (!grepl("Imperfect_Insurance_Competition",getwd())){
+  setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition")
+}
 #### 2015 Subsidy Percentage Function ####
 
 subsPerc <- function(FPL){
@@ -253,7 +254,7 @@ rm(est_data)
 
 #### Merge in Product Map #### 
 prod_map = fread("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv")
-prod_map_all = unique(prod_map[,c("Firm","METAL","Market","Product")])
+# prod_map_all = unique(prod_map[,c("Firm","METAL","Market","Product")])
 prod_map = unique(prod_map[,c("Firm","Metal_std","Market","Product_std","Small")])
 
 
@@ -264,7 +265,7 @@ acs[,premBase_std:=median(premBase),by=c("Firm","Metal_std","Market")]
 setkey(acs,Firm,Metal_std,Market)
 setkey(prod_map,Firm,Metal_std,Market)
 acs = merge(acs,prod_map,by=c("Firm","Metal_std","Market"),all.x=TRUE)
-acs = merge(acs,prod_map_all,by=c("Firm","METAL","Market"),all.x=TRUE)
+# acs = merge(acs,prod_map_all,by=c("Firm","METAL","Market"),all.x=TRUE)
 # Drop 0 share products
 acs = acs[!is.na(acs$Product_std),]
 
@@ -404,7 +405,8 @@ acs[,c("Age_Cat","Inc_Cat"):=NULL]
 
 #### Include Control Function Residual ####
 load(file="Intermediate_Output/Estimation_Data/CF.rData")
-acs = merge(acs,control_function,by="Product",all.x=TRUE)
+control_function[,Product:=NULL]
+acs = merge(acs,control_function,by=c("Firm","METAL","Market"),all.x=TRUE)
 
 acs[,CF_res_2:=CF_res^2]
 acs[,CF_res_3:=CF_res^3]

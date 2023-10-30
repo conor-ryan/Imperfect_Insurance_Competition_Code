@@ -2,8 +2,9 @@ rm(list=ls())
 library(data.table)
 library(doBy)
 library(Hmisc)
-setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
-
+if (!grepl("Imperfect_Insurance_Competition",getwd())){
+  setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition")
+}
 
 #### ICD09 to 3-Digit Mapping ####
 mapdig = as.data.table(read.csv("Code/CMS_RiskAdjustment/HHS-HCC/ICD09_Codes.csv",stringsAsFactors=FALSE,colClasses = "character"))

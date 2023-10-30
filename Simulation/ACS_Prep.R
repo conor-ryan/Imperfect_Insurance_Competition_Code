@@ -2,8 +2,9 @@ rm(list=ls())
 library(doBy)
 library(randtoolbox)
 library(data.table)
-setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition")
-
+if (!grepl("Imperfect_Insurance_Competition",getwd())){
+  setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition")
+}
 ## Run
 # run = "2019-03-12"
 

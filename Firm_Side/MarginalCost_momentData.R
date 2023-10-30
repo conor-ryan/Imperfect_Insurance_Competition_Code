@@ -2,8 +2,9 @@ rm(list = ls())
 library(data.table)
 library(Matrix)
 library(doBy)
-setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition/")
-
+if (!grepl("Imperfect_Insurance_Competition",getwd())){
+  setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition")
+}
 #### Load Data####
 choiceData = read.csv("Intermediate_Output/Simulated_BaseData/simchoiceData_discrete.csv")
 choiceData = as.data.table(choiceData)

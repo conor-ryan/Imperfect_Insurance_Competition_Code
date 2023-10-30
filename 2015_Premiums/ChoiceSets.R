@@ -4,8 +4,9 @@ library(scales)
 library(extrafont)
 library(grid)
 library(doBy)
-setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition")
-
+if (!grepl("Imperfect_Insurance_Competition",getwd())){
+  setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition")
+}
 #### Read in Data ####
 #Read in plan description data 
 planData = read.csv("Data/2015_Premiums/2015_RWJF.csv")

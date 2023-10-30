@@ -104,7 +104,7 @@ end
 function log_likelihood_parallel!(grad::SharedArray{Float64,1},
                             d::InsuranceLogit,p::parDict{T};
                             cont_flag::Bool=false,
-                            feFlag=-1) where {S,T}
+                            feFlag=-1) where {T}
     Q = d.parLength[:All]
     N = size(d.draws,1)
     grad[:] .= 0.0

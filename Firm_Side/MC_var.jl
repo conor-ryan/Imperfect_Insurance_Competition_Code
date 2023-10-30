@@ -166,7 +166,7 @@ end
 
 
 function cost_obs_moments!(mom_obs::Vector{Float64},productIDs::Vector{Int64},
-                    app::ChoiceData,d::InsuranceLogit,c::MC_Data,p::parMC{Float64}) where T
+                    app::ChoiceData,d::InsuranceLogit,c::MC_Data,p::parMC{Float64}) 
     mom_obs[:] .= 0.0
     wgts = weight(app)[1,:]
     ind = person(app)[1]

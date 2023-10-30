@@ -1,8 +1,9 @@
 rm(list=ls())
 library(doBy)
 library(data.table)
-setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition")
-
+if (!grepl("Imperfect_Insurance_Competition",getwd())){
+  setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition")
+}
 #### 2015 Subsidy Percentage Function ####
 
 subsPerc <- function(FPL){
@@ -943,6 +944,8 @@ setkey(shares,Product)
 
 #### Include Control Function Residual ####
 load(file="Intermediate_Output/Estimation_Data/CF.rData")
+control_function[,c("Firm","METAL","Market"):=NULL]
+control_function = control_function[!is.na(Product)]
 choices = merge(choices,control_function,by="Product",all.x=TRUE)
 shares = merge(shares,control_function,by="Product",all.x=TRUE)
 

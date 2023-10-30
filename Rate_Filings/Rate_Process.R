@@ -2,8 +2,9 @@ rm(list = ls())
 library(doBy)
 library(data.table)
 library(nleqslv)
-setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/")
-
+if (!grepl("Imperfect_Insurance_Competition",getwd())){
+  setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition")
+}
 #### Read in Rate Filings ####
 filings=NULL
 for (year in 2015:2017){
