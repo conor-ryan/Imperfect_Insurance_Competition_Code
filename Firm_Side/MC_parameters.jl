@@ -40,6 +40,9 @@ mutable struct MC_Data
     # Matrix of Fixed Effects
     fixedEffects::Matrix{Float64}
 
+    # Matrix of Metal Effects
+    metalEffects::Matrix{Float64}
+
     # Vector of HCC Prevalence
     anyHCC::Vector{Float64}
 
@@ -99,6 +102,9 @@ function MC_Data(data_choice::DataFrame,
 
     # Convert everything to an array once for performance
     data = Array(data_choice[!,baseSpec])
+
+    # Convert everything to an array once for performance
+    metal_levels = Array(data_choice[!,[:Catas,:Bronze,:Silver,:Gold,:Platinum]])
 
     println("Create Fixed Effects")
     bigFirm = false
@@ -242,7 +248,7 @@ function MC_Data(data_choice::DataFrame,
 
 
 
-    return MC_Data(data,F,anyHCC,_baseIndex,_riskIndex,_feIndex,
+    return MC_Data(data,F,metal_levels,anyHCC,_baseIndex,_riskIndex,_feIndex,
                     mom_length,par_length,_stDict,
                     _firmMomentDict,_firmMomentBit,_firmMomentProdDict,firmMoments,
                     _metalMomentDict,_metalMomentBit,_metalMomentProdDict,metalMoments,
@@ -258,8 +264,9 @@ function parMC(p_MC::Vector{T},par_est::parDict{Float64},d::InsuranceLogit,c::MC
     # Non Risk Costs
     basepars = p_MC[c._baseIndex]' * c.data
     fepars = p_MC[c._feIndex]' * c.fixedEffects
+    metalpars = [0.57,0.60,0.70,0.80,0.90]' * c.metalEffects
     C_nonrisk = basepars + fepars
-    C_nonrisk = exp.(C_nonrisk[:])
+    C_nonrisk = exp.(C_nonrisk[:]).*metalpars
 
     # Risk Costs
     risks = exp.(d.draws.*p_MC[c._riskIndex])
