@@ -436,7 +436,8 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
     any_long = anyHCC(d.data)
     wgt_long = weight(d.data)
     prod_long = Int.(product(d.data))
-    demData = demoRaw(d.data)
+    prodData = prodchars(d.data)
+    price_ind = d.data.price_index
     age_long = firm[:ageRate]
     mem_long = firm[:MEMBERS]
     sub_long = firm.subsidy_ij
@@ -483,10 +484,16 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
         firm.r_pred[idxitr] = r_hat[:]
 
 
-        @inbounds Z = demData[:,idxitr[1]]
+        @inbounds chars = prodData[:,idxitr[1]]
         @inbounds a = age_long[idxitr[1]]
         @inbounds m = mem_long[idxitr[1]]
-        aα = ((12/1000)*(a/m)*(p_dem.β_0 + p_dem.β*Z)[1])#.*(1 .-Ze_prem)
+
+        p_ind = price_ind .& (chars.!=0.0)
+        α = sum(p_dem.β[p_ind])
+        
+        aα = ((12/1000)*(a/m)*α )#.*(1 .-Ze_prem)
+
+        # aα = ((12/1000)*(a/m)*(p_dem.β_0 + p_dem.β*Z)[1])#.*(1 .-Ze_prem)
         # aα = ((12/1000)*(a)*(p_dem.β_0 + p_dem.β*Z)[1])#.*(1 .-Ze_prem)
         if foc_check
             aα = aα.*(1 .- Ze_prem)
@@ -660,7 +667,8 @@ function update_shares(d::InsuranceLogit,firm::firmData,
     any_long = anyHCC(d.data)
     wgt_long = weight(d.data)
     prod_long = Int.(product(d.data))
-    demData = demoRaw(d.data)
+    prodData = prodchars(d.data)
+    price_ind = d.data.price_index
     age_long = firm[:ageRate]
     mem_long = firm[:MEMBERS]
 
@@ -703,11 +711,16 @@ function update_shares(d::InsuranceLogit,firm::firmData,
         firm.r_pred[idxitr] = r_hat[:]
 
 
-        @inbounds Z = demData[:,idxitr[1]]
+        @inbounds chars = prodData[:,idxitr[1]]
         @inbounds a = age_long[idxitr[1]]
         @inbounds m = mem_long[idxitr[1]]
-        aα = ((12/1000)*(a/m)*(p_dem.β_0 + p_dem.β*Z)[1])#.*(1 .-Ze_prem)
-        # aα = ((12/1000)*(a)*(p_dem.β_0 + p_dem.β*Z)[1])#.*(1 .-Ze_prem)
+
+        p_ind = price_ind .& (chars.!=0.0)
+        α = sum(p_dem.β[p_ind])
+        
+        aα = ((12/1000)*(a/m)*α )#.*(1 .-Ze_prem)
+
+        # aα = ((12/1000)*(a/m)*(p_dem.β_0 + p_dem.β*Z)[1])#.*(1 .-Ze_prem)
         if foc_check
             aα = aα.*(1 .- Ze_prem)
         end
