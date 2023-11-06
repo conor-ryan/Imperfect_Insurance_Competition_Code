@@ -437,7 +437,7 @@ function update_derivatives(d::InsuranceLogit,firm::firmData,
     wgt_long = weight(d.data)
     prod_long = Int.(product(d.data))
     prodData = prodchars(d.data)
-    price_ind = d.data.price_index
+    price_ind = d.data.price_ind
     age_long = firm[:ageRate]
     mem_long = firm[:MEMBERS]
     sub_long = firm.subsidy_ij
@@ -668,7 +668,7 @@ function update_shares(d::InsuranceLogit,firm::firmData,
     wgt_long = weight(d.data)
     prod_long = Int.(product(d.data))
     prodData = prodchars(d.data)
-    price_ind = d.data.price_index
+    price_ind = d.data.price_ind
     age_long = firm[:ageRate]
     mem_long = firm[:MEMBERS]
 
