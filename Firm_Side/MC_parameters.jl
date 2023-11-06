@@ -460,7 +460,7 @@ function costMoments(c::MC_Data,d::InsuranceLogit,p::parMC{T};print_moments::Boo
     s_hat_nonrisk = p.s_hat_nonrisk
     s_hat_risk = p.s_hat_risk
     wgts = weight(d.data)[:]
-    actuarial_values = c.data[2,:]
+    # actuarial_values = c.data[2,:]
 
     wgts_share = wgts.*s_hat
     any_share = wgts.*s_hat_risk.*c.anyHCC
