@@ -247,9 +247,6 @@ function MC_Data(data_choice::DataFrame,
 
     fePars = zeros(length(firmMoments))
 
-    println("Shape of base index is $(size(_baseIndex))")
-    println("Shape of data is $(size(data))")
-
     return MC_Data(data,F,metal_levels,anyHCC,_baseIndex,_riskIndex,_feIndex,
                     mom_length,par_length,_stDict,
                     _firmMomentDict,_firmMomentBit,_firmMomentProdDict,firmMoments,
@@ -264,17 +261,17 @@ end
 function parMC(p_MC::Vector{T},par_est::parDict{Float64},d::InsuranceLogit,c::MC_Data) where T
 
     # Non Risk Costs
-    if length(c._baseIndex)>0
-        basepars = p_MC[c._baseIndex]' * c.data
-    else 
-        basepars = p_MC[c._baseIndex[1]].*c.data 
-        println("Size of base spec is $(size(basepars))")
-    end
+    # if length(c._baseIndex)>0
+    basepars = p_MC[c._baseIndex]' * c.data
+    # else 
+    #     basepars = p_MC[c._baseIndex[1]].*c.data 
+    #     println("Size of base spec is $(size(basepars))")
+    # end
 
     fepars = p_MC[c._feIndex]' * c.fixedEffects
     metalpars = [0.57,0.60,0.70,0.80,0.90]' * c.metalEffects
     C_nonrisk = basepars + fepars
-    C_nonrisk = exp.(C_nonrisk[:])#.*metalpars[:]
+    C_nonrisk = exp.(C_nonrisk[:]).*metalpars[:]
 
     # Risk Costs
     risks = exp.(d.draws.*p_MC[c._riskIndex])
