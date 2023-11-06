@@ -105,6 +105,7 @@ function MC_Data(data_choice::DataFrame,
 
     # Convert everything to an array once for performance
     metal_levels = Array(data_choice[!,[:Catas,:Bronze,:Silver,:Gold,:Platinum]])
+    metal_levels = permutedims(metal_levels,(2,1))
 
     println("Create Fixed Effects")
     bigFirm = false
@@ -264,7 +265,7 @@ function parMC(p_MC::Vector{T},par_est::parDict{Float64},d::InsuranceLogit,c::MC
     # Non Risk Costs
     basepars = p_MC[c._baseIndex]' * c.data
     fepars = p_MC[c._feIndex]' * c.fixedEffects
-    metalpars = [0.57,0.60,0.70,0.80,0.90] * c.metalEffects
+    metalpars = [0.57,0.60,0.70,0.80,0.90]' * c.metalEffects
     C_nonrisk = basepars + fepars
     C_nonrisk = exp.(C_nonrisk[:]).*metalpars
 
