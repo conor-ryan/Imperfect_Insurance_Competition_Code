@@ -872,7 +872,6 @@ choices$MedOOPDiff = choices$MedOOPDiff/1000
 choices[,ExcOOP:= (MedOOP - MedDeduct)]
 choices[,ExcOOPDiff:= (MedOOPDiff - MedDeductDiff)]
 
-
 choices$Product = as.factor(choices$Product)
 shares$Product_Name = factor(shares$Product,levels=levels(choices$Product))
 

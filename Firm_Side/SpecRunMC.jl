@@ -35,14 +35,14 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
     individual_values!(m_demand,par_dem)
     individual_shares(m_demand,par_dem)
 
-    println("Construct Hessians for Standard Errors")
-    ll_grad = Vector{Float64}(undef,length(p_dem_est))
-    ll_hess = Matrix{Float64}(undef,length(p_dem_est),length(p_dem_est))
-    ll = log_likelihood!(ll_hess,ll_grad,m_demand,par_dem)
+    # println("Construct Hessians for Standard Errors")
+    # ll_grad = Vector{Float64}(undef,length(p_dem_est))
+    # ll_hess = Matrix{Float64}(undef,length(p_dem_est),length(p_dem_est))
+    # ll = log_likelihood!(ll_hess,ll_grad,m_demand,par_dem)
 
-    mom_grad = Matrix{Float64}(undef,length(p_dem_est),length(m_demand.data.rMoments))
-    mom = calc_risk_moments!(mom_grad,m_demand,par_dem)
-    G_θ = hcat(mom_grad,ll_hess)
+    # mom_grad = Matrix{Float64}(undef,length(p_dem_est),length(m_demand.data.rMoments))
+    # mom = calc_risk_moments!(mom_grad,m_demand,par_dem)
+    # G_θ = hcat(mom_grad,ll_hess)
 
     m_demand = 0.0
     df_demand = 0.0
@@ -136,11 +136,11 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
 
 
 
-    Avar, se, t_stat, stars = GMM_var(costdf,m,p_stg2,par_est,p_dem_est,W,G_θ)
+    # Avar, se, t_stat, stars = GMM_var(costdf,m,p_stg2,par_est,p_dem_est,W,G_θ)
 
-    out1 = DataFrame(pars=p_stg2,se=se,ts=t_stat,sig=stars)
-    file1 = "$home_directory/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_$spec-$rundate.csv"
-    CSV.write(file1,out1)
+    # out1 = DataFrame(pars=p_stg2,se=se,ts=t_stat,sig=stars)
+    # file1 = "$home_directory/Research/Imperfect_Insurance_Competition/Intermediate_Output/Estimation_Parameters/MCestimation_$spec-$rundate.csv"
+    # CSV.write(file1,out1)
 
     #### Print Costs Moments
     println("Print Cost Moments...")

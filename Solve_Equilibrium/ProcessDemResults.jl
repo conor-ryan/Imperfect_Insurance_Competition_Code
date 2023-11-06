@@ -19,10 +19,9 @@ function process_demand(rundate,spec,home_directory)
     # Structre the data
     chdf = ChoiceData(df,df_mkt,df_risk,df_transfer;
         product =[:Product_std],
-        demoRaw=spec_Dict["demoRaw"],
-        prodchars=spec_Dict["prodchars"],
-        prodchars_σ=spec_Dict["prodchars_σ"],
-        fixedEffects=spec_Dict["fixedEffects"],
+        spec_prodchars=spec_Dict["prodchars"],
+        spec_prodchars_σ=spec_Dict["prodchars_σ"],
+        spec_fixedEffects=spec_Dict["fixedEffects"],
         wgt=[:PERWT])
 
     # Fit into model
@@ -53,10 +52,13 @@ function process_demand(rundate,spec,home_directory)
 
 
     #### Willingness to Pay, Elasticities, Costs ####
+    price_char_index = occursin.("Price",String.(spec_Dict["prodchars"]))
+    AV_char_index = occursin.("AV",String.(spec_Dict["prodchars"]))
+
     Smat_r,Smat_nr = individual_share_matrix(model,par_dem)
 
     prem_base = df[!,:premBase].*12 .*df[!,:ageRate]./1000
-    wtp_nr, wtp_r,elas_nr,elas_r,elas0_nr,elas0_r,elas0_nr_long,elas0_r_long = individual_wtp(model,par_dem,Smat_r,Smat_nr,prem_base)
+    wtp_nr, wtp_r,elas_nr,elas_r,elas0_nr,elas0_r,elas0_nr_long,elas0_r_long = individual_wtp(model,par_dem,Smat_r,Smat_nr,prem_base,price_char_index,AV_char_index)
 
     c_nr = par_cost.C_nonrisk
     c_r = individual_cost_matrix(model,par_cost)
@@ -237,7 +239,7 @@ function find_pctile_index(wgts::Vector{Float64},sort_index::Vector{Int64},pctil
 end
 
 
-function individual_wtp(d::InsuranceLogit,p::parDict{T},Smat_r::Matrix{Float64},Smat_nr::Vector{Float64},prem_base::Vector{Float64}) where T
+function individual_wtp(d::InsuranceLogit,p::parDict{T},Smat_r::Matrix{Float64},Smat_nr::Vector{Float64},prem_base::Vector{Float64},price_ind::BitVector,AV_ind::BitVector) where T
     # Calculate μ_ij, which depends only on parameters
     P = maximum(Int.(keys(d.data._personDict)))
     wtp_nr = zeros(P)
@@ -250,7 +252,9 @@ function individual_wtp(d::InsuranceLogit,p::parDict{T},Smat_r::Matrix{Float64},
     elas0_r_long = Matrix{Float64}(undef,size(Smat_r,1),size(Smat_r,2))
 
     for app in eachperson(d.data)
-        wtp_value!(wtp_nr,wtp_r,elas_nr,elas_r,elas0_nr,elas0_r,elas0_nr_long,elas0_r_long,app,p,Smat_r,Smat_nr,prem_base)
+        chars = prodchars(app)[:,1]
+        price_ind = price_ind .& (chars.!=0.0)
+        wtp_value!(wtp_nr,wtp_r,elas_nr,elas_r,elas0_nr,elas0_r,elas0_nr_long,elas0_r_long,app,p,Smat_r,Smat_nr,prem_base,price_ind,AV_ind)
     end
     return wtp_nr,wtp_r,elas_nr,elas_r,elas0_nr,elas0_r,elas0_nr_long,elas0_r_long
 end
@@ -260,10 +264,7 @@ function wtp_value!(wtp_nr::Vector{Float64},wtp_r::Matrix{Float64},
                     elas0_nr::Vector{Float64},elas0_r::Matrix{Float64},
                     elas0_nr_long::Vector{Float64},elas0_r_long::Matrix{Float64},
                     app::ChoiceData,p::parDict{T},
-                    Smat_r::Matrix{Float64},Smat_nr::Vector{Float64},prem_base::Vector{Float64}) where T
-    γ_0 = p.γ_0
-    γ = p.γ
-    β_0= p.β_0
+                    Smat_r::Matrix{Float64},Smat_nr::Vector{Float64},prem_base::Vector{Float64},price_ind::BitVector,AV_ind::BitVector) where T
     β = p.β
     fe = p.FE
     randIndex = app._randCoeffs
@@ -271,14 +272,13 @@ function wtp_value!(wtp_nr::Vector{Float64},wtp_r::Matrix{Float64},
     ind = person(app)[1]
     r_ind = Int(rIndS(app)[1])
     idxitr = app._personDict[ind]
-    Z = demoRaw(app)[:,1]
-    # price = prodchars(app)[1,:]
-    price = prem_base[idxitr]
-    β_z = β*Z
+    # pr= prodchars(app)[1,:]
+    pr = prem_base[idxitr]
     β_i= calc_indCoeffs(p,r_ind)
 
-    α = (β_0+β_z)[1]
-    β_AV_nr = (β_0 + β_z)[2]
+
+    α = sum(β[price_ind])
+    β_AV_nr = sum(β[AV_ind])
     β_AV_r = β_i[1,:]
 
 
@@ -288,8 +288,8 @@ function wtp_value!(wtp_nr::Vector{Float64},wtp_r::Matrix{Float64},
     wtp_r[ind_index,:] = -(β_AV_nr .+ β_AV_r)/α
 
     ## Own-price Semi-Elasticity
-    elas_nr[idxitr] = α.*(1 .- Smat_nr[idxitr]).*price
-    elas_r[idxitr,:] = α.*(1 .- Smat_r[idxitr,:]).*price
+    elas_nr[ind_index] = sum(α.*(1 .- Smat_nr[idxitr]).*pr.*Smat_nr[idxitr])/sum(Smat_nr[idxitr])
+    elas_r[ind_index,:] = sum(α.*(1 .- Smat_r[idxitr,:]).*pr.*Smat_r[idxitr,:],dims=1)./sum(Smat_r[idxitr,:],dims=1)
 
     ## Extensive Margin Semi-Elasticity
     elas0_nr[ind_index] = α*(sum(Smat_nr[idxitr]))
