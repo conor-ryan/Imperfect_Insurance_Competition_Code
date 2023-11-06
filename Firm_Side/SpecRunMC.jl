@@ -93,6 +93,11 @@ function estimate_marginal_cost(rundate,spec,cost_spec,home_directory)
 
     p0 = vcat(rand(length(cost_spec)+1)*.2)
     # p0[2] = rand()*3+1
+    ## Test Code
+    p_full = fit_firm_moments(p0,par_est,m,costdf,itrFirms=false)
+    obj = GMM_objective(p_full,par_est,m,costdf,W,squared=false)
+    println("Test Objective $obj")
+
     est_init = estimate_NLOpt(p0,par_est,m,costdf,W,itrFirms=false,tol=1e-4,max_itr=300)
     est_stg1 = estimate_NLOpt(est_init[3],par_est,m,costdf,W,itrFirms=true)
     p_stg1 = fit_firm_moments(est_stg1[3],par_est,m,costdf,itrFirms=true)
