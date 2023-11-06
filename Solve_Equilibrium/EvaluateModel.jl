@@ -104,9 +104,6 @@ end
 
 function nonprice_value!(app::ChoiceData,firm::firmData)
     p = firm.par_dem
-    γ_0 = p.γ_0
-    γ = p.γ
-    β_0= p.β_0
     β = p.β
     fe = p.FE
     randIndex = app._randCoeffs
@@ -115,15 +112,18 @@ function nonprice_value!(app::ChoiceData,firm::firmData)
     r_ind = Int(rIndS(app)[1])
     idxitr = app._personDict[ind]
     X = permutedims(prodchars(app),(2,1))
-    Z = demoRaw(app)[:,1]
     #F = fixedEffects(app)
     F = fixedEffects(app,idxitr)
 
-    β_z = β*Z
-    demos = γ_0 + dot(γ,Z)
+
+    chars = prodchars(app)[:,1]
+    p_ind = app.price_ind .& (chars.!=0.0)
+    α = sum(β[p_ind])
+
+    
+    p_ij = firm.P_ij[idxitr]
     #### No Price! ###
-    X[:,1].=0.0
-    chars_0 = X*(β_0+β_z)
+    chars_0 = X*β - p_ij.*α 
 
     # FE is a row Vector
     # if T== Float64
@@ -140,7 +140,7 @@ function nonprice_value!(app::ChoiceData,firm::firmData)
     K = length(idxitr)
 
     for k = 1:K
-        @fastmath d = exp(chars_0[k] + demos + controls[k])
+        @fastmath d = exp(chars_0[k] + controls[k])
         firm.δ_nonprice[idxitr[k]] = d
     end
 
@@ -159,21 +159,20 @@ end
 
 function price_value!(app::ChoiceData,firm::firmData)
     p = firm.par_dem
-    γ_0 = p.γ_0
-    γ = p.γ
-    β_0= p.β_0
     β = p.β
 
     ind = person(app)[1]
     idxitr = app._personDict[ind]
-    Z = demoRaw(app)[:,1]
-    X = permutedims(prodchars(app),(2,1))
+    # Z = demoRaw(app)[:,1]
+    # X = permutedims(prodchars(app),(2,1))
 
-    β_z = β*Z
+    chars = prodchars(app)[:,1]
+    p_ind = app.price_ind .& (chars.!=0.0)
+    α = sum(β[p_ind])
 
     #### No Price! ###
     p_ij = firm.P_ij[idxitr]
-    chars_0 = p_ij.*((β_0+β_z)[1])
+    chars_0 = p_ij.*(α)
 
 
     K = length(idxitr)

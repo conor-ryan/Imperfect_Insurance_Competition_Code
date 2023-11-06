@@ -128,12 +128,12 @@ function process_demand(rundate,spec,home_directory)
     mean_elas0 = sum(all_elas0.*all_wgts_pp)/sum(all_wgts_pp)
     println("The mean of elas0 is $mean_elas0")
 
-    elas0_r_long_vec = elas0_r_long[:]
+    # elas0_r_long_vec = elas0_r_long[:]
 
-    all_elas0_long = vcat(elas0_r_long_vec,elas0_nr_long)
-    all_elas0_long = all_elas0_long.*12 ./1000 .*10 # $10 per month
+    # all_elas0_long = vcat(elas0_r_long_vec,elas0_nr_long)
+    # all_elas0_long = all_elas0_long.*12 ./1000 .*10 # $10 per month
 
-    elas0_long_sort_index = sortperm(all_elas0_long)
+    # elas0_long_sort_index = sortperm(all_elas0_long)
 
     #### Distribution of Own-price Semi Elasticity ####
     elas_r_vec = elas_r[:]
@@ -183,18 +183,18 @@ function process_demand(rundate,spec,home_directory)
     mean_elas = sum(all_elas[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
     println("The mean of costs in the top 90th percentile of elasticities is $mean_c, mean elasticity is $mean_elas")
 
-    bottom_10th_elas = find_pctile_index(all_wgts,elas0_long_sort_index,0.1)
-    median_elas = find_pctile_index(all_wgts,elas0_long_sort_index,0.50)
-    top_10th_elas = find_pctile_index(all_wgts,elas0_long_sort_index,0.9)
-    bottom_10th = elas0_long_sort_index[1:median_elas]
-    top_10th = elas0_long_sort_index[median_elas:length(elas0_long_sort_index)]
+    # bottom_10th_elas = find_pctile_index(all_wgts,elas0_long_sort_index,0.1)
+    # median_elas = find_pctile_index(all_wgts,elas0_long_sort_index,0.50)
+    # top_10th_elas = find_pctile_index(all_wgts,elas0_long_sort_index,0.9)
+    # bottom_10th = elas0_long_sort_index[1:median_elas]
+    # top_10th = elas0_long_sort_index[median_elas:length(elas0_long_sort_index)]
 
-    mean_c = sum(all_c[bottom_10th].*all_wgts[bottom_10th])/sum(all_wgts[bottom_10th])
-    mean_elas = sum(all_elas0_long[bottom_10th].*all_wgts[bottom_10th])/sum(all_wgts[bottom_10th])
-    println("The mean of costs in the bottom 10th percentile of insurance semi-elasticities is $mean_c, mean semi-elasticity is $mean_elas")
-    mean_c = sum(all_c[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
-    mean_elas = sum(all_elas0_long[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
-    println("The mean of costs in the top 90th percentile of insurance semi-elasticities is $mean_c, mean semi-elasticity is $mean_elas")
+    # mean_c = sum(all_c[bottom_10th].*all_wgts[bottom_10th])/sum(all_wgts[bottom_10th])
+    # mean_elas = sum(all_elas0_long[bottom_10th].*all_wgts[bottom_10th])/sum(all_wgts[bottom_10th])
+    # println("The mean of costs in the bottom 10th percentile of insurance semi-elasticities is $mean_c, mean semi-elasticity is $mean_elas")
+    # mean_c = sum(all_c[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
+    # mean_elas = sum(all_elas0_long[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
+    # println("The mean of costs in the top 90th percentile of insurance semi-elasticities is $mean_c, mean semi-elasticity is $mean_elas")
 
 
     bottom_10th_cost = find_pctile_index(all_wgts,c_sort_index,0.10)
@@ -253,8 +253,8 @@ function individual_wtp(d::InsuranceLogit,p::parDict{T},Smat_r::Matrix{Float64},
 
     for app in eachperson(d.data)
         chars = prodchars(app)[:,1]
-        price_ind = price_ind .& (chars.!=0.0)
-        wtp_value!(wtp_nr,wtp_r,elas_nr,elas_r,elas0_nr,elas0_r,elas0_nr_long,elas0_r_long,app,p,Smat_r,Smat_nr,prem_base,price_ind,AV_ind)
+        p_ind = price_ind .& (chars.!=0.0)
+        wtp_value!(wtp_nr,wtp_r,elas_nr,elas_r,elas0_nr,elas0_r,elas0_nr_long,elas0_r_long,app,p,Smat_r,Smat_nr,prem_base,p_ind,AV_ind)
     end
     return wtp_nr,wtp_r,elas_nr,elas_r,elas0_nr,elas0_r,elas0_nr_long,elas0_r_long
 end
@@ -284,12 +284,12 @@ function wtp_value!(wtp_nr::Vector{Float64},wtp_r::Matrix{Float64},
 
     ## Willingness to Pay
     ind_index = Int(ind)
-    wtp_nr[ind_index]  = -β_AV_nr/α
-    wtp_r[ind_index,:] = -(β_AV_nr .+ β_AV_r)/α
+    wtp_nr[ind_index]  = α#-β_AV_nr/α
+    wtp_r[ind_index,:] = α#-(β_AV_nr .+ β_AV_r)/α
 
     ## Own-price Semi-Elasticity
-    elas_nr[ind_index] = sum(α.*(1 .- Smat_nr[idxitr]).*pr.*Smat_nr[idxitr])/sum(Smat_nr[idxitr])
-    elas_r[ind_index,:] = sum(α.*(1 .- Smat_r[idxitr,:]).*pr.*Smat_r[idxitr,:],dims=1)./sum(Smat_r[idxitr,:],dims=1)
+    elas_nr[idxitr] .= α.*(1 .- Smat_nr[idxitr]).*pr.*Smat_nr[idxitr]
+    elas_r[idxitr,:] .= α.*(1 .- Smat_r[idxitr,:]).*pr.*Smat_r[idxitr,:]
 
     ## Extensive Margin Semi-Elasticity
     elas0_nr[ind_index] = α*(sum(Smat_nr[idxitr]))

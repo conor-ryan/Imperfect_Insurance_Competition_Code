@@ -43,6 +43,9 @@ struct ChoiceData <: ModelData
     _rInd::Array{Int,1}
     _rIndS::Array{Int,1}
 
+    # Indices of parameters that apply to price
+    price_ind::BitVector
+
     # Random Coefficient Specification
     _randCoeffs::Array{Int,1}
 
@@ -168,7 +171,7 @@ function bootstrapSample(c::ChoiceData)
     c.unins,c.feNames,
     c._person,c._product,c._prodchars, c._prodchars_σ,
     c._choice, c._demoRaw,c._wgt, c._ageRate,c._ageHCC, c._unins, c._rInd,
-     c._rIndS, c._randCoeffs,
+     c._rIndS, c.price_ind, c._randCoeffs,
      bootstrapIDs, _personDict, _productDict, # New ID Dicts
      c._sampleDict,
      _rel_fe_Dict,_rel_rc_Dict, # New Coeff Dicts
@@ -444,6 +447,9 @@ function ChoiceData(data_choice::DataFrame,
         end
     end
 
+        ## Price Index
+        price_char_index = occursin.("Price",String.(spec_prodchars))
+
 
     # Make the data object
     m = ChoiceData(dmat,data_market,rmat,rMoments,st_share,
@@ -452,6 +458,7 @@ function ChoiceData(data_choice::DataFrame,
              _person,_product, _prodchars,_prodchars_σ,
             _choice, _demoRaw, _wgt,_ageRate,_ageHCC,
              _unins,_rInd,_rIndS,
+             price_char_index,
              _randCoeffs,
              uniqids,_personDict,_productDict,_sampleDict,
             rel_fe_Dict,rel_rc_Dict,_rMomentDict,_tMomentDict,_stDict,_stMomentMap)
@@ -694,6 +701,7 @@ function subset(d::T, idx) where T<:ModelData
     d._unins,
     d._rInd,
     d._rIndS,
+    d.price_ind,
     d._randCoeffs,
     d._personIDs,
     d._personDict,
