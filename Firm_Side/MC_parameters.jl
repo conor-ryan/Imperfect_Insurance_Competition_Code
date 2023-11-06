@@ -267,7 +267,7 @@ function parMC(p_MC::Vector{T},par_est::parDict{Float64},d::InsuranceLogit,c::MC
     fepars = p_MC[c._feIndex]' * c.fixedEffects
     metalpars = [0.57,0.60,0.70,0.80,0.90]' * c.metalEffects
     C_nonrisk = basepars + fepars
-    C_nonrisk = exp.(C_nonrisk[:]).*metalpars[:]
+    C_nonrisk = exp.(C_nonrisk[:])#.*metalpars[:]
 
     # Risk Costs
     risks = exp.(d.draws.*p_MC[c._riskIndex])
