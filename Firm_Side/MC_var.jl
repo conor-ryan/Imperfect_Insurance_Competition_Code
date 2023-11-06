@@ -176,7 +176,7 @@ function cost_obs_moments!(mom_obs::Vector{Float64},productIDs::Vector{Int64},
     idxitr = app._personDict[ind]
     ind_itr = 1:length(idxitr)
     per_prods = productIDs[idxitr]
-    actuarial_values = c.data[2,idxitr]
+    # actuarial_values = c.data[2,idxitr]
 
     age = c.data[1,idxitr][1]
     age_ind = Int.(max(floor((age-2.0)/.5),0)) + 1
