@@ -450,10 +450,10 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         update = stp.*(P_new[:] .- f.P_j[:])
         # update[abs.(update).>50].=50 .*sign.(update[abs.(update).>50])
         f.P_j[:] = f.P_j[:] .+ update[:]
-        # println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
-        # println(foc_err)
-        # println(P_new[f.mkt_index[mkt]])
-        # println(f.P_j[f.mkt_index[mkt]])
+        println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
+        println(foc_err)
+        println(P_new[f.mkt_index[mkt]])
+        println(f.P_j[f.mkt_index[mkt]])
 
         if stp==1.0
             stp = .001
@@ -486,7 +486,7 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         err_last = copy(err_new)
         # println(P_last)
     end
-    # println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
+    println("Solved at Iteration Count: $itr_cnt, Error: $err_new")
     return nothing
 end
 
