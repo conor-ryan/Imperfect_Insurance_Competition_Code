@@ -457,7 +457,8 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         # println("Evaluate Model")
         evaluate_model!(m,f,mkt,voucher=voucher,update_voucher=update_voucher)
         # println("Update Price")
-
+        
+        println(f.P_j[f.mkt_index[mkt]])
 
         foc_err, err_new, tot_err,P_new = foc_error(f,mkt,λ=λ,sim=sim,merg=merg,voucher=voucher)
 

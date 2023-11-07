@@ -420,6 +420,8 @@ function evaluate_FOC(f::firmData,std_ind::Vector{Int64},merg::String="Base",vou
     SA = f.SA_j[std_ind]
     S = f.S_j[std_ind]
 
+    println(dSdp)
+
     P_std[std_ind]= inv(dSdp)*(-SA + cost_std)
     P_RA[std_ind] = inv(dSdp)*(-SA + cost_pl)
 
