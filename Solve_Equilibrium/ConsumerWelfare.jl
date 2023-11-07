@@ -7,7 +7,7 @@ function calc_consumer(d::InsuranceLogit,firm::firmData)
     μnr_ij_large = p_dem.μ_ij_nonRisk
 
     any_long = anyHCC(d.data)
-    demData = demoRaw(d.data)
+    prodData = prodchars(d.data)
     mandate_long = firm[:Mandate]
 
     N = size(d.draws,1)
@@ -27,8 +27,10 @@ function calc_consumer(d::InsuranceLogit,firm::firmData)
         @inbounds u = μ_ij_large[:,idxitr]
         @inbounds u_nr = μnr_ij_large[idxitr]
 
-        @inbounds Z = demData[:,idxitr[1]]
-        α = (p_dem.β_0 + p_dem.β*Z)[1]
+        @inbounds chars = prodData[:,idxitr[1]]
+        p_ind = d.data.price_ind .& (chars.!=0.0)
+        α = sum(p_dem.β[p_ind])
+
         α_wf = (12/1000)*α
         tax = exp(α*man)
 
@@ -59,7 +61,7 @@ function calc_cw_mkt(d::InsuranceLogit,firm::firmData,mkt::Int)
     μnr_ij_large = p_dem.μ_ij_nonRisk
 
     any_long = anyHCC(d.data)
-    demData = demoRaw(d.data)
+    prodData = prodchars(d.data)
     mandate_long = firm[:Mandate]
 
 
@@ -79,8 +81,9 @@ function calc_cw_mkt(d::InsuranceLogit,firm::firmData,mkt::Int)
         @inbounds u = μ_ij_large[:,idxitr]
         @inbounds u_nr = μnr_ij_large[idxitr]
 
-        @inbounds Z = demData[:,idxitr[1]]
-        α = (p_dem.β_0 + p_dem.β*Z)[1]
+        @inbounds chars = prodData[:,idxitr[1]]
+        p_ind = d.data.price_ind .& (chars.!=0.0)
+        α = sum(p_dem.β[p_ind])
         α_wf = (12/1000)*α
         tax = exp(α*man)
 
