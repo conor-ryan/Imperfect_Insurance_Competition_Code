@@ -281,7 +281,8 @@ function simulate_all_mergers(m::InsuranceLogit,
     
     # Solve Baseline Social Planner Problem
     println("Solve Baseline Planner Problem")
-    solve_SP_parallel!(m,f,voucher=true,update_voucher=false)
+    # solve_SP_parallel!(m,f,voucher=true,update_voucher=false)
+    solve_SP!(m,f,[60,61,62,63,64,65,66],voucher=true,update_voucher=false)
     evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
     
     product_risk = calc_risk_avg(m,f)
@@ -304,10 +305,10 @@ function simulate_all_mergers(m::InsuranceLogit,
     println("Solve Baseline Current Profit Planner Problem")
     # markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits,markets=[1])
     
-    # markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits)
+    markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits)
     # GA Only
     # markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,base_profits,markets=[60,61,62,63,64,65,66])
-    markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits,markets=[4,5,6,7,8,9,10,11,12,13,14])
+    # markets_cp, λ_vec_cp = solve_SP_λ!(m,f,base_profits,markets=[4,5,6,7,8,9,10,11,12,13,14])
     # markets_cp, λ_vec_cp = solve_SP_λ_st!(m,f,base_profits_st,states=["GA"])
     evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
     P_Base_SP_cp[:] = f.P_j[:]
