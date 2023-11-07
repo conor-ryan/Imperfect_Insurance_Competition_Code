@@ -385,6 +385,23 @@ function solve_SP!(m::InsuranceLogit,f::firmData;
     return nothing
 end
 
+function solve_SP!(m::InsuranceLogit,f::firmData,markets::Vector{Int};
+    sim="SP",merg::String="SP",tol::Float64=1e-12,voucher=false,update_voucher=true)
+# P_res = zeros(length(f.P_j))
+# markets = sort(Int.(keys(f.mkt_index)))
+for mkt in markets
+# if mkt<49
+#     continue
+# end
+println("Solving for $mkt")
+solve_model_mkt!(m,f,mkt,sim=sim,merg=merg,tol=tol,voucher=voucher,update_voucher=update_voucher)
+# P_res[f._prodSTDict[s]] = f.P_j[f._prodSTDict[s]]
+end
+# f.P_j[:] = P_res[:]
+return nothing
+end
+
+
 function solve_SP_parallel!(m::InsuranceLogit,f::firmData;
                 sim="SP",merg::String="SP",tol::Float64=1e-12,markets=Vector{Int}(undef,0),voucher=false,update_voucher=true)
     println("Send Data to Workers")
