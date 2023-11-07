@@ -457,9 +457,6 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         # println("Evaluate Model")
         evaluate_model!(m,f,mkt,voucher=voucher,update_voucher=update_voucher)
         # println("Update Price")
-        
-        println(f.P_j[f.mkt_index[mkt]])
-
         foc_err, err_new, tot_err,P_new = foc_error(f,mkt,λ=λ,sim=sim,merg=merg,voucher=voucher)
 
 
@@ -468,10 +465,10 @@ function solve_model_mkt!(m::InsuranceLogit,f::firmData,mkt::Int;
         update = stp.*(P_new[:] .- f.P_j[:])
         # update[abs.(update).>50].=50 .*sign.(update[abs.(update).>50])
         f.P_j[:] = f.P_j[:] .+ update[:]
-        println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
-        println(foc_err)
-        println(P_new[f.mkt_index[mkt]])
-        println(f.P_j[f.mkt_index[mkt]])
+        # println("Iteration Count: $itr_cnt, Current Error: $err_new, Step Size: $stp, Prog: $no_prog ")
+        # println(foc_err)
+        # println(P_new[f.mkt_index[mkt]])
+        # println(f.P_j[f.mkt_index[mkt]])
 
         if stp==1.0
             stp = .001

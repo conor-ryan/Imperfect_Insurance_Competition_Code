@@ -275,6 +275,7 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
     else
         mistake_thresh = 1.25
     end
+    high_value_reset_count = 0
 
     ## Initialize Step
     step = 1
@@ -391,6 +392,11 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
             hess_steps = -1
             println("Return: Limit on No Progress")
             p_vec = copy(p_min)
+            if (maximum(p_vec)>12) & (high_value_reset_count<5)
+                p_vec[p_vec.>12].=10.0
+                println("Reset High Values at $(findall(p_vec.>12)), counter: $high_value_reset_count")
+                high_value_reset_count+=1
+            end
             fval = log_likelihood_penalty!(grad_new,d,p_vec,W)
             grad_size = maximum(abs.(grad_new))
             step = 1/grad_size
