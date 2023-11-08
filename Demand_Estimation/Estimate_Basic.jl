@@ -393,11 +393,13 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-12,
             println("Return: Limit on No Progress")
             p_vec = copy(p_min)
             if (maximum(p_vec)>12) & (high_value_reset_count<5)
-                p_vec[p_vec.>12].=10.0
                 println("Reset High Values at $(findall(p_vec.>12)), counter: $high_value_reset_count")
+                p_vec[p_vec.>12].=10.0
                 high_value_reset_count+=1
+                p_min[:] = p_vec[:]
             end
             fval = log_likelihood_penalty!(grad_new,d,p_vec,W)
+            f_min = copy(fval)
             grad_size = maximum(abs.(grad_new))
             step = 1/grad_size
             update =  step.*grad_new
