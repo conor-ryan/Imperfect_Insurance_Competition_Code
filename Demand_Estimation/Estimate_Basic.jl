@@ -94,7 +94,7 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
     ## Initialize Parameter Vector
     p_vec = p0
     N = length(p0)
-    disp_vec = vcat(1:7,[30,31])
+    disp_vec = vcat(1:7,[26,27])
 
     cnt = 0
     grad_size = 10000
@@ -239,12 +239,12 @@ function gradient_ascent_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-8,max_itr=2
 end
 
 
-function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
+function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-12,
     max_itr=2000,strict=true,Hess_Skip_Steps=25)
     ## Initialize Parameter Vector
     p_vec = p0
     N = length(p0)
-    disp_vec = vcat(1:7,[30,31])
+    disp_vec = vcat(1:7,[26,27])
     cnt = 0
     grad_size = 10000
     f_eval_old = 1.0
@@ -326,9 +326,9 @@ function newton_raphson_ll(d,p0,W;grad_tol=1e-8,f_tol=1e-8,x_tol=1e-10,
             else
                 f_tol_cnt = 0
             end
-            # if (maximum(abs.(p_vec - p_min))<x_tol) & (real_hessian==1)
-            #     x_tol_cnt += 1
-            # end
+            if (maximum(abs.(p_vec - p_min))<x_tol) & (real_hessian==1) & (grad_size<grad_tol*100)
+                x_tol_cnt += 1
+            end
 
             f_min = copy(fval)
             p_min[:] = p_vec[:]
