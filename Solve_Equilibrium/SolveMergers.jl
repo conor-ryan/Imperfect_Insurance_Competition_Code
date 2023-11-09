@@ -281,7 +281,8 @@ function simulate_all_mergers(m::InsuranceLogit,
     
     # Solve Baseline Social Planner Problem
     println("Solve Baseline Planner Problem")
-    # solve_SP_parallel!(m,f,voucher=true,update_voucher=false)
+    solve_SP_parallel!(m,f,voucher=true,update_voucher=false)
+    solve_SP!(m,f,[1,2,3],voucher=true,update_voucher=false)
     evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
     
     product_risk = calc_risk_avg(m,f)
