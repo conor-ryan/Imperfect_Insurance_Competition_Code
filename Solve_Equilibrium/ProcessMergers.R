@@ -3,10 +3,10 @@ library(data.table)
 library(ggplot2)
 library(scales)
 library(tidyr)
-# setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
-setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition/")
+setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
+# setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition/")
 
-run = "2022-12-26"
+run = "2023-11-08"
 spec = "FMC"
 
 #### Observed Data HHI Levels ####
@@ -42,6 +42,27 @@ ggplot(margins) + aes(x=MR,y=MC_RA) +
         axis.text = element_text(size=16))
 dev.off()
 
+
+ggplot(margins) + aes(x=P_obs - MR,y=P_obs-MC_RA) + 
+  geom_point(aes(size=lives),alpha=0.25) +
+  scale_size(range=c(0.5,20)) + 
+  geom_smooth(method="lm",se=FALSE,color="red",linetype=2) + 
+  geom_abline(slope=1,intercept=0) + 
+  coord_cartesian(xlim=c(-100,500),ylim=c(-100,700)) +
+  xlab("Marginal Revenue") + 
+  ylab("Marginal Cost")  +
+  theme(panel.background=element_rect(color=grey(0.75),fill="white"),
+        panel.grid.major = element_line(color=grey(0.75)),
+        strip.background = element_blank(),
+        strip.text = element_text(size=14),
+        legend.background = element_rect(color=grey(.5)),
+        legend.title = element_blank(),
+        legend.text = element_text(size=14),
+        legend.key.width = unit(.05,units="npc"),
+        legend.key = element_rect(color="transparent",fill="transparent"),
+        legend.position = "none",
+        axis.title=element_text(size=14),
+        axis.text = element_text(size=16))
 
 ### Base Data 
 prodData = as.data.table(read.csv("Intermediate_Output/Equilibrium_Data/estimated_prodData_full.csv"))
