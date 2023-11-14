@@ -59,11 +59,13 @@ function MergersMain(rundate,spec,home_directory)
     println("####################################")
     simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
                             filestub,policy="Base")
+    @everywhere GC.gc()
     println("####################################")
     println("#### Solve Without Risk Adjustment ####")
     println("####################################")
     simulate_all_mergers(model,df,eq_mkt,par_dem,par_cost,
                             filestub,policy="RA_repeal")
+    @everywhere GC.gc()
     # println("####################################")
     # println("#### Solve Without Individual Mandate ####")
     # println("####################################")
@@ -489,6 +491,22 @@ function simulate_all_mergers(m::InsuranceLogit,
         #                     Risk = product_risk)
         # CSV.write(file,output)
     end
+
+    println("Remove Data from Workers")
+    # sendto(workers(),merging_party_list,file_stub,update_voucher)
+    @eval @everywhere merging_party_list=0.0
+    @eval @everywhere shared_state_list=0.0
+    @eval @everywhere shared_market_list=0.0
+    @eval @everywhere file_stub=0.0
+    @eval @everywhere update_voucher=0.0
+    @eval @everywhere voucher=0.0
+    @eval @everywhere home_directory=0.0
+    @eval @everywhere spec=0.0
+    @eval @everywhere rundate=0.0
+    @eval @everywhere sim=0.0
+    @everywhere uppMat = 0.0
+    @eval @everywhere m=0.0
+    @eval @everywhere f=0.0
     return nothing
 end
 
