@@ -500,7 +500,6 @@ function simulate_all_mergers(m::InsuranceLogit,
     @eval @everywhere file_stub=0.0
     @eval @everywhere update_voucher=0.0
     @eval @everywhere voucher=0.0
-    @eval @everywhere home_directory=0.0
     @eval @everywhere spec=0.0
     @eval @everywhere rundate=0.0
     @eval @everywhere sim=0.0
