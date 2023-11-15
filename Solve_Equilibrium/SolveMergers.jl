@@ -497,11 +497,8 @@ function simulate_all_mergers(m::InsuranceLogit,
     @eval @everywhere merging_party_list=0.0
     @eval @everywhere shared_state_list=0.0
     @eval @everywhere shared_market_list=0.0
-    @eval @everywhere file_stub=0.0
     @eval @everywhere update_voucher=0.0
     @eval @everywhere voucher=0.0
-    @eval @everywhere spec=0.0
-    @eval @everywhere rundate=0.0
     @eval @everywhere sim=0.0
     @everywhere uppMat = 0.0
     @eval @everywhere m=0.0
