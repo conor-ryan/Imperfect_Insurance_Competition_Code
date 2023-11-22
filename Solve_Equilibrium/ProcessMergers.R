@@ -162,6 +162,28 @@ merger_effects[,missing_gold_plat_post:=as.numeric(Metal_std%in%c("Gold","Plat")
 merger_effects[,UPP:=UPP_avg_merge+UPP_sel_merge]
 merger_effects[,premerger_share:=Lives/sum(Lives),by=c("markets","policy")]
 
+merger_effects[parties_indicator==1,summary(UPP_avg_merge)]
+merger_effects[,UPP_diff:=UPP-UPP_avg_merge]
+merger_effects[UPP_diff< -25,UPP_diff:=-25]
+merger_effects[UPP_diff> 25,UPP_diff:=25]
+merger_effects[,UPP_positive:=as.factor(UPP_diff>0)]
+ggplot(merger_effects[parties_indicator==1]) + aes(x= UPP_diff,fill=UPP_positive) + 
+  geom_histogram(boundary=0) +
+  ylab("Product-Market-Merger Count") + 
+  xlab("GePP - UPP") +
+  theme(panel.background=element_rect(color=grey(0.75),fill="white"),
+        panel.grid.major = element_line(color=grey(0.75)),
+        strip.background = element_blank(),
+        strip.text = element_text(size=14),
+        legend.background = element_rect(color=grey(.5)),
+        legend.title = element_blank(),
+        legend.text = element_text(size=16),
+        legend.key.width = unit(.05,units="npc"),
+        legend.key = element_rect(color="transparent",fill="transparent"),
+        legend.position = "none",
+        axis.title=element_text(size=16),
+        axis.text = element_text(size=16))
+
 merger_firms = merger_effects[parties_indicator==1,
                               list(avg_risk=sum(Risk*Lives)/sum(Lives),
                                    avg_price=sum(Price*Lives)/sum(Lives),
@@ -177,6 +199,8 @@ merger_properties1 = merger_firms[,list(risk_diff=max(avg_risk)-min(avg_risk),
 merger_properties2 = merger_effects[parties_indicator==1,list(avg_upp=sum(UPP_avg_merge*Lives)/sum(Lives),
                                                               avg_GePP_sel = sum(UPP_sel_merge*Lives)/sum(Lives),
                                                               avg_GePP = sum(UPP*Lives)/sum(Lives),
+                                                              avg_GePP_2 = sum(UPP*Lives_merge)/sum(Lives_merge),
+                                                              avg_GePP_3 = sum(UPP*(Lives+Lives_merge))/sum(Lives_merge+Lives),
                                                               CS_approx = sum(-UPP*Lives)/sum(Lives),
                                                               avg_pre_price=sum(Price*Lives)/sum(Lives)),
                                     by=c("merging_parties","markets","policy")]
@@ -338,6 +362,14 @@ merger_effects[,policy_label:=factor(policy,levels=c("Base","RA"),labels=c("Base
 merger_welfare = merge(merger_welfare,merger_properties1,by=c("merging_parties","markets","policy"))
 merger_welfare = merge(merger_welfare,merger_properties2,by=c("merging_parties","markets","policy"))
 
+merger_welfare[,stat:=-avg_GePP]
+merger_welfare[chg_CW>0&stat>0,test_color:="1"]
+merger_welfare[chg_CW<0&stat<0,test_color:="2"]
+merger_welfare[chg_CW>0&stat<0,test_color:="3"]
+merger_welfare[chg_CW<0&stat>0,test_color:="4"]
+merger_welfare[dHHI>200,table(test_color)]
+ggplot(merger_welfare[dHHI>200]) + aes(y=chg_CW,x=stat,color=test_color) + 
+  geom_point() + geom_abline(intercept=0,slope=1)
 #### Market Description ####
 
 base_data = unique(merger_welfare[,c("markets","policy","Profit","Spending","Population","Insured","hhi","firm_num","markup_cost","sorting_cost")])
@@ -396,8 +428,8 @@ plot = merger_welfare[,list(frac_pos = mean(chg_CW>0),N=sum(count)),by=c("dHHI_b
 png("Writing/Images/WelfareEffect_ByHHI_Grouped.png",width=2000,height=1500,res=275)
 ggplot(plot) + aes(x=dHHI_bucket,y=frac_pos,color=policy_label,size=N) + 
   geom_point() +
-  geom_hline(aes(yintercept = 0.17,color = "No Risk Adjustment"),size=2,linetype=2,alpha=0.7) + 
-  geom_hline(aes(yintercept = 0.13,color = "Baseline"),size=2,linetype=2,alpha=0.7) + 
+  geom_hline(aes(yintercept = 0.17,color = "No Risk Adjustment"),linewidth=2,linetype=2,alpha=0.7) + 
+  geom_hline(aes(yintercept = 0.13,color = "Baseline"),linewidth=2,linetype=2,alpha=0.7) + 
   scale_size_continuous(range=c(2,6),guide="none") + 
   xlab("Predicted Change in HHI") + 
   ylab("Fraction w/ Positive CS Effect") + 
@@ -576,7 +608,7 @@ df[,avg_upp_ratio:=avg_upp/avg_pre_price]
 df[,avg_GePP_ratio:=avg_GePP/avg_pre_price]
 
 png("Writing/Images/WelfareByGePP.png",width=2500,height=1500,res=275)
-ggplot(df) + aes(x=avg_GePP,y=chg_CW,color=policy_label,shape=policy_label) + 
+ggplot(df) + aes(x=avg_GePP_3,y=chg_CW,color=policy_label,shape=policy_label) + 
   geom_point(size=3,alpha=0.5) + 
   geom_abline(slope=-1,intercept=0) + 
   geom_abline(slope=0,intercept=0,color=grey(0.25)) + 

@@ -56,8 +56,8 @@ cost_spec = [:AGE,:AV_std]
 
 rundate = Dates.today()
 # rundate = "2023-11-08"
-spec = "FMC"
-spec_fixedEffects=[:Market_Firm,:Market_Cat]
+spec = "FMC_full"
+spec_fixedEffects=[:Firm_Market_Cat]
 println("Running $spec on $rundate")
 
 
@@ -86,11 +86,11 @@ include("$codeDir/Demand_Estimation/utility.jl")
 include("$codeDir/Demand_Estimation/Specification_Run.jl")
 
 filename = "PLL_Estimate_$spec"
-# estimate_demand(filename,rundate,home_directory,
-#                     halton_draws,
-#                     spec_prodchars,
-#                     spec_prodchars_σ,
-#                     spec_fixedEffects)
+estimate_demand(filename,rundate,home_directory,
+                    halton_draws,
+                    spec_prodchars,
+                    spec_prodchars_σ,
+                    spec_fixedEffects)
 
 
 println("##### Estimation Marginal Cost #####")
