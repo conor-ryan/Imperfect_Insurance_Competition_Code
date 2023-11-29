@@ -3,8 +3,8 @@ library(data.table)
 library(ggplot2)
 library(scales)
 library(tidyr)
-setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
-# setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition/")
+# setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
+setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition/")
 
 run = "2023-11-08"
 spec = "FMC"
@@ -25,7 +25,7 @@ ggplot(margins) + aes(x=MR,y=MC_RA) +
   scale_size(range=c(0.5,20)) + 
   geom_smooth(method="lm",se=FALSE,color="red",linetype=2) + 
   geom_abline(slope=1,intercept=0) + 
-  # coord_cartesian(xlim=c(-100,500),ylim=c(-100,700)) + 
+  coord_cartesian(xlim=c(-100,500),ylim=c(-100,1000)) +
   xlab("Marginal Revenue") + 
   ylab("Marginal Cost")  +
   theme(panel.background=element_rect(color=grey(0.75),fill="white"),
@@ -64,6 +64,10 @@ ggplot(margins) + aes(x=P_obs - MR,y=P_obs-MC_RA) +
         axis.title=element_text(size=14),
         axis.text = element_text(size=16))
 
+margins[,cost_mkup:=(P_obs-MC_RA)/P_obs]
+margins[,dem_mkup:=(P_obs-MR)/P_obs]
+margins[,miss:=MR-MC_RA]
+
 ### Base Data 
 prodData = as.data.table(read.csv("Intermediate_Output/Equilibrium_Data/estimated_prodData_full.csv"))
 prodData = prodData[,c("ST","Firm","Product_std","Metal_std","Market")]
@@ -71,6 +75,14 @@ names(prodData) = c("ST","Firm","Product","Metal_std","Market")
 
 load("Intermediate_Output/Simulated_BaseData/simMarketSize.rData")
 prodData = merge(prodData,marketSize,by="Market")
+
+### margins by HHI
+margins = merge(margins,prodData,by="Product")
+margins = merge(margins,obs_hhi,by="Market")
+
+summary(margins)
+summary(margins[hhi<5200])
+summary(margins[hhi>=5200])
 
 #### Merger Price-Effect Data ####
 merger_effects = NULL
@@ -160,14 +172,15 @@ merger_effects[,Metal_std:=factor(Metal_std,levels=c("CATASTROPHIC","BRONZE","SI
 merger_effects[,missing_gold_plat:=as.numeric(Metal_std%in%c("Gold","Plat")&Lives<1)]
 merger_effects[,missing_gold_plat_post:=as.numeric(Metal_std%in%c("Gold","Plat")&Lives_merge<1)]
 merger_effects[,UPP:=UPP_avg_merge+UPP_sel_merge]
-merger_effects[,premerger_share:=Lives/sum(Lives),by=c("markets","policy")]
 
 merger_effects[parties_indicator==1,summary(UPP_avg_merge)]
 merger_effects[,UPP_diff:=UPP-UPP_avg_merge]
 merger_effects[UPP_diff< -25,UPP_diff:=-25]
 merger_effects[UPP_diff> 25,UPP_diff:=25]
-merger_effects[,UPP_positive:=as.factor(UPP_diff>0)]
-ggplot(merger_effects[parties_indicator==1]) + aes(x= UPP_diff,fill=UPP_positive) + 
+merger_effects[,UPP_positive:=as.factor(UPP_diff<0)]
+
+png("Writing/Images/UPP_diff.png",width=2000,height=1500,res=275)
+ggplot(merger_effects[parties_indicator==1&policy=="Base"&dHHI>200]) + aes(x= UPP_diff,fill=UPP_positive) + 
   geom_histogram(boundary=0) +
   ylab("Product-Market-Merger Count") + 
   xlab("GePP - UPP") +
@@ -183,6 +196,9 @@ ggplot(merger_effects[parties_indicator==1]) + aes(x= UPP_diff,fill=UPP_positive
         legend.position = "none",
         axis.title=element_text(size=16),
         axis.text = element_text(size=16))
+dev.off()
+print(merger_effects[parties_indicator==1&policy=="Base"&dHHI>200,mean(UPP_diff>0)])
+
 
 merger_firms = merger_effects[parties_indicator==1,
                               list(avg_risk=sum(Risk*Lives)/sum(Lives),
@@ -204,6 +220,18 @@ merger_properties2 = merger_effects[parties_indicator==1,list(avg_upp=sum(UPP_av
                                                               CS_approx = sum(-UPP*Lives)/sum(Lives),
                                                               avg_pre_price=sum(Price*Lives)/sum(Lives)),
                                     by=c("merging_parties","markets","policy")]
+
+## Exit Analysis
+merger_effects[,premerger_share:=Lives/size,by=c("markets","policy")]
+merger_effects[,postmerger_share:=Lives_merge/size,by=c("markets","policy")]
+merger_effects[,pre_exit:=premerger_share<0.001]
+merger_effects[,post_exit:=postmerger_share<0.001]
+
+base_equilibrium = unique(merger_effects[policy=="Base",c("Market","ST","hhi","Firm","Metal_std","Product","Price","Lives","Profit","Risk","pre_exit")])
+setkey(base_equilibrium,ST,Market,Firm,Metal_std)
+
+merger_effects[parties_indicator==1&policy=="Base",table(pre_exit,post_exit)]
+
 #### Merger Welfare Data ####
 merger_welfare = NULL
 for (policy in c("Base","RA")){
@@ -414,6 +442,8 @@ Main_sort[,label:=paste(policy,label,sep="_")]
 Main_sort[,policy:=NULL]
 Main_sort %>% spread(label,value)
 
+merger_welfare[,list(N=sum(count),posdWelf=round(100*mean(chg_Tot_Welfare>0),1),posdCW=round(100*mean(chg_CW>0),2)),by="policy"]
+
 merger_welfare[dHHI_Label=="<100",HHI_plot_label:="Change in HHI: <100"]
 merger_welfare[dHHI_Label=="100 - 200",HHI_plot_label:="Change in HHI: 100 - 200"]
 merger_welfare[dHHI_Label%in%c(">1000","200 - 1000"),HHI_plot_label:="Change in HHI: >200"]
@@ -506,7 +536,7 @@ ggplot(merger_welfare) + aes(x=log(sorting_cost),y=chg_CW,color=policy_label,sha
 dev.off()
 
 png("Writing/Images/WelfareEffect_BySort.png",width=2500,height=2300,res=275)
-ggplot(merger_welfare) + aes(x=log(sorting_cost),y=chg_CW,color=policy_label,shape=policy_label) + 
+ggplot(merger_welfare[policy=="Base"]) + aes(x=log(sorting_cost),y=chg_CW) + #,color=policy_label,shape=policy_label) + 
   geom_abline(slope=0,intercept=0) + 
   geom_point(size=3,alpha=0.5) + 
   facet_wrap("HHI_plot_label",ncol=1,scales="free_y") + 
@@ -553,11 +583,11 @@ dev.off()
 
 #### Price Effect Plots ####
 png("Writing/Images/PriceEffect.png",width=2500,height=2500,res=275)
-ggplot(merger_effects[parties_indicator==1]) +
+ggplot(merger_effects[parties_indicator==1&policy=="Base"]) +
   aes(x=Metal_std,y=Price_Effect_percent) +
   geom_abline(intercept=0,slope=0) +
   geom_boxplot(outlier.shape=NA) +
-  facet_wrap("policy_label",ncol=1) + 
+  # facet_wrap("policy_label",ncol=1) + 
   coord_cartesian(ylim=c(-.15,.25))  +
   scale_y_continuous(label=percent) +
   ylab("Percent Change in Monthly Premium")+
@@ -608,7 +638,7 @@ df[,avg_upp_ratio:=avg_upp/avg_pre_price]
 df[,avg_GePP_ratio:=avg_GePP/avg_pre_price]
 
 png("Writing/Images/WelfareByGePP.png",width=2500,height=1500,res=275)
-ggplot(df) + aes(x=avg_GePP_3,y=chg_CW,color=policy_label,shape=policy_label) + 
+ggplot(df[policy=="Base"]) + aes(x=avg_GePP_3,y=chg_CW) + #,color=policy_label,shape=policy_label) + 
   geom_point(size=3,alpha=0.5) + 
   geom_abline(slope=-1,intercept=0) + 
   geom_abline(slope=0,intercept=0,color=grey(0.25)) + 

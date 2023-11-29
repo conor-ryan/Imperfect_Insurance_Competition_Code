@@ -3,10 +3,10 @@ library(data.table)
 library(ggplot2)
 library(scales)
 library(tidyr)
-setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition/")
+setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
 # setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition/")
 
-run = "2022-12-26"
+run = "2023-11-08"
 spec = "FMC"
 
 ##### Check Margin ####
@@ -46,7 +46,7 @@ prodData = merge(prodData,marketSize,by="Market")
 
 #### Merger Price-Effect Data ####
 merger_effects = NULL
-for (policy in c("Base","RA")){
+for (policy in c("Base")){
   print(policy)
   if (policy=="PL"){
     spec_temp = paste("PL","FMC",sep="_")
@@ -154,7 +154,7 @@ merger_properties2 = merger_effects[parties_indicator==1,list(avg_upp=sum(UPP_av
                                     by=c("merging_parties","markets","policy")]
 #### Merger Welfare Data ####
 merger_welfare = NULL
-for (policy in c("Base","RA")){
+for (policy in c("Base")){
   print(policy)
   if (policy=="PL"){
     spec_temp = paste("PL","FMC",sep="_")
@@ -242,7 +242,7 @@ merger_welfare[,chg_Tot_Welfare_15:=chg_CW+chg_Profit+chg_Spending*1.5]
 
 ##### Decomposition  Data ####
 base_welfare = NULL
-for (policy in c("Base","RA")){
+for (policy in c("Base")){
   print(policy)
   if (policy=="PL"){
     spec_temp = paste("PL","FMC",sep="_")

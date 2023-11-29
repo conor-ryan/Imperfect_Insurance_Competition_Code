@@ -28,12 +28,17 @@ cf[ST=="MA",premBase:=PREMI27/1.22]
 cf[ST=="MN",premBase:=PREMI27/1.048]
 cf[ST=="UT",premBase:=PREMI27/1.39]
 cf[,premBase:=premBase*12/1000]
+cf[,premBase_disp:=premBase*1000]
 
 res =cf[,lm(premBase~under35+METAL+Firm+ST)]
 
 cf[,prem_predict:=predict(res)]
 cf[,CF_res:=premBase-prem_predict]
 cf[,METAL:=toupper(METAL)]
+summary(res)
+
+res =cf[,lm(premBase_disp~under35+METAL+Firm+ST)]
+summary(res)
 
 #### Data Products #### 
 data_prod = fread("Intermediate_Output/Estimation_Data/marketDataMap_discrete.csv")
