@@ -3,8 +3,8 @@ library(data.table)
 library(ggplot2)
 library(scales)
 library(tidyr)
-# setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
-setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition/")
+setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/")
+# setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition/")
 
 run = "2023-11-08"
 spec = "FMC"
@@ -700,6 +700,63 @@ ggplot(res) + aes(x=threshold,y=positive,color=Policy,shape=Policy,linetype=Meas
 dev.off()
 
 
+# #### Firm WTP Heterogeneity Example ####
+# 
+# GAdata = fread("Intermediate_Output/Simulated_BaseData/simchoiceData_discrete.csv")
+# GAdata = unique(GAdata[Market=="GA_1",c("Person","Any_HCC","var_HCC_Silver","mean_HCC_Silver",
+#                                  "AgeFE_31_39","AgeFE_40_51","AgeFE_52_64","Family","LowIncome",
+#                                  "AGE","PERWT")])
+# 
+# GAdatasim = NULL
+# for (i in 1:4000){
+#   temp = GAdata
+#   temp[,sim:=i]
+#   GAdatasim = rbind(GAdatasim,temp)
+# }
+# 
+# 
+# GAdatasim[,riskDraw:= runif(nrow(GAdatasim))]
+# GAdatasim[,draws_Any:=(riskDraw-(1-Any_HCC))/(Any_HCC)]
+# GAdatasim[draws_Any<0,draws_Any:=0]
+# 
+# GAdatasim[,HCC_pred_Silver:=exp(qnorm(draws_Any)*sqrt(var_HCC_Silver) + mean_HCC_Silver)]
+# GAdatasim[,risk_score_bucket:=ceiling(HCC_pred_Silver/0.5)*0.5]
+# GAdatasim[risk_score_bucket>20,risk_score_bucket:=20]
+# # constants + AV parameters 
+# GAdatasim[,wtp_BCBS:=(1000/12)*(-4.293529252 + -0.028518812*HCC_pred_Silver + #Constant
+#             -0.433833978*AgeFE_31_39 + 
+#           -0.631768575*AgeFE_40_51 + 
+#           -0.4964825*AgeFE_52_64 + 
+#           -0.878851015*Family+ 
+#           -3.374795069*LowIncome+ 
+#           (0.498870105458339*HCC_pred_Silver+11.03228375)*0.7 + # AV  
+#           -0.456443932 + #GA_1_BLUE_CROSS_BLUE_SHIELD_OF_GEORGIA
+#             -0.01356181*HCC_pred_Silver) #Variance:GA_BLUE_CROSS_BLUE_SHIELD_OF_GEORGIA
+# ]
+# GAdatasim[,wtp_United:=(1000/12)*(-4.293529252 + -0.028518812*HCC_pred_Silver + #Constant
+#             -0.433833978*AgeFE_31_39 + 
+#             -0.631768575*AgeFE_40_51 + 
+#             -0.4964825*AgeFE_52_64 + 
+#             -0.878851015*Family+ 
+#             -3.374795069*LowIncome+ 
+#             (0.498870105458339*HCC_pred_Silver+11.03228375)*0.7 + # AV  
+#             -1.821886311 )#GA_1_UNITEDHEALTHCARE_OF_GEORGIA_INC
+#             #Variance:UNITED DROPPED
+# ]
+# 
+# GAdatasim[,cost_BCBS:=exp(0.424572072*AGE + 4.306939175*0.7 + 0.113165696*HCC_pred_Silver + 0.37454371)]#BCBS [10]
+# GAdatasim[,cost_UNITED:=exp(0.424572072*AGE + 4.306939175*0.7 + 0.113165696*HCC_pred_Silver + 0.17077985)]#BCBS [15]]
+# 
+# 
+# dist = GAdatasim[,list(population=sum(PERWT),mean_wtp=sum((wtp_BCBS-wtp_United)*PERWT)/sum(PERWT),mean_cost=sum((cost_BCBS)*PERWT)/sum(PERWT)),by=risk_score_bucket]
+# dist[,density:=population/sum(population)]
+# ggplot(dist[risk_score_bucket>0]) + aes(x=risk_score_bucket,y=density) + 
+#   geom_bar(stat="identity",position="identity") 
+# 
+# ggplot(dist[risk_score_bucket<15]) +
+#   geom_point(aes(x=risk_score_bucket,y=mean_wtp)) +
+#   geom_point(aes(x=risk_score_bucket,y=mean_cost)) 
+#   
 
 # 
 # sort = df[,list(avgdWelfare=round(mean(chg_Tot_Welfare),2),#avgdCW=round(mean(chg_CW),2),

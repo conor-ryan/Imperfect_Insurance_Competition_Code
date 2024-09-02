@@ -58,7 +58,7 @@ function process_demand(rundate,spec,home_directory)
     Smat_r,Smat_nr = individual_share_matrix(model,par_dem)
 
     prem_base = df[!,:premBase].*12 .*df[!,:ageRate]./1000
-    wtp_nr, wtp_r,elas_nr,elas_r,elas0_nr,elas0_r,elas0_nr_long,elas0_r_long = individual_wtp(model,par_dem,Smat_r,Smat_nr,prem_base,price_char_index,AV_char_index)
+    wtp_nr, wtp_r,wtp_firm_nr, wtp_firm_r,elas_nr,elas_r,elas0_nr,elas0_r,elas0_nr_long,elas0_r_long = individual_wtp(model,par_dem,Smat_r,Smat_nr,prem_base,price_char_index,AV_char_index)
 
     c_nr = par_cost.C_nonrisk
     c_r = individual_cost_matrix(model,par_cost)
@@ -191,10 +191,10 @@ function process_demand(rundate,spec,home_directory)
 
     mean_c = sum(all_c[bottom_10th].*all_wgts[bottom_10th])/sum(all_wgts[bottom_10th])
     mean_elas = sum(all_elas0_long[bottom_10th].*all_wgts[bottom_10th])/sum(all_wgts[bottom_10th])
-    println("The mean of costs in the bottom 10th percentile of insurance semi-elasticities is $mean_c, mean semi-elasticity is $mean_elas")
+    println("The mean of costs in the bottom 50th percentile of insurance semi-elasticities is $mean_c, mean semi-elasticity is $mean_elas")
     mean_c = sum(all_c[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
     mean_elas = sum(all_elas0_long[top_10th].*all_wgts[top_10th])/sum(all_wgts[top_10th])
-    println("The mean of costs in the top 90th percentile of insurance semi-elasticities is $mean_c, mean semi-elasticity is $mean_elas")
+    println("The mean of costs in the top 50th percentile of insurance semi-elasticities is $mean_c, mean semi-elasticity is $mean_elas")
 
 
     bottom_10th_cost = find_pctile_index(all_wgts,c_sort_index,0.10)
@@ -246,6 +246,8 @@ function individual_wtp(d::InsuranceLogit,p::parDict{T},Smat_r::Matrix{Float64},
     wtp_r = zeros(P,size(d.draws,1))
     elas_nr = Vector{Float64}(undef,length(Smat_nr))
     elas_r = Matrix{Float64}(undef,size(Smat_r,1),size(Smat_r,2))
+    wtp_firm_nr = Vector{Float64}(undef,length(Smat_nr))
+    wtp_firm_r = Matrix{Float64}(undef,size(Smat_r,1),size(Smat_r,2))
     elas0_nr = zeros(P)
     elas0_r = zeros(P,size(d.draws,1))
     elas0_nr_long=  Vector{Float64}(undef,length(Smat_nr))
@@ -254,12 +256,13 @@ function individual_wtp(d::InsuranceLogit,p::parDict{T},Smat_r::Matrix{Float64},
     for app in eachperson(d.data)
         chars = prodchars(app)[:,1]
         p_ind = price_ind .& (chars.!=0.0)
-        wtp_value!(wtp_nr,wtp_r,elas_nr,elas_r,elas0_nr,elas0_r,elas0_nr_long,elas0_r_long,app,p,Smat_r,Smat_nr,prem_base,p_ind,AV_ind)
+        wtp_value!(wtp_nr,wtp_r,wtp_firm_nr,wtp_firm_r,elas_nr,elas_r,elas0_nr,elas0_r,elas0_nr_long,elas0_r_long,app,p,Smat_r,Smat_nr,prem_base,p_ind,AV_ind)
     end
     return wtp_nr,wtp_r,elas_nr,elas_r,elas0_nr,elas0_r,elas0_nr_long,elas0_r_long
 end
 
 function wtp_value!(wtp_nr::Vector{Float64},wtp_r::Matrix{Float64},
+                    wtp_firm_nr::Vector{Float64},wtp_firm_r::Matrix{Float64},
                     elas_nr::Vector{Float64},elas_r::Matrix{Float64},
                     elas0_nr::Vector{Float64},elas0_r::Matrix{Float64},
                     elas0_nr_long::Vector{Float64},elas0_r_long::Matrix{Float64},
@@ -286,6 +289,21 @@ function wtp_value!(wtp_nr::Vector{Float64},wtp_r::Matrix{Float64},
     ind_index = Int(ind)
     wtp_nr[ind_index]  = -β_AV_nr/α
     wtp_r[ind_index,:] .= -(β_AV_nr .+ β_AV_r)/α
+
+    ## Firm Willingness to Pay
+    X_σ = permutedims(prodcharsσ(app),(2,1))
+    X_σ[:,1].=0.0
+    F = fixedEffects(app,idxitr)
+    controls = zeros(size(F,2))
+    for k in eachindex(controls)
+        for j in app._rel_fe_Dict[ind]
+            controls[k]+= fe[j]*F[j,k]
+        end
+    end
+
+    
+    wtp_firm_nr[idxitr]  = -(controls)./α
+    wtp_firm_r[idxitr,:] .= -(X_σ*β_i .+ controls)./α
 
     ## Own-price Semi-Elasticity
     elas_nr[idxitr] = α.*(1 .- Smat_nr[idxitr]).*pr

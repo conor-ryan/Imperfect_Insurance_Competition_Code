@@ -4,28 +4,7 @@ library(randtoolbox)
 library(data.table)
 library(scales)
 library(ggplot2)
-setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition")
-
-## Run
-run = "2020-03-10"
-
-#### 2015 Subsidy Percentage Function ####
-
-subsPerc <- function(FPL){
-  x = FPL[!is.na(FPL)]
-  y = rep(100,length(x))
-  y[x>=1&x<1.33]   = 2.01 + (x-1)[x>=1&x<1.33]/(1.33-1)*(3.02-2.01)
-  y[x>=1.33&x<1.5] = 3.02 + (x-1.33)[x>=1.33&x<1.5]/(1.5-1.33)*(4.02-3.02)
-  y[x>=1.5&x<2]    = 4.02 + (x-1.5)[x>=1.5&x<2]/(2-1.5)*(6.34-4.02)
-  y[x>=2&x<2.5]    = 6.34 + (x-2)[x>=2&x<2.5]/(2.5-2)*(8.1-6.34)
-  y[x>=2.5&x<3]    = 8.1 + (x-2.5)[x>=2.5&x<3]/(3-2.5)*(9.56-8.1)
-  y[x>=3&x<=4]      = 9.56
-  
-  HHcont = rep(NA,length(FPL))
-  HHcont[!is.na(FPL)] = y/100
-  
-  return(HHcont)
-}
+setwd("C:/Users/Conor/Dropbox/Research/Imperfect_Insurance_Competition")
 
 
 #### Read in  ACS Exchange Elligible Data ####

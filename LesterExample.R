@@ -1,9 +1,9 @@
 rm(list=ls())
-library(deSolve)
+# library(deSolve)
 library(nleqslv)
 library(ggplot2)
 library(scales)
-setwd("C:/Users/Conor/Documents/Research/Imperfect_Insurance_Competition/Writing/Images")
+setwd("C:/Users/cxr5626/Dropbox/Research/Imperfect_Insurance_Competition/Writing/Images")
 #### General Functions ####
 ## Utility and Cost (inverted utility) Functions
 

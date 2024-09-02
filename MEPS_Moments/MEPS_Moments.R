@@ -203,14 +203,17 @@ dist2 = meps[HCC_Score_Silver>0,list(population=sum(PERWT15F),type="Data"),by=ri
 dist_plot = rbind(dist1,dist2)
 
 dist_plot[,density:=population/sum(population),by="type"]
+save(dist_plot,file="Intermediate_Output/MEPS_Moments/risk_dist.rData")
 
 png("Writing/Images/RiskDist_Fit_Positive.png",width=2500,height=1500,res=275)
-ggplot(dist_plot) + aes(x=risk_score_bucket,y=density,fill=type,group=type) + 
+ggplot(dist_plot) + aes(x=risk_score_bucket,y=density) + 
   geom_bar(stat="identity",position="identity",alpha=0.75) + 
   ylab("Density") +
   xlab("Risk Score") +
+  facet_wrap(~type,ncol=1) + 
   theme(#panel.background = element_rect(color=grey(.2),fill=grey(.9)),
     strip.background = element_blank(),
+    strip.text = element_text(size=14),
     #panel.grid.major = element_line(color=grey(.8)),
     legend.background = element_blank(),
     legend.title=element_blank(),
