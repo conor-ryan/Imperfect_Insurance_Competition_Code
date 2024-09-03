@@ -474,7 +474,7 @@ function simulate_all_mergers(m::InsuranceLogit,
         ## Solve Profit-Constrained Social Planner Problem
         println("Begin Profit Constrained Planner Solution")
         f.P_j[:] = P_Base_SP_cp
-        markets_cp, λ_vec_cp = solve_SP_λ_parallel!(m,f,merger_profits,markets=shared_markets)
+        markets_cp, λ_vec_cp = solve_SP_λ!(m,f,merger_profits,markets=shared_markets)
         evaluate_model!(m,f,"All",voucher=true,update_voucher=false)
         product_risk = calc_risk_avg(m,f)
         
